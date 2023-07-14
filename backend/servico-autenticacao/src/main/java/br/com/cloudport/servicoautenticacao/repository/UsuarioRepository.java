@@ -1,10 +1,11 @@
-package br.com.cloudport.servicoautenticacao.repositorio;
+package br.com.cloudport.servicoautenticacao.repository;
 
-import br.com.cloudport.servicoautenticacao.modelo.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import br.com.cloudport.servicoautenticacao.model.Usuario;
+
 @Repository
-public interface UsuarioRepositorio extends JpaRepository<Usuario, Long> {
+public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     // Aqui você pode adicionar métodos personalizados para consultas se necessário
 }

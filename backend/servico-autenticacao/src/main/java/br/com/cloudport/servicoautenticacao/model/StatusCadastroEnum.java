@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoautenticacao.modelo;
+package br.com.cloudport.servicoautenticacao.model;
 
 public enum StatusCadastroEnum {
     ATIVO,

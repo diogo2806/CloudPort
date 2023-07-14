@@ -1,10 +1,11 @@
-package br.com.cloudport.servicoautenticacao.repositorio;
+package br.com.cloudport.servicoautenticacao.repository;
 
-import br.com.cloudport.servicoautenticacao.modelo.Procuracao;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import br.com.cloudport.servicoautenticacao.model.PerfilAcesso;
+
 @Repository
-public interface ProcuracaoRepositorio extends JpaRepository<Procuracao, Long> {
+public interface PerfilAcessoRepository extends JpaRepository<PerfilAcesso, Long> {
     // Aqui você pode adicionar métodos personalizados de consulta, se necessário.
 }

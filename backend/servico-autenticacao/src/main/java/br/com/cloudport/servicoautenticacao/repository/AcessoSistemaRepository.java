@@ -1,10 +1,11 @@
-package br.com.cloudport.servicoautenticacao.repositorio;
+package br.com.cloudport.servicoautenticacao.repository;
 
-import br.com.cloudport.servicoautenticacao.modelo.PerfilAcesso;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import br.com.cloudport.servicoautenticacao.model.AcessoSistema;
+
 @Repository
-public interface PerfilAcessoRepositorio extends JpaRepository<PerfilAcesso, Long> {
+public interface AcessoSistemaRepository extends JpaRepository<AcessoSistema, Long> {
     // Aqui você pode adicionar métodos personalizados de consulta, se necessário.
 }

@@ -7,6 +7,8 @@ import javax.persistence.Id
 import javax.persistence.Enumerated
 import javax.persistence.EnumType
 import java.time.LocalDate
+import br.com.cloudport.servicoautenticacao.modelo.StatusCadastro
+
 
 @Entity
 data class Usuario(

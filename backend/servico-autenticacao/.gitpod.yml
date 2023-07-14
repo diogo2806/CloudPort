@@ -1,6 +1,0 @@
-image:
-  file: .gitpod.Dockerfile
-
-tasks:
-  - init: docker-compose up -d
-    command: mvn clean package && java -jar target/*.jar

@@ -1,14 +1,14 @@
 package br.com.cloudport.servicoautenticacao.modelo;
 
 
-public enum TipoUsuario {
+public enum TipoUsuarioEnum {
     ADMINISTRADOR("Administrador"),
     USUARIO_REGULAR("Usuário Regular"),
     VISITANTE("Visitante");
 
     private String descricao;
 
-    TipoUsuario(String descricao) {
+    TipoUsuarioEnum(String descricao) {
         this.descricao = descricao;
     }
 

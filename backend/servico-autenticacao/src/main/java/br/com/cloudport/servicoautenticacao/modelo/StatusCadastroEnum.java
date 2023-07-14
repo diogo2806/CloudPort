@@ -1,6 +1,6 @@
 package br.com.cloudport.servicoautenticacao.modelo;
 
-public enum StatusCadastro {
+public enum StatusCadastroEnum {
     ATIVO,
     INATIVO,
     PENDENTE,

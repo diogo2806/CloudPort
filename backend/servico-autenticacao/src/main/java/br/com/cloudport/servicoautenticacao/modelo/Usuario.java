@@ -24,14 +24,14 @@ public class Usuario {
     private String razaoSocial;
     
     @Enumerated(EnumType.STRING)
-    private StatusCadastro statusCadastro;
+    private StatusCadastroEnum statusCadastroEnum;
 
     private String usuarioAprovacao;
     private LocalDate dataAprovacao;
     private LocalDate dataCadastro;
 
     @Enumerated(EnumType.STRING)
-    private TipoUsuario tipoUsuario;  
+    private TipoUsuarioEnum tipoUsuarioEnum;  
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(name = "usuario_perfil_acesso",
@@ -44,14 +44,14 @@ public class Usuario {
     
     // Construtor com todos os atributos (você pode escolher quais atributos incluir no construtor)
     public Usuario(String cpf, String nome, String email, String cnpj, String razaoSocial, 
-        StatusCadastro statusCadastro, String usuarioAprovacao, LocalDate dataAprovacao,
+        StatusCadastroEnum statusCadastro, String usuarioAprovacao, LocalDate dataAprovacao,
         LocalDate dataCadastro) {
         this.cpf = cpf;
         this.nome = nome;
         this.email = email;
         this.cnpj = cnpj;
         this.razaoSocial = razaoSocial;
-        this.statusCadastro = statusCadastro;
+        this.statusCadastroEnum = statusCadastro;
         this.usuarioAprovacao = usuarioAprovacao;
         this.dataAprovacao = dataAprovacao;
         this.dataCadastro = dataCadastro;

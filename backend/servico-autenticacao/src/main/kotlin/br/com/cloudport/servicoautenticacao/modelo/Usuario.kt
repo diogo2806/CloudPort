@@ -1,11 +1,7 @@
 package br.com.cloudport.servicoautenticacao.modelo
 
-import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.GenerationType
-import javax.persistence.Id
-import javax.persistence.Enumerated
-import javax.persistence.EnumType
+import javax.persistence.*
+
 import java.time.LocalDate
 import br.com.cloudport.servicoautenticacao.modelo.StatusCadastro
 

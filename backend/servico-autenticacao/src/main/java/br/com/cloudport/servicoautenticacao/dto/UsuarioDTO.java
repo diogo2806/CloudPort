@@ -10,6 +10,8 @@ import java.util.List;
 @Setter
 public class UsuarioDTO {
 
+    public UsuarioDTO(Long id2, Object nome2) {
+    }
     private Long id;
     private String cpf;
     private String nome;

@@ -2,22 +2,16 @@ package br.com.cloudport.servicoautenticacao.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
-@NoArgsConstructor
 @Entity
-public class AcessoSistema {
+public class SolicitacaoAcesso {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
     private Usuario usuario;
 
     @Enumerated(EnumType.STRING)
@@ -25,9 +19,8 @@ public class AcessoSistema {
 
     private LocalDate dataSolicitacao;
 
+    @Column(length = 500)
     private String justificativa;
 
-    
-
-    // getters and setters
+    // Construtores, getters e setters
 }

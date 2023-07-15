@@ -56,4 +56,7 @@ public class Usuario {
         this.dataAprovacao = dataAprovacao;
         this.dataCadastro = dataCadastro;
     }
+
+    public Usuario(Long id2, String nome2) {
+    }
 }

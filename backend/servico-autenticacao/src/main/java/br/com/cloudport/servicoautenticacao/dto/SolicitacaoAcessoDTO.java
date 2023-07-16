@@ -1,7 +1,6 @@
 package br.com.cloudport.servicoautenticacao.dto;
 
-import br.com.cloudport.servicoautenticacao.model.AcessoSistema;
-import br.com.cloudport.servicoautenticacao.model.Usuario;
+import br.com.cloudport.servicoautenticacao.model.SolicitacaoAcesso;
 import br.com.cloudport.servicoautenticacao.model.StatusCadastro;
 import java.time.LocalDate;
 
@@ -16,22 +15,22 @@ public class SolicitacaoAcessoDTO {
     public SolicitacaoAcessoDTO() {
     }
 
-    public SolicitacaoAcessoDTO(AcessoSistema acessoSistema) {
-        this.id = acessoSistema.getId();
-        this.usuario = new UsuarioDTO(acessoSistema.getUsuario().getId(), acessoSistema.getUsuario().getNome());
-        this.status = acessoSistema.getStatus();
-        this.dataSolicitacao = acessoSistema.getDataSolicitacao();
-        this.justificativa = acessoSistema.getJustificativa();
+    public SolicitacaoAcessoDTO(SolicitacaoAcesso solicitacaoAcesso) {
+        this.id = solicitacaoAcesso.getId();
+        this.usuario = new UsuarioDTO(solicitacaoAcesso.getUsuario());
+        this.status = solicitacaoAcesso.getStatus();
+        this.dataSolicitacao = solicitacaoAcesso.getDataSolicitacao();
+        this.justificativa = solicitacaoAcesso.getJustificativa();
     }
 
-    public AcessoSistema toModel() {
-        AcessoSistema acessoSistema = new AcessoSistema();
-        acessoSistema.setId(id);
-        acessoSistema.setUsuario(new Usuario(usuario.getId(), usuario.getNome()));
-        acessoSistema.setStatus(status);
-        acessoSistema.setDataSolicitacao(dataSolicitacao);
-        acessoSistema.setJustificativa(justificativa);
-        return acessoSistema;
+    public SolicitacaoAcesso toModel() {
+        SolicitacaoAcesso solicitacaoAcesso = new SolicitacaoAcesso();
+        solicitacaoAcesso.setId(id);
+        solicitacaoAcesso.setUsuario(usuario.toModel());
+        solicitacaoAcesso.setStatus(status);
+        solicitacaoAcesso.setDataSolicitacao(dataSolicitacao);
+        solicitacaoAcesso.setJustificativa(justificativa);
+        return solicitacaoAcesso;
     }
 
     // getters and setters...

@@ -2,7 +2,13 @@ package br.com.cloudport.servicoautenticacao.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 public class SolicitacaoAcesso {
 

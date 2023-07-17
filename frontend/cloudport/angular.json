@@ -58,12 +58,16 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "disableHostCheck": true 
+          },
           "configurations": {
             "production": {
               "browserTarget": "cloudport:build:production"
             },
             "development": {
-              "browserTarget": "cloudport:build:development"
+              "browserTarget": "cloudport:build:development",
+              "disableHostCheck": true 
             }
           },
           "defaultConfiguration": "development"

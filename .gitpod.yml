@@ -1,0 +1,14 @@
+tasks:
+  - init: |
+      cd frontend/cloudport
+      npm install -g @angular/cli
+      npm install -g npm@9.8.0
+      npm install
+      npm install --save ngx-mask
+      npm i ngx-mask@13.1.13
+
+
+
+  - command: |
+      cd frontend/cloudport
+      ng serve --host 0.0.0.0 --disableHostCheck true

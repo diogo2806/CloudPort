@@ -16,5 +16,4 @@ tasks:
       npm install
       ng serve 
 
-  - name: Postgres
-    command: sudo service postgresql start
+

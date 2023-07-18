@@ -3,7 +3,6 @@ image:
 
 tasks:
   - init: |
-      sudo service postgresql start &&
       sudo -u postgres psql -c "CREATE DATABASE servico_autenticacao;" &&
       sudo -u postgres psql -c "CREATE USER myuser WITH SUPERUSER PASSWORD 'mypass';" &&
       sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE servico_autenticacao TO myuser;"

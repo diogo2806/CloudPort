@@ -16,4 +16,3 @@ tasks:
       npm install --save ngx-mask
       npm i ngx-mask@13.1.13
     command: ng serve
-

@@ -2,9 +2,9 @@ image: marcopeg/gitpod-workspace-postgres:2.5.0
 
 ports:
   - port: 8008
-    onOpen: ignore
+    onOpen: open-browser
   - port: 5432
-    onOpen: ignore
+    onOpen: open-browser
 
 tasks:
   - init: |

@@ -1,6 +1,6 @@
 package br.com.cloudport.servicoautenticacao.model;
 
-import jakarta.persistence.*;
+import javax.persistence.*;
 import java.time.LocalDate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -1,9 +1,8 @@
-image: 
+image:
   file: .gitpod.Dockerfile
 
 tasks:
   - init: |
-      sudo fuser -k 5432/tcp || true
       sudo service postgresql start &&
       sudo -u postgres psql -c "CREATE DATABASE servico_autenticacao;" &&
       sudo -u postgres psql -c "CREATE USER myuser WITH SUPERUSER PASSWORD 'mypass';" &&

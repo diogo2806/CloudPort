@@ -1,4 +1,13 @@
+image: 
+  file: .gitpod.Dockerfile
+
 tasks:
+  - init: |
+      sudo service postgresql start &&
+      sudo -u postgres psql -c "CREATE DATABASE servico_autenticacao;" &&
+      sudo -u postgres psql -c "CREATE USER admin WITH SUPERUSER PASSWORD 'admin';" &&
+      sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE servico_autenticacao TO gitpod;"
+    command: echo "PostgreSQL is ready."
   - init: |
       cd frontend/cloudport
       npm install -g @angular/cli
@@ -6,11 +15,5 @@ tasks:
       npm install
       npm install --save ngx-mask
       npm i ngx-mask@13.1.13
-  - command: |
-      cd frontend/cloudport
-      npm install -g @angular/cli
-      npm install -g npm@9.8.0
-      npm install
-      ng serve 
-
+    command: ng serve
 

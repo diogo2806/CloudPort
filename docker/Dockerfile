@@ -1,5 +1,9 @@
-FROM marcopeg/gitpod-workspace-postgres:2.5.0
+FROM gitpod/workspace-java-17
 
-RUN sudo apt-get update && \
-    sudo apt-get install -y openjdk-11-jdk && \
-    sudo rm -rf /var/lib/apt/lists/*
+# Install PostgreSQL
+USER root
+RUN apt-get update && apt-get install -y postgresql
+USER gitpod
+
+# Start PostgreSQL service
+RUN sudo service postgresql start

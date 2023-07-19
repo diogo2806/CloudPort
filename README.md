@@ -26,7 +26,8 @@ https://start.spring.io/#!type=maven-project&language=java&platformVersion=3.1.1
 2. Certifique-se de que você tem o Maven e o JDK 17 instalados.
 3. Navegue até a raiz do projeto via linha de comando.
 4. Execute `createdb servico_autenticacao`.
-5. Execute `mvn spring-boot:run`.
+5. Execute `sdk install java 18.0.1.fx-zulu` para atualizar o java.
+6. Execute `mvn spring-boot:run`.
 
 ### Contribuição
 Contribuições são sempre bem-vindas. Se você deseja contribuir, por favor, abra uma issue primeiro para discutir o que você gostaria de mudar.

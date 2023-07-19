@@ -1,3 +1,5 @@
-FROM gitpod/workspace-postgres
+FROM marcopeg/gitpod-workspace-postgres:2.5.0
 
-ENV DATABASE_URL=postgres://myuser:mypass@localhost:5432/servico_autenticacao
+RUN sudo apt-get update && \
+    sudo apt-get install -y openjdk-11-jdk && \
+    sudo rm -rf /var/lib/apt/lists/*

@@ -1,5 +1,4 @@
-image:
-  file: docker/Dockerfile
+image: marcopeg/gitpod-workspace-postgres:2.5.0
 
 ports:
   - port: 8008
@@ -9,17 +8,11 @@ ports:
 
 tasks:
   - init: |
-      sudo service postgresql start
-      sudo -u postgres createdb servico_autenticacao
-      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
-      export NVM_DIR="$HOME/.nvm"
-      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-      [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+      cd frontend/cloudport
       nvm install node
       nvm use node
       npm install -g @angular/cli
       npm install -g npm 
-      cd frontend/cloudport
       npm install
       npm install --save ngx-mask
       npm i ngx-mask@13.1.13

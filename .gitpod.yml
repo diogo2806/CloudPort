@@ -17,9 +17,3 @@ tasks:
       npm install --save ngx-mask
       npm i ngx-mask@13.1.13
     command: ng serve
-
-vscode:
-  extensions:
-    - redhat.java
-  settings:
-    "java.home": "/usr/lib/jvm/java-11-openjdk-amd64"

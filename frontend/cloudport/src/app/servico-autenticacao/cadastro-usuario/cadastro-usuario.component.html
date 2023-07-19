@@ -1,0 +1,45 @@
+<form (ngSubmit)="onSubmit()">
+    <label>
+      Nome:
+      <input type="text" [(ngModel)]="usuario.nome" name="nome" required>
+    </label>
+    <label>
+      CPF:
+      <input type="text" [(ngModel)]="usuario.cpf" name="cpf">
+    </label>
+    <label>
+      Email:
+      <input type="text" [(ngModel)]="usuario.email" name="email" required>
+    </label>
+    <label>
+      CNPJ:
+      <input type="text" [(ngModel)]="usuario.cnpj" name="cnpj">
+    </label>
+    <label>
+      Razão Social:
+      <input type="text" [(ngModel)]="usuario.razaoSocial" name="razaoSocial">
+    </label>
+    <label>
+      Status de Cadastro:
+      <input type="text" [(ngModel)]="usuario.statusCadastro" name="statusCadastro">
+    </label>
+    <label>
+      Usuário de Aprovação:
+      <input type="text" [(ngModel)]="usuario.usuarioAprovacao" name="usuarioAprovacao">
+    </label>
+    <label>
+      Data de Aprovação:
+      <input type="date" [(ngModel)]="usuario.dataAprovacao" name="dataAprovacao">
+    </label>
+    <label>
+      Data de Cadastro:
+      <input type="date" [(ngModel)]="usuario.dataCadastro" name="dataCadastro">
+    </label>
+    <label>
+      Tipo de Usuário:
+      <input type="text" [(ngModel)]="usuario.tipoUsuario" name="tipoUsuario">
+    </label>
+    <!-- Adicione outros campos aqui, respeitando a estrutura do seu modelo UsuarioDTO... -->
+    <button type="submit">Registrar</button>
+  </form>
+  

@@ -1,23 +1,17 @@
+package br.com.cloudport.servicoautenticacao.dto;
+
+import lombok.Getter;
+import lombok.Setter;
+import java.util.List;
+
+@Getter
+@Setter
 public class PrivilegioDTO {
 
     private Long id;
     private String nome;
-
-    // Getters and setters
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+    
+    // Dependendo da sua lógica de negócio, você pode precisar de construtores,
+    // métodos para transformar um DTO em uma entidade e vice-versa.
+    // Aqui, estou assumindo que você está usando Lombok para gerar getters e setters.
 }

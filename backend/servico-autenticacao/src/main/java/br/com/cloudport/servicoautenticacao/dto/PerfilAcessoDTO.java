@@ -1,3 +1,5 @@
+package br.com.cloudport.servicoautenticacao.dto;
+
 import lombok.Getter;
 import lombok.Setter;
 

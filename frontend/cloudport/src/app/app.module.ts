@@ -11,7 +11,8 @@ import { FormsModule } from '@angular/forms';
 import { SolicitarAcessoComponent } from './servico-autenticacao/solicitar-acesso/solicitar-acesso.component';
 import { CadastroUsuarioComponent } from './servico-autenticacao/cadastro-usuario/cadastro-usuario.component';
 import { NotificacaoComponent } from './notificacao/notificacao.component';
-import { SolicitarAcessoServiceComponent } from './servico-autenticacao/solicitar-acesso/solicitar-acesso-service/solicitar-acesso-service/solicitar-acesso-service.component';
+import { SolicitarAcessoServiceComponent } from './service/solicitar-acesso-service/solicitar-acesso-service/solicitar-acesso-service.component';
+//import { SolicitarAcessoServiceComponent } from './servico-autenticacao/solicitar-acesso/solicitar-acesso-service/solicitar-acesso-service/solicitar-acesso-service.component';
 
 // Defina suas rotas
 const routes: Routes = [

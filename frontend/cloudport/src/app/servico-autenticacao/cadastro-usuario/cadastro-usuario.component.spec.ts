@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
-import { CadastroUsuarioService } from './cadastro-usuario-service/cadastro-usuario-service.service';
+import { CadastroUsuarioService } from '../../service/cadastro-usuario-service/cadastro-usuario-service.service';
+//import { CadastroUsuarioService } from './cadastro-usuario-service/cadastro-usuario-service.service';
 import { UsuarioDTO } from '../models/usuario-dto';
 import { NotificacaoService } from '../../notificacao/notificacao.service'; // Importe o serviço de notificação
 

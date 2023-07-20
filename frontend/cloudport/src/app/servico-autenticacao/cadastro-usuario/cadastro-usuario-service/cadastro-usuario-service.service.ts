@@ -7,7 +7,7 @@ import { UsuarioDTO } from '../../models/usuario-dto';
   providedIn: 'root',
 })
 export class CadastroUsuarioService {
-  private apiUrl = 'https://8080-diogo2806-cloudport-vd28lu2sfvn.ws-us101.gitpod.io/api/usuarios';
+  private apiUrl = 'http://localhost:8080/api/usuarios';
 
   constructor(private http: HttpClient) { }
 

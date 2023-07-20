@@ -6,7 +6,7 @@ import { CadastroUsuarioComponent } from './servico-autenticacao/cadastro-usuari
 
 const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'cadastro', component: CadastroUsuarioComponent },
+  { path: 'cadastro-usuario', component: CadastroUsuarioComponent },
   { path: 'login', component: LoginComponent }
 ];
 

@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { UsuarioDTO } from '../models/usuario-dto'; // Atualize o caminho de importação conforme necessário
 import { CadastroUsuarioService } from '../cadastro-usuario/cadastro-usuario-service/cadastro-usuario-service.service'; // Adicione o import para o serviço
 import { NotificacaoService } from '../../notificacao/notificacao.service'; // Importe o serviço de notificação
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-cadastro-usuario',
@@ -14,7 +15,8 @@ export class CadastroUsuarioComponent {
   // Injete o serviço no construtor
   constructor(
     private cadastroUsuarioService: CadastroUsuarioService, 
-    private notificacaoService: NotificacaoService
+    private notificacaoService: NotificacaoService,
+    private router: Router
   ) { }
 
   onSubmit(): void {
@@ -29,5 +31,9 @@ export class CadastroUsuarioComponent {
         this.notificacaoService.show('Ocorreu um erro ao cadastrar o usuário.'); // Mostre uma notificação de erro
       }
     });
+  }
+
+  voltarParaLogin(): void {
+    this.router.navigate(['/login']);
   }
 }

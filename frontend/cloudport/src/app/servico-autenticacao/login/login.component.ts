@@ -11,7 +11,7 @@ export class LoginComponent implements OnInit {
 
   username: string;
   password: string;
-  errorMessage = 'Invalid Credentials';
+  errorMessage = 'Credenciais inválidas';
   successMessage: string;
   invalidLogin = false;
   loginSuccess = false;
@@ -22,19 +22,22 @@ export class LoginComponent implements OnInit {
   }
 
   handleLogin() {
-     console.log(`Username: ${this.username}, Password: ${this.password}`);
-     
-    this.authService.login(this.username, this.password).subscribe((result) => {
-      console.log('Resposta de login recebida:', result);
-      this.invalidLogin = false;
-      this.loginSuccess = true;
-      this.successMessage = 'Login Successful';
-      // redirect to main page
-    }, (error) => {
-      console.error('Erro durante o login:', error);
-      this.invalidLogin = true;
-      this.loginSuccess = false;
-    });
+    console.log(`Username: ${this.username}, Password: ${this.password}`);
+
+    this.authService.login(this.username, this.password).subscribe(
+      (result) => {
+        console.log('Resposta de login recebida:', result);
+        this.invalidLogin = false;
+        this.loginSuccess = true;
+        this.successMessage = 'Login realizado com sucesso';
+        // redirecionar para a página principal
+      },
+      (error) => {
+        console.error('Erro durante o login:', error);
+        this.invalidLogin = true;
+        this.loginSuccess = false;
+      }
+    );
   }
 
   limparCampos() {

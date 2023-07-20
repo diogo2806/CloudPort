@@ -5,7 +5,7 @@
 export const environment = {
     production: false,
     //hostUrl: 'http://localhost:8080'
-    hostUrl: 'https://8080-diogo2806-cloudport-5rk6q3wf87j.ws-us102.gitpod.io'
+    hostUrl: 'https://8080-diogo2806-cloudport-p5osgdhffju.ws-us102.gitpod.io'
 
   };
   

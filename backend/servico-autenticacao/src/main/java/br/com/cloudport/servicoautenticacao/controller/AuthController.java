@@ -13,10 +13,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @RestController
 public class AuthController {
@@ -32,38 +28,32 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    @CrossOrigin(origins = "https://4200-diogo2806-cloudport-5rk6q3wf87j.ws-us102.gitpod.io", methods = {RequestMethod.OPTIONS, RequestMethod.POST})
-    @RequestMapping(value = "/authenticate", method = RequestMethod.POST)
+    @PostMapping("/authenticate")
     public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest) throws Exception {
 
-        System.out.println("AuthController: método createAuthenticationToken chamado");
-
-
-        logger.warn("Received authentication request: {}", authenticationRequest);
-        logger.warn("Received authentication request.getUsername(): {}", authenticationRequest.getUsername());
-        logger.warn("Received authentication request.getPassword(): {}", authenticationRequest.getPassword());
+        logger.warn("AuthController: método createAuthenticationToken chamado");
+        logger.warn("AuthController: Received authentication request: {}", authenticationRequest);
+        logger.warn("AuthController: Received authentication request.getUsername(): {}", authenticationRequest.getUsername());
+        logger.warn("AuthController: Received authentication request.getPassword(): {}", authenticationRequest.getPassword());
 
         try {
             authenticationManager.authenticate(
-                    //new UsernamePasswordAuthenticationToken(authenticationRequest.getUsername(), authenticationRequest.getPassword())
-                    new UsernamePasswordAuthenticationToken("gitpod", "gitpod")
+                    new UsernamePasswordAuthenticationToken(authenticationRequest.getUsername(), authenticationRequest.getPassword())
             );
-        }
-        catch (BadCredentialsException e) {
-            System.out.println("AuthController: BadCredentialsException - " + e.getMessage());
+            // Registro de log de sucesso
+            logger.warn("AuthController: Authentication successful for username: {}", authenticationRequest.getUsername());
 
-            logger.warn("Usuário ou senha incorretos", e);
+        } catch (BadCredentialsException e) {
+            logger.warn("AuthController: Usuário ou senha incorretos", e);
             throw new Exception("Usuário ou senha incorretos", e);
         }
 
-        final UserDetails userDetails = userDetailsService
-                .loadUserByUsername(authenticationRequest.getUsername());
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequest.getUsername());
+        logger.warn("AuthController: UserDetails - {}", userDetails);
 
         final String jwt = jwtUtil.generateToken(userDetails);
-        System.out.println("AuthController: JWT gerado - " + jwt);
-        logger.warn("AuthController: JWT gerado - " + jwt);
+        logger.warn("AuthController: JWT gerado - {}", jwt);
 
         return ResponseEntity.ok(new AuthenticationResponse(jwt));
-       
     }
 }

@@ -32,11 +32,13 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
          // Log de exemplo
-         logger.warn("JwtRequestFilter: doFilterInternal chamado");        
-    
+        logger.warn("JwtRequestFilter: doFilterInternal chamado");        
+        logger.warn("JwtRequestFilter: HttpServletResponse response "+response);     
+        logger.warn("JwtRequestFilter: HttpServletRequest request "+request);    
+        logger.warn("JwtRequestFilter: FilterChain chain "+chain);   
 
         final String authorizationHeader = request.getHeader("Authorization");
-        logger.warn(authorizationHeader);     
+        logger.warn("JwtRequestFilter: request.getHeader "+authorizationHeader);     
 
 
         String username = null;
@@ -47,12 +49,12 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             username = jwtUtil.getUsernameFromToken(jwt);
         }
 
-        logger.warn(username);   
-        logger.warn(jwt);   
+        logger.warn("JwtRequestFilter: username "+username);   
+        logger.warn("JwtRequestFilter: jwt "+jwt);   
 
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            if (username.equals("gitpod") && "gitpod".equals(request.getParameter("password"))) {
+            if (username.equals("gitpod")) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
                 if (jwtUtil.validateToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
@@ -63,6 +65,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 }
             }
         }
+        
 
         chain.doFilter(request, response);
     }

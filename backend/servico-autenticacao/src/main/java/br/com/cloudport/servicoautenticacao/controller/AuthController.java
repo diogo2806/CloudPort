@@ -1,34 +1,46 @@
-import org.springframework.http.HttpStatus;
+package br.com.cloudport.servicoautenticacao.controller;
+
+import br.com.cloudport.servicoautenticacao.model.AuthenticationRequest;
+import br.com.cloudport.servicoautenticacao.model.AuthenticationResponse;
+import br.com.cloudport.servicoautenticacao.service.CustomUserDetailsService;
+import br.com.cloudport.servicoautenticacao.util.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.charset.Charset;
-import java.util.Base64;
-import java.util.Map;
-
 @RestController
-@RequestMapping("/api")
 public class AuthController {
-    // Essa estrutura de dados é apenas um exemplo, em um ambiente real você precisaria consultar um banco de dados ou similar
-    private Map<String, String> users = Map.of("user", "password");
 
-    @GetMapping("/login")
-    public ResponseEntity<?> login(@RequestHeader("Authorization") String authHeader) {
-        // Basic base64encoded(username:password)
-        String base64Credentials = authHeader.substring("Basic".length()).trim();
-        String credentials = new String(Base64.getDecoder().decode(base64Credentials),
-                Charset.forName("UTF-8"));
-        // credentials = username:password
-        final String[] values = credentials.split(":",2);
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
-        String username = values[0];
-        String password = values[1];
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
 
-        // Aqui verificamos se as credenciais fornecidas correspondem a um usuário existente
-        if (users.containsKey(username) && users.get(username).equals(password)) {
-            return ResponseEntity.ok("Logged in!");
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @RequestMapping(value = "/authenticate", method = RequestMethod.POST)
+    public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest) throws Exception {
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(authenticationRequest.getUsername(), authenticationRequest.getPassword())
+            );
         }
+        catch (BadCredentialsException e) {
+            throw new Exception("Incorrect username or password", e);
+        }
+
+        final UserDetails userDetails = userDetailsService
+                .loadUserByUsername(authenticationRequest.getUsername());
+
+        final String jwt = jwtUtil.generateToken(userDetails);
+
+        return ResponseEntity.ok(new AuthenticationResponse(jwt));
     }
 }

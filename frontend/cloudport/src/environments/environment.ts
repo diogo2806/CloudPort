@@ -4,7 +4,9 @@
 
 export const environment = {
     production: false,
-    hostUrl: 'https://8080-diogo2806-cloudport-4lo70p95wat.ws-us101.gitpod.io'
+    //hostUrl: 'http://localhost:8080'
+    hostUrl: 'https://8080-diogo2806-cloudport-v7gck3osb7t.ws-us102.gitpod.io'
+
   };
   
   /*

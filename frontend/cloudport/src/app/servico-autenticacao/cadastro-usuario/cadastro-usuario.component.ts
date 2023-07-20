@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { UsuarioDTO } from '../models/usuario-dto'; // Atualize o caminho de importação conforme necessário
-import { CadastroUsuarioService } from '../cadastro-usuario/cadastro-usuario-service/cadastro-usuario-service.service'; // Adicione o import para o serviço
+import { CadastroUsuarioService } from '../../service/cadastro-usuario-service/cadastro-usuario-service.service'; // Adicione o import para o serviço
+//import { CadastroUsuarioService } from '../cadastro-usuario/cadastro-usuario-service/cadastro-usuario-service.service'; // Adicione o import para o serviço
 import { NotificacaoService } from '../../notificacao/notificacao.service'; // Importe o serviço de notificação
 import { Router } from '@angular/router';
 

@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../service/login-service/AuthService';
-//import { AuthService } from '../login/login-service/AuthService';
 
 @Component({
   selector: 'app-login',
@@ -11,7 +10,6 @@ import { AuthService } from '../../service/login-service/AuthService';
 export class LoginComponent implements OnInit {
 
   username: string;
-  //username: string;
   password: string;
   errorMessage = 'Invalid Credentials';
   successMessage: string;
@@ -24,15 +22,16 @@ export class LoginComponent implements OnInit {
   }
 
   handleLogin() {
-     // Implemente a lógica do login aqui.
      console.log(`Username: ${this.username}, Password: ${this.password}`);
      
     this.authService.login(this.username, this.password).subscribe((result) => {
+      console.log('Resposta de login recebida:', result);
       this.invalidLogin = false;
       this.loginSuccess = true;
       this.successMessage = 'Login Successful';
       // redirect to main page
-    }, () => {
+    }, (error) => {
+      console.error('Erro durante o login:', error);
       this.invalidLogin = true;
       this.loginSuccess = false;
     });
@@ -42,19 +41,4 @@ export class LoginComponent implements OnInit {
     this.username = '';
     this.password = '';
   }
-
 }
-
-/*  onSubmit() {
-    // Implemente a lógica do login aqui.
-    console.log(`Username: ${this.username}, Password: ${this.password}`);
-    
-    // Se o login for bem-sucedido, navegue até a tela de solicitar acesso:
-    this.router.navigate(['/cadastro-usuario']);
-  }
-
-  limparCampos() {
-    this.username = '';
-    this.password = '';
-  }
-  */

@@ -35,3 +35,8 @@ O projeto depende das seguintes bibliotecas e ferramentas:
 ### Contribuição
 
 Contribuições são sempre bem-vindas. Se você deseja contribuir, por favor, abra uma issue primeiro para discutir o que você gostaria de mudar.
+
+mvn clean install
+mvn spring-boot:run
+
+

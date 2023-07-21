@@ -1,4 +1,4 @@
-image: marcopeg/gitpod-workspace-postgres:2.5.0
+image: gitpod/workspace-postgres
 
 ports:
   - port: 8008
@@ -11,9 +11,23 @@ tasks:
       cd frontend/cloudport
       nvm install node
       nvm use node
-      npm install -g @angular/cli
+
       npm install -g npm 
-      npm install
-      npm install --save ngx-mask
-      npm i ngx-mask@13.1.13
+      npm uninstall -g @angular/cli
+      npm uninstall -g @angular/common
+      npm uninstall -g @angular/core
+      npm uninstall -g @angular/animations
+      npm cache verify
+      rm -rf node_modules package-lock.json
+
+
+      npm install -g @angular/cli
+      npm install --save @angular/core@15.0.0 --legacy-peer-deps
+      npm install --save @angular/common@15.0.0 --legacy-peer-deps
+      npm install --save @angular/forms@15.0.0 --legacy-peer-deps
+      npm install --save @angular/animations@15.0.0 --legacy-peer-deps
+      npm install --save @angular/cdk@15.0.0 --legacy-peer-deps
+      npm install --save angular-bootstrap-md --legacy-peer-deps
+      npm install --save ngx-mask --legacy-peer-deps
+      npm install --legacy-peer-deps
     command: ng serve

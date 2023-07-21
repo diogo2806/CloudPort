@@ -1,7 +1,7 @@
-import { NgModule } from '@angular/core';
+import { NgModule, NO_ERRORS_SCHEMA  } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule } from '@angular/common/http';
-
+import { MDBBootstrapModule } from 'angular-bootstrap-md';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { LoginComponent } from './servico-autenticacao/login/login.component';
@@ -33,12 +33,14 @@ const routes: Routes = [
   ],
   imports: [
     HttpClientModule,
+    MDBBootstrapModule.forRoot(),
     NgxMaskModule.forRoot(),
     BrowserModule,
     AppRoutingModule,
     FormsModule,  // Adicione FormsModule aqui
     RouterModule.forRoot(routes) // Adicione as rotas aqui
   ],
+  schemas: [ NO_ERRORS_SCHEMA ],
   providers: [],
   bootstrap: [AppComponent]
 })

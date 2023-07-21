@@ -25,9 +25,13 @@
               "src/assets"
             ],
             "styles": [
+              "node_modules/angular-bootstrap-md/assets/scss/bootstrap/bootstrap.scss",
+              "node_modules/angular-bootstrap-md/assets/scss/mdb.scss",
               "src/styles.css"
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/angular-bootstrap-md/assets/js/bundles/8.8.1.min.js"
+            ]
           },
           "configurations": {
             "production": {

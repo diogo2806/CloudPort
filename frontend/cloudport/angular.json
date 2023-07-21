@@ -25,13 +25,9 @@
               "src/assets"
             ],
             "styles": [
-              "node_modules/angular-bootstrap-md/assets/scss/bootstrap/bootstrap.scss",
-              "node_modules/angular-bootstrap-md/assets/scss/mdb.scss",
               "src/styles.css"
             ],
-            "scripts": [
-              "node_modules/angular-bootstrap-md/assets/js/bundles/8.8.1.min.js"
-            ]
+            "scripts": []
           },
           "configurations": {
             "production": {
@@ -63,15 +59,14 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "disableHostCheck": true 
+            "disableHostCheck": true
           },
           "configurations": {
             "production": {
               "browserTarget": "cloudport:build:production"
             },
             "development": {
-              "browserTarget": "cloudport:build:development",
-              "disableHostCheck": true 
+              "browserTarget": "cloudport:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -95,9 +90,7 @@
               "src/assets"
             ],
             "styles": [
-              "node_modules/angular-bootstrap-md/scss/bootstrap/bootstrap.scss",
-              "node_modules/angular-bootstrap-md/scss/mdb-free.scss",
-              "src/styles.scss"
+              "src/styles.css"
             ],
             "scripts": []
           }
@@ -106,6 +99,6 @@
     }
   },
   "cli": {
-    "analytics": "d2654f44-ea7f-49f5-a68a-1f1bce2ef949"
+    "analytics": "e0aba2e6-b6ff-4614-ba82-d696a418492d"
   }
 }

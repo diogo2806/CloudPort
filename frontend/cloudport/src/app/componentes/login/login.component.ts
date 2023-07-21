@@ -2,21 +2,19 @@ import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
-import { TranslateService } from '@ngx-translate/core';
 
-
-import { AuthenticationService } from '../../service/login-service/AuthenticationService';
+import { AuthenticationService } from '../service/authentication.service';
 
 @Component({
     selector: 'app-login',
     templateUrl: './login.component.html',
-    styleUrls: ['./login.component.scss'],
+    styleUrls: ['./login.component.css']
 })
 export class LoginComponent implements OnInit {
-    loginForm: FormGroup;
+    loginForm: FormGroup = this.formBuilder.group({}); // Initialized here
     loading = false;
     submitted = false;
-    returnUrl: string;
+    returnUrl: string = ''; // Initialized here
     error = '';
 
     constructor(
@@ -37,7 +35,7 @@ export class LoginComponent implements OnInit {
             password: ['', Validators.required]
         });
 
-        // get return url from route parameters or default to '/home'
+        // get return url from route parameters or default to '/'
         this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '';
     }
 

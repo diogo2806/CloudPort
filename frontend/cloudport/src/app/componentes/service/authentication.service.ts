@@ -3,9 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import { environment } from '../../../environments/environment.prod';
-//import { User } from '../../models/user.model';
-import { User } from '../../servico-autenticacao/models/User';
+import { User } from '../model/user.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthenticationService {
@@ -13,18 +11,17 @@ export class AuthenticationService {
     public currentUser: Observable<User | null>;
 
     constructor(private http: HttpClient) {
-        let currentUser = localStorage.getItem('currentUser');
-        this.currentUserSubject = new BehaviorSubject<User | null>(currentUser ? JSON.parse(currentUser) : null);
-
+        const storedData = localStorage.getItem('currentUser');
+        this.currentUserSubject = new BehaviorSubject<User | null>(storedData ? JSON.parse(storedData) : null);
         this.currentUser = this.currentUserSubject.asObservable();
     }
 
-    public get currentUserValue(): User {
-        return this.currentUserSubject.value!;
+    public get currentUserValue(): User | null {
+        return this.currentUserSubject.getValue();
     }
 
     login(nome: string, senha: string) {
-        return this.http.post<any>(`https://8080-diogo2806-cloudport-ggwot2o7imq.ws-us102.gitpod.io//auth`, { nome, senha })
+        return this.http.post<any>(`http://kkk/auth`, { nome, senha })
             .pipe(map(user => {
                 // store user details and jwt token in local storage to keep user logged in between page refreshes
                 localStorage.setItem('currentUser', JSON.stringify(user));
@@ -41,13 +38,12 @@ export class AuthenticationService {
     }
 
     //set name user new in storage
-    setUserName(username:string){
+    setUserName(username: string) {
         localStorage.setItem('username', JSON.stringify(username));
     }
 
-    getUserName() {
-        let storedValue = localStorage.getItem('username');
-        return JSON.parse(storedValue !== null ? storedValue : '""');
+    getUserName(): string | null {
+        const storedData = localStorage.getItem('username');
+        return storedData ? JSON.parse(storedData) : null;
     }
-    
 }

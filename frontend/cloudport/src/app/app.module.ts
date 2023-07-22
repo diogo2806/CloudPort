@@ -5,6 +5,8 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { LoginComponent } from './componentes/login/login.component';
 import { TranslateModule } from '@ngx-translate/core';
+import { HttpClientModule } from '@angular/common/http';
+
 
 @NgModule({
   declarations: [
@@ -15,6 +17,7 @@ import { TranslateModule } from '@ngx-translate/core';
     BrowserModule,
     AppRoutingModule, // Certifique-se de que AppRoutingModule está aqui
     ReactiveFormsModule,
+    HttpClientModule,
     TranslateModule.forRoot()
   ],
   providers: [],

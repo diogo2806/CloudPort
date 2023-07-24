@@ -1,12 +1,12 @@
 package br.com.cloudport.servicoautenticacao.controllers;
 
-import com.example.auth.domain.user.AuthenticationDTO;
-import com.example.auth.domain.user.LoginResponseDTO;
-import com.example.auth.domain.user.RegisterDTO;
-import com.example.auth.domain.user.User;
-import com.example.auth.infra.security.TokenService;
-import com.example.auth.repositories.UserRepository;
-import jakarta.validation.Valid;
+import br.com.cloudport.servicoautenticacao.domain.user.AuthenticationDTO;
+import br.com.cloudport.servicoautenticacao.domain.user.LoginResponseDTO;
+import br.com.cloudport.servicoautenticacao.domain.user.RegisterDTO;
+import br.com.cloudport.servicoautenticacao.domain.user.User;
+import br.com.cloudport.servicoautenticacao.infra.security.TokenService;
+import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
+import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,7 +29,7 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public ResponseEntity login(@RequestBody @Valid AuthenticationDTO data){
-        var usernamePassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
+        var usernamePassword = new UsernamePasswordAuthenticationToken(data.getLogin(), data.getPassword());
         var auth = this.authenticationManager.authenticate(usernamePassword);
 
         var token = tokenService.generateToken((User) auth.getPrincipal());
@@ -39,10 +39,10 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity register(@RequestBody @Valid RegisterDTO data){
-        if(this.repository.findByLogin(data.login()) != null) return ResponseEntity.badRequest().build();
+        if(this.repository.findByLogin(data.getLogin()) != null) return ResponseEntity.badRequest().build();
 
-        String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
-        User newUser = new User(data.login(), encryptedPassword, data.role());
+        String encryptedPassword = new BCryptPasswordEncoder().encode(data.getPassword());
+        User newUser = new User(data.getLogin(), encryptedPassword, data.getRole());
 
         this.repository.save(newUser);
 

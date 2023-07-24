@@ -1,15 +1,16 @@
 package br.com.cloudport.servicoautenticacao.controllers;
 
-import com.example.auth.domain.product.Product;
-import com.example.auth.domain.product.ProductRequestDTO;
-import com.example.auth.domain.product.ProductResponseDTO;
-import com.example.auth.repositories.ProductRepository;
-import jakarta.validation.Valid;
+import br.com.cloudport.servicoautenticacao.domain.product.Product;
+import br.com.cloudport.servicoautenticacao.domain.product.ProductRequestDTO;
+import br.com.cloudport.servicoautenticacao.domain.product.ProductResponseDTO;
+import br.com.cloudport.servicoautenticacao.repositories.ProductRepository;
+import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController()
 @RequestMapping("product")
@@ -28,7 +29,7 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity getAllProducts(){
-        List<ProductResponseDTO> productList = this.repository.findAll().stream().map(ProductResponseDTO::new).toList();
+        List<ProductResponseDTO> productList = this.repository.findAll().stream().map(ProductResponseDTO::new).collect(Collectors.toList());
 
         return ResponseEntity.ok(productList);
     }

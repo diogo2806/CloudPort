@@ -1,6 +1,6 @@
 package br.com.cloudport.servicoautenticacao.repositories;
 
-import com.example.auth.domain.user.User;
+import br.com.cloudport.servicoautenticacao.domain.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 

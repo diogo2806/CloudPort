@@ -1,6 +1,6 @@
-package package br.com.cloudport.servicoautenticacao.services;
+package br.com.cloudport.servicoautenticacao.services;
 
-import com.example.auth.repositories.UserRepository;
+import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -12,6 +12,7 @@ public class AuthorizationService implements UserDetailsService {
 
     @Autowired
     UserRepository repository;
+    
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return repository.findByLogin(username);

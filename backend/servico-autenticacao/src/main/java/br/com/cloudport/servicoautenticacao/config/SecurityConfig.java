@@ -1,3 +1,5 @@
+
+/*
 package br.com.cloudport.servicoautenticacao.config;
 
 import br.com.cloudport.servicoautenticacao.filter.JwtRequestFilter;
@@ -69,3 +71,4 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
 }
+*/

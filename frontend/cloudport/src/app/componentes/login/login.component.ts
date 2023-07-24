@@ -5,11 +5,25 @@ import { first } from 'rxjs/operators';
 
 import { AuthenticationService } from '../service/authentication.service';
 
+// Importações para animações
+import { trigger, state, style, animate, transition } from '@angular/animations';
+
 @Component({
     selector: 'app-login',
     templateUrl: './login.component.html',
-    styleUrls: ['./login.component.css']
+    styleUrls: ['./login.component.css'],
+    animations: [
+        trigger('routerTransition', [
+            // Defina os estados e transições aqui
+            state('void', style({ opacity: 0 })),
+            state('*', style({ opacity: 1 })),
+            transition('void => *', animate('0.5s ease-in')),
+            transition('* => void', animate('0.5s ease-out'))
+        ])
+    ]
 })
+
+
 export class LoginComponent implements OnInit {
     loginForm: FormGroup = this.formBuilder.group({}); // Initialized here
     loading = false;

@@ -1,7 +1,7 @@
 .header {
-    background-color: #2a58a3;
+    background-color: #234986;
     border-radius: 0px;
-    padding: 0.3em 2em;  /* Diminui o padding vertical para 0.3em */
+    padding: 0.0em 0.5em; /* Reduzir o padding à esquerda e à direita */ 
     color: #fff;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
@@ -9,18 +9,19 @@
 }
 
 .logo {
-    border-radius: 50%;  /* Para tornar a imagem perfeitamente redonda */
-    width: 100px;
-    height: 100px;
-    margin-bottom: 5px;  /* Diminui o espaço abaixo do logo para 5px */
+    border-radius: 50%;  
+    width: 80px;
+    height: 80px;
+    margin-bottom: 5px;  
+    margin-right: 15px;
 }
 
 .title-banner h1 {
-    color: #ffffff;  /* Muda a cor para branco */
+    color: #ffffff;  
     font-size: 3em;
     font-weight: bold;
-    letter-spacing: 2px;  /* Adiciona um espaçamento entre as letras */
-    text-shadow: 3px 3px 6px rgba(0, 0, 0, 2);  /* Aumenta a sombra do texto para uma melhor legibilidade */
+    letter-spacing: 2px;  
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 2);  
     margin-bottom: 0.3em;
-    line-height: 1.2;  /* Ajusta o espaçamento entre as linhas se o título tiver mais de uma linha */
+    line-height: 1.2;
 }

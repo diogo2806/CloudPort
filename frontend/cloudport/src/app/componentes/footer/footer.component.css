@@ -1,0 +1,13 @@
+.footer {
+    background-color: #2a58a3;
+    padding: 0.5em 2em;  /* diminuiu a altura do padding de 1em para 0.5em */
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 1em;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    border-radius: 0px;
+}

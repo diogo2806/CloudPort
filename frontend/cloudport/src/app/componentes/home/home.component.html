@@ -1,2 +1,27 @@
-<h1>Bem-vindo ao CloudPort</h1>
-<p>Esta é a página inicial.</p>
+<div class="container py-5">
+    <div class="row title-banner text-center mb-5">
+        <div class="col-lg-7 mx-auto">
+            <img src="../../../assets/images/shipping.png" alt="Logo" class="logo">
+            <h1 class="display-4">Bem-vindo ao CloudPort</h1>
+            <p class="lead mb-0">O CloudPorts é um Terminal Operating System (TOS) avançado, otimizado para operações eficientes de terminal.</p>
+        </div>
+    </div>
+  
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="bg-white rounded-lg shadow-sm p-5">
+                <h5 class="mb-3">Recursos principais</h5>
+                <ul>
+                    <li>Gerenciamento otimizado de carga e descarga</li>
+                    <li>Planejamento eficiente de recursos de terminal</li>
+                    <li>Integração suave com tecnologias existentes</li>
+                    <li>Relatórios detalhados e análise de dados</li>
+                </ul>
+                <p class="mt-3 token-text">Token do usuário: {{ userToken }}</p>
+                
+                <button class="btn btn-primary mt-3" (click)="logout()">Logout</button>
+           
+            </div>
+        </div>
+    </div>
+</div>

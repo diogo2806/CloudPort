@@ -1,0 +1,44 @@
+.container {
+    max-width: 960px;
+    margin-top: 3em;
+}
+  
+.bg-white {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    padding: 2em;
+}
+  
+.btn-primary {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+  
+.title-banner h1 {
+    color: #ffffff;  /* Muda a cor para branco */
+    font-size: 2em;  /* Ajusta o tamanho da fonte */
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,2);  /* Adiciona uma sombra suave ao texto */
+    margin-bottom: 0.5em;  /* Ajusta a margem inferior */
+}
+
+.title-banner p {
+    color: #f0f0f0;  /* Muda a cor para um cinza claro */
+    font-size: 1.2em;  /* Ajusta o tamanho da fonte */
+    text-shadow: 2px 2px 4px rgba(0,0,0,2);  /* Adiciona uma sombra suave ao texto */
+    margin-bottom: 2em;  /* Ajusta a margem inferior */
+}
+
+
+.logo {
+    border-radius: 50%;  /* Para tornar a imagem perfeitamente redonda */
+    width: 100px;
+    height: 100px;
+    margin-bottom: 20px;  /* Adiciona um pouco de espaço entre o logo e o título */
+  }
+
+  .token-text {
+    word-break: break-word;
+}

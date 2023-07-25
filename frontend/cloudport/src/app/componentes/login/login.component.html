@@ -1,42 +1,50 @@
-<div class="login-page" [@routerTransition]>
-    <div class="row">
-        <div class="col">
-          <!--  <img src="assets/images/logo.png" width="150px" class="user-avatar" /> -->
-            <h1>Gerenciador de Projetos</h1>
-
-            <!--Card content-->
-            <div class="card-body">
-                <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-
-                    <!-- User -->
-                    <div class="form-group">
-                        <input type="text" id="loginFormUser1" formControlName="username" class="form-control"
-                            [ngClass]="{ 'is-invalid': submitted && f['username'].errors }" placeholder="Name"/>
-                        <div *ngIf="submitted && f['username'].errors" class="invalid-feedback">
-                            <div *ngIf="f['username'].errors['required']">{{'Username is required'| translate }}</div>
-                        </div>
-                    </div>
-
-                    <!-- Password -->
-                    <div class="form-group">
-                        <input type="password" id="loginFormPassword1" formControlName="password" class="form-control"
-                            [ngClass]="{ 'is-invalid': submitted && f['password'].errors }" placeholder="Password"/>
-                        <div *ngIf="submitted && f['password'].errors" class="invalid-feedback">
-                            <div *ngIf="f['password'].errors['required']">{{'Password is required'| translate }}</div>
-                        </div>
-                    </div>
-
-                    <!-- Sign in button -->
-                    <div class="text-center mt-4">
-                        <button [disabled]="loading" class="btn btn-info">
-                            <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
-                            {{ 'Log in' | translate }}
-                        </button>
-                        <div *ngIf="error" class="alert alert-danger mt-3 mb-0">{{error}}</div>
-                        <hr class="hr-light mb-3 mt-4">
-                    </div>
-                </form>
-            </div>
+<div class="container py-5">
+    <div class="row title-banner text-center mb-5">
+        <div class="col-lg-7 mx-auto d-flex align-items-center justify-content-center flex-column">
+          <img src="../../../assets/images/shipping.png" alt="Logo" class="logo">
+          <h1 class="display-4 mt-3">CloudPorts</h1>
         </div>
+      </div>
+      
+    <!--<div class="row">
+      <div class="col-lg-5 mx-auto">
+        <div class="bg-white rounded-lg shadow-sm p-5"> -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="bg-white rounded-lg shadow-sm p-5">        
+  
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+            <!-- User -->
+            <div class="form-group">
+              <input type="text" id="loginFormUser1" formControlName="username" class="form-control"
+                  [ngClass]="{ 'is-invalid': submitted && f['username'].errors }" placeholder="Name"/>
+              <div *ngIf="submitted && f['username'].errors" class="invalid-feedback">
+                <div *ngIf="f['username'].errors['required']">{{'Username is required'| translate }}</div>
+              </div>
+            </div>
+  
+            <!-- Password -->
+            <div class="form-group">
+              <input type="password" id="loginFormPassword1" formControlName="password" class="form-control"
+                  [ngClass]="{ 'is-invalid': submitted && f['password'].errors }" placeholder="Password"/>
+              <div *ngIf="submitted && f['password'].errors" class="invalid-feedback">
+                <div *ngIf="f['password'].errors['required']">{{'Password is required'| translate }}</div>
+              </div>
+            </div>
+  
+            <!-- Sign in button -->
+            <div class="text-center mt-4">
+              <button [disabled]="loading" class="btn btn-primary">
+                <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+                {{ 'Log in' | translate }}
+              </button>
+              <div *ngIf="error" class="alert alert-danger mt-3 mb-0">{{error}}</div>
+              <hr class="hr-light mb-3 mt-4">
+            </div>
+          </form>
+  
+        </div>
+      </div>
     </div>
-</div>
+  </div>
+  

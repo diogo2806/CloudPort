@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
-
+import { HomeComponent } from '../home/home.component';
 import { AuthenticationService } from '../service/authentication.service';
 
 // Importações para animações
@@ -28,7 +28,7 @@ export class LoginComponent implements OnInit {
     loginForm: FormGroup = this.formBuilder.group({}); // Initialized here
     loading = false;
     submitted = false;
-    returnUrl: string = ''; // Initialized here
+    returnUrl: string = 'home'; // Initialized here
     error = '';
 
     constructor(
@@ -39,7 +39,7 @@ export class LoginComponent implements OnInit {
     ) {
         // redirect to home if already logged in
         if (this.authenticationService.currentUserValue) {
-            this.router.navigate(['']);
+            this.router.navigate([this.returnUrl]);
         }
     }
 

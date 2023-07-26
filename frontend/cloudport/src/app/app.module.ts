@@ -11,6 +11,7 @@ import { HomeComponent } from './componentes/home/home.component';
 import { HeaderComponent } from './componentes/header/header.component';
 import { FooterComponent } from './componentes/footer/footer.component';
 import { SidebarComponent } from './componentes/sidebar/sidebar.component';
+import { NavbarComponent } from './componentes/navbar/navbar.component';
 
 
 @NgModule({
@@ -20,7 +21,8 @@ import { SidebarComponent } from './componentes/sidebar/sidebar.component';
     HomeComponent,
     HeaderComponent,
     FooterComponent,
-    SidebarComponent
+    SidebarComponent,
+    NavbarComponent
   ],
   imports: [
     BrowserModule,

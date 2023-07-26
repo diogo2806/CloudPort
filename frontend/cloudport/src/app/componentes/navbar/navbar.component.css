@@ -1,0 +1,52 @@
+.app-navbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    list-style: none;
+    margin-left: 30px;
+}
+
+.app-navbar > ul {
+    display: flex;
+    gap: 10px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.app-navbar ul li {
+    position: relative;
+}
+
+.app-navbar ul li > ul {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #34569e; /* Mudança aqui - Fundo escuro para submenus */
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.app-navbar ul li > ul li {
+    margin-bottom: 10px;
+}
+
+.app-navbar ul li > ul li:last-child {
+    margin-bottom: 0;
+}
+
+.app-navbar ul li:hover > ul {
+    display: block;
+}
+
+.app-navbar a {
+    color: #fff; /* Cor do texto dos links permanece branca */
+    text-decoration: none;
+    margin-right: 15px;
+}
+
+.app-navbar a:hover {
+    text-decoration: underline;
+}

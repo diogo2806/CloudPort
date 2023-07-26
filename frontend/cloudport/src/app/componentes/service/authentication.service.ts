@@ -21,7 +21,7 @@ export class AuthenticationService {
     }
 
     login(login: string, password: string) {
-        return this.http.post<any>(`https://8080-diogo2806-cloudport-mf5guiv054l.ws-us102.gitpod.io/auth/login`, { login, password })
+        return this.http.post<any>(`https://8080-diogo2806-cloudport-3k6659o6bvt.ws-us102.gitpod.io/auth/login`, { login, password })
             .pipe(map(user => {
                 // store user details and jwt token in local storage to keep user logged in between page refreshes
                 localStorage.setItem('currentUser', JSON.stringify(user));

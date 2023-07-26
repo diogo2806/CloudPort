@@ -1,0 +1,54 @@
+.header {
+    /* Estilos existentes permanecem inalterados */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.app-sidebar {
+  display: flex;
+  justify-content: space-evenly;
+  width: 40%;
+}
+
+.app-sidebar ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-sidebar ul li {
+  position: relative;
+}
+
+.app-sidebar ul li a {
+  display: block;
+  color: white;
+  padding: 0.5em;
+  text-decoration: none;
+}
+
+.app-sidebar ul li a:hover {
+  background-color: #111;
+}
+
+.app-sidebar ul li ul {
+  display: none;
+  position: absolute;
+  background-color: #333;
+  top: 100%;
+  left: 0;
+  width: 100%;
+}
+
+.app-sidebar ul li ul li {
+  float: none;
+}
+
+.app-sidebar ul li ul li a {
+  color: white;
+}
+
+.app-sidebar ul li:hover ul {
+  display: block;
+}

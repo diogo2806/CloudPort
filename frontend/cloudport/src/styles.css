@@ -1,12 +1,18 @@
-
-
 body {
   background: linear-gradient(to right, hsl(228, 47%, 90%), #234986);
+  background-image: url('./assets/images/background.png');
+  background-repeat: no-repeat;
+  background-size: cover; /* isso fará a imagem cobrir todo o corpo */
   margin: 0;
   height: 100%;
-  font-family: Arial, sans-serif;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
 }
 
+html, body {
+  height: 100%;
+}
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}

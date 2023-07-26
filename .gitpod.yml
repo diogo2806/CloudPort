@@ -5,6 +5,10 @@ ports:
     onOpen: open-preview
   - port: 5432
     onOpen: open-preview
+  - port: 8080
+    onOpen: open-preview
+  - port: 4200
+    onOpen: open-preview
 
 tasks:
   - init: |

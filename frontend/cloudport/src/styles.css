@@ -1,5 +1,5 @@
 body {
-  background: linear-gradient(to right, hsl(228, 47%, 90%), #234986);
+  background: linear-gradient(to right, , #234986);
   background-image: url('./assets/images/background.png');
   background-repeat: no-repeat;
   background-size: cover; /* isso fará a imagem cobrir todo o corpo */

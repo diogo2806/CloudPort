@@ -10,7 +10,6 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HomeComponent } from './componentes/home/home.component';
 import { HeaderComponent } from './componentes/header/header.component';
 import { FooterComponent } from './componentes/footer/footer.component';
-import { SidebarComponent } from './componentes/sidebar/sidebar.component';
 import { NavbarComponent } from './componentes/navbar/navbar.component';
 
 
@@ -21,7 +20,6 @@ import { NavbarComponent } from './componentes/navbar/navbar.component';
     HomeComponent,
     HeaderComponent,
     FooterComponent,
-    SidebarComponent,
     NavbarComponent
   ],
   imports: [

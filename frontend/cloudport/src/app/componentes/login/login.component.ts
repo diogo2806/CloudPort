@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
@@ -31,6 +31,8 @@ export class LoginComponent implements OnInit {
     returnUrl: string = 'home'; // Initialized here
     error = '';
 
+    
+
     constructor(
         private formBuilder: FormBuilder,
         private route: ActivatedRoute,
@@ -39,11 +41,16 @@ export class LoginComponent implements OnInit {
     ) {
         // redirect to home if already logged in
         if (this.authenticationService.currentUserValue) {
+    
             this.router.navigate([this.returnUrl]);
+
+        } else {
+        
         }
     }
 
     ngOnInit() {
+        this.authenticationService.updateMenuStatus(false);
         this.loginForm = this.formBuilder.group({
             username: ['', Validators.required],
             password: ['', Validators.required]
@@ -73,6 +80,7 @@ export class LoginComponent implements OnInit {
                 data => {
                     this.router.navigate([this.returnUrl]);
                     this.authenticationService.setUserName(this.f['username'].value);
+                    this.authenticationService.updateMenuStatus(true); // set mostrarMenu to true after successful login
                 },
                 error => {
                     this.error = error;

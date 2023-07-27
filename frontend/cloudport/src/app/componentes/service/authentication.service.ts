@@ -9,6 +9,8 @@ import { User } from '../model/user.model';
 export class AuthenticationService {
     private currentUserSubject: BehaviorSubject<User | null>;
     public currentUser: Observable<User | null>;
+    private menuStatus = new BehaviorSubject<boolean>(false);
+    public currentMenuStatus = this.menuStatus.asObservable();
 
     constructor(private http: HttpClient) {
         const storedData = localStorage.getItem('currentUser');
@@ -45,5 +47,9 @@ export class AuthenticationService {
     getUserName(): string | null {
         const storedData = localStorage.getItem('username');
         return storedData ? JSON.parse(storedData) : null;
+    }
+
+    updateMenuStatus(status: boolean) {
+        this.menuStatus.next(status);
     }
 }

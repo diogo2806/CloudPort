@@ -4,6 +4,12 @@
     justify-content: flex-start;
     list-style: none;
     margin-left: 30px;
+    color: #ffffff;
+    font-size: 1.2em;
+    font-weight: bold;
+    letter-spacing: 2px;
+    line-height: 1.2;
+    align-self: center;
 }
 
 .app-navbar > ul {
@@ -23,10 +29,9 @@
     position: absolute;
     top: 100%;
     left: 0;
-    background: #34569e; /* Mudança aqui - Fundo escuro para submenus */
+    background: #2349868c;
     padding: 10px;
     border-radius: 4px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .app-navbar ul li > ul li {
@@ -42,11 +47,16 @@
 }
 
 .app-navbar a {
-    color: #fff; /* Cor do texto dos links permanece branca */
+    color: #ffffff;
     text-decoration: none;
     margin-right: 15px;
 }
 
 .app-navbar a:hover {
     text-decoration: underline;
+}
+
+.title-banner {
+    display: flex;
+    align-items: center;
 }

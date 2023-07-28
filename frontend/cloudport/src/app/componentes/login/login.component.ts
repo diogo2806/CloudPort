@@ -3,7 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
 import { HomeComponent } from '../home/home.component';
-import { AuthenticationService } from '../service/authentication.service';
+import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 
 // Importações para animações
 import { trigger, state, style, animate, transition } from '@angular/animations';

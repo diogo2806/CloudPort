@@ -1,4 +1,5 @@
-package br.com.cloudport.servicoautenticacao.infra.security;
+
+package br.com.cloudport.servicoautenticacao.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;

@@ -1,10 +1,8 @@
-package br.com.cloudport.servicoautenticacao.domain.user;
-
+package br.com.cloudport.servicoautenticacao.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
 import javax.persistence.*;
 import java.util.Set;
 
@@ -12,17 +10,17 @@ import java.util.Set;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Role {
+public class Perfil {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
 
-    @ManyToMany(mappedBy = "roles")
-    private Set<User> users;
+    @OneToMany(mappedBy = "perfil")
+    private Set<UserPerfil> userPerfis;
 
-    public Role(String name){
+    public Perfil(String name){
         this.name = name;
     }
 }

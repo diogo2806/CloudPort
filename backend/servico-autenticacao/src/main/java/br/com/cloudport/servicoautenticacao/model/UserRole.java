@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoautenticacao.domain.user;
+package br.com.cloudport.servicoautenticacao.model;
 
 public enum UserRole {
     ADMIN("admin"),

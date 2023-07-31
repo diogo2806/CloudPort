@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoautenticacao.infra.security;
+package br.com.cloudport.servicoautenticacao.config;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;

@@ -1,19 +1,14 @@
-package br.com.cloudport.servicoautenticacao.domain.user;
+package br.com.cloudport.servicoautenticacao.dto;
 
-
-import java.util.Set;
-
-public class RegisterDTO {
+public class AuthenticationDTO {
     private String login;
     private String password;
-    private Set<String> roles;
 
-    public RegisterDTO() {}
+    public AuthenticationDTO() {}
 
-    public RegisterDTO(String login, String password, Set<String> roles) {
+    public AuthenticationDTO(String login, String password) {
         this.login = login;
         this.password = password;
-        this.roles = roles;
     }
 
     public String getLogin() {
@@ -31,30 +26,22 @@ public class RegisterDTO {
     public void setPassword(String password) {
         this.password = password;
     }
-
-    public Set<String> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<String> roles) {
-        this.roles = roles;
-    }
 }
+
 
 /*
 package br.com.cloudport.servicoautenticacao.domain.user;
 
-public class RegisterDTO {
+public class AuthenticationDTO {
     private String login;
     private String password;
-    private UserRole role;
+    private String role;
 
-    public RegisterDTO() {}
+    public AuthenticationDTO() {}
 
-    public RegisterDTO(String login, String password, UserRole role) {
+    public AuthenticationDTO(String login, String password) {
         this.login = login;
         this.password = password;
-        this.role = role;
     }
 
     public String getLogin() {
@@ -73,12 +60,8 @@ public class RegisterDTO {
         this.password = password;
     }
 
-    public UserRole getRole() {
+    public String getRole() {
         return role;
-    }
-
-    public void setRole(UserRole role) {
-        this.role = role;
     }
 }
 */

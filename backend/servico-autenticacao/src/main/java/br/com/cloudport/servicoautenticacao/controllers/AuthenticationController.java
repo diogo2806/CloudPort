@@ -1,12 +1,12 @@
 package br.com.cloudport.servicoautenticacao.controllers;
 
-import br.com.cloudport.servicoautenticacao.domain.user.AuthenticationDTO;
-import br.com.cloudport.servicoautenticacao.domain.user.LoginResponseDTO;
-import br.com.cloudport.servicoautenticacao.domain.user.RegisterDTO;
-import br.com.cloudport.servicoautenticacao.domain.user.User;
-import br.com.cloudport.servicoautenticacao.domain.user.Role;
-import br.com.cloudport.servicoautenticacao.repositories.RoleRepository;
-import br.com.cloudport.servicoautenticacao.infra.security.TokenService;
+import br.com.cloudport.servicoautenticacao.dto.AuthenticationDTO;
+import br.com.cloudport.servicoautenticacao.dto.LoginResponseDTO;
+import br.com.cloudport.servicoautenticacao.dto.RegisterDTO;
+import br.com.cloudport.servicoautenticacao.model.User;
+import br.com.cloudport.servicoautenticacao.model.Perfil;
+import br.com.cloudport.servicoautenticacao.repositories.PerfilRepository;
+import br.com.cloudport.servicoautenticacao.config.TokenService;
 import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +30,7 @@ public class AuthenticationController {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private RoleRepository roleRepository;
+    private PerfilRepository perfilRepository;
     @Autowired
     private TokenService tokenService;
 

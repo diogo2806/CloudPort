@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoautenticacao.domain.user;
+package br.com.cloudport.servicoautenticacao.dto;
 
 
 import lombok.AllArgsConstructor;
@@ -10,6 +10,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class RoleDTO {
+public class PerfilDTO {
     private String name;
 }

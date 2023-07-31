@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoautenticacao.infra.security;
+package br.com.cloudport.servicoautenticacao.config;
 
 import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
 import javax.servlet.FilterChain;

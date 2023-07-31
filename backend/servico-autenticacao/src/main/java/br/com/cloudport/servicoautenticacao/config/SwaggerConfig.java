@@ -1,4 +1,4 @@
-/*
+
 
 package br.com.cloudport.servicoautenticacao.config;
 
@@ -24,4 +24,3 @@ public class SwaggerConfig {
 }
 
 
-*/

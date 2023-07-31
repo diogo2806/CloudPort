@@ -7,4 +7,19 @@
 
         <button (click)="createRole()">Create Role</button>
     </div>
+
+    <!-- Role Table -->
+    <h1>Roles</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Role Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let role of roles">
+                <td>{{ role.name }}</td>
+            </tr>
+        </tbody>
+    </table>
 </div>

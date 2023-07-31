@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import javax.persistence.*;
@@ -30,19 +31,19 @@ public class User implements UserDetails {
     private String password;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private Set<UserPerfil> perfis;
+    private Set<UserRole> roles;
 
-    public User(String login, String password, Set<UserPerfil> perfis){
+    public User(String login, String password, Set<UserRole> roles){
         this.id = UUID.randomUUID();
         this.login = login;
         this.password = password;
-        this.perfis = perfis;
+        this.roles = roles;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return this.perfis.stream()
-                .map(perfil -> new SimpleGrantedAuthority("ROLE_" + perfil.getPerfil().getName().toUpperCase()))
+        return this.roles.stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRole().getName().toUpperCase()))
                 .collect(Collectors.toList());
     }
 
@@ -69,5 +70,10 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }    
+    
+    @Override
+    public String getPassword() {
+        return password;
     }
 }

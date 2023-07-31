@@ -4,8 +4,9 @@ import br.com.cloudport.servicoautenticacao.dto.AuthenticationDTO;
 import br.com.cloudport.servicoautenticacao.dto.LoginResponseDTO;
 import br.com.cloudport.servicoautenticacao.dto.RegisterDTO;
 import br.com.cloudport.servicoautenticacao.model.User;
-import br.com.cloudport.servicoautenticacao.model.Perfil;
-import br.com.cloudport.servicoautenticacao.repositories.PerfilRepository;
+import br.com.cloudport.servicoautenticacao.model.UserRole;
+import br.com.cloudport.servicoautenticacao.model.Role;
+import br.com.cloudport.servicoautenticacao.repositories.RoleRepository;
 import br.com.cloudport.servicoautenticacao.config.TokenService;
 import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
 import javax.validation.Valid;
@@ -30,7 +31,7 @@ public class AuthenticationController {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private PerfilRepository perfilRepository;
+    private RoleRepository roleRepository;
     @Autowired
     private TokenService tokenService;
 
@@ -43,8 +44,8 @@ public class AuthenticationController {
         
         User user = (User) auth.getPrincipal();
         Set<String> roles = user.getRoles().stream()
-                                 .map(Role::getName)
-                                 .collect(Collectors.toSet()); 
+                                 .map(userRole -> userRole.getRole().getName())
+                                 .collect(Collectors.toSet());
 
         return ResponseEntity.ok(new LoginResponseDTO(token, roles));
     }
@@ -55,10 +56,11 @@ public class AuthenticationController {
     
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.getPassword());
     
-        Set<Role> roles = data.getRoles().stream()
+        Set<UserRole> roles = data.getRoles().stream()
                               .map(roleName -> {
-                                  return roleRepository.findByName(roleName)
+                                  Role role = roleRepository.findByName(roleName)
                                           .orElseThrow(() -> new IllegalArgumentException("Role " + roleName + " not found"));
+                                  return new UserRole(null, role);
                               })
                               .collect(Collectors.toSet());
     
@@ -68,5 +70,4 @@ public class AuthenticationController {
     
         return ResponseEntity.ok().build();
     }
-    
 }

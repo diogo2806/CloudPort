@@ -87,3 +87,7 @@
 .alert {
     margin-top: 15px;
 }
+
+.spaced-button {
+    margin-right: 10px; /* Altere para a quantidade de espaço que você deseja */
+}

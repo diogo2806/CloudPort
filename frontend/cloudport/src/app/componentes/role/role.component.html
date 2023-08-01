@@ -15,19 +15,21 @@
             <tr>
                 <th>Role ID</th>
                 <th>Role Name</th>
-                <th>Editar</th> <!-- Added Edit header -->
-                <th>Deletar</th> <!-- Added Deactivate header -->
+                <th>Ações</th> <!-- Added Edit header -->
             </tr>
         </thead>
         <tbody>
             <tr *ngFor="let role of roles">
                 <td>{{ role.id }}</td>
                 <td>{{ role.name }}</td>
-                <td><button class="btn btn-primary" (click)="editRole(role.id)">Editar</button></td> <!-- Added Edit button -->
-                <td><button class="btn btn-danger" (click)="deactivateRole(role.id)">Deletar</button></td> <!-- Added Deactivate button -->
+                <td>
+                    <button class="btn btn-primary spaced-button" (click)="editRole(role.id)">Editar</button>
+                    <button class="btn btn-danger spaced-button" (click)="deactivateRole(role.id)">Deletar</button>
+                </td>
             </tr>
         </tbody>
     </table>
+    
 
     <button class="btn btn-primary" (click)="exportToExcel()">Exportar para Excel</button>
 

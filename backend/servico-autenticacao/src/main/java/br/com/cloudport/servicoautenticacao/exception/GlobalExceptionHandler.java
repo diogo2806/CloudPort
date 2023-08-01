@@ -18,6 +18,12 @@ public class GlobalExceptionHandler {
         logger.warn("IllegalStateException encontrada no GlobalExceptionHandler: ", ex);
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex) {
+        logger.warn("IllegalArgumentException encontrada no GlobalExceptionHandler: ", ex);
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
     
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Object> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {

@@ -24,6 +24,7 @@ public class RoleService {
         this.userRoleRepository = userRoleRepository; // Injete userRoleRepository aqui
     }
 
+    @Transactional
     public RoleDTO saveRole(RoleDTO roleDTO) {
         if(roleDTO.getName() == null || roleDTO.getName().trim().isEmpty()){
             throw new IllegalArgumentException("Role name cannot be null or empty");
@@ -40,11 +41,13 @@ public class RoleService {
     }
     
 
+    @Transactional
     public RoleDTO findByName(String name) {
         Role role = roleRepository.findByName(name)
                 .orElseThrow(() -> new IllegalArgumentException("Role " + name + " not found"));
         return new RoleDTO(role.getId(), role.getName()); // Adicione o id aqui
     }
+
 
     public List<RoleDTO> findAll() {
         List<Role> roles = roleRepository.findAll();
@@ -54,7 +57,7 @@ public class RoleService {
                 .collect(Collectors.toList());
     }
     
-
+    @Transactional
     public RoleDTO updateRole(Long id, RoleDTO roleDTO) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Role with id " + id + " not found"));

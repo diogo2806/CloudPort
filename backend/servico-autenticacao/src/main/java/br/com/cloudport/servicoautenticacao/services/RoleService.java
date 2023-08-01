@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
 
+
 @Service
 public class RoleService {
 
@@ -64,16 +65,17 @@ public class RoleService {
     
     @Transactional
     public void deleteRole(Long id) {
-        Role role = roleRepository.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Role com id " + id + " não encontrada"));
-        
-        // Verifique se há UserRoles associados a essa 'role'
-        long count = userRoleRepository.countByRoleId(id);
-        if (count > 0) {
-            throw new IllegalStateException("Não é possível deletar a role com id " + id + ", pois ela ainda está atribuída a usuários");
+        // Verifica se o role está sendo referenciado na tabela user_roles
+        if (userRoleRepository.existsByRoleId(id)) {
+            throw new IllegalStateException("Role com id " + id + " não pode ser deletado porque está sendo referenciado.");
         }
-        
-        roleRepository.delete(role); // Deleta a 'role'
+
+        if (!roleRepository.existsById(id)) {
+            throw new IllegalStateException("Role com id " + id + " não encontrado.");
+        }
+
+        roleRepository.deleteById(id);
     }
+
     
 }

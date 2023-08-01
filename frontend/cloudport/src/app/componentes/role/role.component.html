@@ -1,11 +1,11 @@
 <div class="role-container">
-    <h1>Create Role</h1>
+    <h1>Criar Role</h1>
 
     <div class="role-form">
-        <label for="roleName">Role Name:</label>
-        <input type="text" id="roleName" [(ngModel)]="roleName">
+        <label class="form-label" for="roleName">Role Name:</label>
+        <input class="form-control" type="text" id="roleName" [(ngModel)]="roleName">
 
-        <button (click)="createRole()">Create Role</button>
+        <button class="btn btn-primary" (click)="createRole()">Create Role</button>
     </div>
 
     <!-- Role Table -->
@@ -15,16 +15,16 @@
             <tr>
                 <th>Role ID</th>
                 <th>Role Name</th>
-                <th>Edit</th> <!-- Added Edit header -->
-                <th>Deactivate</th> <!-- Added Deactivate header -->
+                <th>Editar</th> <!-- Added Edit header -->
+                <th>Deletar</th> <!-- Added Deactivate header -->
             </tr>
         </thead>
         <tbody>
             <tr *ngFor="let role of roles">
                 <td>{{ role.id }}</td>
                 <td>{{ role.name }}</td>
-                <td><button class="btn btn-primary" (click)="editRole(role.id)">Edit</button></td> <!-- Added Edit button -->
-                <td><button class="btn btn-danger" (click)="deactivateRole(role.id)">Deactivate</button></td> <!-- Added Deactivate button -->
+                <td><button class="btn btn-primary" (click)="editRole(role.id)">Editar</button></td> <!-- Added Edit button -->
+                <td><button class="btn btn-danger" (click)="deactivateRole(role.id)">Deletar</button></td> <!-- Added Deactivate button -->
             </tr>
         </tbody>
     </table>

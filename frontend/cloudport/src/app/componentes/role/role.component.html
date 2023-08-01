@@ -1,15 +1,15 @@
 <div class="role-container">
-    <h1>Criar Role</h1>
+    <h1>Perfis de Acesso</h1>
 
     <div class="role-form">
         <label class="form-label" for="roleName">Role Name:</label>
         <input class="form-control" type="text" id="roleName" [(ngModel)]="roleName">
 
-        <button class="btn btn-primary" (click)="createRole()">Create Role</button>
+        <button class="btn btn-primary" (click)="createRole()">Criar</button>
     </div>
 
     <!-- Role Table -->
-    <h1>Roles</h1>
+    <h1>Perfis</h1>
     <table class="table table-striped">
         <thead>
             <tr>
@@ -28,4 +28,7 @@
             </tr>
         </tbody>
     </table>
+
+    <button class="btn btn-primary" (click)="exportToExcel()">Exportar para Excel</button>
+
 </div>

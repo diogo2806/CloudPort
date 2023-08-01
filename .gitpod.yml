@@ -20,4 +20,6 @@ tasks:
       npm install
       npm install --save ngx-mask
       npm i ngx-mask@13.1.13
+      npm install --save xlsx
+
     command: ng serve

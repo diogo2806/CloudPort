@@ -4,6 +4,10 @@ import { environment } from '../service/endpoint';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
+import * as XLSX from 'xlsx';
+
+
+
 @Component({
   selector: 'app-role',
   templateUrl: './role.component.html',
@@ -121,5 +125,15 @@ deactivateRole(roleId: number) {
         this.loadRoles();
     });
   }
+
+  exportToExcel() {
+    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(this.roles);
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Roles');
+    
+    /* save to file */
+    XLSX.writeFile(wb, 'roles.xlsx');
+  }
+  
 
 }

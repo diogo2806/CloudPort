@@ -10,15 +10,20 @@ import { AuthenticationService } from '../service/servico-autenticacao/authentic
 })
 export class RoleComponent implements OnInit {
 
+  // Nome do papel
   roleName: string = "";
-  roles: any[] = []; // replace any with your actual role type
+
+  // Lista dos papeis
+  roles: any[] = [];
 
   constructor(private http: HttpClient, private authenticationService: AuthenticationService) { }
 
+  // Método executado quando o componente é inicializado
   ngOnInit() {
     this.loadRoles();
   }
 
+  // Carrega os papeis do servidor
   loadRoles() {
     const token = this.authenticationService.currentUserValue?.token;
 
@@ -29,12 +34,13 @@ export class RoleComponent implements OnInit {
       })
     };
 
-    this.http.get<any[]>(`${environment.role.list}`, httpOptions)
+    this.http.get<any[]>(`${environment.role.getAll}`, httpOptions)
       .subscribe(response => {
         this.roles = response;
       });
   }
 
+  // Cria um novo papel
   createRole() {
     const token = this.authenticationService.currentUserValue?.token;
 
@@ -47,8 +53,44 @@ export class RoleComponent implements OnInit {
 
     this.http.post(`${environment.role.create}`, { name: this.roleName }, httpOptions)
       .subscribe(response => {
-        console.log('Role created:', response);
-        this.loadRoles(); // Reload the list of roles after a new role is created
+        console.log('Papel criado:', response);
+        this.loadRoles();
       });
+  }
+
+  // Edita um papel existente
+  editRole(roleId: number) {
+    const token = this.authenticationService.currentUserValue?.token;
+
+    const httpOptions = {
+      headers: new HttpHeaders({
+        'Content-Type':  'application/json',
+        'Authorization': 'Bearer ' + token
+      })
+    };
+
+    this.http.put(`${environment.role.update(roleId)}`, { name: this.roleName }, httpOptions)
+        .subscribe(response => {
+            console.log('Papel atualizado:', response);
+            this.loadRoles();
+        });
+  }
+
+  // Desativa um papel
+  deactivateRole(roleId: number) {
+    const token = this.authenticationService.currentUserValue?.token;
+
+    const httpOptions = {
+      headers: new HttpHeaders({
+        'Content-Type':  'application/json',
+        'Authorization': 'Bearer ' + token
+      })
+    };
+
+    this.http.delete(`${environment.role.delete(roleId)}`, httpOptions)
+        .subscribe(response => {
+            console.log('Papel desativado:', response);
+            this.loadRoles();
+        });
   }
 }

@@ -13,6 +13,10 @@ export const environment = {
     },
     role: {
         create: `${baseLink}/api/roles`,
-        // getAll: `${baseLink}/roles/all`  // remove or adjust this line if you don't have such endpoint
+        get: (name: string) => `${baseLink}/api/roles/${name}`, // endpoint for getting a role by name
+        getAll: `${baseLink}/api/roles`,  // endpoint for getting all roles
+        update: (id: number) => `${baseLink}/api/roles/${id}`, // endpoint for updating a role
+        delete: (id: number) => `${baseLink}/api/roles/${id}` // endpoint for deleting a role
     }
+    
 };

@@ -10,15 +10,21 @@
 
     <!-- Role Table -->
     <h1>Roles</h1>
-    <table>
+    <table class="table table-striped">
         <thead>
             <tr>
+                <th>Role ID</th>
                 <th>Role Name</th>
+                <th>Edit</th> <!-- Added Edit header -->
+                <th>Deactivate</th> <!-- Added Deactivate header -->
             </tr>
         </thead>
         <tbody>
             <tr *ngFor="let role of roles">
+                <td>{{ role.id }}</td>
                 <td>{{ role.name }}</td>
+                <td><button class="btn btn-primary" (click)="editRole(role.id)">Edit</button></td> <!-- Added Edit button -->
+                <td><button class="btn btn-danger" (click)="deactivateRole(role.id)">Deactivate</button></td> <!-- Added Deactivate button -->
             </tr>
         </tbody>
     </table>

@@ -6,6 +6,7 @@ import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
+import { ChangeDetectorRef } from '@angular/core';
 
 
 @Component({
@@ -23,11 +24,16 @@ export class RoleComponent implements OnInit {
 
   constructor(
     private http: HttpClient, 
-    private authenticationService: AuthenticationService
+    private authenticationService: AuthenticationService,
+    private changeDetector: ChangeDetectorRef
 
   ) { }
 
   private mouseDown: boolean = false;
+  private selectionStarted: boolean = false;
+  private target: HTMLElement | null = null;
+
+
   // Método executado quando o componente é inicializado
   ngOnInit() {
     this.loadRoles();
@@ -37,6 +43,16 @@ export class RoleComponent implements OnInit {
     document.addEventListener('mouseup', this.onMouseUp.bind(this));
     document.addEventListener('mousemove', this.onMouseMove.bind(this));
     document.addEventListener('click', this.closeContextMenu.bind(this));
+  }
+  
+  
+
+
+  onMouseUp(event: MouseEvent) {
+    // Verifica se o botão esquerdo do mouse foi solto
+    if (event.button === 0) {
+      this.mouseDown = false;
+    }
   }
 
   onMouseDown(event: MouseEvent) {
@@ -71,16 +87,7 @@ export class RoleComponent implements OnInit {
     }
   }
   
-
-
-
-  onMouseUp(event: MouseEvent) {
-    // Verifica se o botão esquerdo do mouse foi solto
-    if (event.button === 0) {
-      this.mouseDown = false;
-    }
-  }
-
+  
   onMouseMove(event: MouseEvent) {
     if (this.mouseDown) {
       let target = event.target as HTMLElement;
@@ -113,6 +120,9 @@ export class RoleComponent implements OnInit {
   }
   
   
+  
+  
+
   
   
 

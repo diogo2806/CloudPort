@@ -27,11 +27,94 @@ export class RoleComponent implements OnInit {
 
   ) { }
 
+  private mouseDown: boolean = false;
   // Método executado quando o componente é inicializado
   ngOnInit() {
     this.loadRoles();
+
+    // Adicionamos alguns listeners ao document para rastrear o estado do botão esquerdo do mouse
+    document.addEventListener('mousedown', this.onMouseDown.bind(this));
+    document.addEventListener('mouseup', this.onMouseUp.bind(this));
+    document.addEventListener('mousemove', this.onMouseMove.bind(this));
     document.addEventListener('click', this.closeContextMenu.bind(this));
   }
+
+  onMouseDown(event: MouseEvent) {
+    if (event.button === 0) {
+      console.log('Botão esquerdo do mouse pressionado.');
+      this.mouseDown = true;
+  
+      // Inicialmente, o target é o elemento onde o mouse foi pressionado (pode ser a célula da tabela)
+      let target = event.target as HTMLElement;
+  
+      // Se o elemento alvo não é uma linha da tabela, procuramos o elemento da linha da tabela entre os pais do alvo
+      while (target && !target.classList.contains('table-row')) {
+        target = target.parentElement as HTMLElement;
+      }
+  
+      // Se encontramos um elemento com a classe 'table-row', então processamos o clique na linha da tabela
+      if (target) {
+        console.log('Linha da tabela clicada.');
+        const roleId = Number(target.getAttribute('data-role-id'));
+        console.log('ID do role obtido:', roleId);
+        if (this.selectedRoleIds.indexOf(roleId) === -1) {
+          this.selectedRoleIds.push(roleId);
+          console.log('ID do role adicionado à lista de seleção:', roleId);
+        } else {
+          console.log('ID do role já estava na lista de seleção.');
+        }
+      } else {
+        console.log('Clique não foi em uma linha da tabela.');
+      }
+    } else {
+      console.log('Botão direito do mouse pressionado.');
+    }
+  }
+  
+
+
+
+  onMouseUp(event: MouseEvent) {
+    // Verifica se o botão esquerdo do mouse foi solto
+    if (event.button === 0) {
+      this.mouseDown = false;
+    }
+  }
+
+  onMouseMove(event: MouseEvent) {
+    if (this.mouseDown) {
+      let target = event.target as HTMLElement;
+  
+      // Subindo na árvore DOM até encontrar um elemento com a classe 'table-row'.
+      while (target && !target.classList.contains('table-row')) {
+        if (target.parentElement) {
+          target = target.parentElement;
+        } else {
+          // Não há mais ancestrais na árvore DOM, portanto, saia do loop.
+          return;
+        }
+      }
+  
+      if (target.classList.contains('table-row')) {
+        console.log('Movimento do mouse detectado. Target:', target);
+        const roleId = Number(target.getAttribute('data-role-id'));
+        if (this.selectedRoleIds.indexOf(roleId) === -1) {
+          this.selectedRoleIds.push(roleId);
+          console.log('Role ID adicionado à lista de seleção:', roleId);
+        } else {
+          console.log('Role ID já está na lista de seleção:', roleId);
+        }
+      } else {
+        console.log('Não foi possível encontrar um elemento com a classe \'table-row\'.');
+      }
+    } else {
+      console.log('Botão do mouse não está pressionado.');
+    }
+  }
+  
+  
+  
+  
 
   // Carrega os papeis do servidor
   loadRoles() {
@@ -141,37 +224,60 @@ deactivateRole(roleId: number) {
   }
 
   selectedRoleId: number | null = null;
+  selectedRoleIds: number[] = [];
   @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;
 
   rightClick(event: MouseEvent, role: any) {
     event.preventDefault();
-    this.selectedRoleId = role.id;
+    
     this.contextMenu.menuOptions = ['Editar', 'Deletar']; // Define as opções aqui
     this.contextMenu.position = { x: event.clientX, y: event.clientY };
     this.contextMenu.isOpen = true;
   }
+
+
+
+  leftClick(event: MouseEvent, role: any) {
+    event.preventDefault();
+    
+    const index = this.selectedRoleIds.indexOf(role.id);
+    
+    if (index > -1) {
+      // Se o ID já está no array, remova-o
+      this.selectedRoleIds.splice(index, 1);
+    } else {
+      // Se o ID não está no array, adicione-o
+      this.selectedRoleIds.push(role.id);
+    }
+  }
+
+  
   
   contextMenuOptionSelected(option: string) {
-    if (this.selectedRoleId === null) {
+    if (this.selectedRoleIds.length === 0) {
       console.error('Nenhum role foi selecionado');
       return;
     }
-
+    
     switch(option) {
       case 'Deletar':
-        this.deactivateRole(this.selectedRoleId);
+        // Agora desativamos todos os roles selecionados
+        for (const id of this.selectedRoleIds) {
+          this.deactivateRole(id);
+        }
         break;
-
+        
       // Aqui você pode adicionar casos para outras opções do menu de contexto
       // case 'Editar':
-      //   this.editRole(this.selectedRoleId);
+      //   for (const id of this.selectedRoleIds) {
+      //     this.editRole(id);
+      //   }
       //   break;
-
-
     }
-
+    
     this.contextMenu.isOpen = false;
   }
+  
 
   closeContextMenu(event: MouseEvent) {
     if (!this.contextMenu.elementRef.nativeElement.contains(event.target)) {
@@ -180,8 +286,11 @@ deactivateRole(roleId: number) {
 }
 
 ngOnDestroy() {
-  document.removeEventListener('click', this.closeContextMenu.bind(this));
-}
+    document.removeEventListener('mousedown', this.onMouseDown.bind(this));
+    document.removeEventListener('mouseup', this.onMouseUp.bind(this));
+    document.removeEventListener('mousemove', this.onMouseMove.bind(this));
+    document.removeEventListener('click', this.closeContextMenu.bind(this));
+  }
 
 
 

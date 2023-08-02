@@ -15,21 +15,23 @@
             <tr>
                 <th>Role ID</th>
                 <th>Role Name</th>
-                
             </tr>
         </thead>
         <tbody>
-            <tr *ngFor="let role of roles" (contextmenu)="rightClick($event, role)">
+            <tr *ngFor="let role of roles" 
+                class="table-row" 
+                [attr.data-role-id]="role.id"
+                (mousedown)="onMouseDown($event)"
+                (contextmenu)="rightClick($event, role)"
+                (mousemove)="onMouseMove($event)"
+                [ngClass]="{'selected': selectedRoleIds.includes(role.id)}">
                 <td>{{ role.id }}</td>
                 <td>{{ role.name }}</td>
-              
             </tr>
-            
         </tbody>
-        <app-context-menu #contextMenu (optionSelected)="contextMenuOptionSelected($event)"></app-context-menu>
-
     </table>
     
-    <button class="btn btn-primary" (click)="exportToExcel()">Exportar para Excel</button>
+    <app-context-menu #contextMenu (optionSelected)="contextMenuOptionSelected($event)"></app-context-menu>
 
+    <button class="btn btn-primary" (click)="exportToExcel()">Exportar para Excel</button>
 </div>

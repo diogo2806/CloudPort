@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, ViewChild  } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../service/endpoint';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import * as XLSX from 'xlsx';
-
+import { ContextMenuComponent } from '../context-menu/context-menu.component';
 
 
 @Component({
@@ -21,11 +21,16 @@ export class RoleComponent implements OnInit {
   // Lista dos papeis
   roles: any[] = [];
 
-  constructor(private http: HttpClient, private authenticationService: AuthenticationService) { }
+  constructor(
+    private http: HttpClient, 
+    private authenticationService: AuthenticationService
+
+  ) { }
 
   // Método executado quando o componente é inicializado
   ngOnInit() {
     this.loadRoles();
+    document.addEventListener('click', this.closeContextMenu.bind(this));
   }
 
   // Carrega os papeis do servidor
@@ -85,10 +90,10 @@ editRole(roleId: number) {
       })
   };
 
-  // Aplica trim(), toUpperCase() e substitui espaços por sublinhados
+  // Aplica trim(), toUpperCase() e substitui espaços por sublinhados roleName
   const roleName = this.roleName.trim().toUpperCase().replace(' ', '_');
 
-  this.http.put(`${environment.role.update(roleId)}`, { name: roleName }, httpOptions)
+  this.http.put(`${environment.role.update(roleId)}`, { name: roleName}, httpOptions)
       .pipe(catchError((error: any) => {
           window.alert(error.message); // Aqui o popup é criado
           return throwError(error);
@@ -134,6 +139,50 @@ deactivateRole(roleId: number) {
     /* save to file */
     XLSX.writeFile(wb, 'roles.xlsx');
   }
+
+  selectedRoleId: number | null = null;
+  @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;
+
+  rightClick(event: MouseEvent, role: any) {
+    event.preventDefault();
+    this.selectedRoleId = role.id;
+    this.contextMenu.menuOptions = ['Editar', 'Deletar']; // Define as opções aqui
+    this.contextMenu.position = { x: event.clientX, y: event.clientY };
+    this.contextMenu.isOpen = true;
+  }
   
+  contextMenuOptionSelected(option: string) {
+    if (this.selectedRoleId === null) {
+      console.error('Nenhum role foi selecionado');
+      return;
+    }
+
+    switch(option) {
+      case 'Deletar':
+        this.deactivateRole(this.selectedRoleId);
+        break;
+
+      // Aqui você pode adicionar casos para outras opções do menu de contexto
+      // case 'Editar':
+      //   this.editRole(this.selectedRoleId);
+      //   break;
+
+
+    }
+
+    this.contextMenu.isOpen = false;
+  }
+
+  closeContextMenu(event: MouseEvent) {
+    if (!this.contextMenu.elementRef.nativeElement.contains(event.target)) {
+        this.contextMenu.isOpen = false;
+    }
+}
+
+ngOnDestroy() {
+  document.removeEventListener('click', this.closeContextMenu.bind(this));
+}
+
+
 
 }

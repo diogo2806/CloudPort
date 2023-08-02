@@ -15,22 +15,21 @@
             <tr>
                 <th>Role ID</th>
                 <th>Role Name</th>
-                <th>Ações</th> <!-- Added Edit header -->
+                
             </tr>
         </thead>
         <tbody>
-            <tr *ngFor="let role of roles">
+            <tr *ngFor="let role of roles" (contextmenu)="rightClick($event, role)">
                 <td>{{ role.id }}</td>
                 <td>{{ role.name }}</td>
-                <td>
-                    <button class="btn btn-primary spaced-button" (click)="editRole(role.id)">Editar</button>
-                    <button class="btn btn-danger spaced-button" (click)="deactivateRole(role.id)">Deletar</button>
-                </td>
+              
             </tr>
+            
         </tbody>
+        <app-context-menu #contextMenu (optionSelected)="contextMenuOptionSelected($event)"></app-context-menu>
+
     </table>
     
-
     <button class="btn btn-primary" (click)="exportToExcel()">Exportar para Excel</button>
 
 </div>

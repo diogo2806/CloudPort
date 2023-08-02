@@ -1,0 +1,5 @@
+<div class="context-menu" [style.top.px]="position.y" [style.left.px]="position.x" *ngIf="isOpen">
+    <div class="context-menu-option" *ngFor="let option of menuOptions" (click)="optionSelected.emit(option)">
+        {{ option }}
+    </div>
+</div>

@@ -12,6 +12,7 @@ import { HeaderComponent } from './componentes/header/header.component';
 import { FooterComponent } from './componentes/footer/footer.component';
 import { NavbarComponent } from './componentes/navbar/navbar.component';
 import { RoleComponent } from './componentes/role/role.component';
+import { ContextMenuComponent } from './componentes/context-menu/context-menu.component';
 
 @NgModule({
   declarations: [
@@ -21,7 +22,8 @@ import { RoleComponent } from './componentes/role/role.component';
     HeaderComponent,
     FooterComponent,
     NavbarComponent,
-    RoleComponent
+    RoleComponent,
+    ContextMenuComponent
   ],
   imports: [
     BrowserModule,

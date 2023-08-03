@@ -29,7 +29,7 @@ export class RoleComponent implements OnInit {
 
   ) { }
 
-  private mouseDown: boolean = false;
+ // private mouseDown: boolean = false;
   private selectionStarted: boolean = false;
   private target: HTMLElement | null = null;
 
@@ -37,24 +37,77 @@ export class RoleComponent implements OnInit {
   // Método executado quando o componente é inicializado
   ngOnInit() {
     this.loadRoles();
-
-    // Adicionamos alguns listeners ao document para rastrear o estado do botão esquerdo do mouse
-    document.addEventListener('mousedown', this.onMouseDown.bind(this));
-    document.addEventListener('mouseup', this.onMouseUp.bind(this));
-    document.addEventListener('mousemove', this.onMouseMove.bind(this));
     document.addEventListener('click', this.closeContextMenu.bind(this));
+}
+
+
+dragging: boolean = false;
+
+mouseDown(event: MouseEvent, role: any) {
+  event.preventDefault();
+  this.dragging = true;
+  this.toggleSelection(role);
+}
+
+mouseUp(event: MouseEvent) {
+  this.dragging = false;
+}
+
+mouseover(event: MouseEvent, role: any) {
+  if (this.dragging) {
+    this.toggleSelection(role);
   }
+}
+
+toggleSelection(role: any) {
+  const index = this.selectedRoleIds.indexOf(role.id);
   
-  
+  if (index > -1) {
+    // Se o ID já está no array, remova-o
+    this.selectedRoleIds.splice(index, 1);
+  } else {
+    // Se o ID não está no array, adicione-o
+    this.selectedRoleIds.push(role.id);
+  }
+}
 
 
-  onMouseUp(event: MouseEvent) {
-    // Verifica se o botão esquerdo do mouse foi solto
-    if (event.button === 0) {
-      this.mouseDown = false;
-    }
+  /*
+handleMouseEvent(event: MouseEvent) {
+  // Inicialmente, o target é o elemento onde o mouse foi pressionado (pode ser a célula da tabela)
+  let target = event.target as HTMLElement;
+
+  // Se o elemento alvo não é uma linha da tabela, procuramos o elemento da linha da tabela entre os pais do alvo
+  while (target && !target.classList.contains('table-row')) {
+      target = target.parentElement as HTMLElement;
   }
 
+  // Se encontramos um elemento com a classe 'table-row', então processamos o clique na linha da tabela
+  if (target) {
+      console.log('onClick Linha da tabela clicada.');
+      const roleId = Number(target.getAttribute('data-role-id'));
+      console.log('onClick ID do role obtido:', roleId);
+      // Se o ID do role não está na lista de seleção, adicione-o
+      // Se o ID do role está na lista de seleção, remova-o
+      const index = this.selectedRoleIds.indexOf(roleId);
+      if (index === -1) {
+          this.selectedRoleIds.push(roleId);
+          console.log('onClick ID do role adicionado à lista de seleção:', roleId);
+      } else {
+          if (index > -1) {
+              this.selectedRoleIds.splice(index, 1);
+              console.log('**onClick ID do role removido da lista de seleção:', roleId);
+          }
+          // console.log('onClick ID do role removido da lista de seleção:', roleId);
+      }
+  } else {
+      console.log('onClick Clique não foi em uma linha da tabela.');
+  }
+}
+*/
+
+
+  /*
   onMouseDown(event: MouseEvent) {
     if (event.button === 0) {
       console.log('Botão esquerdo do mouse pressionado.');
@@ -118,7 +171,7 @@ export class RoleComponent implements OnInit {
       console.log('Botão do mouse não está pressionado.');
     }
   }
-  
+  */
   
   
   
@@ -249,7 +302,7 @@ deactivateRole(roleId: number) {
 
   leftClick(event: MouseEvent, role: any) {
     event.preventDefault();
-    
+    console.log('onClick Linha da tabela clicada.'+role.id);
     const index = this.selectedRoleIds.indexOf(role.id);
     
     if (index > -1) {
@@ -288,17 +341,17 @@ deactivateRole(roleId: number) {
     this.contextMenu.isOpen = false;
   }
   
-
-  closeContextMenu(event: MouseEvent) {
+ closeContextMenu(event: MouseEvent) {
     if (!this.contextMenu.elementRef.nativeElement.contains(event.target)) {
         this.contextMenu.isOpen = false;
     }
 }
+ 
 
 ngOnDestroy() {
-    document.removeEventListener('mousedown', this.onMouseDown.bind(this));
-    document.removeEventListener('mouseup', this.onMouseUp.bind(this));
-    document.removeEventListener('mousemove', this.onMouseMove.bind(this));
+   // document.removeEventListener('mousedown', this.handleMouseEvent.bind(this));
+   // document.removeEventListener('mouseup', this.handleMouseEvent.bind(this));
+    //document.removeEventListener('mousemove', this.handleMouseEvent.bind(this));
     document.removeEventListener('click', this.closeContextMenu.bind(this));
   }
 

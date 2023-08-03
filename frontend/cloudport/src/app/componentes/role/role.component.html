@@ -21,13 +21,17 @@
             <tr *ngFor="let role of roles" 
                 class="table-row" 
                 [attr.data-role-id]="role.id"
-                (mousedown)="onMouseDown($event)"
+                (mousedown)="mouseDown($event, role)"
+                (mouseup)="mouseUp($event)"
+                (mouseover)="mouseover($event, role)"
                 (contextmenu)="rightClick($event, role)"
-                (mousemove)="onMouseMove($event)"
                 [ngClass]="{'selected': selectedRoleIds.includes(role.id)}">
                 <td>{{ role.id }}</td>
                 <td>{{ role.name }}</td>
             </tr>
+
+
+
         </tbody>
     </table>
     

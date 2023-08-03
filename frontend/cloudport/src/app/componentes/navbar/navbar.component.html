@@ -1,33 +1,31 @@
-
 <nav class="app-navbar" *ngIf="mostrarMenu">
-    <ul>
-      <li>
-        <a href="#">Configurações</a>
-        <ul>
-          <li><a href="#">Geral</a></li>
-          <li><a href="#">Perfil</a></li>
-          <li><a href="#">Segurança</a></li>
-          <li><a href="#">Notificações</a></li>
-          <li><a href="#">Privacidade</a></li>
-        </ul>
-      </li>
-      <li>
-        <a href="#">Usuários</a>
-        <ul>
-          <li><a href="#">Lista de usuários</a></li>
-          <li><a href="#">Adicionar usuário</a></li>
-          <li><a href="#">Gerenciar usuários</a></li>
-          <li><a (click)="goToRole()">Role</a></li>
-        </ul>
-      </li>
-      <li>
-        <a href="#">Ajuda</a>
-        <ul>
-          <li><a href="#">FAQ</a></li>
-          <li><a href="#">Contato</a></li>
-          <li><a href="#">Suporte</a></li>
-        </ul>
-      </li>
-    </ul>
-  </nav>
-  
+  <ul>
+    <li (click)="toggleSubmenu($event)">
+      <a href="#">Configurações</a>
+      <ul>
+        <li><a (click)="navigateTo('Geral')">Geral</a></li>
+        <li><a (click)="navigateTo('Perfil')">Perfil</a></li>
+        <li><a (click)="navigateTo('Segurança')">Segurança</a></li>
+        <li><a (click)="navigateTo('Notificações')">Notificações</a></li>
+        <li><a (click)="navigateTo('Privacidade')">Privacidade</a></li>
+      </ul>
+    </li>
+    <li (click)="toggleSubmenu($event)">
+      <a href="#">Usuários</a>
+      <ul>
+        <li><a (click)="navigateTo('login')">Lista de usuários</a></li>
+        <li><a (click)="navigateTo('home')">Adicionar usuário</a></li>
+        <li><a (click)="navigateTo('Role')">Gerenciar usuários</a></li>
+        <li><a (click)="navigateTo('Role')">Role</a></li>
+      </ul>
+    </li>
+    <li (click)="toggleSubmenu($event)">
+      <a href="#">Ajuda</a>
+      <ul>
+        <li><a (click)="navigateTo('FAQ')">FAQ</a></li>
+        <li><a (click)="navigateTo('Contato')">Contato</a></li>
+        <li><a (click)="navigateTo('Suporte')">Suporte</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>

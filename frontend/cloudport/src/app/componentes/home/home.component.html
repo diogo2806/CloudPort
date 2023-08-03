@@ -1,28 +1,18 @@
-<section  class="container py-5">
-    <!--
-    <div class="row title-banner text-center mb-5">
-        <div class="col-lg-7 mx-auto">
-            <img src="../../../assets/images/shipping.png" alt="Logo" class="logo">
-            <h1 class="display-4">Bem-vindo ao CloudPort</h1>
-            <p class="lead mb-0">O CloudPorts é um Terminal Operating System (TOS) avançado, otimizado para operações eficientes de terminal.</p>
-        </div>
-    </div>
-  -->
+<section class="container">
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <div class="bg-white rounded-lg shadow-sm p-5">
-                <h5 class="mb-3">Recursos principais</h5>
-                <ul>
-                    <li>Gerenciamento otimizado de carga e descarga</li>
-                    <li>Planejamento eficiente de recursos de terminal</li>
-                    <li>Integração suave com tecnologias existentes</li>
-                    <li>Relatórios detalhados e análise de dados</li>
+                <ul class="nav nav-tabs">
+                    <li class="nav-item" *ngFor="let tab of tabs">
+                        <a class="nav-link" [class.active]="selectedTab === tab" (click)="navigateTo(tab)">{{tab}}</a>
+                        <button (click)="closeTab(tab)">x</button>
+                    </li>
                 </ul>
-                <p class="mt-3 token-text">Token do usuário: {{ userToken }}</p>
-
-                <button class="btn btn-primary mt-3" (click)="logout()">Logout</button>
-           
+                <div class="tab-content">
+                    <router-outlet></router-outlet>
+                    <button class="btn btn-primary mt-3" (click)="logout()">Logout</button>
+                </div>
             </div>
         </div>
     </div>
-</section >
+</section>

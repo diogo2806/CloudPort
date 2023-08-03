@@ -7,9 +7,12 @@ import { RoleComponent } from './componentes/role/role.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent }, 
-  { path: 'home', component: HomeComponent },
-  { path: '', component: HomeComponent },
-  { path: 'role', component: RoleComponent }
+  { path: 'home', component: HomeComponent, children: [
+    { path: 'role', component: RoleComponent },
+    { path: 'home', component: HomeComponent },
+    { path: 'login', component: LoginComponent }, 
+  ]},
+  { path: '', redirectTo: 'home', pathMatch: 'full' },
 ];
 
 @NgModule({

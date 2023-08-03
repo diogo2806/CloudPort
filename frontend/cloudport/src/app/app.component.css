@@ -1,3 +1,9 @@
 body {
   background: linear-gradient(120deg, #a1c4fd, #c2e9fb);
 }
+
+main {
+  margin: 0; /* Remove a margem */
+  padding: 0; /* Remove o padding */
+  height: calc(100vh - 50px); /* Define a altura para ocupar toda a viewport menos a altura do cabeçalho */
+}

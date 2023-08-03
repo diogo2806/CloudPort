@@ -1,4 +1,3 @@
-
 .app-navbar {
     display: flex;
     align-items: center;
@@ -11,6 +10,7 @@
     letter-spacing: 2px;
     line-height: 1.2;
     align-self: center;
+    z-index: 1000;
 }
 
 .app-navbar > ul {
@@ -23,6 +23,7 @@
 
 .app-navbar ul li {
     position: relative;
+    padding-bottom: 10px;
 }
 
 .app-navbar ul li > ul {
@@ -33,6 +34,7 @@
     background: #2349868c;
     padding: 10px;
     border-radius: 4px;
+    margin-top: 10px;
 }
 
 .app-navbar ul li > ul li {
@@ -41,10 +43,6 @@
 
 .app-navbar ul li > ul li:last-child {
     margin-bottom: 0;
-}
-
-.app-navbar ul li:hover > ul {
-    display: block;
 }
 
 .app-navbar a {

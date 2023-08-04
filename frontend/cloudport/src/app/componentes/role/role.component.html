@@ -10,6 +10,10 @@
 
     <!-- Role Table -->
     <h1>Perfis</h1>
+    
+    <app-dynamic-table [columns]="['Role ID', 'Role Names']" [data]="roles"></app-dynamic-table>
+
+    <!-- 
     <table class="table table-striped">
         <thead>
             <tr>
@@ -34,7 +38,7 @@
 
         </tbody>
     </table>
-    
+-->
     <app-context-menu #contextMenu (optionSelected)="contextMenuOptionSelected($event)"></app-context-menu>
 
     <button class="btn btn-primary" (click)="exportToExcel()">Exportar para Excel</button>

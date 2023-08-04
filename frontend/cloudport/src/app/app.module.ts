@@ -13,6 +13,7 @@ import { FooterComponent } from './componentes/footer/footer.component';
 import { NavbarComponent } from './componentes/navbar/navbar.component';
 import { RoleComponent } from './componentes/role/role.component';
 import { ContextMenuComponent } from './componentes/context-menu/context-menu.component';
+import { DynamicTableComponent } from './componentes/dynamic-table/dynamic-table.component';
 
 @NgModule({
   declarations: [
@@ -23,7 +24,8 @@ import { ContextMenuComponent } from './componentes/context-menu/context-menu.co
     FooterComponent,
     NavbarComponent,
     RoleComponent,
-    ContextMenuComponent
+    ContextMenuComponent,
+    DynamicTableComponent
   ],
   imports: [
     BrowserModule,

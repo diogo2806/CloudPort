@@ -1,3 +1,6 @@
+<app-dynamic-table [columns]="['Role ID', 'Role Name']" [data]="roles"></app-dynamic-table>
+
+<!--
 <div class="role-container">
     <h1>Perfis de Acesso</h1>
 
@@ -8,12 +11,12 @@
         <button class="btn btn-primary" (click)="createRole()">Criar</button>
     </div>
 
-    <!-- Role Table -->
+ 
     <h1>Perfis</h1>
     
-    <app-dynamic-table [columns]="['Role ID', 'Role Names']" [data]="roles"></app-dynamic-table>
-    <p [data]="roles">"roles"</p>
-    <!-- 
+   
+
+
     <table class="table table-striped">
         <thead>
             <tr>
@@ -38,8 +41,9 @@
 
         </tbody>
     </table>
--->
+
     <app-context-menu #contextMenu (optionSelected)="contextMenuOptionSelected($event)"></app-context-menu>
 
     <button class="btn btn-primary" (click)="exportToExcel()">Exportar para Excel</button>
 </div>
+-->

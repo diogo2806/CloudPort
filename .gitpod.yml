@@ -21,6 +21,8 @@ tasks:
       npm install --save ngx-mask
       npm i ngx-mask@13.1.13
       npm install --save xlsx
+      npm install primeng --force
+
 
     command: ng serve
 

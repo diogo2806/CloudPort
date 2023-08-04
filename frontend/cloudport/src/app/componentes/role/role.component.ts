@@ -220,12 +220,18 @@ export class RoleComponent implements OnInit {
       
       this.contextMenu.isOpen = false;
     }
-    
+    /*
     closeContextMenu(event: MouseEvent) {
       if (!this.contextMenu.elementRef.nativeElement.contains(event.target)) {
           this.contextMenu.isOpen = false;
       }
+    }*/
+    closeContextMenu(event: MouseEvent) {
+      if (this.contextMenu && !this.contextMenu.elementRef.nativeElement.contains(event.target)) {
+        this.contextMenu.isOpen = false;
+      }
     }
+    
 
     ngOnDestroy() {
       document.removeEventListener('click', this.closeContextMenu.bind(this));

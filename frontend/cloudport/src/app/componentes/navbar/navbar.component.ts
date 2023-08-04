@@ -34,7 +34,24 @@ export class NavbarComponent {
     this.tabService.openTab(tab);
     this.router.navigate(['/home' , tab.toLowerCase()]); // Navegue para a rota correspondente
   }
-
+  
+  toggleSubmenu(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+  
+    const target = event.target as HTMLElement;
+    const submenu = target.nextElementSibling as HTMLElement;
+  
+    if (submenu) {
+      if (submenu.style.display === 'none' || submenu.style.display === '') {
+        submenu.style.display = 'block';
+      } else {
+        submenu.style.display = 'none';
+      }
+    }
+  }
+  
+  /*
   toggleSubmenu(event: Event) {
     event.preventDefault();
     event.stopPropagation();
@@ -48,7 +65,7 @@ export class NavbarComponent {
       submenu.style.display = 'none';
     }
   }
-
+*/
   @HostListener('document:click', ['$event'])
   clickout(event: MouseEvent) {
     if (!this.eRef.nativeElement.contains(event.target)) {

@@ -46,11 +46,12 @@ export class DynamicTableComponent implements OnInit {
 
   applyFilter(filterValue: string, column: string) {
     if (!filterValue) {
-      this.filteredData = this.data;
+        this.filteredData = this.data;
     } else {
-      filterValue = filterValue.trim(); // Remove whitespace
-      filterValue = filterValue.toLowerCase(); // MatTableDataSource defaults to lowercase matches
-      this.filteredData = this.data.filter(row => row[column].toLowerCase().includes(filterValue));
+        filterValue = filterValue.trim(); // Remove whitespace
+        filterValue = filterValue.toLowerCase(); // MatTableDataSource defaults to lowercase matches
+        this.filteredData = this.data.filter(row => row[column].toLowerCase().includes(filterValue));
     }
-  }
+}
+
 }

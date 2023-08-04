@@ -28,10 +28,12 @@
     background-color: #ffffff;
     border-radius: 10px;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-    padding: 2em;
+    margin: 0; /* Remove qualquer margem */
+    padding: 0; /* Remove qualquer preenchimento */
+    
     height: 100%;
     width: 100%;
-    margin: 0;
+
 }
 
 .tab-content {
@@ -43,4 +45,39 @@
     color: #fff;
     background-color: #007bff;
     border-color: #007bff;
+}
+
+.nav-tabs {
+    margin: 0; /* Remove qualquer margem */
+    padding: 0; /* Remove qualquer preenchimento */
+}
+
+
+.nav-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-item a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Adicionado para alinhar o botão à direita */
+    gap: 20px;
+    width: 100%; /* Adicionado para permitir que o botão se mova para a direita */
+
+}
+
+.nav-item button {
+    margin-right: 0px;
+    text-align: center;
+    padding: 0.15rem 0.25rem; /* Adicionado para diminuir o tamanho do botão */
+    font-size: 0.7rem; /* Adicionado para diminuir o tamanho do texto do botão */
+}
+
+.nav-item span {
+
+    font-weight: bold; /* Adicionado para deixar o texto em negrito */
+    margin-bottom: 0em;
 }

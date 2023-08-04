@@ -1,20 +1,23 @@
 <table class="table table-striped">
-    <thead>
-      <tr>
-        <th *ngFor="let column of columns">{{column}}</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let row of data" 
-          class="table-row" 
-          [attr.data-role-id]="row['Role ID']"
-          (mousedown)="onRowMouseDown($event, row)"
-          (mouseup)="onRowMouseUp($event)"
-          (mouseover)="onRowMouseOver($event, row)"
-          (contextmenu)="onRowRightClick($event, row)"
-          [ngClass]="{'selected': isRowSelected(row)}">
-        <td *ngFor="let column of columns">{{row[column]}}</td>
-      </tr>
-    </tbody>
-  </table>
-  
+  <thead>
+    <tr>
+      <th *ngFor="let column of columns">
+        {{column}}
+        <input (keyup)="applyFilter(($event.target as HTMLInputElement).value, column)" placeholder="Filter">
+
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let row of filteredData" 
+        class="table-row" 
+        [attr.data-role-id]="row['Role ID']"
+        (mousedown)="onRowMouseDown($event, row)"
+        (mouseup)="onRowMouseUp($event)"
+        (mouseover)="onRowMouseOver($event, row)"
+        (contextmenu)="onRowRightClick($event, row)"
+        [ngClass]="{'selected': isRowSelected(row)}">
+      <td *ngFor="let column of columns">{{row[column]}}</td>
+    </tr>
+  </tbody>
+</table>

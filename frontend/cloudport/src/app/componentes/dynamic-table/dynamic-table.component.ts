@@ -15,9 +15,12 @@ export class DynamicTableComponent implements OnInit {
   @Output() mouseOver = new EventEmitter<any>();
   @Output() rightClick = new EventEmitter<any>();
 
+  filteredData: any[] = [];
+
   constructor() { }
 
   ngOnInit(): void {
+    this.filteredData = this.data;
   }
 
   onRowMouseDown(event: MouseEvent, row: any) {
@@ -39,5 +42,15 @@ export class DynamicTableComponent implements OnInit {
 
   isRowSelected(row: any) {
     return this.selectedRoleIds.includes(row['Role ID']);
+  }
+
+  applyFilter(filterValue: string, column: string) {
+    if (!filterValue) {
+      this.filteredData = this.data;
+    } else {
+      filterValue = filterValue.trim(); // Remove whitespace
+      filterValue = filterValue.toLowerCase(); // MatTableDataSource defaults to lowercase matches
+      this.filteredData = this.data.filter(row => row[column].toLowerCase().includes(filterValue));
+    }
   }
 }

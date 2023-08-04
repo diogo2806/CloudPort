@@ -3,7 +3,8 @@
     <tr>
       <th *ngFor="let column of columns">
         {{column}}
-        <input (keyup)="applyFilter(($event.target as HTMLInputElement).value, column)" placeholder="Filter">
+        <input (keyup)="applyFilter($event.target.value, 'yourColumnName')" placeholder="Filter">
+
 
       </th>
     </tr>

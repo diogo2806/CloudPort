@@ -1,39 +1,6 @@
-<table class="table table-striped">
-    <thead>
-      <tr>
-        <th *ngFor="let column of columns">
-          <p-columnFilter field="{{column}}" matchMode="contains" [showMenu]="false">
-            <ng-template pTemplate="filter" let-value let-filter="filterCallback">
-              <input type="text"
-                pInputText
-                [ngModel]="value"
-                (ngModelChange)="filter($event)"
-                class="p-inputtext"
-                placeholder="search">
-            </ng-template>
-          </p-columnFilter>
-          {{column}}
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let row of data" 
-          class="table-row" 
-          [attr.data-role-id]="row['Role ID']"
-          (mousedown)="onRowMouseDown($event, row)"
-          (mouseup)="onRowMouseUp($event)"
-          (mouseover)="onRowMouseOver($event, row)"
-          (contextmenu)="onRowRightClick($event, row)"
-          [ngClass]="{'selected': isRowSelected(row)}">
-        <td *ngFor="let column of columns">{{row[column]}}</td>
-      </tr>
-    </tbody>
-  </table>
-  
-
-  <!--
 
 
+<!--
     <table class="table table-striped">
     <thead>
       <tr>
@@ -58,5 +25,29 @@
   </table>
   
 
+-->
 
-  -->
+
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th *ngFor="let column of columns">
+        <input class="form-control" type="text"  (keyup)="handleKeyUp($event, column)" placeholder="Filter">
+        {{column}}
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let row of filteredData" 
+        class="table-row" 
+        [attr.data-role-id]="row['Role ID']"
+        (mousedown)="onRowMouseDown($event, row)"
+        (mouseup)="onRowMouseUp($event)"
+        (mouseover)="onRowMouseOver($event, row)"
+        (contextmenu)="onRowRightClick($event, row)"
+        [ngClass]="{'selected': isRowSelected(row)}">
+      <td *ngFor="let column of columns">{{row[column]}}</td>
+    </tr>
+  </tbody>
+</table>

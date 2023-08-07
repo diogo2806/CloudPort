@@ -14,7 +14,7 @@ import { NavbarComponent } from './componentes/navbar/navbar.component';
 import { RoleComponent } from './componentes/role/role.component';
 import { ContextMenuComponent } from './componentes/context-menu/context-menu.component';
 import { DynamicTableComponent } from './componentes/dynamic-table/dynamic-table.component';
-import { TableModule } from 'primeng/table';
+
 
 
 @NgModule({
@@ -35,7 +35,6 @@ import { TableModule } from 'primeng/table';
     BrowserAnimationsModule,
     ReactiveFormsModule,
     FormsModule,
-    TableModule,
     HttpClientModule,
     TranslateModule.forRoot()
   ],

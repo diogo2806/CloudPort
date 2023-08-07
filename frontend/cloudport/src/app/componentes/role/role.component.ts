@@ -41,6 +41,8 @@ export class RoleComponent implements OnInit {
 
   dragging: boolean = false;
 
+  
+
   mouseDown(event: MouseEvent, role: any) {
     event.preventDefault();
     this.dragging = true;

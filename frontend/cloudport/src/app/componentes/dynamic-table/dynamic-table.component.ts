@@ -8,10 +8,20 @@ import { TabStateService } from './tab-state.service';
   templateUrl: './dynamic-table.component.html',
   styleUrls: ['./dynamic-table.component.css']
 })
-export class DynamicTableComponent implements OnInit, OnChanges {
+export class DynamicTableComponent implements OnInit {
 
   @Input() columns: string[] = [];
-  @Input() data: any[] = [];
+  //@Input() data: any[] = [];
+  private _data: any[] = [];
+
+  @Input() 
+  set data(value: any[]) {
+    this._data = value;
+    this.filteredData = [...this._data];
+    if (this.gridApi) {
+      this.gridApi.setRowData(this.filteredData);
+    }
+  }
   @Input() selectedRoleIds: number[] = [];
   @Output() mouseDown = new EventEmitter<any>();
   @Output() mouseUp = new EventEmitter<any>();
@@ -68,6 +78,14 @@ export class DynamicTableComponent implements OnInit, OnChanges {
     menuTabs: ['filterMenuTab'],
   };
 
+
+  
+  get data(): any[] {
+    return this._data;
+  }
+  
+  /*
+
   ngOnChanges(changes: SimpleChanges) {
     if (changes['data']) {
         this.filteredData = [...this.data];
@@ -77,7 +95,8 @@ export class DynamicTableComponent implements OnInit, OnChanges {
         // Update the current tab state here
         this.tabStateService.setTabState(this.selectedTab, { filteredData: this.filteredData });
     }
-}
+  }
+  
 
 
   /*

@@ -76,12 +76,19 @@ closeTab(tab: string) {
       }
   });
 }
+/*
+navigateTo(tab: string) {
+  this.selectedTab = tab;
+}
+*/
+
 
 navigateTo(tab: string) {
   this.selectedTab = tab;
   const tabState = this.tabStateService.getTabState(tab);
   if (tabState) {
     // Restaure o estado da aba aqui
+    console.log(tabState);
     this.data = tabState.filteredData;
   } else {
     this.router.navigate(['/home', tab.toLowerCase()]);
@@ -94,6 +101,7 @@ navigateTo(tab: string) {
     this.data = currentFilteredData;
   }
 }
+
 
 
 

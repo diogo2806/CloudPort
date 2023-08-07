@@ -1,3 +1,4 @@
+
 <section class="container">
     <div class="row">
         <div class="col-lg-8 mx-auto">
@@ -6,7 +7,28 @@
                     <li class="nav-item" *ngFor="let tab of tabs">
                         <a class="nav-link" [class.active]="selectedTab === tab" (click)="navigateTo(tab)">
                             <span>{{tab}}</span>
-                            <button type="button" class="btn btn-outline-danger btn-sm" (click)="closeTab(tab)">x</button> <!-- Adicionado a classe btn-sm para diminuir o tamanho do botão -->
+                            <button type="button" class="btn btn-outline-danger btn-sm" (click)="closeTab(tab)">x</button>
+                        </a>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <router-outlet></router-outlet>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!--
+<section class="container">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="bg-white rounded-lg shadow-sm p-0">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item" *ngFor="let tab of tabs">
+                        <a class="nav-link" [class.active]="selectedTab === tab" (click)="navigateTo(tab)">
+                            <span>{{tab}}</span>
+                            <button type="button" class="btn btn-outline-danger btn-sm" (click)="closeTab(tab)">x</button> 
                         </a>
                     </li>
                 </ul>
@@ -18,3 +40,4 @@
         </div>
     </div>
 </section>
+-->

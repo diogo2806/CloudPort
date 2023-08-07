@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { TabService } from '../navbar/TabService';
+import { TabStateService } from '../dynamic-table/tab-state.service';
 
 @Component({
   selector: 'app-home',
@@ -17,7 +18,8 @@ export class HomeComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private authenticationService: AuthenticationService,
-    private tabService: TabService
+    private tabService: TabService,
+    private tabStateService: TabStateService
   ) {
     let currentUser: any = this.authenticationService.currentUserValue;
     if (currentUser && currentUser.token) {
@@ -56,6 +58,17 @@ export class HomeComponent implements OnInit {
 
   navigateTo(tab: string) {
     this.selectedTab = tab;
+    const tabState = this.tabStateService.getTabState(tab);
+    if (tabState) {
+      // Restaure o estado da aba aqui
+    } else {
+      this.router.navigate(['/home', tab.toLowerCase()]);
+    }
+  }
+  /*
+  navigateTo(tab: string) {
+    this.selectedTab = tab;
     this.router.navigate(['/home', tab.toLowerCase()]);
   }
+  */
 }

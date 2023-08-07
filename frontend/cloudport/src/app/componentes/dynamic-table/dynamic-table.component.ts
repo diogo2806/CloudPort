@@ -1,9 +1,6 @@
 import { Component, Input, OnInit, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
-import { ColDef, GridApi, GridOptions ,
-  GridReadyEvent,
-  IDateFilterParams,
-  IMultiFilterParams,
-  ISetFilterParams, } from 'ag-grid-community';
+import { ColDef, GridApi, GridOptions, GridReadyEvent, IDateFilterParams, IMultiFilterParams, ISetFilterParams } from 'ag-grid-community';
+import { TabStateService } from './tab-state.service';
 
 @Component({
   selector: 'app-dynamic-table',
@@ -27,7 +24,7 @@ export class DynamicTableComponent implements OnInit, OnChanges {
   columnDefinitions: ColDef[] = [];
   dragging: boolean = false;
 
-  constructor() { }
+  constructor(private tabStateService: TabStateService) { }
 
   ngOnInit(): void {
     this.columnDefinitions = this.columns.map(column => ({
@@ -44,8 +41,7 @@ export class DynamicTableComponent implements OnInit, OnChanges {
   }
 
   onCellClicked(event: any) {
-    // Implemente a lógica que você deseja quando uma célula for clicada
-    if(event.node.getSelected()==false){
+    if (!event.node.isSelected()) {
       event.node.setSelected(true);
     } else {
       event.node.setSelected(false);
@@ -54,12 +50,10 @@ export class DynamicTableComponent implements OnInit, OnChanges {
   }
 
   onCellDoubleClicked(event: any) {
-    // Implemente a lógica que você deseja quando uma célula for clicada duas vezes
     console.log('Célula clicada duas vezes:', event);
   }
 
   onCellRightClicked(event: any) {
-    // Implemente a lógica que você deseja quando uma célula for clicada com o botão direito do mouse
     console.log('Célula clicada com o botão direito:', event);
   }
 
@@ -71,9 +65,6 @@ export class DynamicTableComponent implements OnInit, OnChanges {
     menuTabs: ['filterMenuTab'],
   };
 
-  
-
-
   ngOnChanges(changes: SimpleChanges) {
     if (changes['data']) {
       this.filteredData = [...this.data];
@@ -84,53 +75,40 @@ export class DynamicTableComponent implements OnInit, OnChanges {
   }
 
   onRowMouseDown(event: MouseEvent, row: any) {
-    if (event.button !== 0) {
-      return; // If it's not the left button, return
-    }
+    if (event.button !== 0) return;
     event.preventDefault();
     this.dragging = true;
     this.toggleSelection(row);
-    this.mouseDown.emit({event, row});
+    this.mouseDown.emit({ event, row });
   }
-  
+
   onRowMouseUp(event: MouseEvent) {
-    if (event.button !== 0) {
-      return; // If it's not the left button, return
-    }
+    if (event.button !== 0) return;
     this.dragging = false;
     this.mouseUp.emit(event);
   }
-  
+
   onRowMouseOver(event: MouseEvent, row: any) {
-    if (!this.dragging) {
-      return; // If the user is not dragging, return
-    }
+    if (!this.dragging) return;
     this.toggleSelection(row);
-    this.mouseOver.emit({event, row});
+    this.mouseOver.emit({ event, row });
   }
-  
+
   onRowRightClick(event: MouseEvent, row: any) {
     event.preventDefault();
-    this.rightClick.emit({event, row});
+    this.rightClick.emit({ event, row });
   }
-  
-  isRowSelected(row: any) {
+
+  isRowSelected(row: any): boolean {
     return this.selectedRoleIds.includes(row['Role ID']);
   }
-  
-  toggleSelection(row: any) {
+
+  toggleSelection(row: any): void {
     const index = this.selectedRoleIds.indexOf(row['Role ID']);
-    
     if (index > -1) {
-      // If the ID is already in the array, remove it
       this.selectedRoleIds.splice(index, 1);
     } else {
-      // If the ID is not in the array, add it
       this.selectedRoleIds.push(row['Role ID']);
     }
   }
-  
-  
-  
-
 }

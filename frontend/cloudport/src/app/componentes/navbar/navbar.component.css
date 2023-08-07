@@ -23,7 +23,8 @@
 
 .app-navbar ul li {
     position: relative;
-    padding-bottom: 0px;
+    padding-bottom: 10px;
+    z-index: 1000;
 }
 
 .app-navbar ul li > ul {
@@ -35,10 +36,12 @@
     padding: 10px;
     border-radius: 4px;
     margin-top: 10px;
+    z-index: 1000;
 }
 
 .app-navbar ul li > ul li {
     margin-bottom: 10px;
+    z-index: 1000;
 }
 
 .app-navbar ul li > ul li:last-child {

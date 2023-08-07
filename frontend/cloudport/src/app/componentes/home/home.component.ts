@@ -13,6 +13,9 @@ export class HomeComponent implements OnInit {
   userToken: string = '';
   tabs: string[] = [];
   selectedTab = '';
+  filteredData: any[] = [];  // Adicione esta linha
+  data: any[] = [];  // Adicione esta linha
+
 
   constructor(
     private route: ActivatedRoute,
@@ -45,6 +48,7 @@ export class HomeComponent implements OnInit {
     alert(this.authenticationService.currentUserValue?.token);
   }
 
+  /*
   closeTab(tab: string) {
     this.tabService.closeTab(tab);
     this.tabService.tabs$.subscribe(tabs => {
@@ -55,16 +59,43 @@ export class HomeComponent implements OnInit {
       }
     });
   }
+*/
 
-  navigateTo(tab: string) {
-    this.selectedTab = tab;
-    const tabState = this.tabStateService.getTabState(tab);
-    if (tabState) {
+closeTab(tab: string) {
+  const tabIndex = this.tabs.indexOf(tab);
+  this.tabService.closeTab(tab);
+  this.tabService.tabs$.subscribe(tabs => {
+      this.tabs = tabs;
+      if (tabs.length > 0) {
+          if (tabIndex > 0) {
+              this.selectedTab = tabs[tabIndex - 1];
+          } else {
+              this.selectedTab = tabs[0];
+          }
+          this.router.navigate(['/home', this.selectedTab.toLowerCase()]);
+      }
+  });
+}
+
+navigateTo(tab: string) {
+  this.selectedTab = tab;
+  const tabState = this.tabStateService.getTabState(tab);
+  if (tabState) {
       // Restaure o estado da aba aqui
-    } else {
+      this.filteredData = tabState.filteredData;
+  } else {
       this.router.navigate(['/home', tab.toLowerCase()]);
-    }
+      // Aqui, você pode fazer qualquer lógica necessária para preparar os dados para essa aba.
+      // Por exemplo, filtrar os dados com base em algum critério.
+      // Como um exemplo, vou filtrar os dados onde algum campo (por exemplo, 'name') contém a string 'example'.
+      const currentFilteredData = this.data.filter(item => item.name.includes('example'));
+
+      // Armazene o estado da aba aqui
+      this.tabStateService.setTabState(tab, { filteredData: currentFilteredData });
   }
+}
+
+
   /*
   navigateTo(tab: string) {
     this.selectedTab = tab;

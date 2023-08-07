@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
-import { ColDef, GridApi,
+import { ColDef, GridApi, GridOptions ,
   GridReadyEvent,
   IDateFilterParams,
   IMultiFilterParams,
@@ -45,6 +45,11 @@ export class DynamicTableComponent implements OnInit, OnChanges {
 
   onCellClicked(event: any) {
     // Implemente a lógica que você deseja quando uma célula for clicada
+    if(event.node.getSelected()==false){
+      event.node.setSelected(true);
+    } else {
+      event.node.setSelected(false);
+    }
     console.log('Célula clicada:', event);
   }
 
@@ -124,52 +129,7 @@ export class DynamicTableComponent implements OnInit, OnChanges {
       this.selectedRoleIds.push(row['Role ID']);
     }
   }
-
-  /*
-  onRowMouseDown(event: MouseEvent, row: any) {
-    this.mouseDown.emit({event, row});
-  }
-
-  onRowMouseUp(event: MouseEvent) {
-    this.mouseUp.emit(event);
-  }
-
-  onRowMouseOver(event: MouseEvent, row: any) {
-    this.mouseOver.emit({event, row});
-  }
-
-  onRowRightClick(event: MouseEvent, row: any) {
-    event.preventDefault();
-    this.rightClick.emit({event, row});
-  }
-
-  isRowSelected(row: any) {
-    return this.selectedRoleIds.includes(row['Role ID']);
-  }
-*/
-
-  handleKeyUp(event: KeyboardEvent, column: string) {
-    const target = event.target as HTMLInputElement;
-    this.filters[column] = target.value; // Save the filter value
-    this.applyFilters(); // Apply all filters
-  }
-
-  applyFilters() {
-    let filteredData = [...this.data];
-    for (const column of this.columns) {
-      const filterValue = this.filters[column];
-      if (filterValue) {
-        filteredData = filteredData.filter(row => {
-          let cellValue = row[column];
-          if (typeof cellValue !== 'string') {
-            cellValue = cellValue.toString();
-          }
-          return cellValue.toLowerCase().includes(filterValue.toLowerCase());
-        });
-      }
-    }
-    this.filteredData = filteredData;
-  }
+  
   
   
 

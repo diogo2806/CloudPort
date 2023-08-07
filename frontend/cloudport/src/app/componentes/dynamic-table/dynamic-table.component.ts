@@ -1,14 +1,17 @@
 import { Component, Input, OnInit, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
-
+import { ColDef, GridApi,
+  GridReadyEvent,
+  IDateFilterParams,
+  IMultiFilterParams,
+  ISetFilterParams, } from 'ag-grid-community';
 
 @Component({
   selector: 'app-dynamic-table',
   templateUrl: './dynamic-table.component.html',
   styleUrls: ['./dynamic-table.component.css']
 })
-export class DynamicTableComponent implements OnInit, OnChanges  {
+export class DynamicTableComponent implements OnInit, OnChanges {
 
- 
   @Input() columns: string[] = [];
   @Input() data: any[] = [];
   @Input() selectedRoleIds: number[] = [];
@@ -18,19 +21,60 @@ export class DynamicTableComponent implements OnInit, OnChanges  {
   @Output() rightClick = new EventEmitter<any>();
 
   filteredData: any[] = [];
-  filters: { [key: string]: string } = {}; // New property to keep track of filters
+  filters: { [key: string]: string } = {};
 
-  dragging: boolean = false; // New property to track if the user is dragging the mouse
+  private gridApi!: GridApi;
+  columnDefinitions: ColDef[] = [];
+  dragging: boolean = false;
 
   constructor() { }
 
   ngOnInit(): void {
+    this.columnDefinitions = this.columns.map(column => ({
+      headerName: column,
+      field: column,
+      filter: true,
+      sortable: true
+    }));
     this.filteredData = [...this.data];
   }
+
+  onGridReady(params: any) {
+    this.gridApi = params.api;
+  }
+
+  onCellClicked(event: any) {
+    // Implemente a lógica que você deseja quando uma célula for clicada
+    console.log('Célula clicada:', event);
+  }
+
+  onCellDoubleClicked(event: any) {
+    // Implemente a lógica que você deseja quando uma célula for clicada duas vezes
+    console.log('Célula clicada duas vezes:', event);
+  }
+
+  onCellRightClicked(event: any) {
+    // Implemente a lógica que você deseja quando uma célula for clicada com o botão direito do mouse
+    console.log('Célula clicada com o botão direito:', event);
+  }
+
+  public defaultColDef: ColDef = {
+    flex: 1,
+    minWidth: 200,
+    resizable: true,
+    floatingFilter: true,
+    menuTabs: ['filterMenuTab'],
+  };
+
+  
+
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['data']) {
       this.filteredData = [...this.data];
+      if (this.gridApi) {
+        this.gridApi.setRowData(this.filteredData);
+      }
     }
   }
 

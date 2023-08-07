@@ -14,7 +14,7 @@ import { NavbarComponent } from './componentes/navbar/navbar.component';
 import { RoleComponent } from './componentes/role/role.component';
 import { ContextMenuComponent } from './componentes/context-menu/context-menu.component';
 import { DynamicTableComponent } from './componentes/dynamic-table/dynamic-table.component';
-
+import { AgGridModule } from 'ag-grid-angular';
 
 
 @NgModule({
@@ -36,7 +36,8 @@ import { DynamicTableComponent } from './componentes/dynamic-table/dynamic-table
     ReactiveFormsModule,
     FormsModule,
     HttpClientModule,
-    TranslateModule.forRoot()
+    TranslateModule.forRoot(),
+    AgGridModule
   ],
   providers: [],
   bootstrap: [AppComponent]

@@ -1,53 +1,12 @@
-
-
-<!--
-    <table class="table table-striped">
-    <thead>
-      <tr>
-        <th *ngFor="let column of columns">
-          <input class="form-control" type="text"  (keyup)="handleKeyUp($event, column)" placeholder="Filter">
-          {{column}}
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let row of data" 
-          class="table-row" 
-          [attr.data-role-id]="row['Role ID']"
-          (mousedown)="onRowMouseDown($event, row)"
-          (mouseup)="onRowMouseUp($event)"
-          (mouseover)="onRowMouseOver($event, row)"
-          (contextmenu)="onRowRightClick($event, row)"
-          [ngClass]="{'selected': isRowSelected(row)}">
-        <td *ngFor="let column of columns">{{row[column]}}</td>
-      </tr>
-    </tbody>
-  </table>
-  
-
--->
-
-
-
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th *ngFor="let column of columns">
-        <input class="form-control" type="text"  (keyup)="handleKeyUp($event, column)" placeholder="Filter">
-        {{column}}
-      </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let row of filteredData" 
-        class="table-row" 
-        [attr.data-role-id]="row['Role ID']"
-        (mousedown)="onRowMouseDown($event, row)"
-        (mouseup)="onRowMouseUp($event)"
-        (mouseover)="onRowMouseOver($event, row)"
-        (contextmenu)="onRowRightClick($event, row)"
-        [ngClass]="{'selected': isRowSelected(row)}">
-      <td *ngFor="let column of columns">{{row[column]}}</td>
-    </tr>
-  </tbody>
-</table>
+<ag-grid-angular
+    style="width: 100%; height: 500px;"
+    class="ag-theme-alpine"
+    [rowData]="filteredData"
+    [columnDefs]="columnDefinitions"
+    [defaultColDef]="defaultColDef"
+    [domLayout]="'autoHeight'"
+    (gridReady)="onGridReady($event)"
+    (cellClicked)="onCellClicked($event)"
+    (cellDoubleClicked)="onCellDoubleClicked($event)"
+    (cellRightClicked)="onCellRightClicked($event)">
+</ag-grid-angular>

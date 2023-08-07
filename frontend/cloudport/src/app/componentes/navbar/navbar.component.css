@@ -23,7 +23,7 @@
 
 .app-navbar ul li {
     position: relative;
-    padding-bottom: 10px;
+    padding-bottom: 0px;
 }
 
 .app-navbar ul li > ul {

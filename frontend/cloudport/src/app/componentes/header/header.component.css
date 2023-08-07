@@ -37,3 +37,6 @@
     display: flex;
     align-items: center;
 }
+.d-flex {
+    width: 100%;
+}

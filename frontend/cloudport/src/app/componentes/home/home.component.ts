@@ -81,18 +81,20 @@ navigateTo(tab: string) {
   this.selectedTab = tab;
   const tabState = this.tabStateService.getTabState(tab);
   if (tabState) {
-      // Restaure o estado da aba aqui
-      this.filteredData = tabState.filteredData;
+    // Restaure o estado da aba aqui
+    this.data = tabState.filteredData;
   } else {
-      this.router.navigate(['/home', tab.toLowerCase()]);
-      // Aqui, você pode fazer qualquer lógica necessária para preparar os dados para essa aba.
-      // Como um exemplo, vou filtrar os dados onde algum campo (por exemplo, 'name') contém a string 'example'.
-      const currentFilteredData = this.data.filter(item => item.name.includes('example'));
+    this.router.navigate(['/home', tab.toLowerCase()]);
+    // Aqui, você pode fazer qualquer lógica necessária para preparar os dados para essa aba.
+    // Como um exemplo, vou filtrar os dados onde algum campo (por exemplo, 'name') contém a string 'example'.
+    const currentFilteredData = this.data.filter(item => item.name.includes('example'));
 
-      // Armazene o estado da aba aqui
-      this.tabStateService.setTabState(tab, { filteredData: currentFilteredData });
+    // Armazene o estado da aba aqui
+    this.tabStateService.setTabState(tab, { filteredData: currentFilteredData });
+    this.data = currentFilteredData;
   }
 }
+
 
 
 

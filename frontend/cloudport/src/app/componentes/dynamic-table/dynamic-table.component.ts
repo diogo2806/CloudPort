@@ -70,6 +70,19 @@ export class DynamicTableComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['data']) {
+        this.filteredData = [...this.data];
+        if (this.gridApi) {
+            this.gridApi.setRowData(this.filteredData);
+        }
+        // Update the current tab state here
+        this.tabStateService.setTabState(this.selectedTab, { filteredData: this.filteredData });
+    }
+}
+
+
+  /*
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['data']) {
       this.filteredData = [...this.data];
       if (this.gridApi) {
         this.gridApi.setRowData(this.filteredData);

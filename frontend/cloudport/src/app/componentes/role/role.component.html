@@ -1,4 +1,9 @@
-<app-dynamic-table [columns]="['Role ID', 'Role Name']" [data]="roles"></app-dynamic-table>
+<app-dynamic-table 
+    [columns]="['Role ID', 'Role Name']" 
+    [data]="roles"
+    [selectedTab]="selectedTab">
+</app-dynamic-table>
+
 
 <!--
 <div class="role-container">

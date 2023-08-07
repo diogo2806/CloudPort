@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+
 import { ColDef, GridApi, GridOptions, GridReadyEvent, IDateFilterParams, IMultiFilterParams, ISetFilterParams } from 'ag-grid-community';
 import { TabStateService } from './tab-state.service';
 
@@ -16,6 +17,8 @@ export class DynamicTableComponent implements OnInit, OnChanges {
   @Output() mouseUp = new EventEmitter<any>();
   @Output() mouseOver = new EventEmitter<any>();
   @Output() rightClick = new EventEmitter<any>();
+  @Input() selectedTab: string = '';
+
 
   filteredData: any[] = [];
   filters: { [key: string]: string } = {};
@@ -71,9 +74,24 @@ export class DynamicTableComponent implements OnInit, OnChanges {
       if (this.gridApi) {
         this.gridApi.setRowData(this.filteredData);
       }
+      // Atualize o estado da aba atual aqui
+      this.tabStateService.setTabState(this.selectedTab, { filteredData: this.filteredData });
     }
-  }
+}
 
+
+/*
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['data']) {
+      this.filteredData = [...this.data];
+      if (this.gridApi) {
+        this.gridApi.setRowData(this.filteredData);
+      }
+    }
+
+
+  }
+*/
   onRowMouseDown(event: MouseEvent, row: any) {
     if (event.button !== 0) return;
     event.preventDefault();

@@ -20,7 +20,9 @@ export class RoleComponent implements OnInit {
 
   // Lista dos papeis
   roles: any[] = [];
+  selectedTab: string = 'defaultTab'; // ou qualquer valor padrão que faça sentido para o seu caso
 
+  
   constructor(
     private http: HttpClient, 
     private authenticationService: AuthenticationService,
@@ -29,6 +31,7 @@ export class RoleComponent implements OnInit {
 
   private selectionStarted: boolean = false;
   private target: HTMLElement | null = null;
+  
 
   // Método executado quando o componente é inicializado
   ngOnInit() {

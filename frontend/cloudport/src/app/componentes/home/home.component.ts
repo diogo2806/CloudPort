@@ -86,7 +86,6 @@ navigateTo(tab: string) {
   } else {
       this.router.navigate(['/home', tab.toLowerCase()]);
       // Aqui, você pode fazer qualquer lógica necessária para preparar os dados para essa aba.
-      // Por exemplo, filtrar os dados com base em algum critério.
       // Como um exemplo, vou filtrar os dados onde algum campo (por exemplo, 'name') contém a string 'example'.
       const currentFilteredData = this.data.filter(item => item.name.includes('example'));
 
@@ -94,6 +93,7 @@ navigateTo(tab: string) {
       this.tabStateService.setTabState(tab, { filteredData: currentFilteredData });
   }
 }
+
 
 
   /*

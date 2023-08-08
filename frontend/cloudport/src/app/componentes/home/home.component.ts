@@ -36,6 +36,7 @@ export class HomeComponent implements OnInit {
       this.tabs = tabs;
       if (tabs.length > 0) {
         this.selectedTab = tabs[tabs.length - 1];
+        this.router.navigate(['/home', this.selectedTab.toLowerCase()]);
       }
     });
     console.log("Classe HomeComponent: Método ngOnInit finalizado.");
@@ -55,13 +56,6 @@ export class HomeComponent implements OnInit {
   closeTab(tab: string) {
     console.log(`Classe HomeComponent: Método closeTab chamado com o parâmetro tab=${tab}.`);
     this.tabService.closeTab(tab);
-    this.tabService.tabs$.subscribe(tabs => {
-      this.tabs = tabs;
-      if (tabs.length > 0) {
-        this.selectedTab = tabs[tabs.length - 1];
-        this.router.navigate(['/home', this.selectedTab.toLowerCase()]);
-      }
-    });
   }
 
   navigateTo(tabName: string) {
@@ -73,9 +67,6 @@ export class HomeComponent implements OnInit {
   openTab(tabName: string) {
     console.log(`Classe HomeComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
     this.tabService.openTab(tabName);
-    this.router.navigate(['/home' , tabName.toLowerCase()]);
-    const content = this.tabService.getTabContent(tabName);
-    this.tabService.setTabContent(tabName, content);
   }
 
 

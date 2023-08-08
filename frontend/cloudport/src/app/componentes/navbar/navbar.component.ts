@@ -29,7 +29,26 @@ export class NavbarComponent {
       this.mostrarMenu = true;
       console.log("Classe NavbarComponent: Método ngOnInit finalizado.");
   }
+// ... (resto do código)
 
+openTab(tabName: string) {
+  console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
+  
+  let tabContent = this.tabService.getTabContent(tabName);
+  
+  // Se o conteúdo da aba não existir, defina um conteúdo padrão
+  if (!tabContent) {
+    tabContent = { message: `Conteúdo padrão para a aba ${tabName}` };
+  }
+  
+  this.tabService.openTab(tabName, tabContent);
+  this.router.navigate(['/home' , tabName.toLowerCase()]);
+}
+
+
+// ... (resto do código)
+
+  /*
   openTab(tabName: string) {
     console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
     this.tabService.openTab(tabName);
@@ -38,11 +57,14 @@ export class NavbarComponent {
     this.tabService.setTabContent(tabName, content);
   }
 
+/*
   navigateTo(tab: string) {
     console.log(`Classe NavbarComponent: Método navigateTo chamado com o parâmetro tab=${tab}.`);
     this.tabService.openTab(tab);
     this.router.navigate(['/home' , tab.toLowerCase()]);
   }
+  
+*/
 
   toggleSubmenu(event: Event) {
     console.log("Classe NavbarComponent: Método toggleSubmenu chamado.");

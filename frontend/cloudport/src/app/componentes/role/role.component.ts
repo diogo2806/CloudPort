@@ -73,11 +73,10 @@ export class RoleComponent implements OnInit {
   }
 
   // Carrega os papeis do servidor
-   // Carrega os papeis do servidor
-   loadRoles() {
-    const storedRoles = this.tabService.getTabContent(this.selectedTab);
-    if (storedRoles) {
-      this.roles = storedRoles;
+  loadRoles() {
+    const storedRolesData = this.tabService.getTabContent(this.selectedTab);
+    if (storedRolesData && storedRolesData.content) {
+      this.roles = storedRolesData.content;
       return; // Se já temos dados armazenados, não precisamos fazer a chamada HTTP
     }
 
@@ -102,9 +101,12 @@ export class RoleComponent implements OnInit {
             'Role Name': role.name
           }
         });
-        this.tabService.setTabContent(this.selectedTab, this.roles); // Armazene os dados após carregá-los
+         // Defina o conteúdo da aba após carregar os papéis
+      this.tabService.setTabContent(this.selectedTab, this.roles);
+      
       });
-  }
+}
+
 
   // Cria um novo papel
   createRole() {

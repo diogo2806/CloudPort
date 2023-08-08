@@ -3,6 +3,7 @@ import { AuthenticationService } from '../service/servico-autenticacao/authentic
 import { Router, ActivatedRoute } from '@angular/router';
 import { TabService } from '../navbar/TabService';
 import { TabStateService } from '../dynamic-table/tab-state.service';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-home',
@@ -14,14 +15,16 @@ export class HomeComponent implements OnInit {
   tabs: string[] = [];
   selectedTab = '';
   filteredData: any[] = [];
-  data: any[] = [];
+  data: { [key: string]: any } = {};
+
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private authenticationService: AuthenticationService,
     private tabService: TabService,
-    private tabStateService: TabStateService
+    private tabStateService: TabStateService,
+    private cdr: ChangeDetectorRef
   ) {
     console.log("Classe HomeComponent: Método construtor chamado.");
     let currentUser: any = this.authenticationService.currentUserValue;
@@ -58,17 +61,37 @@ export class HomeComponent implements OnInit {
     this.tabService.closeTab(tab);
   }
 
+  /*
   navigateTo(tabName: string) {
     console.log(`Classe HomeComponent: Método navigateTo chamado com o parâmetro tab=${tabName}.`);
-    const content = this.tabService.getTabContent(tabName);
-    this.tabService.setTabContent(tabName, content);
+    this.selectedTab = tabName;
+    this.router.navigate(['/home', tabName.toLowerCase()]);
   }
+  */
 
-  openTab(tabName: string) {
-    console.log(`Classe HomeComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
-    this.tabService.openTab(tabName);
-  }
+  navigateTo(tabName: string) {
+    console.log(`Classe HomeComponent: Método navigateTo chamado com o parâmetro tab=${tabName}.`);
+    
+    // Obter o conteúdo da aba
+    const tabContent = this.tabService.getTabContent(tabName);
+    console.log(`Classe HomeComponent: Conteúdo obtido para a aba ${tabName}:`, tabContent);
+    
+    if (tabContent !== undefined) {
+        this.data = tabContent;
+        console.log(`Classe HomeComponent: Atualizando a aba selecionada para: ${tabName}`);
+        this.selectedTab = tabName;
+        this.cdr.markForCheck(); // Marque o componente para verificação de mudanças
+        console.log(`Classe HomeComponent: A aba selecionada foi atualizada para: ${this.selectedTab}`);
+    } else {
+        console.error(`Classe HomeComponent Erro: Não foi possível obter o conteúdo da aba ${tabName}.`);
+    }
+}
 
+
+
+objectKeys(obj: any): string[] {
+  return Object.keys(obj);
+}
 
 
 }

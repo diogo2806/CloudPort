@@ -3,11 +3,11 @@
     <li (click)="toggleSubmenu($event)">
       <a href="#">Configurações</a>
       <ul>
-        <li><a (click)="navigateTo('Role')">Geral</a></li>
-        <li><a (click)="navigateTo('Role')">Perfil</a></li>
-        <li><a (click)="navigateTo('login')">Segurança</a></li>
-        <li><a (click)="navigateTo('login')">Notificações</a></li>
-        <li><a (click)="navigateTo('login')">Privacidade</a></li>
+        <li><a (click)="openTab('Role')">Geral</a></li>
+        <li><a (click)="openTab('Role')">Perfil</a></li>
+        <li><a (click)="openTab('login')">Segurança</a></li>
+        <li><a (click)="openTab('login')">Notificações</a></li>
+        <li><a (click)="openTab('login')">Privacidade</a></li>
       </ul>
     </li>
     <li (click)="toggleSubmenu($event)">
@@ -22,9 +22,9 @@
     <li (click)="toggleSubmenu($event)">
       <a href="#">Ajuda</a>
       <ul>
-        <li><a (click)="navigateTo('Role')">FAQ</a></li>
-        <li><a (click)="navigateTo('Role')">Contato</a></li>
-        <li><a (click)="navigateTo('Role')">Suporte</a></li>
+        <li><a (click)="openTab('Role')">FAQ</a></li>
+        <li><a (click)="openTab('Role')">Contato</a></li>
+        <li><a (click)="openTab('Role')">Suporte</a></li>
       </ul>
     </li>
   </ul>

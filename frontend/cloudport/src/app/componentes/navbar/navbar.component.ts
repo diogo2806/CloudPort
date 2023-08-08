@@ -14,7 +14,7 @@ export class NavbarComponent {
   constructor(
       private authenticationService: AuthenticationService,
       private router: Router,
-      private tabService: TabService, // Injete apenas o TabService aqui
+      private tabService: TabService,
       private eRef: ElementRef
   ) {}
 
@@ -27,12 +27,12 @@ export class NavbarComponent {
   }
 
   openTab(tab: string) {
-    this.tabService.openTab(tab); // Abra a aba
+    this.tabService.openTab(tab);
   }
 
   navigateTo(tab: string) {
     this.tabService.openTab(tab);
-    this.router.navigate(['/home' , tab.toLowerCase()]); // Navegue para a rota correspondente
+    this.router.navigate(['/home' , tab.toLowerCase()]);
   }
   
   toggleSubmenu(event: Event) {

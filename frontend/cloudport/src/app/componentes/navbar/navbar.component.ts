@@ -26,8 +26,16 @@ export class NavbarComponent {
       this.mostrarMenu = true;
   }
 
-  openTab(tab: string) {
-    this.tabService.openTab(tab);
+  openTab(tabName: string) {
+    // ... código para abrir a aba ...
+  
+    // Verifique se há conteúdo armazenado para essa aba
+    const storedContent = this.tabService.getTabContent(tabName);
+    if (storedContent) {
+      // Use o conteúdo armazenado (isso pode variar dependendo de como você está gerenciando o conteúdo da aba)
+    } else {
+      // Carregue o conteúdo da aba como normalmente faria
+    }
   }
 
   navigateTo(tab: string) {

@@ -7,7 +7,7 @@ import { throwError } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
 import { ChangeDetectorRef } from '@angular/core';
-
+import { TabService } from '../navbar/TabService';
 @Component({
   selector: 'app-role',
   templateUrl: './role.component.html',
@@ -26,7 +26,8 @@ export class RoleComponent implements OnInit {
   constructor(
     private http: HttpClient, 
     private authenticationService: AuthenticationService,
-    private changeDetector: ChangeDetectorRef
+    private changeDetector: ChangeDetectorRef,
+    private tabService: TabService
   ) { }
 
   private selectionStarted: boolean = false;
@@ -72,7 +73,14 @@ export class RoleComponent implements OnInit {
   }
 
   // Carrega os papeis do servidor
-  loadRoles() {
+   // Carrega os papeis do servidor
+   loadRoles() {
+    const storedRoles = this.tabService.getTabContent(this.selectedTab);
+    if (storedRoles) {
+      this.roles = storedRoles;
+      return; // Se já temos dados armazenados, não precisamos fazer a chamada HTTP
+    }
+
     const token = this.authenticationService.currentUserValue?.token;
 
     const httpOptions = {
@@ -94,6 +102,7 @@ export class RoleComponent implements OnInit {
             'Role Name': role.name
           }
         });
+        this.tabService.setTabContent(this.selectedTab, this.roles); // Armazene os dados após carregá-los
       });
   }
 

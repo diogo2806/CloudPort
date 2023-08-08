@@ -82,7 +82,7 @@ navigateTo(tab: string) {
 }
 */
 
-
+/*
 navigateTo(tab: string) {
   this.selectedTab = tab;
   const tabState = this.tabStateService.getTabState(tab);
@@ -103,13 +103,13 @@ navigateTo(tab: string) {
 }
 
 
+*/
 
 
-
-  /*
+  
   navigateTo(tab: string) {
     this.selectedTab = tab;
     this.router.navigate(['/home', tab.toLowerCase()]);
   }
-  */
+  
 }

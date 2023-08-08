@@ -13,9 +13,8 @@ export class HomeComponent implements OnInit {
   userToken: string = '';
   tabs: string[] = [];
   selectedTab = '';
-  filteredData: any[] = [];  // Adicione esta linha
-  data: any[] = [];  // Adicione esta linha
-
+  filteredData: any[] = [];
+  data: any[] = [];
 
   constructor(
     private route: ActivatedRoute,
@@ -24,6 +23,7 @@ export class HomeComponent implements OnInit {
     private tabService: TabService,
     private tabStateService: TabStateService
   ) {
+    console.log("Classe HomeComponent: Método construtor chamado.");
     let currentUser: any = this.authenticationService.currentUserValue;
     if (currentUser && currentUser.token) {
       this.userToken = currentUser.token;
@@ -31,25 +31,29 @@ export class HomeComponent implements OnInit {
   }
 
   ngOnInit() {
+    console.log("Classe HomeComponent: Método ngOnInit iniciado.");
     this.tabService.tabs$.subscribe(tabs => {
       this.tabs = tabs;
       if (tabs.length > 0) {
         this.selectedTab = tabs[tabs.length - 1];
       }
     });
+    console.log("Classe HomeComponent: Método ngOnInit finalizado.");
   }
 
   logout() {
+    console.log("Classe HomeComponent: Método logout chamado.");
     this.authenticationService.logout();
     this.router.navigate(['login']);
   }
 
   Alert() {
+    console.log("Classe HomeComponent: Método Alert chamado.");
     alert(this.authenticationService.currentUserValue?.token);
   }
 
-  /*
   closeTab(tab: string) {
+    console.log(`Classe HomeComponent: Método closeTab chamado com o parâmetro tab=${tab}.`);
     this.tabService.closeTab(tab);
     this.tabService.tabs$.subscribe(tabs => {
       this.tabs = tabs;
@@ -59,57 +63,21 @@ export class HomeComponent implements OnInit {
       }
     });
   }
-*/
 
-closeTab(tab: string) {
-  const tabIndex = this.tabs.indexOf(tab);
-  this.tabService.closeTab(tab);
-  this.tabService.tabs$.subscribe(tabs => {
-      this.tabs = tabs;
-      if (tabs.length > 0) {
-          if (tabIndex > 0) {
-              this.selectedTab = tabs[tabIndex - 1];
-          } else {
-              this.selectedTab = tabs[0];
-          }
-          this.router.navigate(['/home', this.selectedTab.toLowerCase()]);
-      }
-  });
-}
-/*
-navigateTo(tab: string) {
-  this.selectedTab = tab;
-}
-*/
-
-/*
-navigateTo(tab: string) {
-  this.selectedTab = tab;
-  const tabState = this.tabStateService.getTabState(tab);
-  if (tabState) {
-    // Restaure o estado da aba aqui
-    console.log(tabState);
-    this.data = tabState.filteredData;
-  } else {
-    this.router.navigate(['/home', tab.toLowerCase()]);
-    // Aqui, você pode fazer qualquer lógica necessária para preparar os dados para essa aba.
-    // Como um exemplo, vou filtrar os dados onde algum campo (por exemplo, 'name') contém a string 'example'.
-    const currentFilteredData = this.data.filter(item => item.name.includes('example'));
-
-    // Armazene o estado da aba aqui
-    this.tabStateService.setTabState(tab, { filteredData: currentFilteredData });
-    this.data = currentFilteredData;
+  navigateTo(tabName: string) {
+    console.log(`Classe HomeComponent: Método navigateTo chamado com o parâmetro tab=${tabName}.`);
+    const content = this.tabService.getTabContent(tabName);
+    this.tabService.setTabContent(tabName, content);
   }
-}
 
-
-*/
-
-
-  
-  navigateTo(tab: string) {
-    this.selectedTab = tab;
-    this.router.navigate(['/home', tab.toLowerCase()]);
+  openTab(tabName: string) {
+    console.log(`Classe HomeComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
+    this.tabService.openTab(tabName);
+    this.router.navigate(['/home' , tabName.toLowerCase()]);
+    const content = this.tabService.getTabContent(tabName);
+    this.tabService.setTabContent(tabName, content);
   }
-  
+
+
+
 }

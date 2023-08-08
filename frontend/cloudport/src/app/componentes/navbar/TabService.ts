@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
-
-
 @Injectable({
   providedIn: 'root'
 })
@@ -14,6 +12,7 @@ export class TabService {
   private tabContents: { [tabName: string]: any } = {};
 
   openTab(tab: string, content?: any) {
+    console.log(`Classe TabService: Método openTab chamado com o parâmetro tab=${tab}.`);
     const tabs = this.tabsSubject.value;
     if (!tabs.includes(tab)) {
       this.tabsSubject.next([...tabs, tab]);
@@ -24,18 +23,20 @@ export class TabService {
   }
 
   closeTab(tab: string) {
+    console.log(`Classe TabService: Método closeTab chamado com o parâmetro tab=${tab}.`);
     const tabs = this.tabsSubject.value;
     this.tabsSubject.next(tabs.filter(t => t !== tab));
     // Remova o conteúdo da aba quando ela for fechada
     delete this.tabContents[tab];
   }
 
-  // Métodos para gerenciar o conteúdo da aba
   getTabContent(tab: string): any {
+    console.log(`Classe TabService: Método getTabContent chamado para buscar o conteúdo da aba ${tab}.`);
     return this.tabContents[tab];
   }
 
   setTabContent(tab: string, content: any) {
+    console.log(`Classe TabService: Método setTabContent chamado para definir o conteúdo da aba ${tab}.`);
     this.tabContents[tab] = content;
   }
 }

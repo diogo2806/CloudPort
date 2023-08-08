@@ -16,34 +16,36 @@ export class NavbarComponent {
       private router: Router,
       private tabService: TabService,
       private eRef: ElementRef
-  ) {}
+  ) {
+    console.log("Classe NavbarComponent: Método construtor chamado.");
+  }
 
   ngOnInit(): void {
+      console.log("Classe NavbarComponent: Método ngOnInit iniciado.");
       this.authenticationService.currentMenuStatus.subscribe(
           mostrar => this.mostrarMenu = mostrar
       );
 
       this.mostrarMenu = true;
+      console.log("Classe NavbarComponent: Método ngOnInit finalizado.");
   }
 
   openTab(tabName: string) {
-    // ... código para abrir a aba ...
-  
-    // Verifique se há conteúdo armazenado para essa aba
-    const storedContent = this.tabService.getTabContent(tabName);
-    if (storedContent) {
-      // Use o conteúdo armazenado (isso pode variar dependendo de como você está gerenciando o conteúdo da aba)
-    } else {
-      // Carregue o conteúdo da aba como normalmente faria
-    }
+    console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
+    this.tabService.openTab(tabName);
+    this.router.navigate(['/home' , tabName.toLowerCase()]);
+    const content = this.tabService.getTabContent(tabName);
+    this.tabService.setTabContent(tabName, content);
   }
 
   navigateTo(tab: string) {
+    console.log(`Classe NavbarComponent: Método navigateTo chamado com o parâmetro tab=${tab}.`);
     this.tabService.openTab(tab);
     this.router.navigate(['/home' , tab.toLowerCase()]);
   }
-  
+
   toggleSubmenu(event: Event) {
+    console.log("Classe NavbarComponent: Método toggleSubmenu chamado.");
     event.preventDefault();
     event.stopPropagation();
   
@@ -61,6 +63,7 @@ export class NavbarComponent {
   
   @HostListener('document:click', ['$event'])
   clickout(event: MouseEvent) {
+    console.log("Classe NavbarComponent: Método clickout chamado.");
     if (!this.eRef.nativeElement.contains(event.target)) {
       const submenus = this.eRef.nativeElement.querySelectorAll('.app-navbar ul li > ul');
       submenus.forEach((submenu: HTMLElement) => submenu.style.display = 'none');

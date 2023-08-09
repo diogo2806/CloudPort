@@ -34,15 +34,16 @@ export class NavbarComponent {
 openTab(tabName: string) {
   console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
   
-  let tabContent = this.tabService.getTabContent(tabName);
+ // let tabContent = this.tabService.getTabContent(tabName);
   
   // Se o conteúdo da aba não existir, defina um conteúdo padrão
-  if (!tabContent) {
-    tabContent = { message: `Conteúdo padrão para a aba ${tabName}` };
-  }
+  //if (!tabContent) {
+  //  tabContent = { message: `Conteúdo padrão para a aba ${tabName}` };
+ // }
   
-  this.tabService.openTab(tabName, tabContent);
+  this.tabService.openTab(tabName);
   this.router.navigate(['/home' , tabName.toLowerCase()]);
+
 }
 
 

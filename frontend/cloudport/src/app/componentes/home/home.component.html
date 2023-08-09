@@ -11,6 +11,7 @@
                         </a>
                     </li>
                 </ul>
+                <!--
                 <div class="tab-content">
                     <div *ngIf="data; else routerOutlet">
                         <div *ngFor="let key of objectKeys(data)">
@@ -24,7 +25,12 @@
                         <router-outlet></router-outlet>
                     </ng-template>
                 </div>
-                
+            -->
+
+            <div class="tab-content">
+                <router-outlet></router-outlet>
+        
+            </div>
             </div>
         </div>
     </div>

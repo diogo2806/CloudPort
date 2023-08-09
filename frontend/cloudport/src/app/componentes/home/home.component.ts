@@ -61,14 +61,14 @@ export class HomeComponent implements OnInit {
     this.tabService.closeTab(tab);
   }
 
-  /*
+  
   navigateTo(tabName: string) {
     console.log(`Classe HomeComponent: Método navigateTo chamado com o parâmetro tab=${tabName}.`);
     this.selectedTab = tabName;
     this.router.navigate(['/home', tabName.toLowerCase()]);
   }
-  */
 
+/*
   navigateTo(tabName: string) {
     console.log(`Classe HomeComponent: Método navigateTo chamado com o parâmetro tab=${tabName}.`);
     
@@ -87,7 +87,7 @@ export class HomeComponent implements OnInit {
     }
 }
 
-
+*/
 
 objectKeys(obj: any): string[] {
   return Object.keys(obj);

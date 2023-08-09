@@ -12,6 +12,8 @@ export class TabService {
   // Armazenamento para o conteúdo de cada aba
   private tabContents: { [tabName: string]: any } = {};
 
+
+  /*
   openTab(tab: string, content?: any) {
     console.log(`Classe TabService: Método openTab chamado com o parâmetro tab=${tab}.`);
     console.log(`Classe TabService: Método openTab chamado com o parâmetro content=${content}.`);
@@ -29,6 +31,18 @@ export class TabService {
     }
   }
 
+  */
+
+    // Método para abrir uma nova aba
+    openTab(tab: string) {
+      const tabs = this.tabsSubject.value;
+      if (!tabs.includes(tab)) {
+        this.tabsSubject.next([...tabs, tab]);
+      }
+    }
+
+    
+    
   closeTab(tab: string) {
     console.log(`Classe TabService: Método closeTab chamado com o parâmetro tab=${tab}.`);
     const tabs = this.tabsSubject.value;

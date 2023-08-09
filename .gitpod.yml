@@ -17,6 +17,8 @@ tasks:
       nvm use node
       npm install -g @angular/cli
       npm install -g npm 
+      npm install @angular/core
+
       npm install
       npm install --save ngx-mask
       npm i ngx-mask@13.1.13

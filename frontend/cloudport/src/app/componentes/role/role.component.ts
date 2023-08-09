@@ -4,7 +4,7 @@ import { environment } from '../service/endpoint';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
-import * as XLSX from 'xlsx';
+//import * as XLSX from 'xlsx';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
 import { ChangeDetectorRef } from '@angular/core';
 import { TabService } from '../navbar/TabService';
@@ -183,16 +183,16 @@ export class RoleComponent implements OnInit {
           this.loadRoles();
       });
     }
-
+/*
     exportToExcel() {
       const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(this.roles);
       const wb: XLSX.WorkBook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Roles');
       
-      /* save to file */
+
       XLSX.writeFile(wb, 'roles.xlsx');
     }
-
+*/
     selectedRoleId: number | null = null;
     selectedRoleIds: number[] = [];
     @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;

@@ -22,7 +22,7 @@ tasks:
       npm install --save ag-grid-angular
       npm install --save ngx-mask
       npm i ngx-mask@13.1.13
-      npm install --save xlsx
+      npm install exceljs
       npm install --save-dev @angular-devkit/build-angular
       npm install @angular/material
       rm -rf node_modules package-lock.json

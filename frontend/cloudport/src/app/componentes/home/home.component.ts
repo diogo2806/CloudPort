@@ -4,7 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { TabService } from '../navbar/TabService';
 import { TabStateService } from '../dynamic-table/tab-state.service';
 import { ChangeDetectorRef } from '@angular/core';
-import { TabContentComponent } from '../tabcontent/tab-content/tab-content.component';
+import { TabContentComponent } from '../tab-content/tab-content.component';
 
 @Component({
   selector: 'app-home',

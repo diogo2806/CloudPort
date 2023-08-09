@@ -15,7 +15,7 @@ import { RoleComponent } from './componentes/role/role.component';
 import { ContextMenuComponent } from './componentes/context-menu/context-menu.component';
 import { DynamicTableComponent } from './componentes/dynamic-table/dynamic-table.component';
 import { AgGridModule } from 'ag-grid-angular';
-
+import { TabContentComponent } from './componentes/navbar/TabContent';
 
 @NgModule({
   declarations: [
@@ -27,7 +27,8 @@ import { AgGridModule } from 'ag-grid-angular';
     NavbarComponent,
     RoleComponent,
     ContextMenuComponent,
-    DynamicTableComponent
+    DynamicTableComponent,
+    TabContentComponent
   ],
   imports: [
     BrowserModule,

@@ -4,6 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { TabService } from '../navbar/TabService';
 import { TabStateService } from '../dynamic-table/tab-state.service';
 import { ChangeDetectorRef } from '@angular/core';
+import { TabContentComponent } from '../navbar/TabContent';
 
 @Component({
   selector: 'app-home',
@@ -16,7 +17,7 @@ export class HomeComponent implements OnInit {
   selectedTab = '';
   filteredData: any[] = [];
   data: { [key: string]: any } = {};
-
+  tabContent: { [key: string]: any } = {};
 
   constructor(
     private route: ActivatedRoute,

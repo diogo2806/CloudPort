@@ -11,26 +11,18 @@
                         </a>
                     </li>
                 </ul>
-                <!--
-                <div class="tab-content">
-                    <div *ngIf="data; else routerOutlet">
-                        <div *ngFor="let key of objectKeys(data)">
-                            <strong>{{ key }}:</strong> {{ data[key] ? data[key] : 'N/A' }}
-                        </div>
-                    </div>
-                    
-                    
-                    
-                    <ng-template #routerOutlet>
-                        <router-outlet></router-outlet>
-                    </ng-template>
-                </div>
-            -->
 
+            <!--
             <div class="tab-content">
                 <router-outlet></router-outlet>
-        
             </div>
+        -->
+        <div class="tab-content">
+            <div *ngFor="let tab of tabs" [class.active]="selectedTab === tab">
+                <app-tab-content [data]="tabContent[tab]"></app-tab-content>
+            </div>
+        </div>
+        
             </div>
         </div>
     </div>

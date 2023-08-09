@@ -27,8 +27,9 @@
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,
     "strictTemplates": true,
-    "moduleResolution": "node",
-    "enableIvy": false
+    "enableIvy": false,
+
+
 
   }
 }

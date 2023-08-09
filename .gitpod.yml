@@ -18,13 +18,20 @@ tasks:
       npm install -g @angular/cli
       npm install -g npm 
       npm install @angular/core
-
-      npm install
+      npm install --save ag-grid-community
+      npm install --save ag-grid-angular
+      
       npm install --save ngx-mask
       npm i ngx-mask@13.1.13
       npm install --save xlsx
-      npm install --save ag-grid-community
-      npm install --save ag-grid-angular
+      npm install --save-dev @angular-devkit/build-angular
+      npm install @angular/material
+      rm -rf node_modules package-lock.json
+      npm install
+
+
+
+      
 
 
     command: ng serve

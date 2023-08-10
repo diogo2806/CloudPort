@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ViewChild, AfterViewInit } from '@angular/core';
+import { RouterOutlet } from '@angular/router'; // Importação correta para RouterOutlet
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { TabService } from '../navbar/TabService';
@@ -11,7 +12,9 @@ import { TabContentComponent } from '../tab-content/tab-content.component';
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements AfterViewInit  {
+
+  @ViewChild('outlet', { read: RouterOutlet }) outlet!: RouterOutlet;
   userToken: string = '';
   tabs: string[] = [];
   selectedTab = '';
@@ -33,7 +36,31 @@ export class HomeComponent implements OnInit {
       this.userToken = currentUser.token;
     }
   }
+  
+  ngAfterViewInit() {
+    // Capturar o conteúdo renderizado pelo <router-outlet>
+    const content = this.outlet.component;
+    this.tabService.setContent(content);
+  }
+  /*
+  ngOnInit() {
+    this.tabService.tabs$.subscribe(tabs => {
+      this.tabs = tabs;
+      if (tabs.length > 0) {
+        this.selectedTab = tabs[tabs.length - 1];
+        this.tabContent = this.tabService.getTabContent(this.selectedTab);
+        this.router.navigate(['/home', this.selectedTab.toLowerCase()]);
+      }
+    });
+  }
+*/
+  navigateTo(tabName: string) {
+    this.selectedTab = tabName;
+    this.tabContent = this.tabService.getTabContent(tabName);
+    this.router.navigate(['/home', tabName.toLowerCase()]);
+  }
 
+  /*
   ngOnInit() {
     console.log("Classe HomeComponent: Método ngOnInit iniciado.");
     this.tabService.tabs$.subscribe(tabs => {
@@ -45,7 +72,7 @@ export class HomeComponent implements OnInit {
     });
     console.log("Classe HomeComponent: Método ngOnInit finalizado.");
   }
-
+*/
   logout() {
     console.log("Classe HomeComponent: Método logout chamado.");
     this.authenticationService.logout();
@@ -62,12 +89,13 @@ export class HomeComponent implements OnInit {
     this.tabService.closeTab(tab);
   }
 
-  
+  /*
   navigateTo(tabName: string) {
     console.log(`Classe HomeComponent: Método navigateTo chamado com o parâmetro tab=${tabName}.`);
     this.selectedTab = tabName;
     this.router.navigate(['/home', tabName.toLowerCase()]);
   }
+  */
 
 /*
   navigateTo(tabName: string) {

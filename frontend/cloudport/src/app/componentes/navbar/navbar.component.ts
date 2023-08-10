@@ -30,7 +30,14 @@ export class NavbarComponent {
       console.log("Classe NavbarComponent: Método ngOnInit finalizado.");
   }
 // ... (resto do código)
+openTab(tabName: string) {
+  console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
+  //const content = { message: `Conteúdo padrão para a aba ${tabName}` }; // Defina o conteúdo aqui
+  this.tabService.openTab(tabName);
+  this.router.navigate(['/home', tabName.toLowerCase()]);
+}
 
+/*
 openTab(tabName: string) {
   console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
   
@@ -45,7 +52,7 @@ openTab(tabName: string) {
   this.router.navigate(['/home' , tabName.toLowerCase()]);
 
 }
-
+*/
 
 // ... (resto do código)
 

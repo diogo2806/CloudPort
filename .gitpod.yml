@@ -13,6 +13,7 @@ ports:
 tasks:
   - init: |
       cd frontend/cloudport
+       rm -rf node_modules package-lock.json
       nvm install node
       nvm use node
       npm install -g @angular/cli
@@ -25,7 +26,7 @@ tasks:
       npm install exceljs
       npm install --save-dev @angular-devkit/build-angular
       npm install @angular/material
-      rm -rf node_modules package-lock.json
+     
       npm install
 
 

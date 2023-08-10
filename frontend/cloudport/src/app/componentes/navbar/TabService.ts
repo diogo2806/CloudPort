@@ -8,10 +8,15 @@ import { BehaviorSubject } from 'rxjs';
 export class TabService {
   private tabsSubject = new BehaviorSubject<string[]>([]);
   tabs$ = this.tabsSubject.asObservable();
+  private contentSubject = new BehaviorSubject<any>(null);
+  content$ = this.contentSubject.asObservable();
 
   // Armazenamento para o conteúdo de cada aba
   private tabContents: { [tabName: string]: any } = {};
 
+
+  
+  
 
   /*
   openTab(tab: string, content?: any) {
@@ -33,6 +38,7 @@ export class TabService {
 
   */
 
+  /*
     // Método para abrir uma nova aba
     openTab(tab: string) {
       const tabs = this.tabsSubject.value;
@@ -41,6 +47,24 @@ export class TabService {
       }
     }
 
+    */
+
+    openTab(tab: string) {
+      const tabs = this.tabsSubject.value;
+      if (!tabs.includes(tab)) {
+        // Criar o conteúdo para a aba
+        const content = { message: `Conteúdo padrão para a aba ${tab}` };
+    
+        // Armazenar o conteúdo no objeto tabContents
+        this.tabContents[tab] = content;
+    
+        // Adicionar a aba à lista de abas
+        this.tabsSubject.next([...tabs, tab]);
+      }
+    }
+    setContent(content: any) {
+      this.contentSubject.next(content);
+    }
     
     
   closeTab(tab: string) {

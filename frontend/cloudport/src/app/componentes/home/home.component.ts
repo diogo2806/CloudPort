@@ -14,7 +14,7 @@ import { TabContentComponent } from '../tab-content/tab-content.component';
 })
 export class HomeComponent implements AfterViewInit  {
 
-  @ViewChild('outlet', { read: RouterOutlet }) outlet!: RouterOutlet;
+  @ViewChild('outlet', { read: RouterOutlet }) outlet!: RouterOutlet; // Adicionado o modificador '!' aqui
   userToken: string = '';
   tabs: string[] = [];
   selectedTab = '';
@@ -36,6 +36,7 @@ export class HomeComponent implements AfterViewInit  {
       this.userToken = currentUser.token;
     }
   }
+
   
   ngAfterViewInit() {
     // Capturar o conteúdo renderizado pelo <router-outlet>

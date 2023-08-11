@@ -16,6 +16,8 @@ import { ContextMenuComponent } from './componentes/context-menu/context-menu.co
 import { DynamicTableComponent } from './componentes/dynamic-table/dynamic-table.component';
 import { AgGridModule } from 'ag-grid-angular';
 import { TabContentComponent } from './componentes/tab-content/tab-content.component';
+import { CustomReuseStrategy } from './componentes/tab-content/customreusestrategy';
+import { RouteReuseStrategy } from '@angular/router';
 
 @NgModule({
   declarations: [
@@ -40,7 +42,9 @@ import { TabContentComponent } from './componentes/tab-content/tab-content.compo
     TranslateModule.forRoot(),
     AgGridModule
   ],
-  providers: [],
+  providers: [
+    { provide: RouteReuseStrategy, useClass: CustomReuseStrategy }
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

@@ -38,7 +38,7 @@ export class TabService {
 
   */
 
-  /*
+  
     // Método para abrir uma nova aba
     openTab(tab: string) {
       const tabs = this.tabsSubject.value;
@@ -47,8 +47,8 @@ export class TabService {
       }
     }
 
-    */
-
+    
+/*
     openTab(tab: string) {
       const tabs = this.tabsSubject.value;
       if (!tabs.includes(tab)) {
@@ -62,6 +62,7 @@ export class TabService {
         this.tabsSubject.next([...tabs, tab]);
       }
     }
+    */
     setContent(content: any) {
       this.contentSubject.next(content);
     }

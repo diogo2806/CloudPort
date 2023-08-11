@@ -31,12 +31,30 @@ export class NavbarComponent {
   }
 // ... (resto do código)
 openTab(tabName: string) {
+
+  let content = { message: `Conteúdo padrão para a aba ${tabName}` };
+
+  this.tabService.openTab(tabName);
+  this.router.navigate(['/home', tabName.toLowerCase()]);
+
+  // let content = { message: `Conteúdo padrão para a aba ${tabName}` };
+
+  
+
+  content = this.tabService.getTabContent(tabName);
+
+  this.tabService.openTab(tabName, content);
+}
+
+
+/*
+openTab(tabName: string) {
   console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
   //const content = { message: `Conteúdo padrão para a aba ${tabName}` }; // Defina o conteúdo aqui
   this.tabService.openTab(tabName);
   this.router.navigate(['/home', tabName.toLowerCase()]);
 }
-
+*/
 /*
 openTab(tabName: string) {
   console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);

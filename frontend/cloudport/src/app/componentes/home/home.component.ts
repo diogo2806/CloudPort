@@ -58,6 +58,15 @@ export class HomeComponent implements OnInit  {
     console.log("Classe HomeComponent: Método ngOnInit finalizado.");
   }
 
+
+  navigateTo(tabName: string) {
+    this.selectedTab = tabName;
+    this.tabContent[tabName] = this.tabService.getTabContent(tabName);
+    this.router.navigate(['/home', tabName.toLowerCase()]);
+  }
+
+  
+  /*
   
   navigateTo(tabName: string) {
     this.selectedTab = tabName;

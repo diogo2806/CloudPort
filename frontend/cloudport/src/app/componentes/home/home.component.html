@@ -1,6 +1,3 @@
-
-
-<!--home.component.html-->
 <section class="container">
     <div class="row">
         <div class="col-lg-8 mx-auto">
@@ -12,35 +9,13 @@
                         <button type="button" class="btn btn-outline-danger btn-sm" (click)="closeTab(tab)">x</button>
                       </a>
                     </li>
-                  </ul>
-                  
-
-               
-                <!--
-            <div class="tab-content">
-                <router-outlet></router-outlet>
-            </div>
-        -->
-         <!--
-        <div class="tab-content">
-            <div *ngFor="let tab of tabs" [class.active]="selectedTab === tab">
-                <app-tab-content [data]="tabContent[tab]"></app-tab-content>
-            </div>
-        </div>
-    -->
-            </div>
-            <div class="tab-content">
-                <div *ngFor="let tab of tabs" [class.active]="selectedTab === tab">
-                    <app-tab-content [data]="tabContent[tab]"></app-tab-content>
+                </ul>
+                <div class="tab-content">
+                    <div *ngFor="let tab of tabs" [class.active]="selectedTab === tab">
+                      <app-tab-content [data]="tabContent[tab]"></app-tab-content>
+                    </div>
                 </div>
             </div>
-
-           
-            <div class="tab-content">
-                <router-outlet #outlet></router-outlet>
-            </div>
-        
-    
         </div>
     </div>
 </section>

@@ -1,4 +1,4 @@
-import { Component, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, ViewChild, AfterViewInit, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router'; // Importação correta para RouterOutlet
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -12,7 +12,7 @@ import { TabContentComponent } from '../tab-content/tab-content.component';
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })
-export class HomeComponent implements AfterViewInit  {
+export class HomeComponent implements OnInit  {
 
   @ViewChild('outlet', { read: RouterOutlet }) outlet!: RouterOutlet; // Adicionado o modificador '!' aqui
   userToken: string = '';
@@ -43,18 +43,22 @@ export class HomeComponent implements AfterViewInit  {
     const content = this.outlet.component;
     this.tabService.setContent(content);
   }
-  /*
+
   ngOnInit() {
+    console.log("Classe HomeComponent: Método ngOnInit iniciado.");
     this.tabService.tabs$.subscribe(tabs => {
       this.tabs = tabs;
       if (tabs.length > 0) {
         this.selectedTab = tabs[tabs.length - 1];
-        this.tabContent = this.tabService.getTabContent(this.selectedTab);
         this.router.navigate(['/home', this.selectedTab.toLowerCase()]);
       }
     });
+    const content = this.outlet.component;
+    this.tabService.setContent(content);
+    console.log("Classe HomeComponent: Método ngOnInit finalizado.");
   }
-*/
+
+  
   navigateTo(tabName: string) {
     this.selectedTab = tabName;
     this.tabContent = this.tabService.getTabContent(tabName);

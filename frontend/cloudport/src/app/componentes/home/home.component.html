@@ -7,12 +7,13 @@
             <div class="bg-white rounded-lg shadow-sm p-0">
                 <ul class="nav nav-tabs">
                     <li class="nav-item" *ngFor="let tab of tabs">
-                        <a class="nav-link" [class.active]="selectedTab === tab" (click)="navigateTo(tab)">
-                            <span>{{tab}}</span>
-                            <button type="button" class="btn btn-outline-danger btn-sm" (click)="closeTab(tab)">x</button>
-                        </a>
+                      <a class="nav-link" [class.active]="selectedTab === tab" (click)="navigateTo(tab)">
+                        <span>{{tab}}</span>
+                        <button type="button" class="btn btn-outline-danger btn-sm" (click)="closeTab(tab)">x</button>
+                      </a>
                     </li>
-                </ul>
+                  </ul>
+                  
 
                
                 <!--
@@ -28,10 +29,18 @@
         </div>
     -->
             </div>
+            <div class="tab-content">
+                <div *ngFor="let tab of tabs" [class.active]="selectedTab === tab">
+                    <app-tab-content [data]="tabContent[tab]"></app-tab-content>
+                </div>
+            </div>
 
+           
             <div class="tab-content">
                 <router-outlet #outlet></router-outlet>
             </div>
+        
+    
         </div>
     </div>
 </section>

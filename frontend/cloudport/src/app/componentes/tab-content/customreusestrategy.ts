@@ -3,13 +3,27 @@ import { ActivatedRouteSnapshot, DetachedRouteHandle, RouteReuseStrategy } from 
 export class CustomReuseStrategy implements RouteReuseStrategy {
   private handlers: { [key: string]: DetachedRouteHandle } = {};
 
+  // Adicione um conjunto para armazenar as rotas marcadas para destruição
+  private routesToDestroy: Set<string> = new Set();
+
+  // Adicione um método para marcar uma rota para destruição
+  markForDestruction(path: string): void {
+    this.routesToDestroy.add(path);
+  }
+
   shouldDetach(route: ActivatedRouteSnapshot): boolean {
     return true;
   }
 
+  // Modifique o método store para não armazenar rotas marcadas para destruição
   store(route: ActivatedRouteSnapshot, handle: DetachedRouteHandle): void {
     if (route.routeConfig && route.routeConfig.path) {
-      this.handlers[route.routeConfig.path] = handle;
+      if (this.routesToDestroy.has(route.routeConfig.path)) {
+        // Se a rota estiver marcada para destruição, não a armazene
+        this.routesToDestroy.delete(route.routeConfig.path);
+      } else {
+        this.handlers[route.routeConfig.path] = handle;
+      }
     }
   }
 
@@ -22,6 +36,30 @@ export class CustomReuseStrategy implements RouteReuseStrategy {
   }
 
   shouldReuseRoute(future: ActivatedRouteSnapshot, curr: ActivatedRouteSnapshot): boolean {
-    return future.routeConfig === curr.routeConfig;
+    return future.
+    routeConfig === curr.routeConfig;
   }
+
+  clearHandlers() {
+    this.handlers = {};
+  }
+  /*
+  clearHandles() {
+    for (const key in this.handlers) {
+      if (this.handlers[key]) {
+        this.destroyHandle(this.handlers[key]);
+      }
+    }
+    this.handlers = {};
+  }
+
+
+  private destroyHandle(handle: DetachedRouteHandle): void {
+    const componentRef: ComponentRef<any> = handle['componentRef'];
+    if (componentRef) {
+      componentRef.destroy();
+    }
+  }
+
+  */
 }

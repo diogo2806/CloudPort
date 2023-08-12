@@ -1,9 +1,9 @@
-import { Component, EventEmitter, OnInit } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { Router, ActivatedRoute, RouteReuseStrategy } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
-import { HomeComponent } from '../home/home.component';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
+
 
 // Importações para animações
 import { trigger, state, style, animate, transition } from '@angular/animations';
@@ -22,8 +22,6 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
         ])
     ]
 })
-
-
 export class LoginComponent implements OnInit {
     loginForm: FormGroup = this.formBuilder.group({}); // Initialized here
     loading = false;
@@ -31,21 +29,16 @@ export class LoginComponent implements OnInit {
     returnUrl: string = 'home'; // Initialized here
     error = '';
 
-    
-
     constructor(
         private formBuilder: FormBuilder,
         private route: ActivatedRoute,
         private router: Router,
-        private authenticationService: AuthenticationService
+        private authenticationService: AuthenticationService,
+      
     ) {
         // redirect to home if already logged in
         if (this.authenticationService.currentUserValue) {
-    
             this.router.navigate([this.returnUrl]);
-
-        } else {
-        
         }
     }
 
@@ -78,6 +71,7 @@ export class LoginComponent implements OnInit {
             .pipe(first())
             .subscribe(
                 data => {
+
                     this.router.navigate([this.returnUrl]);
                     this.authenticationService.setUserName(this.f['username'].value);
                     this.authenticationService.updateMenuStatus(true); // set mostrarMenu to true after successful login

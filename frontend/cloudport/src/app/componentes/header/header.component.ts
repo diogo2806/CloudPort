@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouteReuseStrategy } from '@angular/router';
+import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
+
 @Component({
   selector: 'app-header',
   templateUrl: './header.component.html',
@@ -13,7 +15,8 @@ export class HeaderComponent {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private authenticationService: AuthenticationService
+    private authenticationService: AuthenticationService,
+    private reuseStrategy: RouteReuseStrategy 
   ) {
     let currentUser: any = this.authenticationService.currentUserValue;
     if (currentUser && currentUser.token) {
@@ -24,6 +27,7 @@ export class HeaderComponent {
 
   logout() {
     this.authenticationService.logout();
+    (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
     this.router.navigate(['login']);
   }
 

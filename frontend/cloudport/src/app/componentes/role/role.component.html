@@ -1,4 +1,4 @@
-
+<!--role.component.html-->
 <!--
 <app-dynamic-table 
     [columns]="['Role ID', 'Role Name']" 
@@ -12,5 +12,5 @@
     [columns]="['Role ID', 'Role Name']" 
     [data]="roles"
     [selectedTab]="selectedTab"
-    (rightClick)="rightClick($event, roles)">
+    (rightClick)="handleRoleRightClick($event)">
 </app-dynamic-table>

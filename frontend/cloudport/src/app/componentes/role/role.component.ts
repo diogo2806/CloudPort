@@ -1,3 +1,4 @@
+/* role.component.ts */
 import { Component, OnInit, ViewChild  } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../service/endpoint';
@@ -198,7 +199,14 @@ export class RoleComponent implements OnInit {
       this.contextMenu.isOpen = true;
     }
 
-
+    handleRoleRightClick(event: any) {
+      console.log("RoleComponent rightClick");
+      this.contextMenu.menuOptions = ['Editar', 'Deletar'];
+      this.contextMenu.position = { x: event.event.clientX, y: event.event.clientY };
+      this.contextMenu.isOpen = true;
+    }
+    
+    
 
     /*
     leftClick(event: MouseEvent, role: any) {

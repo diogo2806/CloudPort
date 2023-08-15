@@ -1,7 +1,7 @@
+/* dynamic-table.component.ts */
+
 import { Component, Input, OnInit, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import * as XLSX from 'xlsx';
-
-
 import { ColDef, GridApi, GridOptions, GridReadyEvent, IDateFilterParams, IMultiFilterParams, ISetFilterParams } from 'ag-grid-community';
 import { TabStateService } from './tab-state.service';
 
@@ -147,15 +147,31 @@ onBtExport() {
   }
 
   @logMethod
+onCellRightClicked(event: any) {
+  const mouseEvent = event.event as MouseEvent;
+  if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
+  const row = event.data; // Acessa os dados da linha clicada
+  this.rightClick.emit({ event: mouseEvent, row });
+}
+
+/*
+  @logMethod
   onCellRightClicked(event: any) {
     console.log('onCellRightClicked: ', event);
-  }
+    const mouseEvent = event.event as MouseEvent;
+    const row = event.data; // Acessa os dados da linha clicada
+    this.rightClick.emit({ event: mouseEvent, row });
 
+  }
+*/
   @logMethod
   onRowClicked(event: any) {
-    console.log('onCellRightClicked: ', event);
+    console.log('onRowClicked: ', event);
+    //this.rightClick.emit({event});
   }
   
+
+
 
   public defaultColDef: ColDef = {
     flex: 1,
@@ -200,6 +216,8 @@ onBtExport() {
     event.preventDefault();
     this.rightClick.emit({ event, row });
   }
+
+
 
   @logMethod
   isRowSelected(row: any): boolean {

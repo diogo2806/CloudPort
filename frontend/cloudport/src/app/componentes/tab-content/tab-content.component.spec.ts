@@ -1,3 +1,5 @@
+/*
+
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { TabContentComponent } from './tab-content.component';
@@ -19,3 +21,4 @@ describe('TabContentComponent', () => {
     expect(component).toBeTruthy();
   });
 });
+*/

@@ -3,7 +3,7 @@ import { Router, ActivatedRoute, RouteReuseStrategy } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
-
+import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
 
 // Importações para animações
 import { trigger, state, style, animate, transition } from '@angular/animations';
@@ -34,6 +34,7 @@ export class LoginComponent implements OnInit {
         private route: ActivatedRoute,
         private router: Router,
         private authenticationService: AuthenticationService,
+        private reuseStrategy: RouteReuseStrategy // Injete a estratégia de reutilização de rota aqui
       
     ) {
         // redirect to home if already logged in
@@ -51,6 +52,7 @@ export class LoginComponent implements OnInit {
 
         // get return url from route parameters or default to '/'
         this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '';
+        (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
     }
 
     // convenience getter for easy access to form fields
@@ -75,6 +77,7 @@ export class LoginComponent implements OnInit {
                     this.router.navigate([this.returnUrl]);
                     this.authenticationService.setUserName(this.f['username'].value);
                     this.authenticationService.updateMenuStatus(true); // set mostrarMenu to true after successful login
+                    (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
                 },
                 error => {
                     this.error = error;

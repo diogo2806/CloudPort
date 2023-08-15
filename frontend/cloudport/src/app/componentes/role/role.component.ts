@@ -183,6 +183,8 @@ export class RoleComponent implements OnInit {
           this.loadRoles();
       });
     }
+    
+    
 /*
     exportToExcel() {
       const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(this.roles);
@@ -193,6 +195,7 @@ export class RoleComponent implements OnInit {
       XLSX.writeFile(wb, 'roles.xlsx');
     }
 */
+
     selectedRoleId: number | null = null;
     selectedRoleIds: number[] = [];
     @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;

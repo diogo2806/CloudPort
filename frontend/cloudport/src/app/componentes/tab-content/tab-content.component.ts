@@ -1,3 +1,4 @@
+/*
 import { Component, Input } from '@angular/core';
 
 @Component({
@@ -11,3 +12,4 @@ export class TabContentComponent {
     return this.data ? this.data.message : '';
   }
 }
+*/

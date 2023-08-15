@@ -6,6 +6,7 @@
   </div>
 
 <ag-grid-angular
+    #gridTable
     style="width: 100%; height: 500px;"
     class="ag-theme-alpine"
     [rowData]="filteredData"
@@ -17,7 +18,7 @@
     (gridReady)="onGridReady($event)"
     (cellClicked)="onCellClicked($event)"
     (cellDoubleClicked)="onCellDoubleClicked($event)"
-    (cellRightClicked)="onCellRightClicked($event)"
+    (cellContextMenu)="onCellRightClicked($event)"
     (rowClicked)="onRowClicked($event)"
   >
 </ag-grid-angular>

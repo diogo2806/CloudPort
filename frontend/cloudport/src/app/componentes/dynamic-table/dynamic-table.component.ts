@@ -1,5 +1,5 @@
 /* dynamic-table.component.ts */
-
+import { ViewChild, ElementRef } from '@angular/core';
 import { Component, Input, OnInit, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { ColDef, GridApi, GridOptions, GridReadyEvent, IDateFilterParams, IMultiFilterParams, ISetFilterParams } from 'ag-grid-community';
@@ -44,7 +44,7 @@ export class DynamicTableComponent implements OnInit {
   @Output() mouseOver = new EventEmitter<any>();
   @Output() rightClick = new EventEmitter<any>();
   @Input() selectedTab: string = '';
-
+  @ViewChild('gridTable') gridTable!: ElementRef;
 
   filteredData: any[] = [];
   filters: { [key: string]: string } = {};
@@ -64,9 +64,35 @@ export class DynamicTableComponent implements OnInit {
       sortable: true
     }));
     this.filteredData = [...this.data];
+
+
+   document.addEventListener('contextmenu', this.preventRightClickDefault.bind(this));
+    document.addEventListener('click', this.closeContextMenu.bind(this));
+
   }
 
+  @logMethod
+  preventRightClickDefault(event: MouseEvent): void {
+       // Verifique se o clique foi fora da tabela
+       if (!this.gridTable.nativeElement.contains(event.target)) {
+        return
+        //this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
+      }
+      event.preventDefault();
+  }
 
+  @logMethod
+  ngOnDestroy() {
+    document.removeEventListener('contextmenu', this.preventRightClickDefault.bind(this));
+  }
+  
+  @logMethod
+  closeContextMenu(event: MouseEvent): void {
+    // Verifique se o clique foi fora do menu de contexto e feche-o
+    // Você pode adicionar lógica adicional aqui para determinar quando fechar o menu
+    this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
+  }
+  
   
   @logMethod
   onGridReady(params: any) {
@@ -147,13 +173,21 @@ onBtExport() {
   }
 
   @logMethod
-onCellRightClicked(event: any) {
-  const mouseEvent = event.event as MouseEvent;
-  if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
-  const row = event.data; // Acessa os dados da linha clicada
-  this.rightClick.emit({ event: mouseEvent, row });
-}
-
+  onCellRightClicked(event: any) {
+    const mouseEvent = event.event as MouseEvent;
+    mouseEvent.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
+    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
+    const row = event.data; // Acessa os dados da linha clicada
+    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
+    this.rightClick.emit({ event: mouseEvent, row });
+    /*
+    const mouseEvent = event.event as MouseEvent;
+    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
+    const row = event.data; // Acessa os dados da linha clicada
+    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
+    this.rightClick.emit({ event: mouseEvent, row });*/
+  }
+  
 /*
   @logMethod
   onCellRightClicked(event: any) {

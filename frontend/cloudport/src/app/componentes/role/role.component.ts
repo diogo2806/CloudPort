@@ -38,8 +38,9 @@ export class RoleComponent implements OnInit {
   // Método executado quando o componente é inicializado
   ngOnInit() {
     this.loadRoles();
-    document.addEventListener('click', this.closeContextMenu.bind(this));
-  }
+}
+
+
 
   dragging: boolean = false;
 
@@ -191,20 +192,28 @@ export class RoleComponent implements OnInit {
     @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;
 
     rightClick(event: MouseEvent, role: any) {
-      console.log("RoleComponent rightClick")
-      event.preventDefault();
+    //  console.log("RoleComponent rightClick")
+    //  event.preventDefault();
       
-      this.contextMenu.menuOptions = ['Editar', 'Deletar']; // Define as opções aqui
-      this.contextMenu.position = { x: event.clientX, y: event.clientY };
-      this.contextMenu.isOpen = true;
+     // this.contextMenu.menuOptions = ['Editar', 'Deletar']; // Define as opções aqui
+    //  this.contextMenu.position = { x: event.clientX, y: event.clientY };
+    //  this.contextMenu.isOpen = true;
     }
 
     handleRoleRightClick(event: any) {
-      console.log("RoleComponent rightClick");
+
+      if (event === null) {
+        this.contextMenu.isOpen = false; // Feche o menu se o evento for nulo
+        return;
+      }
+
+      
+      console.log("Manipulando clique com o botão direito do mouse", event); // Depuração
       this.contextMenu.menuOptions = ['Editar', 'Deletar'];
       this.contextMenu.position = { x: event.event.clientX, y: event.event.clientY };
       this.contextMenu.isOpen = true;
     }
+    
     
     
 

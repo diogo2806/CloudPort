@@ -60,7 +60,7 @@ openTab(tabName: string) {
   
   @HostListener('document:click', ['$event'])
   clickout(event: MouseEvent) {
-    console.log("Classe NavbarComponent: Método clickout chamado.");
+    //console.log("Classe NavbarComponent: Método clickout chamado.");
     if (!this.eRef.nativeElement.contains(event.target)) {
       const submenus = this.eRef.nativeElement.querySelectorAll('.app-navbar ul li > ul');
       submenus.forEach((submenu: HTMLElement) => submenu.style.display = 'none');

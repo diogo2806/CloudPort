@@ -143,13 +143,19 @@ onBtExport() {
 
   @logMethod
   onCellDoubleClicked(event: any) {
-   // console.log('Célula clicada duas vezes:', event);
+    console.log('onCellDoubleClicked: Célula clicada com o botão direito:', event);
   }
 
   @logMethod
   onCellRightClicked(event: any) {
-    //console.log('Célula clicada com o botão direito:', event);
+    console.log('onCellRightClicked: ', event);
   }
+
+  @logMethod
+  onRowClicked(event: any) {
+    console.log('onCellRightClicked: ', event);
+  }
+  
 
   public defaultColDef: ColDef = {
     flex: 1,
@@ -172,6 +178,7 @@ onBtExport() {
     this.dragging = true;
     this.toggleSelection(row);
     this.mouseDown.emit({ event, row });
+    console.log('onRowMouseDown: ', event);
   }
 
   @logMethod

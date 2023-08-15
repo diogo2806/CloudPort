@@ -1,7 +1,16 @@
 
-
+<!--
 <app-dynamic-table 
     [columns]="['Role ID', 'Role Name']" 
     [data]="roles"
     [selectedTab]="selectedTab">
+</app-dynamic-table>
+-->
+
+<app-context-menu #contextMenu (optionSelected)="contextMenuOptionSelected($event)"></app-context-menu>
+<app-dynamic-table 
+    [columns]="['Role ID', 'Role Name']" 
+    [data]="roles"
+    [selectedTab]="selectedTab"
+    (rightClick)="rightClick($event, roles)">
 </app-dynamic-table>

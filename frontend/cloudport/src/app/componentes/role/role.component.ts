@@ -190,7 +190,7 @@ export class RoleComponent implements OnInit {
     @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;
 
     rightClick(event: MouseEvent, role: any) {
-      console.log("rightClick")
+      console.log("RoleComponent rightClick")
       event.preventDefault();
       
       this.contextMenu.menuOptions = ['Editar', 'Deletar']; // Define as opções aqui

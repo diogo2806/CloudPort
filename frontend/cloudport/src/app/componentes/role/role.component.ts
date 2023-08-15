@@ -185,31 +185,20 @@ export class RoleComponent implements OnInit {
     }
     
     
-/*
-    exportToExcel() {
-      const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(this.roles);
-      const wb: XLSX.WorkBook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Roles');
-      
-
-      XLSX.writeFile(wb, 'roles.xlsx');
-    }
-*/
-
     selectedRoleId: number | null = null;
     selectedRoleIds: number[] = [];
     @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;
 
-
-
-
     rightClick(event: MouseEvent, role: any) {
+      console.log("rightClick")
       event.preventDefault();
       
       this.contextMenu.menuOptions = ['Editar', 'Deletar']; // Define as opções aqui
       this.contextMenu.position = { x: event.clientX, y: event.clientY };
       this.contextMenu.isOpen = true;
     }
+
+
 
     /*
     leftClick(event: MouseEvent, role: any) {
@@ -227,6 +216,7 @@ export class RoleComponent implements OnInit {
     }
 
     */
+
     contextMenuOptionSelected(option: string) {
       if (this.selectedRoleIds.length === 0) {
         console.error('Nenhum role foi selecionado');

@@ -43,23 +43,5 @@ export class CustomReuseStrategy implements RouteReuseStrategy {
   clearHandlers() {
     this.handlers = {};
   }
-  /*
-  clearHandles() {
-    for (const key in this.handlers) {
-      if (this.handlers[key]) {
-        this.destroyHandle(this.handlers[key]);
-      }
-    }
-    this.handlers = {};
-  }
-
-
-  private destroyHandle(handle: DetachedRouteHandle): void {
-    const componentRef: ComponentRef<any> = handle['componentRef'];
-    if (componentRef) {
-      componentRef.destroy();
-    }
-  }
-
-  */
+  
 }

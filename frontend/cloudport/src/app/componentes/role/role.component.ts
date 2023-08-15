@@ -200,6 +200,9 @@ export class RoleComponent implements OnInit {
     selectedRoleIds: number[] = [];
     @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;
 
+
+
+
     rightClick(event: MouseEvent, role: any) {
       event.preventDefault();
       
@@ -208,6 +211,7 @@ export class RoleComponent implements OnInit {
       this.contextMenu.isOpen = true;
     }
 
+    /*
     leftClick(event: MouseEvent, role: any) {
       event.preventDefault();
 
@@ -222,6 +226,7 @@ export class RoleComponent implements OnInit {
       }
     }
 
+    */
     contextMenuOptionSelected(option: string) {
       if (this.selectedRoleIds.length === 0) {
         console.error('Nenhum role foi selecionado');

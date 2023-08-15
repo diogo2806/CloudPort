@@ -10,6 +10,9 @@
   },
   "private": true,
   "dependencies": {
+    "@ag-grid-community/core": "^30.0.6",
+    "@ag-grid-enterprise/all-modules": "^27.3.0",
+    "@ag-grid-enterprise/excel-export": "^30.0.6",
     "@angular/animations": "^16.1.0",
     "@angular/cdk": "^16.1.5",
     "@angular/common": "^16.1.0",
@@ -24,10 +27,10 @@
     "@ngx-translate/http-loader": "^8.0.0",
     "ag-grid-angular": "^30.0.6",
     "ag-grid-community": "^30.0.6",
-    "exceljs": "^4.3.0",
     "ngx-mask": "^13.1.13",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
+    "xlsx": "^0.18.5",
     "zone.js": "~0.13.0"
   },
   "devDependencies": {
@@ -35,6 +38,7 @@
     "@angular/cli": "~16.1.5",
     "@angular/compiler-cli": "^16.1.0",
     "@types/jasmine": "~4.3.0",
+    "@types/node": "^20.5.0",
     "jasmine-core": "~4.6.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

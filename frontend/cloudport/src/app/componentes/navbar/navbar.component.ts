@@ -33,64 +33,13 @@ export class NavbarComponent {
 openTab(tabName: string) {
 
   let content = { message: `Conteúdo padrão para a aba ${tabName}` };
-
   this.tabService.openTab(tabName);
   this.router.navigate(['/home', tabName.toLowerCase()]);
-
-  // let content = { message: `Conteúdo padrão para a aba ${tabName}` };
-
-  
-
   content = this.tabService.getTabContent(tabName);
-
   this.tabService.openTab(tabName, content);
 }
 
 
-/*
-openTab(tabName: string) {
-  console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
-  //const content = { message: `Conteúdo padrão para a aba ${tabName}` }; // Defina o conteúdo aqui
-  this.tabService.openTab(tabName);
-  this.router.navigate(['/home', tabName.toLowerCase()]);
-}
-*/
-/*
-openTab(tabName: string) {
-  console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
-  
- // let tabContent = this.tabService.getTabContent(tabName);
-  
-  // Se o conteúdo da aba não existir, defina um conteúdo padrão
-  //if (!tabContent) {
-  //  tabContent = { message: `Conteúdo padrão para a aba ${tabName}` };
- // }
-  
-  this.tabService.openTab(tabName);
-  this.router.navigate(['/home' , tabName.toLowerCase()]);
-
-}
-*/
-
-// ... (resto do código)
-
-  /*
-  openTab(tabName: string) {
-    console.log(`Classe NavbarComponent: Método openTab chamado com o parâmetro tabName=${tabName}.`);
-    this.tabService.openTab(tabName);
-    this.router.navigate(['/home' , tabName.toLowerCase()]);
-    const content = this.tabService.getTabContent(tabName);
-    this.tabService.setTabContent(tabName, content);
-  }
-
-/*
-  navigateTo(tab: string) {
-    console.log(`Classe NavbarComponent: Método navigateTo chamado com o parâmetro tab=${tab}.`);
-    this.tabService.openTab(tab);
-    this.router.navigate(['/home' , tab.toLowerCase()]);
-  }
-  
-*/
 
   toggleSubmenu(event: Event) {
     console.log("Classe NavbarComponent: Método toggleSubmenu chamado.");

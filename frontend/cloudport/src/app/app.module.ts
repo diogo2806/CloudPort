@@ -18,6 +18,8 @@ import { AgGridModule } from 'ag-grid-angular';
 import { CustomReuseStrategy } from './componentes/tab-content/customreusestrategy';
 import { RouteReuseStrategy } from '@angular/router';
 
+
+
 @NgModule({
   declarations: [
     AppComponent,

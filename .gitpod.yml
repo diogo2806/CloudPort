@@ -23,12 +23,11 @@ tasks:
       npm install --save ag-grid-angular
       npm install --save ngx-mask
       npm i ngx-mask@13.1.13
-      npm install exceljs
+      npm install xlsx
       npm install --save-dev @angular-devkit/build-angular
       npm install @angular/material
       npm install --save @ag-grid-community/core
-      npm install --save @ag-grid-enterprise/all-modules
-      npm install --save @ag-grid-enterprise/excel-export
+
 
      
       npm install

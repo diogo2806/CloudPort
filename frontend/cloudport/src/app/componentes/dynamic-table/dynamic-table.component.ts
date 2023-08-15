@@ -75,18 +75,32 @@ export class DynamicTableComponent implements OnInit {
 }
 
 
+
 @logMethod
 onBtExport() {
   try {
-    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(this.filteredData);
+    // Obter os nós da linha após a filtragem
+    const nodes = this.gridApi.getRenderedNodes();
+
+    // Extrair os dados de cada nó
+    const dados = nodes.map(node => node.data);
+
+    // Preparar as colunas para exportação
+    const columns = this.columns.map(column => ({ [column]: '' }));
+    const exportData = dados.length ? dados : columns;
+
+    // Usar a biblioteca XLSX para exportar os dados
+    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(exportData);
     const wb: XLSX.WorkBook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
     XLSX.writeFile(wb, 'data.xlsx');
     console.log("onBtExport: Exportação bem-sucedida");
   } catch (error) {
-    console.error("Erro ao exportar para Excel:", error);
+    // Tratar erro
   }
 }
+
+
 
 
 

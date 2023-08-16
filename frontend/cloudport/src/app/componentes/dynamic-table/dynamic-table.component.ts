@@ -74,10 +74,11 @@ export class DynamicTableComponent implements OnInit {
   @logMethod
   preventRightClickDefault(event: MouseEvent): void {
        // Verifique se o clique foi fora da tabela
-       if (!this.gridTable.nativeElement.contains(event.target)) {
-        return
+       if (!this.gridTable || !this.gridTable.nativeElement || !this.gridTable.nativeElement.contains(event.target)) {
+        return;
         //this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
       }
+      
       event.preventDefault();
   }
 
@@ -174,12 +175,25 @@ onBtExport() {
 
   @logMethod
   onCellRightClicked(event: any) {
+
+
+    console.log('onCellRightClicked: Emitindo evento de clique com o botão direito do mouse')
     const mouseEvent = event.event as MouseEvent;
     mouseEvent.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
     if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
     const row = event.data; // Acessa os dados da linha clicada
     console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
     this.rightClick.emit({ event: mouseEvent, row });
+
+    /*
+    const mouseEvent = event.event as MouseEvent;
+    mouseEvent.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
+    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
+    const row = event.data; // Acessa os dados da linha clicada
+    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
+    this.rightClick.emit({ event: mouseEvent, row });
+
+    */
     /*
     const mouseEvent = event.event as MouseEvent;
     if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse

@@ -38,6 +38,7 @@ export class RoleComponent implements OnInit {
   // Método executado quando o componente é inicializado
   ngOnInit() {
     this.loadRoles();
+    document.addEventListener('click', this.closeContextMenu.bind(this));
 }
 
 

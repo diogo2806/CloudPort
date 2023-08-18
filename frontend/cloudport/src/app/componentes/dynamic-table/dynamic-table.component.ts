@@ -6,6 +6,7 @@ import { ColDef, GridApi, GridOptions, GridReadyEvent, IDateFilterParams, IMulti
 import { TabStateService } from './tab-state.service';
 
 
+
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   const originalMethod = descriptor.value;
   descriptor.value = function (...args: any[]) {
@@ -53,6 +54,7 @@ export class DynamicTableComponent implements OnInit {
   columnDefinitions: ColDef[] = [];
   dragging: boolean = false;
 
+  tabela: boolean = false;
   constructor(private tabStateService: TabStateService) {}
 
   @logMethod
@@ -64,29 +66,121 @@ export class DynamicTableComponent implements OnInit {
       sortable: true
     }));
     this.filteredData = [...this.data];
+  
 
 
-   document.addEventListener('contextmenu', this.preventRightClickDefault.bind(this));
-    document.addEventListener('click', this.closeContextMenu.bind(this));
+   
+   // document.addEventListener('click', this.closeContextMenu.bind(this));
 
   }
 
+
+  
   @logMethod
-  preventRightClickDefault(event: MouseEvent): void {
-       // Verifique se o clique foi fora da tabela
-       if (!this.gridTable || !this.gridTable.nativeElement || !this.gridTable.nativeElement.contains(event.target)) {
-        return;
-        //this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
-      }
-      
-      event.preventDefault();
+  handleTableContextMenu(event: MouseEvent): void {
+    if(this.gridTable!=null){
+      console.log("this.gridTable!=null")
+      event.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
+    }
+
+    if(this.gridTable==null){
+      console.log("this.gridTable==null")
+      event.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
+    }
   }
 
+
+
+ // @logMethod
+ // ngAfterViewInit(): void {
+   // if (this.gridTable && this.gridTable.nativeElement) {
+   //   this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+  // }
+  //}
+  
   @logMethod
   ngOnDestroy() {
-    document.removeEventListener('contextmenu', this.preventRightClickDefault.bind(this));
+   // if (this.gridTable && this.gridTable.nativeElement) {
+     // this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    //}
   }
   
+  @logMethod
+  onCellContextMenu(event: any): void {
+
+
+
+    this.tabela = true;
+    if(this.tabela = true){
+        //  document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+          console.log( this.tabela)
+    }
+    const mouseEvent = event.event as MouseEvent;
+    mouseEvent.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
+    const row = event.data; // Acessa os dados da linha clicada
+    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
+    this.rightClick.emit({ event: mouseEvent, row });
+  }
+
+  @logMethod
+  onCellRightClicked(event: any) {
+    const mouseEvent = event.event as MouseEvent;
+
+    console.log('onCellRightClicked: Emitindo evento de clique com o botão direito do mouse');
+    mouseEvent.stopPropagation();
+    mouseEvent.preventDefault();
+    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
+    const row = event.data; // Acessa os dados da linha clicada
+    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
+    this.rightClick.emit({ event: mouseEvent, row });
+    //event.preventDefault();
+
+
+   
+    /*
+    const mouseEvent = event.event as MouseEvent;
+    mouseEvent.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
+    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
+    const row = event.data; // Acessa os dados da linha clicada
+    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
+    this.rightClick.emit({ event: mouseEvent, row });
+
+    */
+    /*
+    const mouseEvent = event.event as MouseEvent;
+    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
+    const row = event.data; // Acessa os dados da linha clicada
+    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
+    this.rightClick.emit({ event: mouseEvent, row });*/
+  }
+  
+
+
+
+
+  @logMethod
+  getContextMenuItems(params: any): any[] {
+    return []; // Desativa o menu de contexto
+  }
+  
+
+ // @logMethod
+//preventRightClickDefault(event: MouseEvent): void {
+  //console.log("preventRightClickDefault: "+event.target?.dispatchEvent)
+  /*
+  if (this.gridTable && this.gridTable.nativeElement.contains(event.target as Node)) {
+    console.log('CLIQUE DENTRO DA TABELA');
+    event.preventDefault();
+    //this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
+  } else {
+    console.log('CLIQUE FORA DA TABELA');
+    //event.preventDefault();
+    //this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
+  }
+  */
+//}
+
+
   @logMethod
   closeContextMenu(event: MouseEvent): void {
     // Verifique se o clique foi fora do menu de contexto e feche-o
@@ -94,6 +188,7 @@ export class DynamicTableComponent implements OnInit {
     this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
   }
   
+
   
   @logMethod
   onGridReady(params: any) {
@@ -172,36 +267,6 @@ onBtExport() {
   onCellDoubleClicked(event: any) {
     console.log('onCellDoubleClicked: Célula clicada com o botão direito:', event);
   }
-
-  @logMethod
-  onCellRightClicked(event: any) {
-
-
-    console.log('onCellRightClicked: Emitindo evento de clique com o botão direito do mouse')
-    const mouseEvent = event.event as MouseEvent;
-    mouseEvent.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
-    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
-    const row = event.data; // Acessa os dados da linha clicada
-    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
-    this.rightClick.emit({ event: mouseEvent, row });
-
-    /*
-    const mouseEvent = event.event as MouseEvent;
-    mouseEvent.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
-    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
-    const row = event.data; // Acessa os dados da linha clicada
-    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
-    this.rightClick.emit({ event: mouseEvent, row });
-
-    */
-    /*
-    const mouseEvent = event.event as MouseEvent;
-    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
-    const row = event.data; // Acessa os dados da linha clicada
-    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
-    this.rightClick.emit({ event: mouseEvent, row });*/
-  }
-  
 /*
   @logMethod
   onCellRightClicked(event: any) {

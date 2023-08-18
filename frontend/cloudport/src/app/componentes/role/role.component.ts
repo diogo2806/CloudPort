@@ -9,6 +9,20 @@ import { throwError } from 'rxjs';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
 import { ChangeDetectorRef } from '@angular/core';
 import { TabService } from '../navbar/TabService';
+
+
+function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
+  const originalMethod = descriptor.value;
+  descriptor.value = function (...args: any[]) {
+    console.log(`Classe ${target.constructor.name}: Método ${key} chamado.`);
+    return originalMethod.apply(this, args);
+  };
+  return descriptor;
+}
+
+
+
+
 @Component({
   selector: 'app-role',
   templateUrl: './role.component.html',
@@ -36,6 +50,7 @@ export class RoleComponent implements OnInit {
   
 
   // Método executado quando o componente é inicializado
+  @logMethod
   ngOnInit() {
     this.loadRoles();
     document.addEventListener('click', this.closeContextMenu.bind(this));
@@ -46,23 +61,28 @@ export class RoleComponent implements OnInit {
   dragging: boolean = false;
 
   
-
+  @logMethod
   mouseDown(event: MouseEvent, role: any) {
     event.preventDefault();
     this.dragging = true;
     this.toggleSelection(role);
   }
 
+  @logMethod
   mouseUp(event: MouseEvent) {
     this.dragging = false;
   }
 
+
+  @logMethod
   mouseover(event: MouseEvent, role: any) {
     if (this.dragging) {
       this.toggleSelection(role);
     }
   }
 
+
+  @logMethod
   toggleSelection(role: any) {
     const index = this.selectedRoleIds.indexOf(role.id);
     
@@ -76,6 +96,7 @@ export class RoleComponent implements OnInit {
   }
 
   // Carrega os papeis do servidor
+  @logMethod
   loadRoles() {
     const storedRolesData = this.tabService.getTabContent(this.selectedTab);
     if (storedRolesData && storedRolesData.content) {
@@ -112,6 +133,7 @@ export class RoleComponent implements OnInit {
 
 
   // Cria um novo papel
+  @logMethod
   createRole() {
     const token = this.authenticationService.currentUserValue?.token;
 
@@ -137,6 +159,7 @@ export class RoleComponent implements OnInit {
   }
 
   // Edita um papel existente
+  @logMethod
   editRole(roleId: number) {
     const token = this.authenticationService.currentUserValue?.token;
 
@@ -162,6 +185,7 @@ export class RoleComponent implements OnInit {
   }
 
   // Desativa um papel
+  @logMethod
   deactivateRole(roleId: number) {
     const token = this.authenticationService.currentUserValue?.token;
 
@@ -192,15 +216,18 @@ export class RoleComponent implements OnInit {
     selectedRoleIds: number[] = [];
     @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;
 
+    @logMethod
     rightClick(event: MouseEvent, role: any) {
-    //  console.log("RoleComponent rightClick")
-    //  event.preventDefault();
+      console.log("RoleComponent rightClick")
+      event.preventDefault();
       
-     // this.contextMenu.menuOptions = ['Editar', 'Deletar']; // Define as opções aqui
-    //  this.contextMenu.position = { x: event.clientX, y: event.clientY };
-    //  this.contextMenu.isOpen = true;
+      this.contextMenu.menuOptions = ['Editar', 'Deletar']; // Define as opções aqui
+      this.contextMenu.position = { x: event.clientX, y: event.clientY };
+      this.contextMenu.isOpen = true;
     }
 
+
+    @logMethod
     handleRoleRightClick(event: any) {
 
       if (event === null) {
@@ -209,7 +236,7 @@ export class RoleComponent implements OnInit {
       }
 
       
-      console.log("Manipulando clique com o botão direito do mouse", event); // Depuração
+      console.log("handleRoleRightClick: Manipulando clique com o botão direito do mouse", event); // Depuração
       this.contextMenu.menuOptions = ['Editar', 'Deletar'];
       this.contextMenu.position = { x: event.event.clientX, y: event.event.clientY };
       this.contextMenu.isOpen = true;
@@ -234,7 +261,7 @@ export class RoleComponent implements OnInit {
     }
 
     */
-
+    @logMethod
     contextMenuOptionSelected(option: string) {
       if (this.selectedRoleIds.length === 0) {
         console.error('Nenhum role foi selecionado');
@@ -253,14 +280,14 @@ export class RoleComponent implements OnInit {
       this.contextMenu.isOpen = false;
     }
 
-    
+    @logMethod
     closeContextMenu(event: MouseEvent) {
       if (this.contextMenu && !this.contextMenu.elementRef.nativeElement.contains(event.target)) {
         this.contextMenu.isOpen = false;
       }
     }
     
-
+    @logMethod
     ngOnDestroy() {
       document.removeEventListener('click', this.closeContextMenu.bind(this));
     }

@@ -60,13 +60,18 @@ export class RoleComponent implements OnInit {
   //  document.addEventListener('contextmenu', this.boundHandleRoleContextMenu);
  
  
-  
+  //document.addEventListener('contextmenu', this.handleDocumentContextMenu.bind(this));
+   
     //this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
 }
 
+handleDocumentContextMenu(event: MouseEvent) {
+  event.preventDefault();
+}
 
 handleRoleContextMenu(event: any): void {
   // Implemente a lógica desejada aqui
+  event.preventDefault();
 }
   dragging: boolean = false;
 
@@ -238,7 +243,11 @@ handleRoleContextMenu(event: any): void {
 
 
     @logMethod
-    handleRoleRightClick(event: any) {
+    handleRoleRightClick(event: any, contextMenu: ContextMenuComponent) {
+
+      console.log("Evento recebido:", event);
+
+      //event.preventDefault();
 
       if (event === null || event.event === undefined) {
         this.contextMenu.isOpen = false; // Feche o menu se o evento for nulo

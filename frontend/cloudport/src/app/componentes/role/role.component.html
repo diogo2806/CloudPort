@@ -8,9 +8,10 @@
 -->
 
 <app-context-menu #contextMenu (optionSelected)="contextMenuOptionSelected($event)"></app-context-menu>
+
 <app-dynamic-table 
     [columns]="['Role ID', 'Role Name']" 
     [data]="roles"
     [selectedTab]="selectedTab"
-    (rightClick)="handleRoleRightClick($event)">
+    (rightClick)="handleRoleRightClick($event, contextMenu)">
 </app-dynamic-table>

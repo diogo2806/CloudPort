@@ -150,14 +150,14 @@ console.log("handleTableContextMenu: ", event)
 
   //  document.addEventListener('contextmenu', this.boundHandleTableContextMenu);
     //document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-    document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    //document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
    // event.event.preventDefault();
     const mouseEvent = event.event as MouseEvent;
     const row = event.data; // Acessa os dados da linha clicada
 
 
     console.log("row: "+row.length)
-    console.log('DynamicTableComponent onCellRightClicked: Emitindo evento de clique com o botão direito do mouse');
+
     mouseEvent.stopPropagation();
     mouseEvent.preventDefault();
     if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse

@@ -246,6 +246,7 @@ handleRoleContextMenu(event: any): void {
     handleRoleRightClick(event: any, contextMenu: ContextMenuComponent) {
 
       console.log("Evento recebido:", event);
+      document.addEventListener('contextmenu', this.handleDocumentContextMenu.bind(this));
 
       //event.preventDefault();
 
@@ -303,6 +304,9 @@ handleRoleContextMenu(event: any): void {
     closeContextMenu(event: MouseEvent) {
       if (this.contextMenu && !this.contextMenu.elementRef.nativeElement.contains(event.target)) {
         this.contextMenu.isOpen = false;
+        console.log(this.contextMenu.isOpen);
+        document.removeEventListener('contextmenu', this.handleDocumentContextMenu.bind(this));
+
       }
     }
     

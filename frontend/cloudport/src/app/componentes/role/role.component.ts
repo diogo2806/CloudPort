@@ -240,11 +240,11 @@ handleRoleContextMenu(event: any): void {
     @logMethod
     handleRoleRightClick(event: any) {
 
-      if (event === null) {
+      if (event === null || event.event === undefined) {
         this.contextMenu.isOpen = false; // Feche o menu se o evento for nulo
         return;
       }
-      event.preventDefault();
+      event.event.preventDefault();
       
       console.log("RoleComponent handleRoleRightClick: Manipulando clique com o botão direito do mouse", event); // Depuração
       this.contextMenu.menuOptions = ['Editar', 'Deletar'];

@@ -17,10 +17,12 @@
     [animateRows]="true"
     [rowSelection]="'multiple'"
     [getContextMenuItems]="getContextMenuItems"
+    (contextmenu)="onContextMenu($event)"
     (gridReady)="onGridReady($event)"
     (cellClicked)="onCellClicked($event)"
     (cellDoubleClicked)="onCellDoubleClicked($event)"
     (cellContextMenu)="onCellRightClicked($event)"
     (rowClicked)="onRowClicked($event)"
+    (cellContextMenu)="onCellContextMenu($event)"
   >
 </ag-grid-angular>

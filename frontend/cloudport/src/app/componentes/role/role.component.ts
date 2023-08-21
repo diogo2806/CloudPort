@@ -9,6 +9,8 @@ import { throwError } from 'rxjs';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
 import { ChangeDetectorRef } from '@angular/core';
 import { TabService } from '../navbar/TabService';
+import { Renderer2 } from '@angular/core';
+import { AfterViewInit } from '@angular/core';
 
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
@@ -28,7 +30,7 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   templateUrl: './role.component.html',
   styleUrls: ['./role.component.css']
 })
-export class RoleComponent implements OnInit {
+export class RoleComponent implements OnInit, AfterViewInit {
 
   // Nome do papel
   roleName: string = "";
@@ -41,29 +43,64 @@ export class RoleComponent implements OnInit {
   constructor(
     private http: HttpClient, 
     private authenticationService: AuthenticationService,
-    private changeDetector: ChangeDetectorRef,
-    private tabService: TabService
+    private tabService: TabService,
+    private renderer: Renderer2
   ) { }
 
-  private selectionStarted: boolean = false;
-  private target: HTMLElement | null = null;
+
   private boundHandleTableContextMenu: any;
-  private boundHandleRoleContextMenu: any;
+
+  @ViewChild('gridHoleTable', { static: false }) gridTable: any;
 
 
   // Método executado quando o componente é inicializado
   @logMethod
   ngOnInit() {
-    this.loadRoles();
-    document.addEventListener('click', this.closeContextMenu.bind(this));
-     this.boundHandleRoleContextMenu = this.handleRoleContextMenu.bind(this);
-  //  document.addEventListener('contextmenu', this.boundHandleRoleContextMenu);
- 
- 
-  //document.addEventListener('contextmenu', this.handleDocumentContextMenu.bind(this));
+    console.log('Classe RoleComponent: Método ngOnInit chamado.');
    
-    //this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    this.loadRoles();
+
+    
 }
+
+@logMethod
+onGridTableReady() {
+  console.log('Classe RoleComponent: Método onGridTableReady chamado.');
+  const tableElement = this.gridTable.nativeElement; // Referência direta ao elemento da tabela ag-Grid
+  this.renderer.listen(tableElement, 'contextmenu', (event) => {
+    event.preventDefault(); // Previne o menu de contexto padrão
+    this.contextMenu.menuOptions = ['Editar', 'Deletar'];
+    this.contextMenu.position = { x: event.clientX, y: event.clientY };
+    this.contextMenu.isOpen = true;
+    console.warn('Elemento da tabela ag-Grid encontrado');
+  });
+}
+
+
+
+
+
+
+
+@logMethod
+ngAfterViewInit() {
+  console.log('Classe RoleComponent: Método ngAfterViewInit chamado.');
+   
+  if (this.gridTable && this.gridTable.nativeElement) {
+    const tableElement = this.gridTable.nativeElement; // Referência direta ao elemento da tabela ag-Grid
+    this.renderer.listen(tableElement, 'contextmenu', (event) => {
+      event.preventDefault(); // Previne o menu de contexto padrão
+      this.contextMenu.menuOptions = ['Editar', 'Deletar'];
+      this.contextMenu.position = { x: event.clientX, y: event.clientY };
+      this.contextMenu.isOpen = true;
+      console.warn('Elemento da tabela ag-Grid encontrado');
+    });
+  } else {
+    console.warn('Elemento da tabela ag-Grid não encontrado');
+  }
+}
+
+
 
 handleDocumentContextMenu(event: MouseEvent) {
   event.preventDefault();
@@ -73,6 +110,39 @@ handleRoleContextMenu(event: any): void {
   // Implemente a lógica desejada aqui
   event.preventDefault();
 }
+
+
+
+@logMethod
+handleRoleRightClick(event: any, contextMenu: ContextMenuComponent) {
+  console.log("Evento recebido:", event);
+
+  if (event === null || event.event === undefined) {
+    this.contextMenu.isOpen = false; // Feche o menu se o evento for nulo
+    return; // Deixe o evento de clique com o botão direito do mouse ser processado normalmente
+  }
+
+  // Evite o menu de contexto padrão do navegador e exiba o menu personalizado
+  event.event.preventDefault();
+  
+  console.log("RoleComponent handleRoleRightClick: Manipulando clique com o botão direito do mouse", event); // Depuração
+  this.contextMenu.menuOptions = ['Editar', 'Deletar'];
+  this.contextMenu.position = { x: event.event.clientX, y: event.event.clientY };
+  this.contextMenu.isOpen = true;
+}
+
+@logMethod
+closeContextMenu(event: MouseEvent) {
+  if (this.contextMenu && !this.contextMenu.elementRef.nativeElement.contains(event.target)) {
+    this.contextMenu.isOpen = false;
+    event.preventDefault();
+    console.log(this.contextMenu.isOpen);
+    // Deixe o evento de clique com o botão direito do mouse ser processado normalmente
+  }
+}
+
+
+
   dragging: boolean = false;
 
   
@@ -242,29 +312,6 @@ handleRoleContextMenu(event: any): void {
     }
 
 
-    @logMethod
-    handleRoleRightClick(event: any, contextMenu: ContextMenuComponent) {
-
-      console.log("Evento recebido:", event);
-      document.addEventListener('contextmenu', this.handleDocumentContextMenu.bind(this));
-
-      //event.preventDefault();
-
-      if (event === null || event.event === undefined) {
-        this.contextMenu.isOpen = false; // Feche o menu se o evento for nulo
-        return;
-      }
-      event.event.preventDefault();
-      
-      console.log("RoleComponent handleRoleRightClick: Manipulando clique com o botão direito do mouse", event); // Depuração
-      this.contextMenu.menuOptions = ['Editar', 'Deletar'];
-      this.contextMenu.position = { x: event.event.clientX, y: event.event.clientY };
-      this.contextMenu.isOpen = true;
-    }
-    
-    
-    
-
     /*
     leftClick(event: MouseEvent, role: any) {
       event.preventDefault();
@@ -300,15 +347,6 @@ handleRoleContextMenu(event: any): void {
       this.contextMenu.isOpen = false;
     }
 
-    @logMethod
-    closeContextMenu(event: MouseEvent) {
-      if (this.contextMenu && !this.contextMenu.elementRef.nativeElement.contains(event.target)) {
-        this.contextMenu.isOpen = false;
-        console.log(this.contextMenu.isOpen);
-        document.removeEventListener('contextmenu', this.handleDocumentContextMenu.bind(this));
-
-      }
-    }
     
     @logMethod
     ngOnDestroy() {

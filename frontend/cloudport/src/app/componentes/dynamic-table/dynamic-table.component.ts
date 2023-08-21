@@ -1,6 +1,7 @@
 /* dynamic-table.component.ts */
 import { ViewChild, ElementRef } from '@angular/core';
 import { Component, Input, OnInit, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { AfterViewInit } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { ColDef, GridApi, GridOptions, GridReadyEvent, IDateFilterParams, IMultiFilterParams, ISetFilterParams } from 'ag-grid-community';
 import { TabStateService } from './tab-state.service';
@@ -23,7 +24,7 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   templateUrl: './dynamic-table.component.html',
   styleUrls: ['./dynamic-table.component.css']
 })
-export class DynamicTableComponent implements OnInit {
+export class DynamicTableComponent implements OnInit, AfterViewInit {
 
   private _data: any[] = [];
   private gridApi!: GridApi;
@@ -46,6 +47,8 @@ export class DynamicTableComponent implements OnInit {
   @Output() rightClick = new EventEmitter<any>();
   @Input() selectedTab: string = '';
   @ViewChild('gridTable') gridTable!: ElementRef;
+  @Output() gridReady = new EventEmitter<void>();
+
 
   filteredData: any[] = [];
   filters: { [key: string]: string } = {};
@@ -57,8 +60,10 @@ export class DynamicTableComponent implements OnInit {
   tabela: boolean = false;
   constructor(private tabStateService: TabStateService) {}
 
-  @logMethod
+
   ngOnInit(): void {
+    console.log('Classe DynamicTableComponent: : Método ngOnInit iniciado.');
+   
     this.columnDefinitions = this.columns.map(column => ({
       headerName: column,
       field: column,
@@ -67,8 +72,9 @@ export class DynamicTableComponent implements OnInit {
     }));
     this.filteredData = [...this.data];
   
+   // this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
 
-   
+    console.log('Classe DynamicTableComponent: : Método ngOnInit finalizado.');
    // document.addEventListener('click', this.closeContextMenu.bind(this));
    //this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
    //this.boundHandleTableContextMenu = this.handleTableContextMenu.bind(this);
@@ -77,8 +83,21 @@ export class DynamicTableComponent implements OnInit {
 
   }
   
+  onContextMenu(event: MouseEvent): void {
+    event.preventDefault(); // Previne o menu de contexto padrão
+  }
+  
+
+  ngAfterViewInit(): void {
+    console.log('Classe DynamicTableComponent: : Método ngAfterViewInit iniciado.');
+    // Adicione o manipulador de eventos para o evento 'contextmenu'
+    this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    console.log('Classe DynamicTableComponent: : Método ngAfterViewInit finalizado.');
+  }
+
   @logMethod
   handleTableContextMenu(event: any): void {
+    
     //document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
     //document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
     event.preventDefault();
@@ -121,12 +140,18 @@ console.log("handleTableContextMenu: ", event)
   // }
   //}
   
+  
+
+  
+
   @logMethod
   ngOnDestroy() {
    // if (this.gridTable && this.gridTable.nativeElement) {
-    document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+   // document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
     // this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
     //}
+    this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+
   }
   
   @logMethod
@@ -144,31 +169,16 @@ console.log("handleTableContextMenu: ", event)
 
   @logMethod
   onCellRightClicked(event: any) {
-
-
     event.event.preventDefault();
-
-  //  document.addEventListener('contextmenu', this.boundHandleTableContextMenu);
-    //document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-    //document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-   // event.event.preventDefault();
     const mouseEvent = event.event as MouseEvent;
     const row = event.data; // Acessa os dados da linha clicada
-
-
-    console.log("row: "+row.length)
-
     mouseEvent.stopPropagation();
     mouseEvent.preventDefault();
     if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
-    
     console.log('DynamicTableComponent onCellRightClicked: Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
     this.rightClick.emit({ event: mouseEvent, row });
-    //event.preventDefault();
-
-
   }
-  
+
 
 
 
@@ -208,6 +218,9 @@ console.log("handleTableContextMenu: ", event)
   @logMethod
   onGridReady(params: any) {
     this.gridApi = params.api;
+   // this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+  
+    //this.gridReady.emit();
 
 }
 
@@ -249,6 +262,8 @@ onBtExport() {
       //event.node.setSelected(false);
     }
    // console.log('Célula clicada:', event);
+   this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
+  // console.log('Célula clicada:', event);
   }
 
    /*

@@ -1,17 +1,13 @@
 <!--role.component.html-->
-<!--
-<app-dynamic-table 
-    [columns]="['Role ID', 'Role Name']" 
-    [data]="roles"
-    [selectedTab]="selectedTab">
-</app-dynamic-table>
--->
-
 <app-context-menu #contextMenu (optionSelected)="contextMenuOptionSelected($event)"></app-context-menu>
 
 <app-dynamic-table 
+    #gridHoleTable 
     [columns]="['Role ID', 'Role Name']" 
     [data]="roles"
     [selectedTab]="selectedTab"
-    (rightClick)="handleRoleRightClick($event, contextMenu)">
+    (rightClick)="handleRoleRightClick($event, contextMenu)"
+    (gridReady)="onGridTableReady()">
 </app-dynamic-table>
+
+

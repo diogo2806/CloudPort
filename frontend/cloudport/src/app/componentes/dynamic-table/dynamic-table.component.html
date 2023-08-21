@@ -1,13 +1,18 @@
 <!--dynamic-table.component.html-->
-
-<div>
-    <button class="btn btn-outline-danger btn-sm" (click)="onBtExport()">Exportar para Excel</button>
-
+<div class="grid-container" 
+(click)="closeContextMenu($event)"
+(contextmenu)="closeContextMenu($event)"
+>
+<div class="btn-group" role="group" aria-label="Basic example">
+    <button class="btn btn-outline-success btn-sm" (click)="onBtExport()">Excel</button>
+    <button class="btn btn-outline-primary btn-sm" (click)="onBtExport()">+</button>
+    <button class="btn btn-outline-danger btn-sm" (click)="onBtExport()">-</button>
   </div>
+
 
 <ag-grid-angular
     #gridTable
-    style="width: 100%; height: 500px;"
+    style="width: 100%; height: 100%;"
     class="ag-theme-alpine"
     
     [rowData]="filteredData"
@@ -26,3 +31,4 @@
     (cellContextMenu)="onCellContextMenu($event)"
   >
 </ag-grid-angular>
+<div class="grid-container"></div>

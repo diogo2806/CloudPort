@@ -91,7 +91,7 @@ export class DynamicTableComponent implements OnInit, AfterViewInit {
   ngAfterViewInit(): void {
     console.log('Classe DynamicTableComponent: : Método ngAfterViewInit iniciado.');
     // Adicione o manipulador de eventos para o evento 'contextmenu'
-    this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+   // this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
     console.log('Classe DynamicTableComponent: : Método ngAfterViewInit finalizado.');
   }
 
@@ -246,7 +246,7 @@ onBtExport() {
     XLSX.writeFile(wb, 'data.xlsx');
     console.log("DynamicTableComponent onBtExport: Exportação bem-sucedida");
   } catch (error) {
-    // Tratar erro
+    // Tratar err
   }
 }
 

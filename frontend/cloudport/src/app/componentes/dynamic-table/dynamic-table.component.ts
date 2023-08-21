@@ -49,7 +49,7 @@ export class DynamicTableComponent implements OnInit {
 
   filteredData: any[] = [];
   filters: { [key: string]: string } = {};
-
+  private boundHandleTableContextMenu: any;
  
   columnDefinitions: ColDef[] = [];
   dragging: boolean = false;
@@ -68,25 +68,48 @@ export class DynamicTableComponent implements OnInit {
     this.filteredData = [...this.data];
   
 
-
    
    // document.addEventListener('click', this.closeContextMenu.bind(this));
+   //this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+   //this.boundHandleTableContextMenu = this.handleTableContextMenu.bind(this);
+   //document.addEventListener('contextmenu', this.boundHandleTableContextMenu);
+
 
   }
-
-
   
   @logMethod
-  handleTableContextMenu(event: MouseEvent): void {
-    if(this.gridTable!=null){
-      console.log("this.gridTable!=null")
-      event.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
-    }
+  handleTableContextMenu(event: any): void {
+    //document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    event.preventDefault();
+    //console.log("DynamicTableComponent handleTableContextMenu event: ",event);
+    const row = 0; // Acessa os dados da linha clicada
+    console.log('DynamicTableComponent handleTableContextMenu event row: Emitindo evento de clique com o botão direito do mouse', { event: event, row }); // Depuração
 
-    if(this.gridTable==null){
-      console.log("this.gridTable==null")
-      event.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
+/*
+
+      console.log(event)
+
+    
+    if(event==null){
+      console.log("handleTableContextMenu: event.row==null")
+
     }
+   if (this.gridTable && this.gridTable.nativeElement) {
+     console.log("handleTableContextMenu: oi")
+  }
+
+  if (this.gridTable) {
+    console.log("handleTableContextMenu: this.gridTable")
+ }
+ 
+ if (this.gridTable==null) {
+  console.log("handleTableContextMenu: this.gridTable==null")
+}
+console.log("handleTableContextMenu: ", event)
+      event.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
+
+      */
   }
 
 
@@ -101,7 +124,8 @@ export class DynamicTableComponent implements OnInit {
   @logMethod
   ngOnDestroy() {
    // if (this.gridTable && this.gridTable.nativeElement) {
-     // this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    // this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
     //}
   }
   
@@ -110,48 +134,36 @@ export class DynamicTableComponent implements OnInit {
 
 
 
-    this.tabela = true;
-    if(this.tabela = true){
-        //  document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-          console.log( this.tabela)
-    }
+  
     const mouseEvent = event.event as MouseEvent;
     mouseEvent.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
     const row = event.data; // Acessa os dados da linha clicada
-    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
+    console.log('DynamicTableComponent onCellContextMenu: Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
     this.rightClick.emit({ event: mouseEvent, row });
   }
 
   @logMethod
   onCellRightClicked(event: any) {
-    const mouseEvent = event.event as MouseEvent;
 
-    console.log('onCellRightClicked: Emitindo evento de clique com o botão direito do mouse');
+    document.addEventListener('contextmenu', this.boundHandleTableContextMenu);
+    //document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    //document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+   // event.event.preventDefault();
+    const mouseEvent = event.event as MouseEvent;
+    const row = event.data; // Acessa os dados da linha clicada
+
+
+    console.log("row: "+row.length)
+    console.log('DynamicTableComponent onCellRightClicked: Emitindo evento de clique com o botão direito do mouse');
     mouseEvent.stopPropagation();
     mouseEvent.preventDefault();
     if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
-    const row = event.data; // Acessa os dados da linha clicada
-    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
+    
+    console.log('DynamicTableComponent onCellRightClicked: Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
     this.rightClick.emit({ event: mouseEvent, row });
     //event.preventDefault();
 
 
-   
-    /*
-    const mouseEvent = event.event as MouseEvent;
-    mouseEvent.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
-    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
-    const row = event.data; // Acessa os dados da linha clicada
-    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
-    this.rightClick.emit({ event: mouseEvent, row });
-
-    */
-    /*
-    const mouseEvent = event.event as MouseEvent;
-    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
-    const row = event.data; // Acessa os dados da linha clicada
-    console.log('Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
-    this.rightClick.emit({ event: mouseEvent, row });*/
   }
   
 
@@ -216,7 +228,7 @@ onBtExport() {
     const wb: XLSX.WorkBook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
     XLSX.writeFile(wb, 'data.xlsx');
-    console.log("onBtExport: Exportação bem-sucedida");
+    console.log("DynamicTableComponent onBtExport: Exportação bem-sucedida");
   } catch (error) {
     // Tratar erro
   }
@@ -265,7 +277,7 @@ onBtExport() {
 
   @logMethod
   onCellDoubleClicked(event: any) {
-    console.log('onCellDoubleClicked: Célula clicada com o botão direito:', event);
+    console.log('DynamicTableComponent onCellDoubleClicked: Célula clicada com o botão direito:', event);
   }
 /*
   @logMethod

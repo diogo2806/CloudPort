@@ -37,7 +37,7 @@ export class RoleComponent implements OnInit {
   roles: any[] = [];
   selectedTab: string = 'defaultTab'; // ou qualquer valor padrão que faça sentido para o seu caso
 
-  
+
   constructor(
     private http: HttpClient, 
     private authenticationService: AuthenticationService,
@@ -47,17 +47,27 @@ export class RoleComponent implements OnInit {
 
   private selectionStarted: boolean = false;
   private target: HTMLElement | null = null;
-  
+  private boundHandleTableContextMenu: any;
+  private boundHandleRoleContextMenu: any;
+
 
   // Método executado quando o componente é inicializado
   @logMethod
   ngOnInit() {
     this.loadRoles();
     document.addEventListener('click', this.closeContextMenu.bind(this));
+     this.boundHandleRoleContextMenu = this.handleRoleContextMenu.bind(this);
+  //  document.addEventListener('contextmenu', this.boundHandleRoleContextMenu);
+ 
+ 
+  
+    //this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
 }
 
 
-
+handleRoleContextMenu(event: any): void {
+  // Implemente a lógica desejada aqui
+}
   dragging: boolean = false;
 
   
@@ -234,9 +244,9 @@ export class RoleComponent implements OnInit {
         this.contextMenu.isOpen = false; // Feche o menu se o evento for nulo
         return;
       }
-
+      event.preventDefault();
       
-      console.log("handleRoleRightClick: Manipulando clique com o botão direito do mouse", event); // Depuração
+      console.log("RoleComponent handleRoleRightClick: Manipulando clique com o botão direito do mouse", event); // Depuração
       this.contextMenu.menuOptions = ['Editar', 'Deletar'];
       this.contextMenu.position = { x: event.event.clientX, y: event.event.clientY };
       this.contextMenu.isOpen = true;
@@ -290,5 +300,7 @@ export class RoleComponent implements OnInit {
     @logMethod
     ngOnDestroy() {
       document.removeEventListener('click', this.closeContextMenu.bind(this));
+      document.removeEventListener('contextmenu', this.boundHandleTableContextMenu);
+ 
     }
 }

@@ -80,7 +80,7 @@ export class DynamicTableComponent implements OnInit {
   @logMethod
   handleTableContextMenu(event: any): void {
     //document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-    document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    //document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
     event.preventDefault();
     //console.log("DynamicTableComponent handleTableContextMenu event: ",event);
     const row = 0; // Acessa os dados da linha clicada
@@ -145,9 +145,12 @@ console.log("handleTableContextMenu: ", event)
   @logMethod
   onCellRightClicked(event: any) {
 
-    document.addEventListener('contextmenu', this.boundHandleTableContextMenu);
+
+    event.event.preventDefault();
+
+  //  document.addEventListener('contextmenu', this.boundHandleTableContextMenu);
     //document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-    //document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
    // event.event.preventDefault();
     const mouseEvent = event.event as MouseEvent;
     const row = event.data; // Acessa os dados da linha clicada

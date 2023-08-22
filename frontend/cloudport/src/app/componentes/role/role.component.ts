@@ -49,6 +49,8 @@ export class RoleComponent implements OnInit, AfterViewInit {
 
 
   private boundHandleTableContextMenu: any;
+  showPopup = false;
+
 
   @ViewChild('gridHoleTable', { static: false }) gridTable: any;
 
@@ -354,4 +356,20 @@ closeContextMenu(event: MouseEvent) {
       document.removeEventListener('contextmenu', this.boundHandleTableContextMenu);
  
     }
+
+    openPopup() {
+      this.showPopup = true;
+    }
+  
+    closePopup() {
+      this.showPopup = false;
+    }
+  
+    saveRole() {
+      // Adicione aqui o código para salvar ou editar a role
+      this.closePopup();
+    }
+
+
+    
 }

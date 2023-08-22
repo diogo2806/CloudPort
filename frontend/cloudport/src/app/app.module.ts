@@ -1,3 +1,4 @@
+/* app.module.ts */
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -17,6 +18,7 @@ import { DynamicTableComponent } from './componentes/dynamic-table/dynamic-table
 import { AgGridModule } from 'ag-grid-angular';
 import { CustomReuseStrategy } from './componentes/tab-content/customreusestrategy';
 import { RouteReuseStrategy } from '@angular/router';
+import { ModalComponent } from './componentes/modal/modal.component';
 
 
 
@@ -31,6 +33,7 @@ import { RouteReuseStrategy } from '@angular/router';
     RoleComponent,
     ContextMenuComponent,
     DynamicTableComponent,
+    ModalComponent
 
   ],
   imports: [

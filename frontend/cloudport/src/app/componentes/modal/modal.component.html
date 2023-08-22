@@ -1,0 +1,23 @@
+<!-- modal.component.html -->
+
+<!--
+<div *ngIf="showPopup" class="modal">
+    <div [ngSwitch]="entityType">
+      <app-role-form *ngSwitchCase="'role'" (close)="closePopup()"></app-role-form>
+      <app-user-form *ngSwitchCase="'user'" (close)="closePopup()"></app-user-form>
+
+    </div>
+  </div>
+-->
+
+  <div *ngIf="showPopup" class="modal">
+    <div class="popup-content">
+      <span class="close" (click)="closePopup()">&times;</span>
+      <h2>Cadastrar ou Editar Role</h2>
+      <!-- Adicione aqui os campos de formulário para cadastrar ou editar uma role -->
+      <button >Salvar</button>
+    </div>
+  </div>
+
+
+

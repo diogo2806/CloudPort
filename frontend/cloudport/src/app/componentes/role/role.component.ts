@@ -11,7 +11,8 @@ import { ChangeDetectorRef } from '@angular/core';
 import { TabService } from '../navbar/TabService';
 import { Renderer2 } from '@angular/core';
 import { AfterViewInit } from '@angular/core';
-
+import { PopupService } from '../service/popupService';
+import { ModalComponent } from '../modal/modal.component';
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   const originalMethod = descriptor.value;
@@ -34,26 +35,42 @@ export class RoleComponent implements OnInit, AfterViewInit {
 
   // Nome do papel
   roleName: string = "";
+  showPopup = false;
 
   // Lista dos papeis
   roles: any[] = [];
   selectedTab: string = 'defaultTab'; // ou qualquer valor padrão que faça sentido para o seu caso
+  @ViewChild(ModalComponent) modal!: ModalComponent; // Referência ao ModalComponent
 
 
   constructor(
     private http: HttpClient, 
     private authenticationService: AuthenticationService,
     private tabService: TabService,
-    private renderer: Renderer2
-  ) { }
+    private renderer: Renderer2,
+    private popupService: PopupService
+  ) { 
+
+   
+
+  }
 
 
   private boundHandleTableContextMenu: any;
-  showPopup = false;
+
 
 
   @ViewChild('gridHoleTable', { static: false }) gridTable: any;
 
+
+  openPopup() {
+    this.showPopup = true;
+  }
+  
+  closePopup() {
+    this.showPopup = false;
+  }
+  
 
   // Método executado quando o componente é inicializado
   @logMethod
@@ -357,18 +374,7 @@ closeContextMenu(event: MouseEvent) {
  
     }
 
-    openPopup() {
-      this.showPopup = true;
-    }
-  
-    closePopup() {
-      this.showPopup = false;
-    }
-  
-    saveRole() {
-      // Adicione aqui o código para salvar ou editar a role
-      this.closePopup();
-    }
+    
 
 
     

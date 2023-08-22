@@ -5,7 +5,7 @@ import { AfterViewInit } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { ColDef, GridApi, GridOptions, GridReadyEvent, IDateFilterParams, IMultiFilterParams, ISetFilterParams } from 'ag-grid-community';
 import { TabStateService } from './tab-state.service';
-
+import { PopupService } from '../service/popupService';
 
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
@@ -49,6 +49,7 @@ export class DynamicTableComponent implements OnInit, AfterViewInit {
   @ViewChild('gridTable') gridTable!: ElementRef;
   @Output() gridReady = new EventEmitter<void>();
 
+  @Output() createRole = new EventEmitter<void>();
 
   filteredData: any[] = [];
   filters: { [key: string]: string } = {};
@@ -58,7 +59,12 @@ export class DynamicTableComponent implements OnInit, AfterViewInit {
   dragging: boolean = false;
 
   tabela: boolean = false;
-  constructor(private tabStateService: TabStateService) {}
+  constructor(
+    private tabStateService: TabStateService,
+    private popupService: PopupService
+  ) {}
+
+  
 
 
   ngOnInit(): void {
@@ -376,4 +382,21 @@ onBtExport() {
       this.selectedRoleIds.push(row['Role ID']);
     }
   }
+
+  
+  showModal = false;
+
+  @logMethod
+  createEntity(entityType: string) {
+    if (entityType === 'role') {
+      this.popupService.openPopup('role'); // Abre o modal
+    }
+  }
+
+  @logMethod
+  closePopup() {
+    this.showModal = false; // Fecha o modal
+  }
+
+  
 }

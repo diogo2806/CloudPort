@@ -5,7 +5,7 @@
 >
   <div class="btn-group" role="group" aria-label="Basic example">
     <img class="icon" src="../../../assets/images/excel-4954.svg" alt="Excel" width="20" height="20" (click)="onBtExport()"/>
-    <img class="icon" src="../../../assets/icons/plus-circle.svg" alt="Excel" width="20" height="20"/>
+    <img class="icon" src="../../../assets/icons/plus-circle.svg" alt="Excel" width="20" height="20" (click)="createEntity('role')"/>
     <img class="icon" src="../../../assets/icons/edit.svg" alt="Excel" width="20" height="20"/>
     <img class="icon" src="../../../assets/icons/minus-circle.svg" alt="Excel" width="20" height="20"/>
   </div>
@@ -33,3 +33,6 @@
     >
   </ag-grid-angular>
 <div class="grid-container"></div>
+
+
+<app-modal [show]="showPopup" (close)="closePopup()"></app-modal>

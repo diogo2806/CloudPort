@@ -1,4 +1,6 @@
 
+/*
+
 .container {
   max-width: 960px;
   margin-top: 3em;
@@ -32,18 +34,131 @@
 }
 
 .title-banner h1 {
-  color: #ffffff;  /* Muda a cor para branco */
+  color: #ffffff;  
   font-size: 3em;
   font-weight: bold;
-  letter-spacing: 2px;  /* Adiciona um espaçamento entre as letras */
-  text-shadow: 3px 3px 6px rgba(0, 0, 0, 2);  /* Aumenta a sombra do texto para uma melhor legibilidade */
+  letter-spacing: 2px;  
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 2);  
   margin-bottom: 0.3em;
-  line-height: 1.2;  /* Ajusta o espaçamento entre as linhas se o título tiver mais de uma linha */
+  line-height: 1.2; 
 }
 
 .logo {
-  border-radius: 50%;  /* Para tornar a imagem perfeitamente redonda */
+  border-radius: 50%; 
   width: 100px;
   height: 100px;
-  margin-bottom: 20px;  /* Adiciona um pouco de espaço entre o logo e o título */
+  margin-bottom: 20px;  
+}
+
+*/
+
+.container {
+  max-width: 960px;
+  margin-top: 3em;
+}
+
+.bg-white {
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  padding: 2em;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.invalid-feedback {
+  color: red;
+}
+
+.alert {
+  margin-top: 15px;
+}
+
+.title-banner p {
+  color: #303030;
+  font-size: 1.4em;
+  text-shadow: 1px 1px 2px rgba(0,0,0,2);
+}
+
+.title-banner h1 {
+  color: #ffffff;
+  font-size: 3em;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 2);
+  margin-bottom: 0.3em;
+  line-height: 1.2;
+}
+
+.logo {
+  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 20px;
+}
+
+
+
+.box 
+{
+	position: relative;
+	width: 380px;
+	height: 420px;
+	background: #1c1c1c;
+	border-radius: 8px;
+	overflow: hidden;
+}
+.box::before 
+{
+	content: '';
+	z-index: 1;
+	position: absolute;
+	top: -50%;
+	left: -50%;
+	width: 380px;
+	height: 420px;
+	transform-origin: bottom right;
+	background: linear-gradient(0deg,transparent,#2b5aa7,#2b5aa7);
+	animation: animate 6s linear infinite;
+}
+.box::after 
+{
+	content: '';
+	z-index: 1;
+	position: absolute;
+	top: -50%;
+	left: -50%;
+	width: 380px;
+	height: 420px;
+	transform-origin: bottom right;
+	background: linear-gradient(0deg,transparent,#1a95d9,#1a95d9);
+  /* 	background: linear-gradient(0deg,transparent,#45f3ff,#45f3ff); */
+	animation: animate 6s linear infinite;
+	animation-delay: -3s;
+}
+@keyframes animate 
+{
+	0%
+	{
+		transform: rotate(0deg);
+	}
+	100%
+	{
+		transform: rotate(360deg);
+	}
+}
+form 
+{
+	position: absolute;
+	inset: 2px;
+	background: #ffffff;
+	padding: 50px 40px;
+	border-radius: 8px;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
 }

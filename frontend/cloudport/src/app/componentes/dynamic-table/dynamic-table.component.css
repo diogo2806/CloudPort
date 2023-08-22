@@ -113,3 +113,29 @@
   .ag-layout-auto-height {
     height: 100%;
 }
+
+
+
+
+.icon {
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    transition: all 0.3s ease; /* Transição suave para todas as mudanças */
+  }
+  
+  .icon:hover {
+    transform: scale(1.4); /* Aumenta o tamanho em 20% ao passar o mouse */
+  }
+  
+  .icon:active {
+    animation: clickAnimation 0.3s; /* Animação ao clicar */
+  }
+  
+  @keyframes clickAnimation {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.9); } /* Reduz o tamanho em 10% no meio da animação */
+    100% { transform: scale(1); } /* Volta ao tamanho original */
+  }
+  

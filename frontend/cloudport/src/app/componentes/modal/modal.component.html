@@ -1,10 +1,5 @@
 <div *ngIf="showPopup" class="modal">
-  <div class="popup-content">
-    <span class="close" (click)="closePopup()">&times;</span> <br>
-    <h2>Cadastrar ou Editar Role</h2>
-    <!-- Adicione aqui os campos de formulário para cadastrar ou editar uma role -->
-    <div class="save-button-container">
-      <button class="btn btn-primary">Salvar</button>
-    </div>
+  <div class="popup-content box">
+    <app-role-cadastro></app-role-cadastro> 
   </div>
 </div>

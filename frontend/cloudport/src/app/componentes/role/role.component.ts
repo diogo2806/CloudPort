@@ -362,7 +362,6 @@ closeContextMenu(event: MouseEvent) {
           }
           break;
       }
-      
       this.contextMenu.isOpen = false;
     }
 
@@ -371,7 +370,6 @@ closeContextMenu(event: MouseEvent) {
     ngOnDestroy() {
       document.removeEventListener('click', this.closeContextMenu.bind(this));
       document.removeEventListener('contextmenu', this.boundHandleTableContextMenu);
- 
     }
 
     

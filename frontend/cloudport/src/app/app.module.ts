@@ -19,6 +19,7 @@ import { AgGridModule } from 'ag-grid-angular';
 import { CustomReuseStrategy } from './componentes/tab-content/customreusestrategy';
 import { RouteReuseStrategy } from '@angular/router';
 import { ModalComponent } from './componentes/modal/modal.component';
+import { RoleCadastroComponent } from './componentes/role-cadastro/role-cadastro.component';
 
 
 
@@ -33,7 +34,8 @@ import { ModalComponent } from './componentes/modal/modal.component';
     RoleComponent,
     ContextMenuComponent,
     DynamicTableComponent,
-    ModalComponent
+    ModalComponent,
+    RoleCadastroComponent
 
   ],
   imports: [

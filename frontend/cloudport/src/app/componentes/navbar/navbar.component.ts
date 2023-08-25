@@ -3,6 +3,17 @@ import { AuthenticationService } from '../service/servico-autenticacao/authentic
 import { Router, ActivatedRoute } from '@angular/router';
 import { TabService } from './TabService';
 
+function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
+  const originalMethod = descriptor.value;
+  descriptor.value = function (...args: any[]) {
+    console.log(`Classe ${target.constructor.name}: Método ${key} chamado.`);
+    return originalMethod.apply(this, args);
+  };
+  return descriptor;
+}
+
+
+
 @Component({
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
@@ -20,6 +31,7 @@ export class NavbarComponent {
     console.log("Classe NavbarComponent: Método construtor chamado.");
   }
 
+  @logMethod
   ngOnInit(): void {
       console.log("Classe NavbarComponent: Método ngOnInit iniciado.");
       this.authenticationService.currentMenuStatus.subscribe(
@@ -29,18 +41,21 @@ export class NavbarComponent {
       this.mostrarMenu = true;
       console.log("Classe NavbarComponent: Método ngOnInit finalizado.");
   }
-// ... (resto do código)
-openTab(tabName: string) {
 
-  let content = { message: `Conteúdo padrão para a aba ${tabName}` };
-  this.tabService.openTab(tabName);
-  this.router.navigate(['/home', tabName.toLowerCase()]);
-  content = this.tabService.getTabContent(tabName);
-  this.tabService.openTab(tabName, content);
-}
+  // ... (resto do código)
+  @logMethod
+  openTab(tabName: string) {
+
+    let content = { message: `Conteúdo padrão para a aba ${tabName}` };
+    this.tabService.openTab(tabName);
+    this.router.navigate(['/home', tabName.toLowerCase()]);
+    content = this.tabService.getTabContent(tabName);
+    this.tabService.openTab(tabName, content);
+
+  }
 
 
-
+  @logMethod
   toggleSubmenu(event: Event) {
     console.log("Classe NavbarComponent: Método toggleSubmenu chamado.");
     event.preventDefault();
@@ -58,6 +73,7 @@ openTab(tabName: string) {
     }
   }
   
+  @logMethod
   @HostListener('document:click', ['$event'])
   clickout(event: MouseEvent) {
     //console.log("Classe NavbarComponent: Método clickout chamado.");

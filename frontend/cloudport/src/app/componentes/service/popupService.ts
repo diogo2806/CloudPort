@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
 
-
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   const originalMethod = descriptor.value;
   descriptor.value = function (...args: any[]) {
@@ -20,11 +19,21 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   export class PopupService {
     private showPopupSource = new BehaviorSubject<{type: string, show: boolean}>({type: '', show: false});
     showPopup$ = this.showPopupSource.asObservable();
-    
+
+
+    @logMethod
+openPopup(type: string) {
+  const newValue = {type, show: true};
+  console.log('Atualizando showPopupSource com:', newValue); // Adicione este log
+  this.showPopupSource.next(newValue);
+}
+
+/*
     @logMethod
     openPopup(type: string) {
       this.showPopupSource.next({type, show: true});
     }
+    */
   
     @logMethod
     closePopup() {

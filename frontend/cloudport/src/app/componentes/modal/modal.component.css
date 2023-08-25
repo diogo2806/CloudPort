@@ -1,0 +1,36 @@
+/* modal.component.css */
+.modal {
+    position: fixed; /* Posiciona o modal em relação à janela */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Fundo semi-transparente */
+    z-index: 1000; /* Índice de empilhamento alto para sobrepor outros elementos */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .popup-content {
+    position: relative;
+    background-color: #fff; /* Fundo branco para o conteúdo do modal */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+    /* Outros estilos para o conteúdo do modal */
+  }
+  
+
+  .close {
+    position: absolute; /* Posiciona o botão em relação ao seu contêiner pai */
+    top: 10px; /* Posiciona o botão 10px a partir do topo do contêiner */
+    right: 10px; /* Posiciona o botão 10px a partir da direita do contêiner */
+    font-size: 24px; /* Define o tamanho da fonte para 24px */
+    cursor: pointer; /* Muda o cursor para um ponteiro quando o mouse estiver sobre o botão */
+    color: #333; /* Cor do texto */
+  }
+
+  .save-button-container {
+    text-align: right; /* Alinha o conteúdo à direita */
+  }

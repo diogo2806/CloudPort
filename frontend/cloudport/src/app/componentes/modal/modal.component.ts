@@ -29,11 +29,15 @@ export class ModalComponent {
   
   constructor(private popupService: PopupService) {
     this.popupService.showPopup$.subscribe(popup => {
+      console.log('Recebido:', popup); // Adicione este log
       this.entityType = popup.type;
       this.showPopup = popup.show;
     });
   }
 
+
+  
+  @logMethod
   closePopup() {
     this.popupService.closePopup();
   }

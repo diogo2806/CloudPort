@@ -1,5 +1,12 @@
+<!-- modal.component.html -->
+
 <div *ngIf="showPopup" class="modal">
-  <div class="popup-content box">
-    <app-role-cadastro></app-role-cadastro> 
+  
+  
+  <div class="popup-content">
+    <div #dynamicComponentContainer></div>
+   
+    <!--<ng-container #dynamicComponentContainer></ng-container>-->
+    <!--<app-role-cadastro></app-role-cadastro> -->
   </div>
 </div>

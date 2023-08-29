@@ -31,7 +31,7 @@ export class NavbarComponent {
     console.log("Classe NavbarComponent: Método construtor chamado.");
   }
 
-  @logMethod
+
   ngOnInit(): void {
       console.log("Classe NavbarComponent: Método ngOnInit iniciado.");
       this.authenticationService.currentMenuStatus.subscribe(
@@ -43,7 +43,7 @@ export class NavbarComponent {
   }
 
   // ... (resto do código)
-  @logMethod
+
   openTab(tabName: string) {
 
     let content = { message: `Conteúdo padrão para a aba ${tabName}` };
@@ -55,7 +55,7 @@ export class NavbarComponent {
   }
 
 
-  @logMethod
+
   toggleSubmenu(event: Event) {
     console.log("Classe NavbarComponent: Método toggleSubmenu chamado.");
     event.preventDefault();
@@ -73,7 +73,7 @@ export class NavbarComponent {
     }
   }
   
-  @logMethod
+
   @HostListener('document:click', ['$event'])
   clickout(event: MouseEvent) {
     //console.log("Classe NavbarComponent: Método clickout chamado.");

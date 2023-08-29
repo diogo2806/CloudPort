@@ -73,7 +73,7 @@ export class RoleComponent implements OnInit, AfterViewInit {
   
 
   // Método executado quando o componente é inicializado
-  @logMethod
+
   ngOnInit() {
     console.log('Classe RoleComponent: Método ngOnInit chamado.');
    
@@ -82,7 +82,6 @@ export class RoleComponent implements OnInit, AfterViewInit {
     
 }
 
-@logMethod
 onGridTableReady() {
   console.log('Classe RoleComponent: Método onGridTableReady chamado.');
   const tableElement = this.gridTable.nativeElement; // Referência direta ao elemento da tabela ag-Grid
@@ -101,7 +100,6 @@ onGridTableReady() {
 
 
 
-@logMethod
 ngAfterViewInit() {
   console.log('Classe RoleComponent: Método ngAfterViewInit chamado.');
    
@@ -132,9 +130,9 @@ handleRoleContextMenu(event: any): void {
 
 
 
-@logMethod
+
 handleRoleRightClick(event: any, contextMenu: ContextMenuComponent) {
-  console.log("Evento recebido:", event);
+  //console.log("Evento recebido:", event);
 
   if (event === null || event.event === undefined) {
     this.contextMenu.isOpen = false; // Feche o menu se o evento for nulo

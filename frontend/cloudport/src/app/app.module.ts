@@ -35,7 +35,8 @@ import { RoleCadastroComponent } from './componentes/role-cadastro/role-cadastro
     ContextMenuComponent,
     DynamicTableComponent,
     ModalComponent,
-    RoleCadastroComponent
+    RoleCadastroComponent,
+  
 
   ],
   imports: [

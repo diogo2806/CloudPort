@@ -11,16 +11,7 @@
     justify-content: center;
     align-items: center;
   }
-  
-  .popup-content {
-    position: relative;
-    background-color: #fff; /* Fundo branco para o conteúdo do modal */
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
-    /* Outros estilos para o conteúdo do modal */
-  }
-  
+
 
   .close {
     position: absolute; /* Posiciona o botão em relação ao seu contêiner pai */
@@ -34,65 +25,3 @@
   .save-button-container {
     text-align: right; /* Alinha o conteúdo à direita */
   }
-
-  
-
-.box 
-{
-	position: relative;
-	width: 380px;
-	height: 420px;
-	background: #ffffff;
-	border-radius: 8px;
-	overflow: hidden;
-}
-.box::before 
-{
-	content: '';
-	z-index: 1;
-	position: absolute;
-	top: -50%;
-	left: -50%;
-	width: 380px;
-	height: 420px;
-	transform-origin: bottom right;
-	background: linear-gradient(0deg,transparent,#2b5aa7,#2b5aa7);
-	animation: animate 6s linear infinite;
-}
-.box::after 
-{
-	content: '';
-	z-index: 1;
-	position: absolute;
-	top: -50%;
-	left: -50%;
-	width: 380px;
-	height: 420px;
-	transform-origin: bottom right;
-	background: linear-gradient(0deg,transparent,#1a95d9,#1a95d9);
-  /* 	background: linear-gradient(0deg,transparent,#45f3ff,#45f3ff); */
-	animation: animate 6s linear infinite;
-	animation-delay: -3s;
-}
-@keyframes animate 
-{
-	0%
-	{
-		transform: rotate(0deg);
-	}
-	100%
-	{
-		transform: rotate(360deg);
-	}
-}
-form 
-{
-	position: absolute;
-	inset: 2px;
-	background: #ffffff;
-	padding: 50px 40px;
-	border-radius: 8px;
-	z-index: 2;
-	display: flex;
-	flex-direction: column;
-}

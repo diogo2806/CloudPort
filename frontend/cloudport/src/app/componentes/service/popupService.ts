@@ -24,11 +24,11 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
 
 
     @logMethod
-openPopup(type: string) {
-  const newValue = {type, show: true};
-  console.log('Atualizando showPopupSource com:', newValue); // Adicione este log
-  this.showPopupSource.next(newValue);
-}
+  openPopup(type: string) {
+    const newValue = {type, show: true};
+    console.log('Atualizando showPopupSource com:', newValue); // Adicione este log
+    this.showPopupSource.next(newValue);
+  }
 
 /*
     @logMethod

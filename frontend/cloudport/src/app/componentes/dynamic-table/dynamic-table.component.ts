@@ -101,7 +101,7 @@ export class DynamicTableComponent implements OnInit, AfterViewInit {
     console.log('Classe DynamicTableComponent: : Método ngAfterViewInit finalizado.');
   }
 
-  @logMethod
+
   handleTableContextMenu(event: any): void {
     
     //document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
@@ -150,7 +150,7 @@ console.log("handleTableContextMenu: ", event)
 
   
 
-  @logMethod
+
   ngOnDestroy() {
    // if (this.gridTable && this.gridTable.nativeElement) {
    // document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
@@ -160,7 +160,7 @@ console.log("handleTableContextMenu: ", event)
 
   }
   
-  @logMethod
+
   onCellContextMenu(event: any): void {
 
 
@@ -173,7 +173,7 @@ console.log("handleTableContextMenu: ", event)
     this.rightClick.emit({ event: mouseEvent, row });
   }
 
-  @logMethod
+
   onCellRightClicked(event: any) {
     event.event.preventDefault();
     const mouseEvent = event.event as MouseEvent;
@@ -189,7 +189,7 @@ console.log("handleTableContextMenu: ", event)
 
 
 
-  @logMethod
+
   getContextMenuItems(params: any): any[] {
     return []; // Desativa o menu de contexto
   }
@@ -212,7 +212,7 @@ console.log("handleTableContextMenu: ", event)
 //}
 
 
-  @logMethod
+
   closeContextMenu(event: MouseEvent): void {
     // Verifique se o clique foi fora do menu de contexto e feche-o
     // Você pode adicionar lógica adicional aqui para determinar quando fechar o menu
@@ -221,7 +221,7 @@ console.log("handleTableContextMenu: ", event)
   
 
   
-  @logMethod
+
   onGridReady(params: any) {
     this.gridApi = params.api;
    // this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
@@ -232,7 +232,7 @@ console.log("handleTableContextMenu: ", event)
 
 
 
-@logMethod
+
 onBtExport() {
   try {
     // Obter os nós da linha após a filtragem
@@ -260,7 +260,7 @@ onBtExport() {
 
 
 
-  @logMethod
+
   onCellClicked(event: any) {
     if (!event.node.isSelected()) {
      // event.node.setSelected(true);
@@ -299,7 +299,7 @@ onBtExport() {
 
     */
 
-  @logMethod
+
   onCellDoubleClicked(event: any) {
     console.log('DynamicTableComponent onCellDoubleClicked: Célula clicada com o botão direito:', event);
   }
@@ -313,7 +313,7 @@ onBtExport() {
 
   }
 */
-  @logMethod
+  
   onRowClicked(event: any) {
     console.log('onRowClicked: ', event);
     //this.rightClick.emit({event});
@@ -336,7 +336,7 @@ onBtExport() {
     return this._data;
   }
   
-  @logMethod
+
   onRowMouseDown(event: MouseEvent, row: any) {
     if (event.button !== 0) return;
     event.preventDefault();
@@ -346,7 +346,7 @@ onBtExport() {
     console.log('onRowMouseDown: ', event);
   }
 
-  @logMethod
+
   onRowMouseUp(event: MouseEvent) {
     if (event.button !== 0) return;
     this.dragging = false;

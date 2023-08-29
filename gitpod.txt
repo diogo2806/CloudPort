@@ -1,0 +1,24 @@
+cd frontend/cloudport
+rm -rf node_modules package-lock.json
+nvm install node
+nvm use node
+npm install -g @angular/cli
+npm install -g npm 
+npm install @angular/core
+npm install --save ag-grid-community
+npm install --save ag-grid-angular
+npm install --save ngx-mask
+npm i ngx-mask@13.1.13
+npm install xlsx
+npm install --save-dev @angular-devkit/build-angular
+npm install @angular/material
+npm install --save @ag-grid-community/core
+npm install
+ng serve
+
+
+createdb servico_autenticacao
+
+cd backend/servico-autenticacao/
+mvn spring-boot:run
+

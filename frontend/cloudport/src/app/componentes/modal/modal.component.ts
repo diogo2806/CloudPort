@@ -1,7 +1,9 @@
-import { Component, Input, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef, AfterViewInit } from '@angular/core';
+import { Component, Input, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef, AfterViewInit, OnInit, Type, Injector } from '@angular/core';
 import { PopupService } from '../service/popupService';
 import { RoleCadastroComponent } from '../role-cadastro/role-cadastro.component'; // Importe todos os componentes que você pode querer carregar dinamicamente
 import { ChangeDetectorRef } from '@angular/core';
+import { Renderer2, ElementRef } from '@angular/core';
+
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   const originalMethod = descriptor.value;
@@ -13,16 +15,20 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
 }
 
 
-
+const componentMapping = {
+  'role': RoleCadastroComponent,
+  // Adicione outros mapeamentos aqui
+};
 @Component({
   selector: 'app-modal',
   templateUrl: './modal.component.html',
   styleUrls: ['./modal.component.css']
 })
-export class ModalComponent implements AfterViewInit  {
+export class ModalComponent implements AfterViewInit {
 
   @ViewChild('dynamicComponentContainer', { read: ViewContainerRef }) container!: ViewContainerRef;
   private componentRef: ComponentRef<any> | null = null;
+
   @Input() arg:any;  //<--you pass as arg any object
 
 
@@ -30,16 +36,8 @@ export class ModalComponent implements AfterViewInit  {
   entityType = '';
   @Input() show: boolean = false; // Certifique-se de que 'show' é uma entrada
 
-  /*
-  constructor(private componentFactoryResolver: ComponentFactoryResolver, private popupService: PopupService, private cdRef: ChangeDetectorRef) {
-    this.popupService.showPopup$.subscribe(popup => {
-      console.log('Recebido:', popup); // Adicione este log
-      this.entityType = popup.type;
-      this.showPopup = popup.show;
-      this.loadComponent(popup.type);
-    });
-  }
-  */
+
+
   constructor(private viewContainerRef: ViewContainerRef, private componentFactoryResolver: ComponentFactoryResolver, private popupService: PopupService, private cdRef: ChangeDetectorRef) {
     // Removido a subscrição aqui
   }
@@ -50,45 +48,35 @@ export class ModalComponent implements AfterViewInit  {
       console.log('Recebido:', popup);
       this.entityType = popup.type;
       this.showPopup = popup.show;
-
-      if (this.showPopup) {
-        const component = this.componentFactoryResolver.resolveComponentFactory(RoleCadastroComponent);
-        const componentRef = this.container.createComponent(component);
-        
-        // Usando asserção de tipo para evitar erro de compilação
-        Object.keys(this.arg).forEach(x => {
-          (componentRef.instance as any)[x] = this.arg[x];
-        });
-      }
-      this.cdRef.detectChanges();
-      console.log('fim ngAfterViewInit:');
+      this.loadComponent(popup.type);
     });
   }
 
   @logMethod
-loadComponent(type: string) {
+loadComponent(componentTypeString: string) {
   if (this.componentRef) {
     this.componentRef.destroy();
     this.componentRef = null;
   }
 
-  let component: any;
-  if (type === 'role') {
-    component = RoleCadastroComponent;
+  const componentType = componentMapping[componentTypeString as keyof typeof componentMapping];
+
+  if (!componentType) {
+    console.error(`Componente não encontrado para o tipo: ${componentTypeString}`);
+    return;
   }
 
 
-
-  console.log('this.container: '+this.container);
-
-  if (this.container) {
-    const componentFactory = this.componentFactoryResolver.resolveComponentFactory(RoleCadastroComponent);
-    this.componentRef = this.container.createComponent(componentFactory);
-    console.log('componentRef: '  + this.componentRef);
-  } else {
-    console.error('this.container é undefined');
-  }
+  console.log('componentTypeString: '+componentTypeString);
+  
+  const injector = Injector.create({providers: [], parent: this.viewContainerRef.injector});
+  
+  // Correção aqui: passar componentType como primeiro argumento e o objeto de opções como segundo argumento
+  this.componentRef = this.viewContainerRef.createComponent(componentType, {
+    injector: injector
+  });
 }
+
 
 
 

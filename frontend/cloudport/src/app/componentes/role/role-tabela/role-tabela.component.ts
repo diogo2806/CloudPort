@@ -1,18 +1,18 @@
 /* role.component.ts */
 import { Component, OnInit, ViewChild  } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { environment } from '../service/endpoint';
-import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
+import { environment } from '../../service/endpoint';
+import { AuthenticationService } from '../../service/servico-autenticacao/authentication.service';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 //import * as XLSX from 'xlsx';
-import { ContextMenuComponent } from '../context-menu/context-menu.component';
+import { ContextMenuComponent } from '../../context-menu/context-menu.component';
 import { ChangeDetectorRef } from '@angular/core';
-import { TabService } from '../navbar/TabService';
+import { TabService } from '../../navbar/TabService';
 import { Renderer2 } from '@angular/core';
 import { AfterViewInit } from '@angular/core';
-import { PopupService } from '../service/popupService';
-import { ModalComponent } from '../modal/modal.component';
+import { PopupService } from '../../service/popupService';
+import { ModalComponent } from '../../modal/modal.component';
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   const originalMethod = descriptor.value;
@@ -27,11 +27,11 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
 
 
 @Component({
-  selector: 'app-role',
-  templateUrl: './role.component.html',
-  styleUrls: ['./role.component.css']
+  selector: 'app-role-tabela',
+  templateUrl: './role-tabela.component.html',
+  styleUrls: ['./role-tabela.component.css']
 })
-export class RoleComponent implements OnInit, AfterViewInit {
+export class RoleTabelaComponent  implements OnInit, AfterViewInit {
 
   // Nome do papel
   roleName: string = "";

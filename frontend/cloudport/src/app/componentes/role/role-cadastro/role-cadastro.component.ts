@@ -1,6 +1,6 @@
 /* role-cadastro.component.ts */
 import { Component, Input, AfterViewInit  } from '@angular/core';
-import { PopupService } from '../service/popupService';
+import { PopupService } from '../../service/popupService';
 
 @Component({
   selector: 'app-role-cadastro',

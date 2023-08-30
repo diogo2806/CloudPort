@@ -1,6 +1,6 @@
 import { Component, Input, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef, AfterViewInit, OnInit, Type, Injector } from '@angular/core';
 import { PopupService } from '../service/popupService';
-import { RoleCadastroComponent } from '../role-cadastro/role-cadastro.component'; // Importe todos os componentes que você pode querer carregar dinamicamente
+import { RoleCadastroComponent } from '../role/role-cadastro/role-cadastro.component'; // Importe todos os componentes que você pode querer carregar dinamicamente
 import { ChangeDetectorRef } from '@angular/core';
 import { Renderer2, ElementRef } from '@angular/core';
 

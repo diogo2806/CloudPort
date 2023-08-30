@@ -12,14 +12,14 @@ import { HomeComponent } from './componentes/home/home.component';
 import { HeaderComponent } from './componentes/header/header.component';
 import { FooterComponent } from './componentes/footer/footer.component';
 import { NavbarComponent } from './componentes/navbar/navbar.component';
-import { RoleComponent } from './componentes/role/role.component';
+import { RoleTabelaComponent } from './componentes/role/role-tabela/role-tabela.component';
 import { ContextMenuComponent } from './componentes/context-menu/context-menu.component';
 import { DynamicTableComponent } from './componentes/dynamic-table/dynamic-table.component';
 import { AgGridModule } from 'ag-grid-angular';
 import { CustomReuseStrategy } from './componentes/tab-content/customreusestrategy';
 import { RouteReuseStrategy } from '@angular/router';
 import { ModalComponent } from './componentes/modal/modal.component';
-import { RoleCadastroComponent } from './componentes/role-cadastro/role-cadastro.component';
+import { RoleCadastroComponent } from './componentes/role/role-cadastro/role-cadastro.component';
 
 
 
@@ -31,7 +31,7 @@ import { RoleCadastroComponent } from './componentes/role-cadastro/role-cadastro
     HeaderComponent,
     FooterComponent,
     NavbarComponent,
-    RoleComponent,
+    RoleTabelaComponent,
     ContextMenuComponent,
     DynamicTableComponent,
     ModalComponent,

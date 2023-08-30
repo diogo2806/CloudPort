@@ -1,6 +1,7 @@
 /* role-cadastro.component.ts */
 import { Component, Input, AfterViewInit  } from '@angular/core';
 import { PopupService } from '../../service/popupService';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-role-cadastro',
@@ -8,13 +9,16 @@ import { PopupService } from '../../service/popupService';
   styleUrls: ['./role-cadastro.component.css']
 })
 export class RoleCadastroComponent {
+  form: FormGroup = this.formBuilder.group({}); // Initialized here
 
   roleName: string = ''; // Propriedade para armazenar o Role Name
   showPopup = true;
   entityType = '';
   @Input() show: boolean = true; // Certifique-se de que 'show' é uma entrada
   
-  constructor(private popupService: PopupService) {
+  constructor(
+    private formBuilder: FormBuilder,
+    private popupService: PopupService) {
     this.popupService.showPopup$.subscribe(popup => {
       console.log('Recebido:', popup); // Adicione este log
       this.entityType = popup.type;
@@ -35,5 +39,6 @@ export class RoleCadastroComponent {
     this.popupService.closePopup();
   }
 
+  onSubmit() {}
 
 }

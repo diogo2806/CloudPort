@@ -1,17 +1,20 @@
 <!-- role-cadastro.component.html -->
 <div class="popup-content box">
-<form>
-  
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <span class="close" (click)="closePopup()">&times;</span> <br>
     <h2>Cadastrar ou Editar Role</h2>
-    <label for="roleName">Role Name:</label>
-    <input type="text" id="roleName" name="roleName" class="form-control" > 
-    <!-- Campo de entrada para o Role Name -->
+    <div class="form-group">
+      <label for="roleName">Role Name:</label>
+      <input type="text" id="roleName" formControlName="roleName" class="form-control">
+    </div>
+    <div class="form-group">
+      <label for="roleDescricao">Descrição:</label>
+      <input type="text" id="roleDescricao" name="roleDescricao" class="form-control">
+    </div>
     <br>
     <br>
     <div class="save-button-container">
-      <button class="btn btn-primary">Salvar</button> 
-      <!-- Botão para salvar o Role -->
+      <button class="btn btn-primary">Salvar</button>
     </div>
   </form>
 </div>

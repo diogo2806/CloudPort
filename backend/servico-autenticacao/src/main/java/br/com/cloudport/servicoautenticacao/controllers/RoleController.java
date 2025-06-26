@@ -1,8 +1,8 @@
-package br.com.cloudport.servicoautenticacao.controller;
+package br.com.cloudport.servicoautenticacao.controllers;
 
 import br.com.cloudport.servicoautenticacao.model.Role;
 import br.com.cloudport.servicoautenticacao.dto.RoleDTO;
-import br.com.cloudport.servicoautenticacao.service.RoleService;
+import br.com.cloudport.servicoautenticacao.services.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

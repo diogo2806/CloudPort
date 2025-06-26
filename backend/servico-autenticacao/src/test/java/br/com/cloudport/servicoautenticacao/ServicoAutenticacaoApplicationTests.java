@@ -28,4 +28,10 @@ class ServicoAutenticacaoApplicationTests {
         assertEquals(user.getLogin(), tokenService.validateToken(token));
     }
 
+    @Test
+    void invalidTokenReturnsEmpty() {
+        String invalidToken = "invalid";
+        assertEquals("", tokenService.validateToken(invalidToken));
+    }
+
 }

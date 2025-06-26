@@ -15,7 +15,7 @@ O projeto depende das seguintes bibliotecas e ferramentas:
 - **Spring Security**: Fornece recursos de segurança robustos, incluindo autenticação e autorização.
 - **PostgreSQL Driver**: Permite a conexão com PostgreSQL, um sistema de banco de dados objeto-relacional.
 - **Spring Boot DevTools**: Oferece recursos de desenvolvimento úteis, como atualização automática.
-- **Lombok**: Uma biblioteca que ajuda a reduzir o código boilerplate em Kotlin.
+- **Lombok**: Uma biblioteca que ajuda a reduzir o código boilerplate em Java.
 - **Spring Boot Validation**: Fornece suporte para validação de dados.
 - **Flyway Migration**: Uma ferramenta para migração de base de dados.
 - **Spring Security OAuth2 Client**: Facilita a criação de aplicações que são clientes de provedores OAuth 2.0.

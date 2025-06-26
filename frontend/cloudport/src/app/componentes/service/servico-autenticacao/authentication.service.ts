@@ -4,7 +4,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { User } from '../../model/user.model';
-import { environment } from '../endpoint';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthenticationService {
@@ -24,7 +24,8 @@ export class AuthenticationService {
     }
 
     login(login: string, password: string) {
-        return this.http.post<any>(environment.auth.login, { login, password })
+        const url = `${environment.baseApiUrl}/auth/login`;
+        return this.http.post<any>(url, { login, password })
             .pipe(map(user => {
                 // store user details and jwt token in local storage to keep user logged in between page refreshes
                 localStorage.setItem('currentUser', JSON.stringify(user));

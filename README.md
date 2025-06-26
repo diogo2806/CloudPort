@@ -36,3 +36,12 @@ O projeto depende das seguintes bibliotecas e ferramentas:
 
 Contribuições são sempre bem-vindas. Se você deseja contribuir, por favor, abra uma issue primeiro para discutir o que você gostaria de mudar.
 
+
+## Serviço de Gestão de Pátio
+
+O microserviço **servico-yard** é um exemplo simples de gestão de contêineres no pátio. Ele expõe duas rotas REST:
+
+- `GET /yard/containers` &ndash; lista os contêineres registrados.
+- `POST /yard/containers` &ndash; adiciona um novo contêiner.
+
+Para executá-lo, navegue até `backend/servico-yard` e rode `mvn spring-boot:run`. O serviço inicia na porta `8081`.

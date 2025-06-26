@@ -1,4 +1,6 @@
-const baseLink = 'https://8080-diogo2806-cloudport-z3o7260rnlo.ws-us104.gitpod.io';
+import { environment as env } from '../../../environments/environment';
+
+const baseLink = env.baseApiUrl;
 
 export const environment = {
     auth: {

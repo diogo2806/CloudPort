@@ -1,7 +1,7 @@
 /* role.component.ts */
 import { Component, OnInit, ViewChild  } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { environment } from '../../service/endpoint';
+import { environment } from '../../../../environments/environment';
 import { AuthenticationService } from '../../service/servico-autenticacao/authentication.service';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
@@ -215,7 +215,8 @@ closeContextMenu(event: MouseEvent) {
       })
     };
 
-    this.http.get<any[]>(`${environment.role.getAll}`, httpOptions)
+    const url = `${environment.baseApiUrl}/api/roles`;
+    this.http.get<any[]>(url, httpOptions)
       .pipe(catchError((error: any) => {
         window.alert(error.message); // Aqui o popup é criado
         return throwError(error);
@@ -249,7 +250,8 @@ closeContextMenu(event: MouseEvent) {
     // Aplica trim(), toUpperCase() e substitui espaços por sublinhados
     const roleName = this.roleName.trim().toUpperCase().replace(' ', '_');
 
-    this.http.post(`${environment.role.create}`, { name: roleName }, httpOptions)
+    const createUrl = `${environment.baseApiUrl}/api/roles`;
+    this.http.post(createUrl, { name: roleName }, httpOptions)
         .pipe(catchError((error: any) => {
             window.alert(error.message); // Aqui o popup é criado
             return throwError(error);
@@ -275,7 +277,8 @@ closeContextMenu(event: MouseEvent) {
     // Aplica trim(), toUpperCase() e substitui espaços por sublinhados roleName
     const roleName = this.roleName.trim().toUpperCase().replace(' ', '_');
 
-    this.http.put(`${environment.role.update(roleId)}`, { name: roleName}, httpOptions)
+    const updateUrl = `${environment.baseApiUrl}/api/roles/${roleId}`;
+    this.http.put(updateUrl, { name: roleName}, httpOptions)
         .pipe(catchError((error: any) => {
             window.alert(error.message); // Aqui o popup é criado
             return throwError(error);
@@ -298,7 +301,8 @@ closeContextMenu(event: MouseEvent) {
         })
     };
 
-    this.http.delete(`${environment.role.delete(roleId)}`, httpOptions)
+    const deleteUrl = `${environment.baseApiUrl}/api/roles/${roleId}`;
+    this.http.delete(deleteUrl, httpOptions)
       .pipe(catchError((error: any) => {
           if (error.status === 409) {
               window.alert('Não é possível deletar o Role pois ele ainda está sendo referenciado por um User.'); 

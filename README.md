@@ -15,14 +15,14 @@ O projeto depende das seguintes bibliotecas e ferramentas:
 - **Spring Security**: Fornece recursos de segurança robustos, incluindo autenticação e autorização.
 - **PostgreSQL Driver**: Permite a conexão com PostgreSQL, um sistema de banco de dados objeto-relacional.
 - **Spring Boot DevTools**: Oferece recursos de desenvolvimento úteis, como atualização automática.
-- **Lombok**: Uma biblioteca que ajuda a reduzir o código boilerplate em Kotlin.
+- **Lombok**: Uma biblioteca que ajuda a reduzir o código boilerplate em Java.
 - **Spring Boot Validation**: Fornece suporte para validação de dados.
 - **Flyway Migration**: Uma ferramenta para migração de base de dados.
 - **Spring Security OAuth2 Client**: Facilita a criação de aplicações que são clientes de provedores OAuth 2.0.
 - **Spring Security OAuth2 Resource Server**: Facilita a criação de aplicações que são servidores de recursos OAuth 2.0.
 - **UUID como identificador de usuário**: O serviço de autenticação utiliza UUIDs para identificar usuários de forma única.
 
-- **Dowload para iniciar o microsserviço**:
+- **Download para iniciar o microsserviço**:
 [Link para o Spring Initializr](https://start.spring.io/#!type=maven-project&language=java&platformVersion=3.1.1&packaging=jar&jvmVersion=11&groupId=br.com.cloudport&artifactId=servico-autenticacao&name=servico-autenticacao&description=Servi%C3%A7o%20respons%C3%A1vel%20pela%20autentica%C3%A7%C3%A3o%20e%20autoriza%C3%A7%C3%A3o%20de%20usu%C3%A1rios%20na%20aplica%C3%A7%C3%A3o%20CloudPort.&packageName=br.com.cloudport.servico-autenticacao&dependencies=web,data-jpa,security,postgresql,devtools,lombok,validation,flyway,oauth2-client,oauth2-resource-server)
 
 ### Como Rodar o Projeto
@@ -37,3 +37,12 @@ O projeto depende das seguintes bibliotecas e ferramentas:
 
 Contribuições são sempre bem-vindas. Se você deseja contribuir, por favor, abra uma issue primeiro para discutir o que você gostaria de mudar.
 
+
+## Serviço de Gestão de Pátio
+
+O microserviço **servico-yard** é um exemplo simples de gestão de contêineres no pátio. Ele expõe duas rotas REST:
+
+- `GET /yard/containers` &ndash; lista os contêineres registrados.
+- `POST /yard/containers` &ndash; adiciona um novo contêiner.
+
+Para executá-lo, navegue até `backend/servico-yard` e rode `mvn spring-boot:run`. O serviço inicia na porta `8081`.

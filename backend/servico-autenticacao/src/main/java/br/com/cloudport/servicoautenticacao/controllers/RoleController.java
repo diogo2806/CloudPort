@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoautenticacao.controller;
+package br.com.cloudport.servicoautenticacao.controllers;
 
 import br.com.cloudport.servicoautenticacao.model.Role;
 import br.com.cloudport.servicoautenticacao.dto.RoleDTO;

@@ -21,6 +21,7 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
 })
 export class NavbarComponent {
   mostrarMenu: boolean = false;
+  private readonly validChildRoutes = new Set(['role']);
 
   constructor(
       private authenticationService: AuthenticationService,
@@ -48,7 +49,7 @@ export class NavbarComponent {
 
     let content = { message: `Conteúdo padrão para a aba ${tabName}` };
     this.tabService.openTab(tabName);
-    this.router.navigate(['/home', tabName.toLowerCase()]);
+    this.router.navigate(['/home', this.resolveChildRoute(tabName)]);
     content = this.tabService.getTabContent(tabName);
     this.tabService.openTab(tabName, content);
 
@@ -81,5 +82,10 @@ export class NavbarComponent {
       const submenus = this.eRef.nativeElement.querySelectorAll('.app-navbar ul li > ul');
       submenus.forEach((submenu: HTMLElement) => submenu.style.display = 'none');
     }
+  }
+
+  private resolveChildRoute(tabName: string): string {
+    const normalizedTab = tabName ? tabName.toLowerCase() : '';
+    return this.validChildRoutes.has(normalizedTab) ? normalizedTab : 'role';
   }
 }

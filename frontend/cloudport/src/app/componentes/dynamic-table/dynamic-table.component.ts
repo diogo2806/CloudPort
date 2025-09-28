@@ -162,26 +162,17 @@ console.log("handleTableContextMenu: ", event)
   
 
   onCellContextMenu(event: any): void {
-
-
-
-  
     const mouseEvent = event.event as MouseEvent;
     mouseEvent.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
+
+    if (mouseEvent.button !== 2) {
+      return; // Ignora se não for o botão direito do mouse
+    }
+
+    mouseEvent.stopPropagation();
+
     const row = event.data; // Acessa os dados da linha clicada
     console.log('DynamicTableComponent onCellContextMenu: Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
-    this.rightClick.emit({ event: mouseEvent, row });
-  }
-
-
-  onCellRightClicked(event: any) {
-    event.event.preventDefault();
-    const mouseEvent = event.event as MouseEvent;
-    const row = event.data; // Acessa os dados da linha clicada
-    mouseEvent.stopPropagation();
-    mouseEvent.preventDefault();
-    if (mouseEvent.button !== 2) return; // Ignora se não for o botão direito do mouse
-    console.log('DynamicTableComponent onCellRightClicked: Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
     this.rightClick.emit({ event: mouseEvent, row });
   }
 

@@ -6,7 +6,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { LoginComponent } from './componentes/login/login.component';
 import { TranslateModule } from '@ngx-translate/core';
-import { HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HomeComponent } from './componentes/home/home.component';
 import { HeaderComponent } from './componentes/header/header.component';
@@ -18,6 +18,7 @@ import { DynamicTableComponent } from './componentes/dynamic-table/dynamic-table
 import { AgGridModule } from 'ag-grid-angular';
 import { CustomReuseStrategy } from './componentes/tab-content/customreusestrategy';
 import { RouteReuseStrategy } from '@angular/router';
+import { JwtInterceptor } from './componentes/service/servico-autenticacao/jwt.interceptor';
 import { ModalComponent } from './componentes/modal/modal.component';
 import { RoleCadastroComponent } from './componentes/role/role-cadastro/role-cadastro.component';
 
@@ -50,7 +51,8 @@ import { RoleCadastroComponent } from './componentes/role/role-cadastro/role-cad
     AgGridModule
   ],
   providers: [
-    { provide: RouteReuseStrategy, useClass: CustomReuseStrategy }
+    { provide: RouteReuseStrategy, useClass: CustomReuseStrategy },
+    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true }
   ],
   bootstrap: [AppComponent]
 })

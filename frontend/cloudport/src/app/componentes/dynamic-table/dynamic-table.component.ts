@@ -214,9 +214,15 @@ console.log("handleTableContextMenu: ", event)
 
 
   closeContextMenu(event: MouseEvent): void {
-    // Verifique se o clique foi fora do menu de contexto e feche-o
-    // Você pode adicionar lógica adicional aqui para determinar quando fechar o menu
-    this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
+    const target = event?.target as Node | null;
+    const clickedInsideGrid = !!(target && this.gridTable?.nativeElement?.contains(target));
+
+    const contextMenuElement = document.querySelector('.context-menu');
+    const clickedInsideMenu = !!(target && contextMenuElement?.contains(target));
+
+    if (!clickedInsideGrid && !clickedInsideMenu) {
+      this.rightClick.emit(null);
+    }
   }
   
 

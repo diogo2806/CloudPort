@@ -19,6 +19,7 @@ export class HomeComponent implements OnInit  {
   filteredData: any[] = [];
   data: { [key: string]: any } = {};
   tabContent: { [key: string]: any } = {};
+  private readonly validChildRoutes = new Set(['role']);
 
   constructor(
     private router: Router,
@@ -40,7 +41,7 @@ export class HomeComponent implements OnInit  {
       this.tabs = tabs;
       if (tabs.length > 0) {
         this.selectedTab = tabs[tabs.length - 1];
-        this.router.navigate(['/home', this.selectedTab.toLowerCase()]);
+        this.router.navigate(['/home', this.resolveChildRoute(this.selectedTab)]);
       }
     });
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
@@ -51,7 +52,7 @@ export class HomeComponent implements OnInit  {
   navigateTo(tabName: string) {
     this.selectedTab = tabName;
     this.tabContent[tabName] = this.tabService.getTabContent(tabName);
-    this.router.navigate(['/home', tabName.toLowerCase()]);
+    this.router.navigate(['/home', this.resolveChildRoute(tabName)]);
   }
 
   
@@ -77,6 +78,12 @@ export class HomeComponent implements OnInit  {
 
   objectKeys(obj: any): string[] {
     return Object.keys(obj);
+  }
+
+
+  private resolveChildRoute(tabName: string): string {
+    const normalizedTab = tabName ? tabName.toLowerCase() : '';
+    return this.validChildRoutes.has(normalizedTab) ? normalizedTab : 'role';
   }
 
 

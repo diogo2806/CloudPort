@@ -7,11 +7,15 @@ import { AuthGuard } from './componentes/service/servico-autenticacao/auth.guard
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
-  { path: 'home', component: HomeComponent, canActivate: [AuthGuard], children: [
-    { path: 'role', component: RoleTabelaComponent },
-    { path: 'home', component: HomeComponent },
-    { path: 'login', component: LoginComponent }, 
-  ]},
+  {
+    path: 'home',
+    component: HomeComponent,
+    canActivate: [AuthGuard],
+    children: [
+      { path: '', redirectTo: 'role', pathMatch: 'full' },
+      { path: 'role', component: RoleTabelaComponent },
+    ]
+  },
   { path: '', redirectTo: 'home', pathMatch: 'full' },
 ];
 

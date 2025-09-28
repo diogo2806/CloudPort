@@ -47,7 +47,7 @@ export class DynamicTableComponent implements OnInit, AfterViewInit {
   @Output() rightClick = new EventEmitter<any>();
   @Input() selectedTab: string = '';
   @ViewChild('gridTable') gridTable!: ElementRef;
-  @Output() gridReady = new EventEmitter<void>();
+  @Output() gridReady = new EventEmitter<GridReadyEvent>();
 
   @Output() createRole = new EventEmitter<void>();
 
@@ -219,11 +219,11 @@ console.log("handleTableContextMenu: ", event)
 
   
 
-  onGridReady(params: any) {
+  onGridReady(params: GridReadyEvent) {
     this.gridApi = params.api;
    // this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-  
-    //this.gridReady.emit();
+
+    this.gridReady.emit(params);
 
 }
 

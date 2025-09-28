@@ -13,6 +13,7 @@ import { Renderer2 } from '@angular/core';
 import { AfterViewInit } from '@angular/core';
 import { PopupService } from '../../service/popupService';
 import { ModalComponent } from '../../modal/modal.component';
+import { GridReadyEvent } from 'ag-grid-community';
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   const originalMethod = descriptor.value;
@@ -82,8 +83,8 @@ export class RoleTabelaComponent  implements OnInit, AfterViewInit {
     
 }
 
-onGridTableReady() {
-  console.log('Classe RoleComponent: Método onGridTableReady chamado.');
+onGridTableReady(event: GridReadyEvent) {
+  console.log('Classe RoleComponent: Método onGridTableReady chamado.', event);
   const tableElement = this.gridTable.nativeElement; // Referência direta ao elemento da tabela ag-Grid
   this.renderer.listen(tableElement, 'contextmenu', (event) => {
     event.preventDefault(); // Previne o menu de contexto padrão

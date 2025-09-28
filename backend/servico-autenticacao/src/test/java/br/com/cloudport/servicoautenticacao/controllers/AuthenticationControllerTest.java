@@ -129,4 +129,18 @@ class AuthenticationControllerTest {
         assertNotNull(savedRole.getUser());
         assertEquals("john", savedRole.getUser().getLogin());
     }
+
+    @Test
+    void register_roleNotFound() throws Exception {
+        when(userRepository.findByLogin("john")).thenReturn(Optional.empty());
+        when(roleRepository.findByName("UNKNOWN")).thenReturn(Optional.empty());
+
+        RegisterDTO dto = new RegisterDTO("john", "pass", Collections.singleton("UNKNOWN"));
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Role UNKNOWN not found"));
+    }
 }

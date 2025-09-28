@@ -235,15 +235,20 @@ console.log("handleTableContextMenu: ", event)
 
 onBtExport() {
   try {
-    // Obter os nós da linha após a filtragem
-    const nodes = this.gridApi.getRenderedNodes();
+    // Obter os dados das linhas filtradas percorrendo todos os nós disponíveis
+    const dados: any[] = [];
+    this.gridApi.forEachNodeAfterFilter((node) => {
+      if (node.data) {
+        dados.push(node.data);
+      }
+    });
 
-    // Extrair os dados de cada nó
-    const dados = nodes.map(node => node.data);
+    // Converter os dados coletados para JSON antes da exportação
+    const jsonData = JSON.parse(JSON.stringify(dados));
 
     // Preparar as colunas para exportação
     const columns = this.columns.map(column => ({ [column]: '' }));
-    const exportData = dados.length ? dados : columns;
+    const exportData = jsonData.length ? jsonData : columns;
 
     // Usar a biblioteca XLSX para exportar os dados
     const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(exportData);

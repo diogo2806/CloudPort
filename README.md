@@ -44,7 +44,22 @@ Contribuições são sempre bem-vindas. Se você deseja contribuir, por favor, a
 
 O microserviço **servico-yard** é um exemplo simples de gestão de contêineres no pátio. Ele expõe duas rotas REST:
 
-- `GET /yard/containers` &ndash; lista os contêineres registrados.
-- `POST /yard/containers` &ndash; adiciona um novo contêiner.
+- `GET /yard/containers` – lista os contêineres registrados.
+- `POST /yard/containers` – adiciona um novo contêiner.
 
 Para executá-lo, navegue até `backend/servico-yard` e rode `mvn spring-boot:run`. O serviço inicia na porta `8081`.
+
+## Serviço de Gate
+
+O serviço **servico-gate** pode ser iniciado após configurar as variáveis adicionadas em `env.example`. Certifique-se de que PostgreSQL e RabbitMQ estão em execução e que o TOS e o storage de documentos referenciados estão acessíveis.
+
+Para subir o serviço manualmente:
+
+```bash
+cd backend/servico-gate
+mvn spring-boot:run
+```
+
+O serviço expõe a porta definida em `GATE_SERVER_PORT` (padrão `8082`).
+
+Para desenvolvimento local com Docker, inclua instâncias de PostgreSQL e RabbitMQ compatíveis com as credenciais configuradas.

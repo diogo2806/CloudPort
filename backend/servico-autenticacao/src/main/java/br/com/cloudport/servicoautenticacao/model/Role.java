@@ -3,11 +3,12 @@ package br.com.cloudport.servicoautenticacao.model;
 import lombok.Getter;
 import lombok.Setter;
 import javax.persistence.*;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.HashSet; // Make sure to import this
 
 
 @Entity
+@Table(name = "roles")
 @Getter
 @Setter
 public class Role {
@@ -18,7 +19,7 @@ public class Role {
     @Column
     private String name;
 
-    @ManyToMany(mappedBy = "roles")
+    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserRole> userRoles = new HashSet<>();
 
     // Default constructor

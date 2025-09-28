@@ -8,8 +8,10 @@ import br.com.cloudport.servicoautenticacao.model.User;
 import br.com.cloudport.servicoautenticacao.model.UserRole;
 import br.com.cloudport.servicoautenticacao.repositories.RoleRepository;
 import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
+import br.com.cloudport.servicoautenticacao.repositories.UserRoleRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -26,6 +28,9 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -49,6 +54,9 @@ class AuthenticationControllerTest {
 
     @MockBean
     private TokenService tokenService;
+
+    @MockBean
+    private UserRoleRepository userRoleRepository;
 
     @Test
     void login_success() throws Exception {
@@ -110,5 +118,15 @@ class AuthenticationControllerTest {
                 .andExpect(status().isOk());
 
         verify(userRepository).save(any(User.class));
+
+        ArgumentCaptor<Iterable<UserRole>> rolesCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(userRoleRepository).saveAll(rolesCaptor.capture());
+
+        Iterable<UserRole> savedRoles = rolesCaptor.getValue();
+        assertNotNull(savedRoles);
+        assertTrue(savedRoles.iterator().hasNext());
+        UserRole savedRole = savedRoles.iterator().next();
+        assertNotNull(savedRole.getUser());
+        assertEquals("john", savedRole.getUser().getLogin());
     }
 }

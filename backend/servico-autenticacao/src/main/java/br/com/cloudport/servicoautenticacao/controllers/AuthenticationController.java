@@ -9,6 +9,7 @@ import br.com.cloudport.servicoautenticacao.model.Role;
 import br.com.cloudport.servicoautenticacao.repositories.RoleRepository;
 import br.com.cloudport.servicoautenticacao.config.TokenService;
 import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
+import br.com.cloudport.servicoautenticacao.repositories.UserRoleRepository;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,8 @@ public class AuthenticationController {
     private RoleRepository roleRepository;
     @Autowired
     private TokenService tokenService;
+    @Autowired
+    private UserRoleRepository userRoleRepository;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO data){
@@ -63,11 +66,14 @@ public class AuthenticationController {
                                   return new UserRole(null, role);
                               })
                               .collect(Collectors.toSet());
-    
+
         User newUser = new User(data.getLogin(), encryptedPassword, roles);
-    
+
+        roles.forEach(role -> role.setUser(newUser));
+
         this.userRepository.save(newUser);
-    
+        this.userRoleRepository.saveAll(roles);
+
         return ResponseEntity.ok().build();
     }
 }

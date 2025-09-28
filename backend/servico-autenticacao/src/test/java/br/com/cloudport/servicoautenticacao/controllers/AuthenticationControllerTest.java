@@ -93,6 +93,19 @@ class AuthenticationControllerTest {
     }
 
     @Test
+    void login_invalidPayload_returnsBadRequestWithMessages() throws Exception {
+        AuthenticationDTO dto = new AuthenticationDTO("", "");
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value("Erro de validação dos dados enviados."))
+                .andExpect(jsonPath("$.erros.login").value("O login é obrigatório."))
+                .andExpect(jsonPath("$.erros.password").value("A senha é obrigatória."));
+    }
+
+    @Test
     void register_duplicateLogin() throws Exception {
         when(userRepository.findByLogin("john"))
                 .thenReturn(Optional.of(new User()));
@@ -103,6 +116,20 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_invalidPayload_returnsBadRequestWithMessages() throws Exception {
+        RegisterDTO dto = new RegisterDTO("", "", Collections.emptySet());
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value("Erro de validação dos dados enviados."))
+                .andExpect(jsonPath("$.erros.login").value("O login é obrigatório."))
+                .andExpect(jsonPath("$.erros.password").value("A senha é obrigatória."))
+                .andExpect(jsonPath("$.erros.roles").value("Informe ao menos uma role."));
     }
 
     @Test

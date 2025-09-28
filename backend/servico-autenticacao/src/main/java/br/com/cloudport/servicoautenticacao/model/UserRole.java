@@ -4,10 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import java.util.Set;
 import javax.persistence.*;
 
 @Entity
+@Table(name = "user_roles")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,11 +24,6 @@ public class UserRole {
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;
-
-
-    @ManyToMany
-    private Set<Role> roles;
-
     @Enumerated(EnumType.STRING)
     private StatusEnum statusEnum;
 

@@ -15,7 +15,8 @@ export class AuthenticationService {
 
     constructor(private http: HttpClient) {
         const storedData = localStorage.getItem('currentUser');
-        const currentUser = storedData ? JSON.parse(storedData) : null;
+        const currentUserData = storedData ? JSON.parse(storedData) : null;
+        const currentUser = currentUserData ? this.mapToUser(currentUserData) : null;
         this.currentUserSubject = new BehaviorSubject<User | null>(currentUser);
         this.currentUser = this.currentUserSubject.asObservable();
         this.menuStatus = new BehaviorSubject<boolean>(!!currentUser);
@@ -29,7 +30,8 @@ export class AuthenticationService {
     login(login: string, password: string) {
         const url = `${environment.baseApiUrl}/auth/login`;
         return this.http.post<any>(url, { login, password })
-            .pipe(map(user => {
+            .pipe(map(response => {
+                const user = this.mapToUser(response);
                 // store user details and jwt token in local storage to keep user logged in between page refreshes
                 localStorage.setItem('currentUser', JSON.stringify(user));
                 this.currentUserSubject.next(user);
@@ -61,5 +63,22 @@ export class AuthenticationService {
 
     getMenuStatusValue(): boolean {
         return this.menuStatus.getValue();
+    }
+
+    private mapToUser(data: any): User {
+        if (!data) {
+            return new User();
+        }
+
+        const source = data.data ?? data;
+
+        return new User(
+            source.id ?? data.id ?? '',
+            source.nome ?? source.name ?? data.nome ?? '',
+            source.token ?? data.token ?? '',
+            source.email ?? data.email ?? '',
+            source.senha ?? data.senha ?? '',
+            source.perfil ?? data.perfil ?? ''
+        );
     }
 }

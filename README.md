@@ -30,8 +30,10 @@ O projeto depende das seguintes bibliotecas e ferramentas:
 1. Clone o projeto para o seu ambiente local.
 2. Certifique-se de que você tem o Maven e o JDK 17 instalados.
 3. Navegue até a raiz do projeto via linha de comando.
-4. Execute `createdb servico_autenticacao`.
-5. Execute `mvn spring-boot:run`.
+4. Copie o arquivo `env.example` para `.env` e ajuste as variáveis de ambiente de acordo com sua infraestrutura (RabbitMQ, PostgreSQL e chaves JWT).
+5. Exporte as variáveis definidas no `.env` para o seu shell (`export $(grep -v '^#' .env | xargs)` em ambientes Unix) ou configure-as no serviço de execução da aplicação.
+6. Execute `createdb servico_autenticacao`.
+7. Execute `mvn spring-boot:run`.
 
 ### Contribuição
 

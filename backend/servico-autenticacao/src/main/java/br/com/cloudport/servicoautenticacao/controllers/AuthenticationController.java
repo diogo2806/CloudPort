@@ -13,6 +13,7 @@ import br.com.cloudport.servicoautenticacao.repositories.UserRoleRepository;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -62,7 +64,7 @@ public class AuthenticationController {
         Set<UserRole> roles = data.getRoles().stream()
                               .map(roleName -> {
                                   Role role = roleRepository.findByName(roleName)
-                                          .orElseThrow(() -> new IllegalArgumentException("Role " + roleName + " not found"));
+                                          .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role " + roleName + " not found"));
                                   return new UserRole(null, role);
                               })
                               .collect(Collectors.toSet());

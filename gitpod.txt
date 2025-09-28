@@ -3,7 +3,7 @@ rm -rf node_modules package-lock.json
 nvm install node
 nvm use node
 npm install -g @angular/cli
-npm install -g npm 
+npm install -g npm
 npm install @angular/core
 npm install --save ag-grid-community
 npm install --save ag-grid-angular
@@ -22,3 +22,10 @@ createdb servico_autenticacao
 cd backend/servico-autenticacao/
 mvn spring-boot:run
 
+# ------------------------------------------------------------------------------
+# Serviço Gate
+# Em um novo terminal, configure o banco e execute o serviço de gate.
+createdb servico_gate
+
+cd backend/servico-gate/
+mvn spring-boot:run

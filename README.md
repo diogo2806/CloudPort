@@ -51,15 +51,39 @@ Para executá-lo, navegue até `backend/servico-yard` e rode `mvn spring-boot:ru
 
 ## Serviço de Gate
 
-O serviço **servico-gate** pode ser iniciado após configurar as variáveis adicionadas em `env.example`. Certifique-se de que PostgreSQL e RabbitMQ estão em execução e que o TOS e o storage de documentos referenciados estão acessíveis.
+O serviço **servico-gate** centraliza integrações de gate, realizando chamadas ao TOS, comunicação via RabbitMQ e persistência em PostgreSQL. Para executá-lo, configure as variáveis `GATE_*`, `TOS_API_*` e `DOCUMENT_STORAGE_*` descritas em `env.example`. Certifique-se também de que PostgreSQL e RabbitMQ estejam operacionais.
 
-Para subir o serviço manualmente:
+### Subindo o serviço manualmente
 
 ```bash
 cd backend/servico-gate
 mvn spring-boot:run
 ```
 
-O serviço expõe a porta definida em `GATE_SERVER_PORT` (padrão `8082`).
+Por padrão o serviço expõe a porta `GATE_SERVER_PORT` (valor padrão `8082`). Ajuste-a conforme necessário quando executar múltiplos serviços localmente.
 
-Para desenvolvimento local com Docker, inclua instâncias de PostgreSQL e RabbitMQ compatíveis com as credenciais configuradas.
+### Dependências externas sugeridas via Docker Compose
+
+Um arquivo `docker-compose` não está incluído, mas recomenda-se preparar containers semelhantes aos exemplos abaixo para desenvolvimento local:
+
+```yaml
+services:
+  gate-postgres:
+    image: postgres:13
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: servico_gate
+      POSTGRES_USER: ${GATE_DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${GATE_DB_PASSWORD:-postgres}
+  gate-rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${GATE_RABBIT_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${GATE_RABBIT_PASSWORD:-guest}
+```
+
+Atualize as portas caso já existam instâncias locais em execução.

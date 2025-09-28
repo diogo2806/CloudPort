@@ -1,7 +1,8 @@
-import { Component, HostListener, ElementRef } from '@angular/core';
+import { Component, HostListener, ElementRef, OnDestroy, OnInit } from '@angular/core';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { TabService } from './TabService';
+import { Subscription } from 'rxjs';
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   const originalMethod = descriptor.value;
@@ -19,9 +20,10 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css']
 })
-export class NavbarComponent {
+export class NavbarComponent implements OnInit, OnDestroy {
   mostrarMenu: boolean = false;
   private readonly validChildRoutes = new Set(['role']);
+  private menuStatusSubscription?: Subscription;
 
   constructor(
       private authenticationService: AuthenticationService,
@@ -35,12 +37,15 @@ export class NavbarComponent {
 
   ngOnInit(): void {
       console.log("Classe NavbarComponent: Método ngOnInit iniciado.");
-      this.authenticationService.currentMenuStatus.subscribe(
+      this.mostrarMenu = this.authenticationService.getMenuStatusValue();
+      this.menuStatusSubscription = this.authenticationService.currentMenuStatus.subscribe(
           mostrar => this.mostrarMenu = mostrar
       );
-
-      this.mostrarMenu = true;
       console.log("Classe NavbarComponent: Método ngOnInit finalizado.");
+  }
+
+  ngOnDestroy(): void {
+      this.menuStatusSubscription?.unsubscribe();
   }
 
   // ... (resto do código)

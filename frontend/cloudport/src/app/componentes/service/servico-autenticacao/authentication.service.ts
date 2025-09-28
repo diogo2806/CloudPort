@@ -10,13 +10,16 @@ import { environment } from '../../../../environments/environment';
 export class AuthenticationService {
     private currentUserSubject: BehaviorSubject<User | null>;
     public currentUser: Observable<User | null>;
-    private menuStatus = new BehaviorSubject<boolean>(false);
-    public currentMenuStatus = this.menuStatus.asObservable();
+    private menuStatus: BehaviorSubject<boolean>;
+    public currentMenuStatus: Observable<boolean>;
 
     constructor(private http: HttpClient) {
         const storedData = localStorage.getItem('currentUser');
-        this.currentUserSubject = new BehaviorSubject<User | null>(storedData ? JSON.parse(storedData) : null);
+        const currentUser = storedData ? JSON.parse(storedData) : null;
+        this.currentUserSubject = new BehaviorSubject<User | null>(currentUser);
         this.currentUser = this.currentUserSubject.asObservable();
+        this.menuStatus = new BehaviorSubject<boolean>(!!currentUser);
+        this.currentMenuStatus = this.menuStatus.asObservable();
     }
 
     public get currentUserValue(): User | null {
@@ -36,6 +39,7 @@ export class AuthenticationService {
 
     logout() {
         // remove user from local storage to log user out
+        this.updateMenuStatus(false);
         localStorage.removeItem('currentUser');
         localStorage.removeItem('username');
         this.currentUserSubject.next(null);
@@ -53,5 +57,9 @@ export class AuthenticationService {
 
     updateMenuStatus(status: boolean) {
         this.menuStatus.next(status);
+    }
+
+    getMenuStatusValue(): boolean {
+        return this.menuStatus.getValue();
     }
 }

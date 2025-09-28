@@ -32,12 +32,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
       private eRef: ElementRef
   ) {
     console.log("Classe NavbarComponent: Método construtor chamado.");
+    this.mostrarMenu = this.authenticationService.getMenuStatusValue();
   }
 
 
   ngOnInit(): void {
       console.log("Classe NavbarComponent: Método ngOnInit iniciado.");
-      this.mostrarMenu = this.authenticationService.getMenuStatusValue();
       this.menuStatusSubscription = this.authenticationService.currentMenuStatus.subscribe(
           mostrar => this.mostrarMenu = mostrar
       );

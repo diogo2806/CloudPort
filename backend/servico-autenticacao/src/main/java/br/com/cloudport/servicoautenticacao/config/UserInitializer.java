@@ -39,12 +39,12 @@ public class UserInitializer implements CommandLineRunner {
 
         if (!userRepository.findByLogin(adminLogin).isPresent()) {
             User adminUser = new User(adminLogin, adminPassword, roles);
-            userRepository.save(adminUser);
 
-            // Set user to each UserRole and save
             for (UserRole userRole : roles) {
                 userRole.setUser(adminUser);
             }
+
+            userRepository.save(adminUser);
         }
     }
 }

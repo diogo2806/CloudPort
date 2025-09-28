@@ -1,5 +1,5 @@
 /* role-cadastro.component.ts */
-import { Component, Input, AfterViewInit  } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { PopupService } from '../../service/popupService';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -8,14 +8,13 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
   templateUrl: './role-cadastro.component.html',
   styleUrls: ['./role-cadastro.component.css']
 })
-export class RoleCadastroComponent {
-  form: FormGroup = this.formBuilder.group({}); // Initialized here
+export class RoleCadastroComponent implements OnInit {
+  form!: FormGroup;
 
-  roleName: string = ''; // Propriedade para armazenar o Role Name
   showPopup = true;
   entityType = '';
   @Input() show: boolean = true; // Certifique-se de que 'show' é uma entrada
-  
+
   constructor(
     private formBuilder: FormBuilder,
     private popupService: PopupService) {
@@ -26,14 +25,17 @@ export class RoleCadastroComponent {
     });
   }
 
-
+  ngOnInit(): void {
+    this.form = this.formBuilder.group({
+      roleName: ['', Validators.required],
+      roleDescricao: ['']
+    });
+  }
 
   saveRole() {
     // Lógica para salvar o Role com o nome fornecido
-    console.log('Salvando Role com o nome:', this.roleName);
+    console.log('Salvando Role com os dados:', this.form.value);
   }
-
-   
 
   closePopup() {
     this.popupService.closePopup();

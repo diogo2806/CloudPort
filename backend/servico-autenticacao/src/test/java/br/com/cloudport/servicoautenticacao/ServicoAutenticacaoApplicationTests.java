@@ -9,6 +9,7 @@ import br.com.cloudport.servicoautenticacao.config.TokenService;
 import br.com.cloudport.servicoautenticacao.model.User;
 
 import java.util.HashSet;
+import java.util.Optional;
 
 @SpringBootTest
 class ServicoAutenticacaoApplicationTests {
@@ -25,13 +26,13 @@ class ServicoAutenticacaoApplicationTests {
         User user = new User("test", "pass", new HashSet<>());
         String token = tokenService.generateToken(user);
         assertNotNull(token);
-        assertEquals(user.getLogin(), tokenService.validateToken(token));
+        assertEquals(Optional.of(user.getLogin()), tokenService.validateToken(token));
     }
 
     @Test
     void invalidTokenReturnsEmpty() {
         String invalidToken = "invalid";
-        assertEquals("", tokenService.validateToken(invalidToken));
+        assertTrue(tokenService.validateToken(invalidToken).isEmpty());
     }
 
 }

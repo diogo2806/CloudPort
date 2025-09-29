@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
+import java.util.Optional;
 
 @Service
 public class TokenService {
@@ -32,16 +33,17 @@ public class TokenService {
         }
     }
 
-    public String validateToken(String token){
+    public Optional<String> validateToken(String token){
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
-            return JWT.require(algorithm)
+            var subject = JWT.require(algorithm)
                     .withIssuer("auth-api")
                     .build()
                     .verify(token)
                     .getSubject();
+            return Optional.ofNullable(subject);
         } catch (JWTVerificationException exception){
-            return "";
+            return Optional.empty();
         }
     }
 

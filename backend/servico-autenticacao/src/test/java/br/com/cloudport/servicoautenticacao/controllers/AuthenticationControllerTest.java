@@ -75,6 +75,10 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(user.getId().toString()))
+                .andExpect(jsonPath("$.login").value("test"))
+                .andExpect(jsonPath("$.nome").value("test"))
+                .andExpect(jsonPath("$.perfil").value("ADMIN"))
                 .andExpect(jsonPath("$.token").value("token"))
                 .andExpect(jsonPath("$.roles[0]").value("ADMIN"));
     }

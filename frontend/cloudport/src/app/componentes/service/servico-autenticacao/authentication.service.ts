@@ -71,14 +71,21 @@ export class AuthenticationService {
         }
 
         const source = data.data ?? data;
+        const roles = Array.isArray(source.roles)
+            ? source.roles
+            : (source.roles ? [source.roles] : []);
+        const perfil = source.perfil ?? data.perfil ?? (roles.length > 0 ? roles[0] : '');
+        const nome = source.nome ?? source.name ?? source.login ?? data.nome ?? data.login ?? '';
+        const id = source.id ?? data.id ?? source.userId ?? data.userId ?? '';
 
         return new User(
-            source.id ?? data.id ?? '',
-            source.nome ?? source.name ?? data.nome ?? '',
+            id,
+            nome,
             source.token ?? data.token ?? '',
             source.email ?? data.email ?? '',
             source.senha ?? data.senha ?? '',
-            source.perfil ?? data.perfil ?? ''
+            perfil,
+            roles
         );
     }
 }

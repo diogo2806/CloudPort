@@ -50,14 +50,23 @@ public class AuthenticationController {
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.getLogin(), data.getPassword());
         var auth = this.authenticationManager.authenticate(usernamePassword);
 
-        var token = tokenService.generateToken((User) auth.getPrincipal());
-        
         User user = (User) auth.getPrincipal();
+        var token = tokenService.generateToken(user);
+
         Set<String> roles = user.getRoles().stream()
                                  .map(userRole -> userRole.getRole().getName())
                                  .collect(Collectors.toSet());
 
-        return ResponseEntity.ok(new LoginResponseDTO(token, roles));
+        String perfil = roles.stream().findFirst().orElse("");
+
+        return ResponseEntity.ok(new LoginResponseDTO(
+                user.getId(),
+                user.getLogin(),
+                user.getLogin(),
+                perfil,
+                token,
+                roles
+        ));
     }
 
     @PostMapping("/register")

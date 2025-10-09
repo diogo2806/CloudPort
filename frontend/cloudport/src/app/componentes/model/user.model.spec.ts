@@ -2,7 +2,7 @@ import { User } from './user.model';
 
 describe('User model', () => {
   it('deve preencher as propriedades fornecidas no construtor', () => {
-    const user = new User('1', 'João', 'token-123', 'joao@example.com', 'senha', 'ADMIN');
+    const user = new User('1', 'João', 'token-123', 'joao@example.com', 'senha', 'ADMIN', ['ADMIN']);
 
     expect(user.id).toBe('1');
     expect(user.nome).toBe('João');
@@ -10,6 +10,7 @@ describe('User model', () => {
     expect(user.email).toBe('joao@example.com');
     expect(user.senha).toBe('senha');
     expect(user.perfil).toBe('ADMIN');
+    expect(user.roles).toEqual(['ADMIN']);
   });
 
   it('deve permitir instanciar com valores padrão', () => {
@@ -21,5 +22,6 @@ describe('User model', () => {
     expect(user.email).toBe('');
     expect(user.senha).toBe('');
     expect(user.perfil).toBe('');
+    expect(user.roles).toEqual([]);
   });
 });

@@ -11,7 +11,7 @@
   "private": true,
   "dependencies": {
     "@ag-grid-community/core": "^31.3.4",
-    "@ag-grid-enterprise/all-modules": "^27.3.0",
+    "@ag-grid-enterprise/all-modules": "^31.3.4",
     "@ag-grid-enterprise/excel-export": "^31.3.4",
     "@angular/animations": "^16.1.0",
     "@angular/cdk": "^16.1.5",

@@ -40,6 +40,16 @@ O projeto depende das seguintes bibliotecas e ferramentas:
 Contribuições são sempre bem-vindas. Se você deseja contribuir, por favor, abra uma issue primeiro para discutir o que você gostaria de mudar.
 
 
+## Lockfiles do ecossistema Node
+
+O repositório mantém dois lockfiles gerados pelo `npm`:
+
+- `frontend/cloudport/package-lock.json`: lockfile principal do front-end Angular.
+- `package-lock.json` na raiz: artefato herdado do bootstrap inicial do front-end que roda utilidades do Angular CLI diretamente da raiz. Ele replica um subconjunto das dependências usadas em `frontend/cloudport/package.json` para permitir que scripts de automação e ambientes legados (por exemplo, pipelines que executam `npm install` na raiz) continuem funcionando.
+
+Ao atualizar dependências JavaScript, execute os comandos de instalação no diretório correspondente e sincronize manualmente o lockfile da raiz apenas quando o `package.json` da raiz sofrer alterações. Isso evita que os dois lockfiles evoluam de forma divergente.
+
+
 ## Serviço de Gestão de Pátio
 
 O microserviço **servico-yard** é um exemplo simples de gestão de contêineres no pátio. Ele expõe duas rotas REST:

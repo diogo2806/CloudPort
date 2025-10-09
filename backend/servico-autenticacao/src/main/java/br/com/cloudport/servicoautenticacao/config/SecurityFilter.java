@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -25,8 +26,13 @@ public class SecurityFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         var token = this.recoverToken(request);
-        if(token != null){
+        if(StringUtils.hasText(token)){
             var login = tokenService.validateToken(token);
+            if (!StringUtils.hasText(login)) {
+                // SECURITY: evita acessar o repositório quando o token é inválido
+                filterChain.doFilter(request, response);
+                return;
+            }
             UserDetails user = userRepository.findByLogin(login)
                                              .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + login));
 
@@ -38,7 +44,9 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     private String recoverToken(HttpServletRequest request){
         var authHeader = request.getHeader("Authorization");
-        if(authHeader == null) return null;
-        return authHeader.replace("Bearer ", "");
+        if(!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) return null;
+        var token = authHeader.substring(7).trim();
+        // SECURITY: ignora cabeçalhos Bearer vazios, reduzindo tentativas de bypass
+        return StringUtils.hasText(token) ? token : null;
     }
 }

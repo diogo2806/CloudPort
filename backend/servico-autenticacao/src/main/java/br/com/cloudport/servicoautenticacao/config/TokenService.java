@@ -41,7 +41,8 @@ public class TokenService {
                     .verify(token)
                     .getSubject();
         } catch (JWTVerificationException exception){
-            return "";
+            // SECURITY: retorna nulo para evitar autenticação com tokens inválidos
+            return null;
         }
     }
 

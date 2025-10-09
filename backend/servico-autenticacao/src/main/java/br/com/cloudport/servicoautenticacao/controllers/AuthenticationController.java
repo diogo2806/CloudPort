@@ -12,6 +12,7 @@ import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
 import br.com.cloudport.servicoautenticacao.repositories.UserRoleRepository;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,6 +42,8 @@ public class AuthenticationController {
     private TokenService tokenService;
     @Autowired
     private UserRoleRepository userRoleRepository;
+    @Value("${api.security.self-registration.allowed-roles:USER}")
+    private String allowedSelfRegistrationRoles;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO data){
@@ -60,14 +65,38 @@ public class AuthenticationController {
         if(this.userRepository.findByLogin(data.getLogin()).isPresent()) return ResponseEntity.badRequest().build();
     
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.getPassword());
-    
-        Set<UserRole> roles = data.getRoles().stream()
+
+        Set<String> normalizedAllowedRoles = Arrays.stream(allowedSelfRegistrationRoles.split(","))
+                .map(String::trim)
+                .filter(role -> !role.isEmpty())
+                .collect(Collectors.collectingAndThen(Collectors.toSet(), set -> set.isEmpty() ? Collections.singleton("USER") : set));
+
+        Set<String> requestedRoles = data.getRoles().stream()
+                .map(String::trim)
+                .filter(role -> !role.isEmpty())
+                .collect(Collectors.toSet());
+
+        if (!normalizedAllowedRoles.containsAll(requestedRoles)) {
+            // SECURITY: impede elevação de privilégio restringindo as roles permitidas no auto-registro
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Roles informadas não são permitidas para auto-registro");
+        }
+
+        Set<UserRole> roles = requestedRoles.stream()
                               .map(roleName -> {
                                   Role role = roleRepository.findByName(roleName)
                                           .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role " + roleName + " not found"));
                                   return new UserRole(null, role);
                               })
                               .collect(Collectors.toSet());
+
+        if (roles.isEmpty()) {
+            // SECURITY: garante que ao menos uma role segura seja atribuída ao usuário
+            roles = normalizedAllowedRoles.stream()
+                    .map(roleName -> roleRepository.findByName(roleName)
+                            .map(role -> new UserRole(null, role))
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role " + roleName + " not found")))
+                    .collect(Collectors.toSet());
+        }
 
         User newUser = new User(data.getLogin(), encryptedPassword, roles);
 

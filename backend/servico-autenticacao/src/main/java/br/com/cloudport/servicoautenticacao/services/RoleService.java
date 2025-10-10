@@ -1,7 +1,8 @@
 package br.com.cloudport.servicoautenticacao.services;
 
-import br.com.cloudport.servicoautenticacao.model.Role;
 import br.com.cloudport.servicoautenticacao.dto.RoleDTO;
+import br.com.cloudport.servicoautenticacao.exception.ResourceNotFoundException;
+import br.com.cloudport.servicoautenticacao.model.Role;
 import br.com.cloudport.servicoautenticacao.repositories.RoleRepository;
 import br.com.cloudport.servicoautenticacao.repositories.UserRoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +45,7 @@ public class RoleService {
     @Transactional
     public RoleDTO findByName(String name) {
         Role role = roleRepository.findByName(name)
-                .orElseThrow(() -> new IllegalArgumentException("Role " + name + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Role " + name + " not found"));
         return new RoleDTO(role.getId(), role.getName()); // Adicione o id aqui
     }
 
@@ -60,7 +61,7 @@ public class RoleService {
     @Transactional
     public RoleDTO updateRole(Long id, RoleDTO roleDTO) {
         Role role = roleRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Role with id " + id + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Role with id " + id + " not found"));
         role.setName(roleDTO.getName()); // Atualiza o nome da função
         Role updatedRole = roleRepository.save(role);
         return new RoleDTO(updatedRole.getId(), updatedRole.getName()); // Retorna a função atualizada
@@ -74,7 +75,7 @@ public class RoleService {
         }
 
         if (!roleRepository.existsById(id)) {
-            throw new IllegalStateException("Role com id " + id + " não encontrado.");
+            throw new ResourceNotFoundException("Role com id " + id + " não encontrado.");
         }
 
         roleRepository.deleteById(id);

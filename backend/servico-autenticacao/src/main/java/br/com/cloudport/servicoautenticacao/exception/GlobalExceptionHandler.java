@@ -24,9 +24,9 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex) {
-        logger.warn("ResourceNotFoundException encontrada no GlobalExceptionHandler: ", ex);
+    @ExceptionHandler(RoleNotFoundException.class)
+    public ResponseEntity<Object> handleRoleNotFoundException(RoleNotFoundException ex) {
+        logger.warn("RoleNotFoundException encontrada no GlobalExceptionHandler: ", ex);
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 

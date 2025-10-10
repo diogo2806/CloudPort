@@ -140,9 +140,17 @@ handleRoleRightClick(event: any, contextMenu: ContextMenuComponent) {
     return; // Deixe o evento de clique com o botão direito do mouse ser processado normalmente
   }
 
+  const rowData = event.row;
+  if (rowData && rowData['Role ID'] !== undefined && rowData['Role ID'] !== null) {
+    const roleId = typeof rowData['Role ID'] === 'number' ? rowData['Role ID'] : Number(rowData['Role ID']);
+    this.selectedRoleIds = isNaN(roleId) ? [] : [roleId];
+  } else {
+    this.selectedRoleIds = [];
+  }
+
   // Evite o menu de contexto padrão do navegador e exiba o menu personalizado
   event.event.preventDefault();
-  
+
   console.log("RoleComponent handleRoleRightClick: Manipulando clique com o botão direito do mouse", event); // Depuração
   this.contextMenu.menuOptions = ['Editar', 'Deletar'];
   this.contextMenu.position = { x: event.event.clientX, y: event.event.clientY };
@@ -187,14 +195,24 @@ closeContextMenu(event: MouseEvent) {
 
   @logMethod
   toggleSelection(role: any) {
-    const index = this.selectedRoleIds.indexOf(role.id);
-    
+    const roleId = role && role['Role ID'] !== undefined ? role['Role ID'] : null;
+    if (roleId === null) {
+      return;
+    }
+
+    const normalizedRoleId = typeof roleId === 'number' ? roleId : Number(roleId);
+    if (isNaN(normalizedRoleId)) {
+      return;
+    }
+
+    const index = this.selectedRoleIds.indexOf(normalizedRoleId);
+
     if (index > -1) {
       // Se o ID já está no array, remova-o
       this.selectedRoleIds.splice(index, 1);
     } else {
       // Se o ID não está no array, adicione-o
-      this.selectedRoleIds.push(role.id);
+      this.selectedRoleIds.push(normalizedRoleId);
     }
   }
 
@@ -338,14 +356,24 @@ closeContextMenu(event: MouseEvent) {
     leftClick(event: MouseEvent, role: any) {
       event.preventDefault();
 
-      const index = this.selectedRoleIds.indexOf(role.id);
-      
+      const roleId = role && role['Role ID'] !== undefined ? role['Role ID'] : null;
+      if (roleId === null) {
+        return;
+      }
+
+      const normalizedRoleId = typeof roleId === 'number' ? roleId : Number(roleId);
+      if (isNaN(normalizedRoleId)) {
+        return;
+      }
+
+      const index = this.selectedRoleIds.indexOf(normalizedRoleId);
+
       if (index > -1) {
         // Se o ID já está no array, remova-o
         this.selectedRoleIds.splice(index, 1);
       } else {
         // Se o ID não está no array, adicione-o
-        this.selectedRoleIds.push(role.id);
+        this.selectedRoleIds.push(normalizedRoleId);
       }
     }
 
@@ -361,7 +389,14 @@ closeContextMenu(event: MouseEvent) {
         case 'Deletar':
           // Agora desativamos todos os roles selecionados
           for (const id of this.selectedRoleIds) {
-            this.deactivateRole(id);
+            if (id === null || id === undefined) {
+              continue;
+            }
+
+            const normalizedId = typeof id === 'number' ? id : Number(id);
+            if (!isNaN(normalizedId)) {
+              this.deactivateRole(normalizedId);
+            }
           }
           break;
       }

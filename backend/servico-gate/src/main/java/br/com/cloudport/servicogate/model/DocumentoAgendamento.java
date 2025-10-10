@@ -27,6 +27,15 @@ public class DocumentoAgendamento extends AbstractAuditableEntity {
     @Column(name = "url_documento", length = 255)
     private String urlDocumento;
 
+    @Column(name = "nome_arquivo", length = 255)
+    private String nomeArquivo;
+
+    @Column(name = "content_type", length = 120)
+    private String contentType;
+
+    @Column(name = "tamanho_bytes")
+    private Long tamanhoBytes;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agendamento_id", nullable = false)
     private Agendamento agendamento;
@@ -61,6 +70,30 @@ public class DocumentoAgendamento extends AbstractAuditableEntity {
 
     public void setUrlDocumento(String urlDocumento) {
         this.urlDocumento = urlDocumento;
+    }
+
+    public String getNomeArquivo() {
+        return nomeArquivo;
+    }
+
+    public void setNomeArquivo(String nomeArquivo) {
+        this.nomeArquivo = nomeArquivo;
+    }
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
+
+    public Long getTamanhoBytes() {
+        return tamanhoBytes;
+    }
+
+    public void setTamanhoBytes(Long tamanhoBytes) {
+        this.tamanhoBytes = tamanhoBytes;
     }
 
     public Agendamento getAgendamento() {

@@ -4,9 +4,11 @@ import br.com.cloudport.servicogate.dto.JanelaAtendimentoDTO;
 import br.com.cloudport.servicogate.dto.JanelaAtendimentoRequest;
 import br.com.cloudport.servicogate.service.JanelaAtendimentoService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
 import javax.validation.Valid;
+import org.springdoc.api.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -37,9 +39,11 @@ public class JanelaAtendimentoController {
 
     @GetMapping
     @Operation(summary = "Lista janelas de atendimento com filtros de período")
-    public Page<JanelaAtendimentoDTO> listar(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+    public Page<JanelaAtendimentoDTO> listar(@Parameter(description = "Data inicial do período (inclusive)")
+                                             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+                                             @Parameter(description = "Data final do período (inclusive)")
                                              @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
-                                             Pageable pageable) {
+                                             @ParameterObject Pageable pageable) {
         return janelaAtendimentoService.buscar(dataInicio, dataFim, pageable);
     }
 

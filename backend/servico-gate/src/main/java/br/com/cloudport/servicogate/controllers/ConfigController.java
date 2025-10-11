@@ -1,12 +1,17 @@
 package br.com.cloudport.servicogate.controllers;
 
 import br.com.cloudport.servicogate.dto.EnumResponseDTO;
+import br.com.cloudport.servicogate.model.enums.CanalEntrada;
+import br.com.cloudport.servicogate.model.enums.MotivoExcecao;
+import br.com.cloudport.servicogate.model.enums.StatusAgendamento;
+import br.com.cloudport.servicogate.model.enums.StatusGate;
 import br.com.cloudport.servicogate.model.enums.TipoOperacao;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -19,15 +24,45 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Configurações", description = "Endpoints de configuração para combobox dinâmicas")
 public class ConfigController {
 
+    private static final CacheControl ENUM_CACHE = CacheControl.maxAge(Duration.ofHours(1)).cachePublic();
+
     @GetMapping("/tipos-operacao")
     @Operation(summary = "Lista os tipos de operação disponíveis")
     public ResponseEntity<List<EnumResponseDTO>> listarTiposOperacao() {
-        List<EnumResponseDTO> body = Arrays.stream(TipoOperacao.values())
-                .map(tipo -> new EnumResponseDTO(tipo.name(), tipo.getDescricao()))
+        return buildEnumResponse(TipoOperacao.values(), TipoOperacao::getDescricao);
+    }
+
+    @GetMapping("/status-agendamento")
+    @Operation(summary = "Lista os status possíveis de um agendamento")
+    public ResponseEntity<List<EnumResponseDTO>> listarStatusAgendamento() {
+        return buildEnumResponse(StatusAgendamento.values(), StatusAgendamento::getDescricao);
+    }
+
+    @GetMapping("/status-gate")
+    @Operation(summary = "Lista os status disponíveis para um gate pass")
+    public ResponseEntity<List<EnumResponseDTO>> listarStatusGate() {
+        return buildEnumResponse(StatusGate.values(), StatusGate::getDescricao);
+    }
+
+    @GetMapping("/motivos-excecao")
+    @Operation(summary = "Lista os motivos de exceção configurados")
+    public ResponseEntity<List<EnumResponseDTO>> listarMotivosExcecao() {
+        return buildEnumResponse(MotivoExcecao.values(), MotivoExcecao::getDescricao);
+    }
+
+    @GetMapping("/canais-entrada")
+    @Operation(summary = "Lista os canais de entrada aceitos pela operação")
+    public ResponseEntity<List<EnumResponseDTO>> listarCanaisEntrada() {
+        return buildEnumResponse(CanalEntrada.values(), CanalEntrada::getDescricao);
+    }
+
+    private <E extends Enum<E>> ResponseEntity<List<EnumResponseDTO>> buildEnumResponse(E[] values,
+                                                                                        Function<E, String> descricaoMapper) {
+        List<EnumResponseDTO> body = Arrays.stream(values)
+                .map(valor -> EnumResponseDTO.fromEnum(valor, descricaoMapper.apply(valor)))
                 .collect(Collectors.toList());
-        CacheControl cacheControl = CacheControl.maxAge(Duration.ofHours(1)).cachePublic();
         return ResponseEntity.ok()
-                .cacheControl(cacheControl)
+                .cacheControl(ENUM_CACHE)
                 .body(body);
     }
 }

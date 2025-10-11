@@ -13,6 +13,13 @@ public class EnumResponseDTO {
         this.descricao = descricao;
     }
 
+    public static EnumResponseDTO fromEnum(Enum<?> valor, String descricao) {
+        if (valor == null) {
+            return new EnumResponseDTO(null, descricao);
+        }
+        return new EnumResponseDTO(valor.name(), descricao);
+    }
+
     public String getCodigo() {
         return codigo;
     }

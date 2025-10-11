@@ -7,10 +7,12 @@ import br.com.cloudport.servicogate.dto.DocumentoUploadRequest;
 import br.com.cloudport.servicogate.service.AgendamentoService;
 import br.com.cloudport.servicogate.service.DocumentoDownload;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
 import java.util.List;
 import javax.validation.Valid;
+import org.springdoc.api.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -45,9 +47,11 @@ public class AgendamentoController {
 
     @GetMapping
     @Operation(summary = "Lista agendamentos com filtros de período e paginação")
-    public Page<AgendamentoDTO> listar(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+    public Page<AgendamentoDTO> listar(@Parameter(description = "Data inicial do período (inclusive)")
+                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+                                       @Parameter(description = "Data final do período (inclusive)")
                                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
-                                       Pageable pageable) {
+                                       @ParameterObject Pageable pageable) {
         return agendamentoService.buscar(dataInicio, dataFim, pageable);
     }
 

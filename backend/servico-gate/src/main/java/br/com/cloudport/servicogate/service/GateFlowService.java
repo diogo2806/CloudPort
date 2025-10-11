@@ -5,9 +5,12 @@ import br.com.cloudport.servicogate.dto.GateDecisionDTO;
 import br.com.cloudport.servicogate.dto.GateFlowRequest;
 import br.com.cloudport.servicogate.dto.ManualReleaseAction;
 import br.com.cloudport.servicogate.dto.ManualReleaseRequest;
+import br.com.cloudport.servicogate.dto.TosContainerStatus;
+import br.com.cloudport.servicogate.dto.TosSyncResponse;
 import br.com.cloudport.servicogate.dto.mapper.GateMapper;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.exception.NotFoundException;
+import br.com.cloudport.servicogate.integration.tos.TosIntegrationService;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.DocumentoAgendamento;
 import br.com.cloudport.servicogate.model.GateEvent;
@@ -58,15 +61,18 @@ public class GateFlowService {
     private final GatePassRepository gatePassRepository;
     private final GateEventRepository gateEventRepository;
     private final GateFlowProperties flowProperties;
+    private final TosIntegrationService tosIntegrationService;
 
     public GateFlowService(AgendamentoRepository agendamentoRepository,
                            GatePassRepository gatePassRepository,
                            GateEventRepository gateEventRepository,
-                           GateFlowProperties flowProperties) {
+                           GateFlowProperties flowProperties,
+                           TosIntegrationService tosIntegrationService) {
         this.agendamentoRepository = agendamentoRepository;
         this.gatePassRepository = gatePassRepository;
         this.gateEventRepository = gateEventRepository;
         this.flowProperties = flowProperties;
+        this.tosIntegrationService = tosIntegrationService;
     }
 
     public GateDecisionDTO registrarEntrada(GateFlowRequest request) {
@@ -74,6 +80,7 @@ public class GateFlowService {
         Agendamento agendamento = localizarAgendamento(request);
         GatePass gatePass = obterOuCriarGatePass(agendamento);
         try {
+            TosContainerStatus statusContainer = tosIntegrationService.validarParaEntrada(agendamento);
             validarStatusParaEntrada(agendamento);
             validarDocumentos(agendamento);
             validarJanela(agendamento.getHorarioPrevistoChegada(), timestamp,
@@ -91,7 +98,10 @@ public class GateFlowService {
 
             GateEvent evento = registrarEvento(gatePass, StatusGate.LIBERADO, null,
                     "Entrada autorizada", resolverOperador(request.getOperador()), timestamp);
-            LOGGER.info("Entrada autorizada para agendamento {}", agendamento.getCodigo());
+            LOGGER.info("Entrada autorizada para agendamento {} containerStatus={} customsLiberado={}",
+                    agendamento.getCodigo(),
+                    statusContainer != null ? statusContainer.getStatus() : null,
+                    statusContainer != null && statusContainer.isLiberacaoAduaneira());
 
             return GateDecisionDTO.autorizado(evento.getStatus(), agendamento, gatePass,
                     "Entrada liberada com sucesso");
@@ -167,6 +177,13 @@ public class GateFlowService {
             evento = registrarBloqueioManual(agendamentoId, request);
         }
         return GateMapper.toGateEventDTO(evento);
+    }
+
+    public TosSyncResponse sincronizarAgendamento(Long agendamentoId) {
+        Agendamento agendamento = obterAgendamento(agendamentoId);
+        TosSyncResponse sincronizacao = tosIntegrationService.sincronizar(agendamento);
+        LOGGER.info("Sincronização solicitada para agendamento {}", agendamento.getCodigo());
+        return sincronizacao;
     }
 
     private Agendamento localizarAgendamento(GateFlowRequest request) {

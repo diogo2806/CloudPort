@@ -4,6 +4,7 @@ import br.com.cloudport.servicogate.dto.GateDecisionDTO;
 import br.com.cloudport.servicogate.dto.GateEventDTO;
 import br.com.cloudport.servicogate.dto.GateFlowRequest;
 import br.com.cloudport.servicogate.dto.ManualReleaseRequest;
+import br.com.cloudport.servicogate.dto.TosSyncResponse;
 import br.com.cloudport.servicogate.service.GateFlowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,5 +47,12 @@ public class GateFlowController {
                                                       @Valid @RequestBody ManualReleaseRequest request) {
         GateEventDTO evento = gateFlowService.liberarManual(agendamentoId, request);
         return ResponseEntity.ok(evento);
+    }
+
+    @PostMapping("/agendamentos/{id}/sincronizar")
+    @Operation(summary = "Força a ressincronização das informações do agendamento com o TOS")
+    public ResponseEntity<TosSyncResponse> sincronizar(@PathVariable("id") Long agendamentoId) {
+        TosSyncResponse sincronizacao = gateFlowService.sincronizarAgendamento(agendamentoId);
+        return ResponseEntity.ok(sincronizacao);
     }
 }

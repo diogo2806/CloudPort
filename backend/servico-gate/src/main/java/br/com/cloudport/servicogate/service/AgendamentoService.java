@@ -8,6 +8,7 @@ import br.com.cloudport.servicogate.dto.DocumentoUploadRequest;
 import br.com.cloudport.servicogate.dto.mapper.GateMapper;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.exception.NotFoundException;
+import br.com.cloudport.servicogate.integration.tos.TosIntegrationService;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.DocumentoAgendamento;
 import br.com.cloudport.servicogate.model.JanelaAtendimento;
@@ -32,6 +33,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -50,6 +53,9 @@ public class AgendamentoService {
     private final DocumentoAgendamentoRepository documentoAgendamentoRepository;
     private final DocumentoStorageService documentoStorageService;
     private final AgendamentoRulesProperties rulesProperties;
+    private final TosIntegrationService tosIntegrationService;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AgendamentoService.class);
 
     public AgendamentoService(AgendamentoRepository agendamentoRepository,
                               JanelaAtendimentoRepository janelaAtendimentoRepository,
@@ -58,7 +64,8 @@ public class AgendamentoService {
                               VeiculoRepository veiculoRepository,
                               DocumentoAgendamentoRepository documentoAgendamentoRepository,
                               DocumentoStorageService documentoStorageService,
-                              AgendamentoRulesProperties rulesProperties) {
+                              AgendamentoRulesProperties rulesProperties,
+                              TosIntegrationService tosIntegrationService) {
         this.agendamentoRepository = agendamentoRepository;
         this.janelaAtendimentoRepository = janelaAtendimentoRepository;
         this.transportadoraRepository = transportadoraRepository;
@@ -67,6 +74,7 @@ public class AgendamentoService {
         this.documentoAgendamentoRepository = documentoAgendamentoRepository;
         this.documentoStorageService = documentoStorageService;
         this.rulesProperties = rulesProperties;
+        this.tosIntegrationService = tosIntegrationService;
     }
 
     @Transactional(readOnly = true)
@@ -102,6 +110,10 @@ public class AgendamentoService {
         if (!horarioDentroDaJanela(janela, request.getHorarioPrevistoSaida())) {
             throw new BusinessException("Horário previsto de saída deve estar dentro da janela de atendimento");
         }
+
+        TipoOperacao tipoOperacao = parseTipoOperacao(request.getTipoOperacao());
+        tosIntegrationService.validarAgendamentoParaCriacao(request.getCodigo(), tipoOperacao);
+        LOGGER.info("event=tos.validation.booking codigo={} tipoOperacao={}", request.getCodigo(), tipoOperacao);
 
         Agendamento agendamento = new Agendamento();
         aplicarDados(agendamento, request, janela);

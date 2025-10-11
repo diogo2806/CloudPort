@@ -26,7 +26,7 @@ export class LoginComponent implements OnInit {
     loginForm: FormGroup = this.formBuilder.group({}); // Initialized here
     loading = false;
     submitted = false;
-    returnUrl: string = 'home'; // Initialized here
+    returnUrl: string = '/home'; // Initialized with a sensible default route
     error = '';
 
     constructor(
@@ -39,7 +39,7 @@ export class LoginComponent implements OnInit {
     ) {
         // redirect to home if already logged in
         if (this.authenticationService.currentUserValue) {
-            this.router.navigate([this.returnUrl]);
+            this.router.navigateByUrl(this.returnUrl);
         }
     }
 
@@ -51,7 +51,9 @@ export class LoginComponent implements OnInit {
         });
 
         // get return url from route parameters or default to '/'
-        this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '';
+        const requestedReturnUrl = this.route.snapshot.queryParams['returnUrl'];
+        const hasCustomReturnUrl = typeof requestedReturnUrl === 'string' && requestedReturnUrl.trim().length > 0;
+        this.returnUrl = hasCustomReturnUrl ? requestedReturnUrl : '/home';
         (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
     }
 
@@ -74,7 +76,7 @@ export class LoginComponent implements OnInit {
             .subscribe(
                 data => {
 
-                    this.router.navigate([this.returnUrl]);
+                    this.router.navigateByUrl(this.returnUrl);
                     this.authenticationService.setUserName(this.f['username'].value);
                     this.authenticationService.updateMenuStatus(true); // set mostrarMenu to true after successful login
                     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());

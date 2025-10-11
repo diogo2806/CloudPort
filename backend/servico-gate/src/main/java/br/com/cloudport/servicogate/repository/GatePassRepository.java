@@ -14,6 +14,8 @@ public interface GatePassRepository extends JpaRepository<GatePass, Long> {
 
     List<GatePass> findByStatus(StatusGate status);
 
+    Optional<GatePass> findByAgendamentoId(Long agendamentoId);
+
     @Query(value = "SELECT DATE(gp.data_entrada) AS dia, " +
             "AVG(EXTRACT(EPOCH FROM (gp.data_saida - gp.data_entrada))/60) AS tempoMedioMinutos " +
             "FROM gate_pass gp " +

@@ -10,7 +10,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @Configuration
-@EnableConfigurationProperties({AgendamentoRulesProperties.class, DocumentoStorageProperties.class})
+@EnableConfigurationProperties({
+        AgendamentoRulesProperties.class,
+        DocumentoStorageProperties.class,
+        GateFlowProperties.class,
+        HardwareIntegrationProperties.class
+})
 public class OpenApiConfig {
 
     @Bean

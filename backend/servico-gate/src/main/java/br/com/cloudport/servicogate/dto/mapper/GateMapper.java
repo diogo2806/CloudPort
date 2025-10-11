@@ -90,7 +90,10 @@ public final class GateMapper {
                 entity.getId(),
                 entity.getTipoDocumento(),
                 entity.getNumero(),
-                entity.getUrlDocumento()
+                entity.getUrlDocumento(),
+                entity.getNomeArquivo(),
+                entity.getContentType(),
+                entity.getTamanhoBytes()
         );
     }
 

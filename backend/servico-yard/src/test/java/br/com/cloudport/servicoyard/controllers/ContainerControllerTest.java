@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -41,7 +42,7 @@ class ContainerControllerTest {
     void addContainer() throws Exception {
         Container c = new Container(null, "C1", "A1");
         Container saved = new Container(1L, "C1", "A1");
-        when(containerService.addContainer(c)).thenReturn(saved);
+        when(containerService.addContainer(any(Container.class))).thenReturn(saved);
 
         mockMvc.perform(post("/yard/containers")
                 .contentType(MediaType.APPLICATION_JSON)

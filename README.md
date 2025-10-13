@@ -1,31 +1,74 @@
 # CloudPort
 
-CloudPort é um Terminal Operating System (TOS) inovador, construído sobre a arquitetura de microsserviços.
+CloudPort é um Terminal Operating System (TOS) modular construído sobre microsserviços Java e um front-end Angular. Este repositório concentra os principais serviços de autenticação, gate e gestão de pátio, além do material de apoio para operação da plataforma.
 
-## Serviço de Autenticação
+## Visão geral da arquitetura
 
-Este repositório hospeda o serviço de autenticação do CloudPort, que é encarregado de autenticar e autorizar usuários. O projeto foi inicializado com o Spring Initializr, uma ferramenta que agiliza a criação de aplicações Spring.
+O diagrama abaixo resume os blocos principais que suportam o fluxo operacional de gate:
 
-### Dependências
+```mermaid
+flowchart LR
+    subgraph Externo
+        Transportador
+        OCR
+    end
 
-O projeto depende das seguintes bibliotecas e ferramentas:
+    Transportador -->|Pré-chegada| API_BFF
+    OCR -->|Leitura de lacre| API_BFF
 
-- **Spring Web**: Usado para construir aplicações web, incluindo serviços RESTful, com Spring MVC.
-- **Spring Data JPA**: Facilita a criação de repositórios orientados a dados.
-- **Spring Security**: Fornece recursos de segurança robustos, incluindo autenticação e autorização.
-- **PostgreSQL Driver**: Permite a conexão com PostgreSQL, um sistema de banco de dados objeto-relacional.
-- **Spring Boot DevTools**: Oferece recursos de desenvolvimento úteis, como atualização automática.
-- **Lombok**: Uma biblioteca que ajuda a reduzir o código boilerplate em Java.
-- **Spring Boot Validation**: Fornece suporte para validação de dados.
-- **Flyway Migration**: Uma ferramenta para migração de base de dados.
-- **Spring Security OAuth2 Client**: Facilita a criação de aplicações que são clientes de provedores OAuth 2.0.
-- **Spring Security OAuth2 Resource Server**: Facilita a criação de aplicações que são servidores de recursos OAuth 2.0.
-- **UUID como identificador de usuário**: O serviço de autenticação utiliza UUIDs para identificar usuários de forma única.
+    subgraph CloudPort
+        API_BFF[API BFF / Frontend]
+        Auth[servico-autenticacao]
+        Gate[servico-gate]
+        Yard[servico-yard]
+        MQ[(RabbitMQ)]
+        DB[(PostgreSQL)]
+        Storage[(Storage de Documentos)]
+    end
 
-- **Download para iniciar o microsserviço**:
-[Link para o Spring Initializr](https://start.spring.io/#!type=maven-project&language=java&platformVersion=3.1.1&packaging=jar&jvmVersion=11&groupId=br.com.cloudport&artifactId=servico-autenticacao&name=servico-autenticacao&description=Servi%C3%A7o%20respons%C3%A1vel%20pela%20autentica%C3%A7%C3%A3o%20e%20autoriza%C3%A7%C3%A3o%20de%20usu%C3%A1rios%20na%20aplica%C3%A7%C3%A3o%20CloudPort.&packageName=br.com.cloudport.servico-autenticacao&dependencies=web,data-jpa,security,postgresql,devtools,lombok,validation,flyway,oauth2-client,oauth2-resource-server)
+    API_BFF --> Auth
+    API_BFF --> Gate
+    Gate -->|Eventos Gate-In/Out| MQ
+    Gate -->|Persistência| DB
+    Gate -->|Manifestos / Imagens| Storage
+    Gate -->|Consulta / Atualização| Yard
+    MQ --> Gate
+```
 
-### Como Rodar o Projeto
+- **servico-autenticacao**: provê autenticação e autorização das aplicações clientes.
+- **servico-gate**: orquestra fluxos de gate-in/out, integra-se com mensageria e outros domínios do TOS.
+- **servico-yard**: mantém o estado de contêineres no pátio para consulta pelo gate.
+
+## Fluxos de gate
+
+Os fluxos abaixo detalham os estágios e contratos trocados entre os componentes:
+
+### Gate-In
+
+```mermaid
+sequenceDiagram
+    participant Transportador
+    participant GateAPI as servico-gate
+    participant Yard as servico-yard
+    participant MQ as RabbitMQ
+    participant Storage
+
+    Transportador->>GateAPI: POST /gate/in/check-in
+    GateAPI->>Yard: GET /yard/containers/{containerId}
+    Yard-->>GateAPI: Dados do contêiner
+    GateAPI->>Storage: Upload documentos/imagens
+    GateAPI-->>Transportador: 200 OK + protocolo de entrada
+    GateAPI-)MQ: Evento gate.in.confirmed
+```
+
+### Gate-Out
+
+```mermaid
+sequenceDiagram
+    participant Transportador
+    participant GateAPI as servico-gate
+    participant Auth as servico-autenticacao
+    participant MQ as RabbitMQ
 
 1. Clone o projeto para o seu ambiente local.
 2. Certifique-se de que você tem o Maven e o JDK 17 instalados.
@@ -36,65 +79,72 @@ O projeto depende das seguintes bibliotecas e ferramentas:
 6. Execute `createdb servico_autenticacao`.
 7. Execute `mvn spring-boot:run`.
 
-### Contribuição
+## Contratos de API
 
-Contribuições são sempre bem-vindas. Se você deseja contribuir, por favor, abra uma issue primeiro para discutir o que você gostaria de mudar.
+- Swagger UI (local): [http://localhost:8082/swagger-ui.html](http://localhost:8082/swagger-ui.html)
+- OpenAPI JSON: [http://localhost:8082/v3/api-docs](http://localhost:8082/v3/api-docs)
+- Coleções para testes manuais disponíveis em [`tools/api/`](tools/api/).
 
+## Requisitos mínimos de hardware
 
-## Lockfiles do ecossistema Node
+| Ambiente | CPU | Memória RAM | Armazenamento | Observações |
+|----------|-----|-------------|---------------|-------------|
+| Desenvolvimento | 4 vCPUs | 8 GB | 20 GB SSD | Compatível com Docker Desktop e execução de 3 bancos de dados locais (PostgreSQL, RabbitMQ, Redis opcional). |
+| Homologação | 4 vCPUs | 16 GB | 40 GB SSD | Execução de instâncias redundantes do `servico-gate` (HPA mínimo 2 réplicas). |
+| Produção | 8 vCPUs | 32 GB | 80 GB SSD NVMe | Necessário provisionar volume persistente para storage de documentos (>= 50 GB) e instância dedicada de RabbitMQ em cluster. |
 
-O repositório mantém dois lockfiles gerados pelo `npm`:
+## Guia de execução dos serviços
 
-- `frontend/cloudport/package-lock.json`: lockfile principal do front-end Angular.
-- `package-lock.json` na raiz: artefato herdado do bootstrap inicial do front-end que roda utilidades do Angular CLI diretamente da raiz. Ele replica um subconjunto das dependências usadas em `frontend/cloudport/package.json` para permitir que scripts de automação e ambientes legados (por exemplo, pipelines que executam `npm install` na raiz) continuem funcionando.
+### Serviço de Autenticação
 
-Ao atualizar dependências JavaScript, execute os comandos de instalação no diretório correspondente e sincronize manualmente o lockfile da raiz apenas quando o `package.json` da raiz sofrer alterações. Isso evita que os dois lockfiles evoluam de forma divergente.
+O serviço de autenticação autentica e autoriza usuários do CloudPort. O projeto foi inicializado com o Spring Initializr.
 
+#### Dependências principais
 
-## Serviço de Gestão de Pátio
+- **Spring Web**
+- **Spring Data JPA**
+- **Spring Security / OAuth2**
+- **PostgreSQL Driver**
+- **Spring Boot DevTools**
+- **Lombok**
+- **Spring Boot Validation**
+- **Flyway Migration**
 
-O microserviço **servico-yard** é um exemplo simples de gestão de contêineres no pátio. Ele expõe duas rotas REST:
+#### Como executar
 
-- `GET /yard/containers` – lista os contêineres registrados.
-- `POST /yard/containers` – adiciona um novo contêiner.
+1. Clone o projeto e instale Maven + JDK 17.
+2. Copie `env.example` para `.env` e ajuste as variáveis `SPRING_*` e `JWT_SECRET`.
+3. Crie o banco `servico_autenticacao` (`createdb servico_autenticacao`).
+4. Navegue até `backend/servico-autenticacao` e execute `mvn spring-boot:run`.
 
-Para executá-lo, navegue até `backend/servico-yard` e rode `mvn spring-boot:run`. O serviço inicia na porta `8081`.
+### Serviço de Gestão de Pátio (`servico-yard`)
 
-## Serviço de Gate
+O microserviço expõe rotas REST para listar e registrar contêineres.
 
-O serviço **servico-gate** centraliza integrações de gate, realizando chamadas ao TOS, comunicação via RabbitMQ e persistência em PostgreSQL. Para executá-lo, configure as variáveis `GATE_*`, `TOS_API_*` e `DOCUMENT_STORAGE_*` descritas em `env.example`. Certifique-se também de que PostgreSQL e RabbitMQ estejam operacionais.
+```bash
+cd backend/servico-yard
+mvn spring-boot:run
+```
 
-### Subindo o serviço manualmente
+### Serviço de Gate (`servico-gate`)
+
+O serviço centraliza integrações de gate, realizando chamadas ao TOS, comunicação via RabbitMQ e persistência em PostgreSQL.
 
 ```bash
 cd backend/servico-gate
 mvn spring-boot:run
 ```
 
-Por padrão o serviço expõe a porta `GATE_SERVER_PORT` (valor padrão `8082`). Ajuste-a conforme necessário quando executar múltiplos serviços localmente.
+Variáveis obrigatórias: `GATE_DB_*`, `GATE_RABBIT_*`, `TOS_API_*`, `DOCUMENT_STORAGE_*`, `GATE_EVENT_*` e `GATE_QUEUE_*` conforme descrito em `env.example`.
 
-### Dependências externas sugeridas via Docker Compose
+### Dependências via Docker Compose
 
-Um arquivo `docker-compose` não está incluído, mas recomenda-se preparar containers semelhantes aos exemplos abaixo para desenvolvimento local:
+O arquivo [`docker/docker-compose.yml`](docker/docker-compose.yml) provê uma stack local com PostgreSQL, RabbitMQ, Redis (cache opcional) e o container do `servico-gate`. Ajuste as portas caso já existam instâncias na sua máquina.
 
-```yaml
-services:
-  gate-postgres:
-    image: postgres:13
-    ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_DB: servico_gate
-      POSTGRES_USER: ${GATE_DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${GATE_DB_PASSWORD:-postgres}
-  gate-rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: ${GATE_RABBIT_USERNAME:-guest}
-      RABBITMQ_DEFAULT_PASS: ${GATE_RABBIT_PASSWORD:-guest}
-```
+## Documentação complementar
 
-Atualize as portas caso já existam instâncias locais em execução.
+- [`docs/servico-gate-architecture.md`](docs/servico-gate-architecture.md): arquitetura lógica, diagramas e contratos detalhados do módulo.
+- [`docs/servico-gate-operacoes.md`](docs/servico-gate-operacoes.md): procedimentos operacionais padrão e plano de contingência.
+- [`docs/tos-architecture-overview.md`](docs/tos-architecture-overview.md): visão macro do TOS CloudPort.
+
+Contribuições são bem-vindas! Abra uma issue para discutir mudanças significativas antes de enviar um pull request.

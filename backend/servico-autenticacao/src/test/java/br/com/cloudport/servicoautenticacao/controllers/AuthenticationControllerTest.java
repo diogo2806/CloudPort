@@ -24,6 +24,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 
@@ -110,6 +111,19 @@ class AuthenticationControllerTest {
     }
 
     @Test
+    void login_shortFields_returnsBadRequestWithSizeMessages() throws Exception {
+        AuthenticationDTO dto = new AuthenticationDTO("ab", "123");
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value("Erro de validação dos dados enviados."))
+                .andExpect(jsonPath("$.erros.login").value("O login deve ter entre 3 e 100 caracteres."))
+                .andExpect(jsonPath("$.erros.password").value("A senha deve ter pelo menos 6 caracteres."));
+    }
+
+    @Test
     void register_duplicateLogin() throws Exception {
         when(userRepository.findByLogin("john"))
                 .thenReturn(Optional.of(new User()));
@@ -134,6 +148,22 @@ class AuthenticationControllerTest {
                 .andExpect(jsonPath("$.erros.login").value("O login é obrigatório."))
                 .andExpect(jsonPath("$.erros.password").value("A senha é obrigatória."))
                 .andExpect(jsonPath("$.erros.roles").value("Informe ao menos uma role."));
+    }
+
+    @Test
+    void register_blankRoleValue_returnsBadRequestWithElementMessage() throws Exception {
+        Set<String> roles = new LinkedHashSet<>();
+        roles.add(" ");
+        roles.add("ADMIN");
+
+        RegisterDTO dto = new RegisterDTO("usuario", "segredo", roles);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensagem").value("Erro de validação dos dados enviados."))
+                .andExpect(jsonPath("$.erros['roles[0]']").value("A role não pode ser vazia."));
     }
 
     @Test

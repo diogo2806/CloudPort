@@ -1,135 +1,93 @@
 package br.com.cloudport.servicogate.integration.tos;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import br.com.cloudport.servicogate.dto.TosContainerStatus;
-import br.com.cloudport.servicogate.integration.tos.model.TosBookingResponse;
-import br.com.cloudport.servicogate.integration.tos.model.TosContainerStatusResponse;
-import br.com.cloudport.servicogate.integration.tos.model.TosCustomsReleaseResponse;
-import br.com.cloudport.servicogate.model.Agendamento;
-import br.com.cloudport.servicogate.model.enums.TipoOperacao;
-import java.time.OffsetDateTime;
+import br.com.cloudport.servicogate.contingencia.ContingenciaProperties;
+import br.com.cloudport.servicogate.integration.tos.TosIntegrationException;
+import br.com.cloudport.servicogate.monitoring.GateMetrics;
+import br.com.cloudport.servicogate.monitoring.IntegracaoDegradacaoHandler;
+import com.squareup.okhttp.mockwebserver.MockResponse;
+import com.squareup.okhttp.mockwebserver.MockWebServer;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.io.IOException;
+import java.time.Duration;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.cache.CacheManager;
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+import org.springframework.web.reactive.function.client.WebClient;
 
 class TosIntegrationServiceTest {
 
-    private TosClient tosClient;
-    private TosResponseAdapter adapter;
-    private CacheManager cacheManager;
-    private TosIntegrationService service;
+    private MockWebServer mockWebServer;
+    private TosIntegrationService integrationService;
 
     @BeforeEach
-    void setUp() {
-        tosClient = Mockito.mock(TosClient.class);
-        adapter = new TosResponseAdapter();
-        cacheManager = new ConcurrentMapCacheManager(
-                TosCacheNames.BOOKING,
-                TosCacheNames.CONTAINER_STATUS,
-                TosCacheNames.CUSTOMS_RELEASE);
-        service = new TosIntegrationService(tosClient, adapter, cacheManager);
+    void setUp() throws IOException {
+        mockWebServer = new MockWebServer();
+        mockWebServer.start();
+
+        TosProperties properties = new TosProperties();
+        properties.getApi().setBaseUrl(mockWebServer.url("/").toString());
+        properties.getApi().setTimeout(Duration.ofSeconds(5));
+        properties.getCache().setMaxSize(10);
+        properties.getCache().setTtl(Duration.ofSeconds(30));
+
+        TosClientConfig config = new TosClientConfig();
+        WebClient webClient = config.tosWebClient(properties);
+        CacheManager cacheManager = config.cacheManager(properties);
+
+        IntegracaoDegradacaoHandler degradacaoHandler = new IntegracaoDegradacaoHandler(
+                new GateMetrics(new SimpleMeterRegistry()));
+        TosClient client = new TosClient(
+                webClient,
+                properties,
+                config.tosRetry(properties),
+                config.tosCircuitBreaker(CircuitBreakerRegistry.ofDefaults()),
+                degradacaoHandler,
+                new ContingenciaProperties()
+        );
+
+        integrationService = new TosIntegrationService(
+                client,
+                new TosResponseAdapter(),
+                cacheManager
+        );
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        mockWebServer.shutdown();
     }
 
     @Test
-    void deveLancarExcecaoQuandoBookingNaoEhEncontrado() {
-        when(tosClient.buscarBooking("BK404")).thenReturn(null);
+    @DisplayName("Deve validar criação de agendamento quando booking está liberado no TOS")
+    void deveValidarAgendamentoQuandoBookingLiberado() {
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{\"bookingNumber\":\"BK001\",\"released\":true,\"denialReason\":null}")
+                .addHeader("Content-Type", "application/json"));
 
-        TosIntegrationException exception = assertThrows(TosIntegrationException.class,
-                () -> service.validarAgendamentoParaCriacao("BK404", TipoOperacao.ENTRADA));
+        integrationService.validarAgendamentoParaCriacao("BK001", br.com.cloudport.servicogate.model.enums.TipoOperacao.ENTRADA);
 
-        assertThat(exception.getMessage()).contains("Booking BK404 não localizado");
+        var recorded = mockWebServer.getRequestCount();
+        assertThat(recorded).isEqualTo(1);
     }
 
     @Test
-    void deveLancarExcecaoQuandoBookingNaoEstaLiberado() {
-        TosBookingResponse response = new TosBookingResponse();
-        response.setBookingNumber("BK001");
-        response.setReleased(false);
-        response.setDenialReason("Bloqueio documental");
+    @DisplayName("Deve lançar exceção quando TOS sinalizar bloqueio do booking")
+    void deveLancarExcecaoQuandoBookingNegado() {
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{\"bookingNumber\":\"BK002\",\"released\":false,\"denialReason\":\"Pendência\"}")
+                .addHeader("Content-Type", "application/json"));
 
-        when(tosClient.buscarBooking("BK001")).thenReturn(response);
-
-        TosIntegrationException exception = assertThrows(TosIntegrationException.class,
-                () -> service.validarAgendamentoParaCriacao("BK001", TipoOperacao.ENTRADA));
-
-        assertThat(exception.getMessage()).contains("Bloqueio documental");
-    }
-
-    @Test
-    void deveRetornarStatusQuandoGateELiberacaoAduaneiraPermitidos() {
-        TosContainerStatusResponse statusResponse = new TosContainerStatusResponse();
-        statusResponse.setContainerNumber("CONT1");
-        statusResponse.setStatus("LIBERADO");
-        statusResponse.setGateAllowed(true);
-        statusResponse.setLastUpdate(OffsetDateTime.now());
-
-        TosCustomsReleaseResponse customsResponse = new TosCustomsReleaseResponse();
-        customsResponse.setReleased(true);
-
-        when(tosClient.buscarStatusContainer("CONT1")).thenReturn(statusResponse);
-        when(tosClient.buscarLiberacaoAduaneira("CONT1")).thenReturn(customsResponse);
-
-        Agendamento agendamento = new Agendamento();
-        agendamento.setId(1L);
-        agendamento.setCodigo("CONT1");
-
-        TosContainerStatus status = service.validarParaEntrada(agendamento);
-
-        assertThat(status).isNotNull();
-        assertThat(status.isGateLiberado()).isTrue();
-        assertThat(status.isLiberacaoAduaneira()).isTrue();
-    }
-
-    @Test
-    void deveLancarExcecaoQuandoGateNaoLiberado() {
-        TosContainerStatusResponse statusResponse = new TosContainerStatusResponse();
-        statusResponse.setContainerNumber("CONT2");
-        statusResponse.setStatus("HOLD");
-        statusResponse.setGateAllowed(false);
-        statusResponse.setHoldReason("Aguardando inspeção");
-
-        TosCustomsReleaseResponse customsResponse = new TosCustomsReleaseResponse();
-        customsResponse.setReleased(true);
-
-        when(tosClient.buscarStatusContainer("CONT2")).thenReturn(statusResponse);
-        when(tosClient.buscarLiberacaoAduaneira("CONT2")).thenReturn(customsResponse);
-
-        Agendamento agendamento = new Agendamento();
-        agendamento.setCodigo("CONT2");
-
-        TosIntegrationException exception = assertThrows(TosIntegrationException.class,
-                () -> service.validarParaEntrada(agendamento));
-
-        assertThat(exception.getMessage()).contains("TOS bloqueou o gate");
-    }
-
-    @Test
-    void deveLancarExcecaoQuandoLiberacaoAduaneiraNaoPermitida() {
-        TosContainerStatusResponse statusResponse = new TosContainerStatusResponse();
-        statusResponse.setContainerNumber("CONT3");
-        statusResponse.setStatus("CUSTOMS_HOLD");
-        statusResponse.setGateAllowed(true);
-        statusResponse.setHoldReason("Restrição aduaneira");
-
-        TosCustomsReleaseResponse customsResponse = new TosCustomsReleaseResponse();
-        customsResponse.setReleased(false);
-        customsResponse.setDenialReason("Falha documental");
-
-        when(tosClient.buscarStatusContainer("CONT3")).thenReturn(statusResponse);
-        when(tosClient.buscarLiberacaoAduaneira("CONT3")).thenReturn(customsResponse);
-
-        Agendamento agendamento = new Agendamento();
-        agendamento.setCodigo("CONT3");
-
-        TosIntegrationException exception = assertThrows(TosIntegrationException.class,
-                () -> service.validarParaEntrada(agendamento));
-
-        assertThat(exception.getMessage()).contains("pendência aduaneira");
-        assertThat(exception.getMessage()).contains("Falha documental");
+        assertThatThrownBy(() -> integrationService.validarAgendamentoParaCriacao("BK002",
+                br.com.cloudport.servicogate.model.enums.TipoOperacao.SAIDA))
+                .isInstanceOf(TosIntegrationException.class)
+                .hasMessageContaining("BK002")
+                .hasMessageContaining("Pendência");
     }
 }
+

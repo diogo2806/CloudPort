@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPattern": "/tos/bookings/([A-Z0-9-]+)"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "bookingNumber": "BK999",
+      "released": true,
+      "denialReason": null,
+      "vessel": "Cloud Express",
+      "voyage": "CP-01"
+    }
+  }
+}

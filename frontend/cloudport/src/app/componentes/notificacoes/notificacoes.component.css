@@ -1,0 +1,22 @@
+.notificacoes {
+  padding: 1.5rem;
+}
+
+.notificacoes table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.notificacoes th,
+.notificacoes td {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0.75rem 0;
+}
+
+.habilitado {
+  color: #2d9d4d;
+}
+
+.desabilitado {
+  color: #c53030;
+}

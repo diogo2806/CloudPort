@@ -26,19 +26,25 @@ public class SecurityFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         var token = this.recoverToken(request);
-        if(StringUtils.hasText(token)){
-            var login = tokenService.validateToken(token);
-            if (!StringUtils.hasText(login)) {
-                // SECURITY: evita acessar o repositório quando o token é inválido
-                filterChain.doFilter(request, response);
-                return;
-            }
-            UserDetails user = userRepository.findByLogin(login)
-                                             .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + login));
-
-            var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        if(!StringUtils.hasText(token)){
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token ausente");
+            return;
         }
+
+        var login = tokenService.validateToken(token);
+        if (login.isEmpty()) {
+            // SECURITY: evita acessar o repositório quando o token é inválido
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido");
+            return;
+        }
+
+        var loginValue = login.get();
+        UserDetails user = userRepository.findByLogin(loginValue)
+                                         .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + loginValue));
+
+        var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
         filterChain.doFilter(request, response);
     }
 

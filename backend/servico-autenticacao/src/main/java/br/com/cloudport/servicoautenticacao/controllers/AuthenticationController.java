@@ -83,7 +83,9 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<Void> register(@RequestBody @Valid RegisterDTO data){
-        if(this.userRepository.findByLogin(data.getLogin()).isPresent()) return ResponseEntity.badRequest().build();
+        if (this.userRepository.findByLogin(data.getLogin()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Login informado já está em uso.");
+        }
     
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.getPassword());
 
@@ -99,13 +101,13 @@ public class AuthenticationController {
 
         if (!normalizedAllowedRoles.containsAll(requestedRoles)) {
             // SECURITY: impede elevação de privilégio restringindo as roles permitidas no auto-registro
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Roles informadas não são permitidas para auto-registro");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Roles informadas não são permitidas para auto-registro.");
         }
 
         Set<UserRole> roles = requestedRoles.stream()
                               .map(roleName -> {
                                   Role role = roleRepository.findByName(roleName)
-                                          .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role " + roleName + " not found"));
+                                          .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role '" + roleName + "' não encontrada."));
                                   return new UserRole(null, role);
                               })
                               .collect(Collectors.toSet());
@@ -115,7 +117,7 @@ public class AuthenticationController {
             roles = normalizedAllowedRoles.stream()
                     .map(roleName -> roleRepository.findByName(roleName)
                             .map(role -> new UserRole(null, role))
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role " + roleName + " not found")))
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role '" + roleName + "' não encontrada.")))
                     .collect(Collectors.toSet());
         }
 

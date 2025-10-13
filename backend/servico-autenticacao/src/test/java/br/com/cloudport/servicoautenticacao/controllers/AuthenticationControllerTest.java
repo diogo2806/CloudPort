@@ -133,7 +133,8 @@ class AuthenticationControllerTest {
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Login informado já está em uso."));
     }
 
     @Test
@@ -202,6 +203,6 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("Role UNKNOWN not found"));
+                .andExpect(jsonPath("$.message").value("Role 'UNKNOWN' não encontrada."));
     }
 }

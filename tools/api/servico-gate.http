@@ -1,0 +1,53 @@
+### Criar protocolo de gate-in
+POST http://localhost:8082/gate/in/check-in
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-Request-Id: {{$guid}}
+
+{
+  "containerId": "MSCU1234567",
+  "truckPlate": "ABC1D23",
+  "driverDocument": "12345678900",
+  "scheduledSlot": "2024-04-18T13:30:00Z",
+  "documents": [
+    {
+      "type": "CNTR_GATE_IN",
+      "url": "https://storage.local/documents/manifesto-123.pdf"
+    }
+  ]
+}
+
+### Consultar status do gate-in
+GET http://localhost:8082/gate/in/{{protocoloId}}/status
+Authorization: Bearer {{token}}
+
+### Validar gate-out
+POST http://localhost:8082/gate/out/validate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-Request-Id: {{$guid}}
+
+{
+  "protocolId": "{{protocoloId}}",
+  "containerId": "MSCU1234567",
+  "sealNumber": "SEAL987654",
+  "driverDocument": "12345678900"
+}
+
+### Confirmar conclusão do gate-out
+POST http://localhost:8082/gate/out/{{protocoloId}}/confirm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-Request-Id: {{$guid}}
+
+{
+  "exitLane": "LANE-02",
+  "notes": "Saída autorizada sem pendências"
+}
+
+### Health check
+GET http://localhost:8082/health
+
+### Variáveis de ambiente para VS Code REST Client
+@token = eyJhbGciOiJIUzI1NiJ9.mocked
+@protocoloId = 11111111-2222-3333-4444-555555555555

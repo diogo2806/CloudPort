@@ -1,18 +1,20 @@
 package br.com.cloudport.servicoautenticacao.config;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTCreationException;
-import com.auth0.jwt.exceptions.JWTVerificationException;
 import br.com.cloudport.servicoautenticacao.model.Role;
 import br.com.cloudport.servicoautenticacao.model.User;
 import br.com.cloudport.servicoautenticacao.model.UserRole;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Optional;
@@ -21,6 +23,9 @@ import java.util.stream.Collectors;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+
 @Service
 public class TokenService {
     @Value("${api.security.token.secret}")
@@ -28,8 +33,8 @@ public class TokenService {
 
     public String generateToken(User user){
         try{
-            Algorithm algorithm = Algorithm.HMAC256(secret);
-            Set<String> roles = Optional.ofNullable(user.getRoles()).orElseGet(java.util.Collections::emptySet).stream()
+            SecretKey algorithm = signingKey();
+            Set<String> roles = Optional.ofNullable(user.getRoles()).orElseGet(Collections::emptySet).stream()
                     .map(UserRole::getRole)
                     .map(Role::getName)
                     .filter(StringUtils::hasText)
@@ -38,32 +43,49 @@ public class TokenService {
 
             String perfil = roles.stream().findFirst().orElse(null);
 
-            return JWT.create()
-                    .withIssuer("auth-api")
-                    .withSubject(user.getLogin())
-                    .withClaim("userId", user.getId() != null ? user.getId().toString() : null)
-                    .withClaim("nome", user.getNome())
-                    .withClaim("perfil", perfil)
-                    .withClaim("roles", CollectionUtils.isEmpty(roles) ? null : roles)
-                    .withClaim("transportadoraDocumento", user.getTransportadoraDocumento())
-                    .withClaim("transportadoraNome", user.getTransportadoraNome())
-                    .withExpiresAt(Date.from(genExpirationDate()))
-                    .sign(algorithm);
-        } catch (JWTCreationException exception) {
+            var claims = new HashMap<String, Object>();
+            if (user.getId() != null) {
+                claims.put("userId", user.getId().toString());
+            }
+            if (StringUtils.hasText(user.getNome())) {
+                claims.put("nome", user.getNome());
+            }
+            if (StringUtils.hasText(perfil)) {
+                claims.put("perfil", perfil);
+            }
+            if (!CollectionUtils.isEmpty(roles)) {
+                claims.put("roles", roles);
+            }
+            if (StringUtils.hasText(user.getTransportadoraDocumento())) {
+                claims.put("transportadoraDocumento", user.getTransportadoraDocumento());
+            }
+            if (StringUtils.hasText(user.getTransportadoraNome())) {
+                claims.put("transportadoraNome", user.getTransportadoraNome());
+            }
+
+            return Jwts.builder()
+                    .setIssuer("auth-api")
+                    .setSubject(user.getLogin())
+                    .setExpiration(Date.from(genExpirationDate()))
+                    .addClaims(claims)
+                    .signWith(algorithm, SignatureAlgorithm.HS256)
+                    .compact();
+        } catch (JwtException exception) {
             throw new RuntimeException("Error while generating token", exception);
         }
     }
 
     public Optional<String> validateToken(String token){
         try {
-            Algorithm algorithm = Algorithm.HMAC256(secret);
-            var subject = JWT.require(algorithm)
-                    .withIssuer("auth-api")
+            SecretKey algorithm = signingKey();
+            Claims claims = Jwts.parserBuilder()
+                    .requireIssuer("auth-api")
+                    .setSigningKey(algorithm)
                     .build()
-                    .verify(token)
-                    .getSubject();
-            return Optional.ofNullable(subject);
-        } catch (JWTVerificationException exception){
+                    .parseClaimsJws(token)
+                    .getBody();
+            return Optional.ofNullable(claims.getSubject());
+        } catch (JwtException | IllegalArgumentException exception){
             // SECURITY: evita autenticação com tokens inválidos propagando ausência de subject
             return Optional.empty();
         }
@@ -71,5 +93,16 @@ public class TokenService {
 
     private Instant genExpirationDate(){
         return LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-03:00"));
+    }
+
+    private SecretKey signingKey() {
+        if (!StringUtils.hasText(secret)) {
+            throw new IllegalStateException("Token secret must be configured");
+        }
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException("Token secret must be at least 256 bits (32 bytes)");
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }

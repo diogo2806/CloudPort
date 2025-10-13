@@ -1,0 +1,60 @@
+{
+  "gate": {
+    "agendamentoDetalhe": {
+      "selecione": "Select a booking to view its details.",
+      "operacao": "Operation",
+      "janela": "Time slot",
+      "motorista": "Driver",
+      "placa": "License plate",
+      "chegadaPrevista": "Expected arrival",
+      "saidaPrevista": "Expected departure",
+      "documentosAnexados": "Uploaded documents",
+      "quantidadeDocumentos": "{{quantidade}} documents",
+      "nenhumDocumento": "No documents uploaded yet.",
+      "adicionarDocumentos": "Add documents",
+      "selecionarArquivos": "Select files",
+      "enviarDocumentos": "Upload documents",
+      "uploadConcluido": "Completed",
+      "uploadErro": "Error",
+      "confirmarChegada": "Confirm early arrival",
+      "revalidarDocumentos": "Revalidate documentation",
+      "downloadComprovante": "Download receipt",
+      "imprimir": "Print",
+      "instrucoesTitulo": "Driver instructions",
+      "instrucoes": [
+        "Present the QR Code at the self-service kiosk upon arrival.",
+        "Keep the mandatory documents accessible for inspection.",
+        "Respect the scheduled window. Early arrivals over 30 minutes must wait in the staging area.",
+        "If you have questions, contact the gate support team."
+      ],
+      "janelaProxima": "Window starts in {{minutos}} minutes.",
+      "statusAtualizado": "Status updated to {{status}}.",
+      "pushPermissionDenied": "Browser notifications were denied by the user.",
+      "notificacaoJanelaTitulo": "Upcoming slot",
+      "realtimeErro": "Real-time connection failed. Refresh the page to try again.",
+      "comprovanteTitulo": "CloudPort Gate booking receipt",
+      "comprovanteLegenda": "Document generated on {{data}}",
+      "comprovanteObservacao": "Bring this receipt printed or in digital format to speed up clearance.",
+      "comprovanteCampos": {
+        "codigo": "Code",
+        "transportadora": "Carrier",
+        "motorista": "Driver",
+        "placa": "License plate",
+        "janela": "Time slot",
+        "status": "Status",
+        "documentos": "Documents"
+      },
+      "comprovanteSemDocumentos": "No documents registered.",
+      "comprovanteSemRevalidacao": "Not revalidated",
+      "motoristaPass": {
+        "titulo": "Driver pass",
+        "subtitulo": "Show this QR Code to access the gate",
+        "codigo": "Pass code",
+        "status": "Pass status",
+        "atualizadoEm": "Updated on {{data}}"
+      },
+      "ultimaRevalidacao": "Last revalidation",
+      "abrirDocumento": "Open"
+    }
+  }
+}

@@ -36,6 +36,14 @@ export class GateApiService {
     return this.http.get<Agendamento>(`${this.agendamentosUrl}/${id}`);
   }
 
+  confirmarChegadaAntecipada(id: number): Observable<Agendamento> {
+    return this.http.post<Agendamento>(`${this.baseUrl}/agendamentos/${id}/confirmar-chegada`, {});
+  }
+
+  revalidarDocumentos(id: number): Observable<Agendamento> {
+    return this.http.post<Agendamento>(`${this.agendamentosUrl}/${id}/documentos/revalidar`, {});
+  }
+
   criarAgendamento(request: AgendamentoRequest): Observable<Agendamento> {
     return this.http.post<Agendamento>(this.agendamentosUrl, request);
   }
@@ -99,11 +107,27 @@ export class GateApiService {
 
   uploadDocumentoAgendamento(id: number, arquivo: File): Observable<HttpEvent<DocumentoAgendamento>> {
     const formData = new FormData();
+    const metadata = {
+      tipoDocumento: this.inferirTipoDocumento(arquivo),
+      numero: null
+    };
+    formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     formData.append('arquivo', arquivo, arquivo.name);
     return this.http.post<DocumentoAgendamento>(`${this.agendamentosUrl}/${id}/documentos`, formData, {
       reportProgress: true,
       observe: 'events'
     });
+  }
+
+  private inferirTipoDocumento(arquivo: File): string {
+    if (arquivo.type) {
+      return arquivo.type;
+    }
+    const partesNome = arquivo.name?.split('.') ?? [];
+    if (partesNome.length > 1) {
+      return partesNome.pop()!.toUpperCase();
+    }
+    return 'ARQUIVO';
   }
 
   private buildParams(filters?: Record<string, string | number | boolean | undefined | null>): HttpParams {

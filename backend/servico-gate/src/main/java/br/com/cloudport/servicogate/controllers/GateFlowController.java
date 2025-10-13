@@ -1,5 +1,6 @@
 package br.com.cloudport.servicogate.controllers;
 
+import br.com.cloudport.servicogate.dto.AgendamentoDTO;
 import br.com.cloudport.servicogate.dto.GateDecisionDTO;
 import br.com.cloudport.servicogate.dto.GateEventDTO;
 import br.com.cloudport.servicogate.dto.GateFlowRequest;
@@ -59,5 +60,13 @@ public class GateFlowController {
     public ResponseEntity<TosSyncResponse> sincronizar(@PathVariable("id") Long agendamentoId) {
         TosSyncResponse sincronizacao = gateFlowService.sincronizarAgendamento(agendamentoId);
         return ResponseEntity.ok(sincronizacao);
+    }
+
+    @PostMapping("/agendamentos/{id}/confirmar-chegada")
+    @Operation(summary = "Confirma chegada antecipada do motorista antes da janela")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE','PLANEJADOR')")
+    public ResponseEntity<AgendamentoDTO> confirmarChegada(@PathVariable("id") Long agendamentoId) {
+        AgendamentoDTO atualizado = gateFlowService.confirmarChegadaAntecipada(agendamentoId);
+        return ResponseEntity.ok(atualizado);
     }
 }

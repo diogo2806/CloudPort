@@ -1,0 +1,60 @@
+{
+  "gate": {
+    "agendamentoDetalhe": {
+      "selecione": "Selecione um agendamento para visualizar os detalhes.",
+      "operacao": "Operação",
+      "janela": "Janela",
+      "motorista": "Motorista",
+      "placa": "Placa",
+      "chegadaPrevista": "Chegada prevista",
+      "saidaPrevista": "Saída prevista",
+      "documentosAnexados": "Documentos anexados",
+      "quantidadeDocumentos": "{{quantidade}} documentos",
+      "nenhumDocumento": "Nenhum documento enviado ainda.",
+      "adicionarDocumentos": "Adicionar documentos",
+      "selecionarArquivos": "Selecionar arquivos",
+      "enviarDocumentos": "Enviar documentos",
+      "uploadConcluido": "Concluído",
+      "uploadErro": "Erro",
+      "confirmarChegada": "Confirmar chegada antecipada",
+      "revalidarDocumentos": "Revalidar documentação",
+      "downloadComprovante": "Download do comprovante",
+      "imprimir": "Imprimir",
+      "instrucoesTitulo": "Instruções ao motorista",
+      "instrucoes": [
+        "Apresente o QR Code no totem de autoatendimento ao chegar ao porto.",
+        "Mantenha os documentos obrigatórios acessíveis para checagem.",
+        "Respeite o horário da janela. Chegadas com mais de 30 minutos de antecedência devem aguardar no bolsão.",
+        "Em caso de dúvida, procure a equipe de suporte do gate."
+      ],
+      "janelaProxima": "Janela iniciando em {{minutos}} minutos.",
+      "statusAtualizado": "Status atualizado para {{status}}.",
+      "pushPermissionDenied": "Notificações de navegador desativadas pelo usuário.",
+      "notificacaoJanelaTitulo": "Janela próxima",
+      "realtimeErro": "Falha na conexão em tempo real. Atualize a página para tentar novamente.",
+      "comprovanteTitulo": "Comprovante de agendamento Gate CloudPort",
+      "comprovanteLegenda": "Documento gerado em {{data}}",
+      "comprovanteObservacao": "Leve este comprovante impresso ou em formato digital para facilitar a liberação.",
+      "comprovanteCampos": {
+        "codigo": "Código",
+        "transportadora": "Transportadora",
+        "motorista": "Motorista",
+        "placa": "Placa",
+        "janela": "Janela",
+        "status": "Status",
+        "documentos": "Documentos"
+      },
+      "comprovanteSemDocumentos": "Nenhum documento cadastrado.",
+      "comprovanteSemRevalidacao": "Não revalidado",
+      "motoristaPass": {
+        "titulo": "Passe do motorista",
+        "subtitulo": "Mostre este QR Code para acessar o gate",
+        "codigo": "Código do passe",
+        "status": "Status do passe",
+        "atualizadoEm": "Atualizado em {{data}}"
+      },
+      "ultimaRevalidacao": "Última revalidação",
+      "abrirDocumento": "Abrir"
+    }
+  }
+}

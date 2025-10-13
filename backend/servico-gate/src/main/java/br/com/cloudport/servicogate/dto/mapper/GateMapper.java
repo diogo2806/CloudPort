@@ -93,7 +93,8 @@ public final class GateMapper {
                 entity.getUrlDocumento(),
                 entity.getNomeArquivo(),
                 entity.getContentType(),
-                entity.getTamanhoBytes()
+                entity.getTamanhoBytes(),
+                entity.getUltimaRevalidacao()
         );
     }
 
@@ -130,7 +131,8 @@ public final class GateMapper {
                 statusGate != null ? statusGate.getDescricao() : null,
                 entity.getDataEntrada(),
                 entity.getDataSaida(),
-                eventos
+                eventos,
+                entity.getToken()
         );
     }
 

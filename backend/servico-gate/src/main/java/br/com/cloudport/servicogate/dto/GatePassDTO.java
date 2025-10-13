@@ -12,12 +12,14 @@ public class GatePassDTO {
     private LocalDateTime dataEntrada;
     private LocalDateTime dataSaida;
     private List<GateEventDTO> eventos;
+    private String token;
 
     public GatePassDTO() {
     }
 
     public GatePassDTO(Long id, String codigo, String status, String statusDescricao,
-                       LocalDateTime dataEntrada, LocalDateTime dataSaida, List<GateEventDTO> eventos) {
+                       LocalDateTime dataEntrada, LocalDateTime dataSaida, List<GateEventDTO> eventos,
+                       String token) {
         this.id = id;
         this.codigo = codigo;
         this.status = status;
@@ -25,6 +27,7 @@ public class GatePassDTO {
         this.dataEntrada = dataEntrada;
         this.dataSaida = dataSaida;
         this.eventos = eventos;
+        this.token = token;
     }
 
     public Long getId() {
@@ -81,5 +84,13 @@ public class GatePassDTO {
 
     public void setEventos(List<GateEventDTO> eventos) {
         this.eventos = eventos;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }

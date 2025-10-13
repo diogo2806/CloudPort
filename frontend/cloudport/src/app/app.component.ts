@@ -2,6 +2,7 @@ import { Component, OnDestroy } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-root',
@@ -13,8 +14,13 @@ export class AppComponent implements OnDestroy {
   showChrome = true;
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private router: Router) {
+  constructor(private router: Router, private translate: TranslateService) {
     this.updateChromeVisibility(this.router.url);
+    this.translate.addLangs(['pt', 'en', 'es']);
+    this.translate.setDefaultLang('pt');
+    const browserLang = this.translate.getBrowserLang();
+    const fallback = browserLang && ['pt', 'en', 'es'].includes(browserLang) ? browserLang : 'pt';
+    this.translate.use(fallback);
 
     this.router.events
       .pipe(

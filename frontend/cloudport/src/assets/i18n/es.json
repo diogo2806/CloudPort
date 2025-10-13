@@ -1,0 +1,60 @@
+{
+  "gate": {
+    "agendamentoDetalhe": {
+      "selecione": "Seleccione una cita para ver los detalles.",
+      "operacao": "Operación",
+      "janela": "Franja",
+      "motorista": "Conductor",
+      "placa": "Matrícula",
+      "chegadaPrevista": "Llegada prevista",
+      "saidaPrevista": "Salida prevista",
+      "documentosAnexados": "Documentos cargados",
+      "quantidadeDocumentos": "{{quantidade}} documentos",
+      "nenhumDocumento": "Todavía no se cargaron documentos.",
+      "adicionarDocumentos": "Agregar documentos",
+      "selecionarArquivos": "Seleccionar archivos",
+      "enviarDocumentos": "Enviar documentos",
+      "uploadConcluido": "Completado",
+      "uploadErro": "Error",
+      "confirmarChegada": "Confirmar llegada anticipada",
+      "revalidarDocumentos": "Revalidar documentación",
+      "downloadComprovante": "Descargar comprobante",
+      "imprimir": "Imprimir",
+      "instrucoesTitulo": "Instrucciones para el conductor",
+      "instrucoes": [
+        "Presente el código QR en el tótem de autoservicio al llegar.",
+        "Mantenga los documentos obligatorios accesibles para la inspección.",
+        "Respete la franja horaria. Las llegadas con más de 30 minutos de anticipación deben esperar en la zona designada.",
+        "Ante dudas, contacte al equipo de soporte del gate."
+      ],
+      "janelaProxima": "La franja comienza en {{minutos}} minutos.",
+      "statusAtualizado": "Estado actualizado a {{status}}.",
+      "pushPermissionDenied": "Las notificaciones del navegador fueron rechazadas por el usuario.",
+      "notificacaoJanelaTitulo": "Franja próxima",
+      "realtimeErro": "Fallo la conexión en tiempo real. Actualice la página para intentarlo nuevamente.",
+      "comprovanteTitulo": "Comprobante de cita Gate CloudPort",
+      "comprovanteLegenda": "Documento generado el {{data}}",
+      "comprovanteObservacao": "Lleve este comprobante impreso o digital para agilizar la liberación.",
+      "comprovanteCampos": {
+        "codigo": "Código",
+        "transportadora": "Transportista",
+        "motorista": "Conductor",
+        "placa": "Matrícula",
+        "janela": "Franja",
+        "status": "Estado",
+        "documentos": "Documentos"
+      },
+      "comprovanteSemDocumentos": "No hay documentos registrados.",
+      "comprovanteSemRevalidacao": "Sin revalidar",
+      "motoristaPass": {
+        "titulo": "Pase del conductor",
+        "subtitulo": "Muestre este código QR para acceder al gate",
+        "codigo": "Código del pase",
+        "status": "Estado del pase",
+        "atualizadoEm": "Actualizado el {{data}}"
+      },
+      "ultimaRevalidacao": "Última revalidación",
+      "abrirDocumento": "Abrir"
+    }
+  }
+}

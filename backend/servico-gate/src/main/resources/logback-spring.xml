@@ -1,0 +1,32 @@
+<configuration scan="true">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <pattern>
+                    <pattern>
+                        {
+                            "level":"%level",
+                            "logger":"%logger",
+                            "thread":"%thread",
+                            "message":"%message"
+                        }
+                    </pattern>
+                </pattern>
+                <mdc/>
+                <logstashMarkers/>
+                <arguments/>
+                <provider class="net.logstash.logback.composite.GlobalCustomFieldsJsonProvider">
+                    <customFields>{"service":"${spring.application.name:-servico-gate}"}</customFields>
+                </provider>
+                <stackTrace/>
+            </providers>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

@@ -1,5 +1,7 @@
 package br.com.cloudport.servicogate.security;
 
+import br.com.cloudport.servicogate.monitoring.IntegracaoDegradacaoHandler;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.net.URI;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -21,13 +23,21 @@ public class AutenticacaoClient {
 
     private final RestTemplate restTemplate;
     private final String autenticacaoBaseUrl;
+    private final IntegracaoDegradacaoHandler degradacaoHandler;
+    private final String fallbackOrientacao;
 
     public AutenticacaoClient(RestTemplate restTemplate,
-                              @Value("${cloudport.security.autenticacao.base-url}") String autenticacaoBaseUrl) {
+                              @Value("${cloudport.security.autenticacao.base-url}") String autenticacaoBaseUrl,
+                              IntegracaoDegradacaoHandler degradacaoHandler,
+                              @Value("${cloudport.security.autenticacao.fallback-orientacao:Validar credenciais manualmente com a equipe de segurança e registrar acessos temporários.}")
+                                      String fallbackOrientacao) {
         this.restTemplate = restTemplate;
         this.autenticacaoBaseUrl = autenticacaoBaseUrl;
+        this.degradacaoHandler = degradacaoHandler;
+        this.fallbackOrientacao = fallbackOrientacao;
     }
 
+    @CircuitBreaker(name = "autenticacao", fallbackMethod = "fallbackBuscarUsuario")
     public Optional<UserInfoResponse> buscarUsuario(String login, String authorizationHeader) {
         if (!StringUtils.hasText(autenticacaoBaseUrl) || !StringUtils.hasText(login)) {
             return Optional.empty();
@@ -45,5 +55,13 @@ public class AutenticacaoClient {
             LOGGER.debug("Falha ao buscar usuário {} no serviço de autenticação", login, ex);
             return Optional.empty();
         }
+    }
+
+    @SuppressWarnings("unused")
+    private Optional<UserInfoResponse> fallbackBuscarUsuario(String login, String authorizationHeader, Throwable throwable) {
+        degradacaoHandler.registrarDegradacao("autenticacao", "circuit-breaker", fallbackOrientacao);
+        LOGGER.warn("event=autenticacao.fallback login={} orientacao=\"{}\" causa={}",
+                login, fallbackOrientacao, throwable != null ? throwable.getMessage() : "desconhecida");
+        return Optional.empty();
     }
 }

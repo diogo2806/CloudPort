@@ -18,6 +18,7 @@ import br.com.cloudport.servicogate.model.GatePass;
 import br.com.cloudport.servicogate.model.enums.MotivoExcecao;
 import br.com.cloudport.servicogate.model.enums.StatusAgendamento;
 import br.com.cloudport.servicogate.model.enums.StatusGate;
+import br.com.cloudport.servicogate.monitoring.GateMetrics;
 import br.com.cloudport.servicogate.repository.AgendamentoRepository;
 import br.com.cloudport.servicogate.repository.GateEventRepository;
 import br.com.cloudport.servicogate.repository.GatePassRepository;
@@ -62,23 +63,28 @@ public class GateFlowService {
     private final GateEventRepository gateEventRepository;
     private final GateFlowProperties flowProperties;
     private final TosIntegrationService tosIntegrationService;
+    private final GateMetrics gateMetrics;
 
     public GateFlowService(AgendamentoRepository agendamentoRepository,
                            GatePassRepository gatePassRepository,
                            GateEventRepository gateEventRepository,
                            GateFlowProperties flowProperties,
-                           TosIntegrationService tosIntegrationService) {
+                           TosIntegrationService tosIntegrationService,
+                           GateMetrics gateMetrics) {
         this.agendamentoRepository = agendamentoRepository;
         this.gatePassRepository = gatePassRepository;
         this.gateEventRepository = gateEventRepository;
         this.flowProperties = flowProperties;
         this.tosIntegrationService = tosIntegrationService;
+        this.gateMetrics = gateMetrics;
     }
 
     public GateDecisionDTO registrarEntrada(GateFlowRequest request) {
         LocalDateTime timestamp = resolverTimestamp(request.getTimestamp());
         Agendamento agendamento = localizarAgendamento(request);
         GatePass gatePass = obterOuCriarGatePass(agendamento);
+        long inicioValidacao = System.nanoTime();
+        boolean sucesso = false;
         try {
             TosContainerStatus statusContainer = tosIntegrationService.validarParaEntrada(agendamento);
             validarStatusParaEntrada(agendamento);
@@ -103,12 +109,16 @@ public class GateFlowService {
                     statusContainer != null ? statusContainer.getStatus() : null,
                     statusContainer != null && statusContainer.isLiberacaoAduaneira());
 
+            sucesso = true;
             return GateDecisionDTO.autorizado(evento.getStatus(), agendamento, gatePass,
                     "Entrada liberada com sucesso");
         } catch (RuntimeException ex) {
             registrarEvento(gatePass, StatusGate.RETIDO, null, ex.getMessage(),
                     resolverOperador(request.getOperador()), timestamp);
             throw ex;
+        } finally {
+            Duration duracao = Duration.ofNanos(System.nanoTime() - inicioValidacao);
+            gateMetrics.registrarTempoValidacao(duracao, sucesso);
         }
     }
 

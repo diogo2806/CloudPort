@@ -32,7 +32,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
       private eRef: ElementRef
   ) {
     console.log("Classe NavbarComponent: Método construtor chamado.");
-    this.mostrarMenu = this.authenticationService.getMenuStatusValue();
   }
 
 

@@ -49,7 +49,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       const route = this.resolveChildRoute(lastTab.id);
       this.selectedTabId = route;
       this.tabContent[route] = this.tabService.getTabContent(route);
-      this.router.navigate(['/home', route]);
+      this.navigateToChild(route);
     });
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
   }
@@ -62,7 +62,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     const route = this.resolveChildRoute(tabId);
     this.selectedTabId = route;
     this.tabContent[route] = this.tabService.getTabContent(route);
-    this.router.navigate(['/home', route]);
+    this.navigateToChild(route);
   }
 
   logout() {
@@ -98,6 +98,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.defaultTab) {
       this.tabService.openTab(this.defaultTab);
     }
-    this.router.navigate(['/home', this.defaultChildRoute]);
+    this.navigateToChild(this.defaultChildRoute);
+  }
+
+  private navigateToChild(route: string): void {
+    const commands = ['/home', ...route.split('/')];
+    this.router.navigate(commands);
   }
 }

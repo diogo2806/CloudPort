@@ -1,5 +1,11 @@
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
-import { Agendamento, DocumentoAgendamento, UploadDocumentoStatus } from '../../../model/gate/agendamento.model';
+import {
+  Agendamento,
+  AgendamentoRealtimeConnection,
+  DocumentoAgendamento,
+  DocumentoRevalidacaoResultado,
+  UploadDocumentoStatus
+} from '../../../model/gate/agendamento.model';
 
 interface DocumentoPreview {
   nome: string;
@@ -17,7 +23,10 @@ interface DocumentoPreview {
 export class AgendamentoDetalheComponent implements OnChanges, OnDestroy {
   @Input() agendamento: Agendamento | null = null;
   @Input() uploadStatus: UploadDocumentoStatus[] = [];
+  @Input() realtimeStatus: AgendamentoRealtimeConnection | null = null;
   @Output() anexarDocumentos = new EventEmitter<File[]>();
+  @Output() agendamentoAtualizado = new EventEmitter<Agendamento>();
+  @Output() documentosRevalidados = new EventEmitter<DocumentoRevalidacaoResultado[]>();
 
   documentosSelecionados: DocumentoPreview[] = [];
 
@@ -58,6 +67,15 @@ export class AgendamentoDetalheComponent implements OnChanges, OnDestroy {
 
   existeUploadEmAndamento(): boolean {
     return this.uploadStatus.some((status) => status.status === 'enviando');
+  }
+
+  aoAtualizarAgendamento(agendamento: Agendamento): void {
+    this.agendamento = agendamento;
+    this.agendamentoAtualizado.emit(agendamento);
+  }
+
+  aoRevalidarDocumentos(resultados: DocumentoRevalidacaoResultado[]): void {
+    this.documentosRevalidados.emit(resultados);
   }
 
   private limparSelecao(): void {

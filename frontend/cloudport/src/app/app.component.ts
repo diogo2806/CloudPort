@@ -1,19 +1,25 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
+import { TranslateService } from '@ngx-translate/core';
+import { NotificationBridgeService } from './componentes/service/notification-bridge.service';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent implements OnDestroy {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'cloudport';
   showChrome = true;
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private readonly translateService: TranslateService,
+    private readonly notificationBridge: NotificationBridgeService
+  ) {
     this.updateChromeVisibility(this.router.url);
 
     this.router.events
@@ -24,6 +30,13 @@ export class AppComponent implements OnDestroy {
       .subscribe((event: NavigationEnd) => {
         this.updateChromeVisibility(event.urlAfterRedirects ?? event.url);
       });
+  }
+
+  ngOnInit(): void {
+    this.translateService.addLangs(['pt', 'en', 'es']);
+    this.translateService.setDefaultLang('pt');
+    this.translateService.use('pt');
+    this.notificationBridge.register();
   }
 
   ngOnDestroy(): void {

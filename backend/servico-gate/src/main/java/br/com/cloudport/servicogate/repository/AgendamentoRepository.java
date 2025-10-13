@@ -6,6 +6,8 @@ import br.com.cloudport.servicogate.model.enums.StatusAgendamento;
 import br.com.cloudport.servicogate.model.enums.TipoOperacao;
 import br.com.cloudport.servicogate.repository.projection.DashboardMetricsProjection;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,9 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     List<Agendamento> findByJanelaAtendimentoData(LocalDate data);
 
     Page<Agendamento> findByJanelaAtendimentoData(LocalDate data, Pageable pageable);
+
+    List<Agendamento> findByHorarioPrevistoChegadaBetweenAndStatusIn(LocalDateTime inicio, LocalDateTime fim,
+                                                                     Collection<StatusAgendamento> statuses);
 
     Page<Agendamento> findByJanelaAtendimentoDataBetween(LocalDate inicio, LocalDate fim, Pageable pageable);
 

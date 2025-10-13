@@ -65,6 +65,16 @@ public class LocalDocumentoStorageService implements DocumentoStorageService {
         return new FileSystemResource(arquivo);
     }
 
+    @Override
+    public boolean exists(String storageKey) {
+        Path baseDirectory = Paths.get(properties.getBasePath()).toAbsolutePath().normalize();
+        Path arquivo = baseDirectory.resolve(storageKey).normalize();
+        if (!arquivo.startsWith(baseDirectory)) {
+            return false;
+        }
+        return Files.exists(arquivo);
+    }
+
     private String extrairExtensao(String originalFilename) {
         if (!StringUtils.hasText(originalFilename)) {
             return "";

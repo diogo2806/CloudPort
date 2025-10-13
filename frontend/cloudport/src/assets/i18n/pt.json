@@ -1,0 +1,49 @@
+{
+  "gate": {
+    "detail": {
+      "title": "Comprovante do agendamento",
+      "qr": {
+        "title": "Passe do motorista",
+        "subtitle": "Apresente este QR Code na portaria.",
+        "download": "Baixar comprovante",
+        "print": "Imprimir",
+        "refresh": "Atualizar QR Code",
+        "error": "Não foi possível carregar o QR Code"
+      },
+      "actions": {
+        "confirmArrival": "Confirmar chegada antecipada",
+        "revalidateDocs": "Revalidar documentos",
+        "confirmArrivalSuccess": "Chegada registrada com sucesso",
+        "revalidateSuccess": "Documentos revalidados"
+      },
+      "instructions": {
+        "header": "Orientações",
+        "list": [
+          "Chegue com antecedência mínima de 15 minutos.",
+          "Tenha todos os documentos originais em mãos.",
+          "Mantenha o QR Code visível para leitura no totem.",
+          "Siga as instruções dos operadores do gate."
+        ],
+        "download": "Instruções em PDF"
+      },
+      "fields": {
+        "code": "Código",
+        "carrier": "Transportadora",
+        "driver": "Motorista",
+        "window": "Janela"
+      },
+      "status": {
+        "revalidating": "Revalidando documentos...",
+        "confirming": "Confirmando chegada...",
+        "windowReminder": "Sua janela inicia em {{minutes}} minutos",
+        "loadingQr": "Gerando QR Code...",
+        "select": "Selecione um agendamento para gerar o passe"
+      },
+      "realtime": {
+        "connected": "Atualização em tempo real ativa",
+        "reconnecting": "Reconectando em {{seconds}}s (tentativa {{attempt}})",
+        "disconnected": "Atualização em tempo real indisponível"
+      }
+    }
+  }
+}

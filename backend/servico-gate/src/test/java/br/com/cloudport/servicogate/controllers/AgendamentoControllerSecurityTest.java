@@ -4,6 +4,7 @@ import br.com.cloudport.servicogate.config.SecurityConfig;
 import br.com.cloudport.servicogate.dto.AgendamentoDTO;
 import br.com.cloudport.servicogate.dto.AgendamentoRequest;
 import br.com.cloudport.servicogate.security.TransportadoraSynchronizationFilter;
+import br.com.cloudport.servicogate.service.AgendamentoNotificationService;
 import br.com.cloudport.servicogate.service.AgendamentoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
@@ -45,6 +46,9 @@ class AgendamentoControllerSecurityTest {
 
     @MockBean
     private TransportadoraSynchronizationFilter transportadoraSynchronizationFilter;
+
+    @MockBean
+    private AgendamentoNotificationService notificationService;
 
     @Test
     void criarAgendamento_requerAutenticacao() throws Exception {

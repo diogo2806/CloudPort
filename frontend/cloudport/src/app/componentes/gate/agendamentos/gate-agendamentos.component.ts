@@ -1,11 +1,22 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { BehaviorSubject, EMPTY, Observable, Subject, from, of } from 'rxjs';
+import { BehaviorSubject, EMPTY, Observable, Subject, Subscription, from, of } from 'rxjs';
 import { catchError, concatMap, finalize, map, shareReplay, switchMap, take, takeUntil, tap, toArray } from 'rxjs/operators';
 import { GateApiService } from '../../service/servico-gate/gate-api.service';
-import { Agendamento, AgendamentoFormPayload, DocumentoAgendamento, UploadDocumentoStatus } from '../../model/gate/agendamento.model';
+import {
+  Agendamento,
+  AgendamentoFormPayload,
+  AgendamentoRealtimeConnection,
+  AgendamentoRealtimeEvent,
+  DocumentoAgendamento,
+  DocumentoRevalidacaoResultado,
+  UploadDocumentoStatus
+} from '../../model/gate/agendamento.model';
 import { JanelaAtendimento } from '../../model/gate/janela.model';
 import { PopupService } from '../../service/popupService';
 import { HttpEventType } from '@angular/common/http';
+import { AgendamentoRealtimeService } from '../../service/servico-gate/agendamento-realtime.service';
+import { NotificationBridgeService } from '../../service/notification-bridge.service';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-gate-agendamentos',
@@ -34,7 +45,18 @@ export class GateAgendamentosComponent implements OnInit, OnDestroy {
   uploadStatus: UploadDocumentoStatus[] = [];
   documentosExistentes: DocumentoAgendamento[] | null = [];
 
-  constructor(private readonly gateApi: GateApiService, private readonly popupService: PopupService) {}
+  realtimeStatus: AgendamentoRealtimeConnection | null = null;
+
+  private realtimeSubscription?: Subscription;
+  private realtimeAgendamentoId: number | null = null;
+
+  constructor(
+    private readonly gateApi: GateApiService,
+    private readonly popupService: PopupService,
+    private readonly realtimeService: AgendamentoRealtimeService,
+    private readonly notificationBridge: NotificationBridgeService,
+    private readonly translate: TranslateService
+  ) {}
 
   ngOnInit(): void {
     this.carregarAgendamentos();
@@ -43,6 +65,8 @@ export class GateAgendamentosComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destruir$.next();
     this.destruir$.complete();
+    this.desconectarRealtime();
+    this.realtimeService.limparTudo();
   }
 
   carregarAgendamentos(): void {
@@ -80,6 +104,7 @@ export class GateAgendamentosComponent implements OnInit, OnDestroy {
         if (!this.exibirFormulario) {
           this.emEdicao = null;
         }
+        this.conectarRealtime(id);
       });
   }
 
@@ -168,6 +193,100 @@ export class GateAgendamentosComponent implements OnInit, OnDestroy {
         }
         this.carregarAgendamentos();
       });
+  }
+
+  aoAtualizarAgendamento(agendamento: Agendamento): void {
+    this.selecionado = agendamento;
+    this.documentosExistentes = agendamento.documentos ?? [];
+    this.carregarAgendamentos();
+  }
+
+  aoDocumentosRevalidados(resultados: DocumentoRevalidacaoResultado[]): void {
+    if (resultados.length) {
+      const validos = resultados.filter((resultado) => resultado.valido).length;
+      const mensagem = `${validos}/${resultados.length} ${this.selecionado?.codigo}`;
+      this.notificationBridge.notify(this.translate.instant('gate.detail.actions.revalidateSuccess'), { body: mensagem });
+    }
+  }
+
+  private conectarRealtime(id: number): void {
+    if (this.realtimeAgendamentoId === id) {
+      return;
+    }
+    this.desconectarRealtime();
+    this.realtimeAgendamentoId = id;
+    this.realtimeStatus = null;
+    this.realtimeSubscription = this.realtimeService.conectar(id).subscribe((evento) =>
+      this.processarEventoRealtime(evento)
+    );
+  }
+
+  private desconectarRealtime(): void {
+    if (this.realtimeAgendamentoId != null) {
+      this.realtimeService.desconectar(this.realtimeAgendamentoId);
+      this.realtimeAgendamentoId = null;
+    }
+    this.realtimeSubscription?.unsubscribe();
+    this.realtimeSubscription = undefined;
+    this.realtimeStatus = null;
+  }
+
+  private processarEventoRealtime(evento: AgendamentoRealtimeEvent): void {
+    if (!this.selecionado || this.selecionado.id !== this.realtimeAgendamentoId) {
+      return;
+    }
+    switch (evento.type) {
+      case 'connection':
+        this.realtimeStatus = evento.payload;
+        if (evento.payload.state === 'reconnecting') {
+          this.notificationBridge.notify(
+            this.translate.instant('gate.detail.realtime.reconnecting', {
+              seconds: evento.payload.delaySeconds ?? 0,
+              attempt: evento.payload.attempt ?? 0
+            }),
+            { body: this.selecionado.codigo }
+          );
+        }
+        if (evento.payload.state === 'connected' && evento.payload.attempt === 0) {
+          this.notificationBridge.notify(this.translate.instant('gate.detail.realtime.connected'), {
+            body: this.selecionado.codigo
+          });
+        }
+        if (evento.payload.state === 'disconnected') {
+          this.notificationBridge.notify(this.translate.instant('gate.detail.realtime.disconnected'), {
+            body: this.selecionado.codigo
+          });
+        }
+        break;
+      case 'status':
+        this.selecionado = {
+          ...this.selecionado,
+          status: evento.payload.status,
+          statusDescricao: evento.payload.statusDescricao,
+          horarioRealChegada: evento.payload.horarioRealChegada,
+          horarioRealSaida: evento.payload.horarioRealSaida,
+          observacoes: evento.payload.observacao
+        };
+        this.carregarAgendamentos();
+        break;
+      case 'snapshot':
+        this.selecionado = evento.payload;
+        this.documentosExistentes = evento.payload.documentos ?? [];
+        this.carregarAgendamentos();
+        break;
+      case 'documentos-revalidados':
+        this.notificationBridge.notify(
+          this.translate.instant('gate.detail.actions.revalidateSuccess'),
+          { body: `${evento.payload.length} ${this.translate.instant('gate.detail.instructions.header')}` }
+        );
+        break;
+      case 'window-reminder':
+        this.notificationBridge.notify(
+          this.translate.instant('gate.detail.status.windowReminder', { minutes: evento.payload.minutosRestantes }),
+          { body: evento.payload.codigoAgendamento }
+        );
+        break;
+    }
   }
 
   private iniciarEdicao(id: number): void {

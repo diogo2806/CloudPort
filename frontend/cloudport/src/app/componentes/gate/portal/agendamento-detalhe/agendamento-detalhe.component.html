@@ -7,34 +7,69 @@
     <span class="badge">{{ agendamento?.statusDescricao || agendamento?.status }}</span>
   </header>
 
-  <div class="agendamento-detalhe__grid">
-    <div>
-      <span class="rotulo">Operação</span>
-      <span>{{ agendamento?.tipoOperacaoDescricao || agendamento?.tipoOperacao }}</span>
+  <div class="agendamento-detalhe__status" *ngIf="realtimeStatus as status" [attr.aria-live]="'polite'">
+    <span
+      class="agendamento-detalhe__status-dot"
+      [ngClass]="{
+        'agendamento-detalhe__status-dot--ok': status.state === 'connected',
+        'agendamento-detalhe__status-dot--alert': status.state === 'reconnecting',
+        'agendamento-detalhe__status-dot--error': status.state === 'disconnected'
+      }"
+    ></span>
+    <span class="agendamento-detalhe__status-text">
+      <ng-container [ngSwitch]="status.state">
+        <ng-container *ngSwitchCase="'connected'">
+          {{ 'gate.detail.realtime.connected' | translate }}
+        </ng-container>
+        <ng-container *ngSwitchCase="'reconnecting'">
+          {{
+            'gate.detail.realtime.reconnecting'
+              | translate: { seconds: status.delaySeconds || 0, attempt: status.attempt || 0 }
+          }}
+        </ng-container>
+        <ng-container *ngSwitchDefault>
+          {{ 'gate.detail.realtime.disconnected' | translate }}
+        </ng-container>
+      </ng-container>
+    </span>
+  </div>
+
+  <div class="agendamento-detalhe__resumo">
+    <div class="agendamento-detalhe__grid">
+      <div>
+        <span class="rotulo">Operação</span>
+        <span>{{ agendamento?.tipoOperacaoDescricao || agendamento?.tipoOperacao }}</span>
+      </div>
+      <div>
+        <span class="rotulo">Janela</span>
+        <span>
+          {{ agendamento?.dataJanela | date: 'dd/MM/yyyy' }}
+          {{ agendamento?.horaInicioJanela }} - {{ agendamento?.horaFimJanela }}
+        </span>
+      </div>
+      <div>
+        <span class="rotulo">Motorista</span>
+        <span>{{ agendamento?.motoristaNome || '—' }}</span>
+      </div>
+      <div>
+        <span class="rotulo">Placa</span>
+        <span>{{ agendamento?.placaVeiculo || '—' }}</span>
+      </div>
+      <div>
+        <span class="rotulo">Chegada Prevista</span>
+        <span>{{ agendamento?.horarioPrevistoChegada || '—' }}</span>
+      </div>
+      <div>
+        <span class="rotulo">Saída Prevista</span>
+        <span>{{ agendamento?.horarioPrevistoSaida || '—' }}</span>
+      </div>
     </div>
-    <div>
-      <span class="rotulo">Janela</span>
-      <span>
-        {{ agendamento?.dataJanela | date: 'dd/MM/yyyy' }}
-        {{ agendamento?.horaInicioJanela }} - {{ agendamento?.horaFimJanela }}
-      </span>
-    </div>
-    <div>
-      <span class="rotulo">Motorista</span>
-      <span>{{ agendamento?.motoristaNome || '—' }}</span>
-    </div>
-    <div>
-      <span class="rotulo">Placa</span>
-      <span>{{ agendamento?.placaVeiculo || '—' }}</span>
-    </div>
-    <div>
-      <span class="rotulo">Chegada Prevista</span>
-      <span>{{ agendamento?.horarioPrevistoChegada || '—' }}</span>
-    </div>
-    <div>
-      <span class="rotulo">Saída Prevista</span>
-      <span>{{ agendamento?.horarioPrevistoSaida || '—' }}</span>
-    </div>
+    <app-motorista-pass
+      class="agendamento-detalhe__pass"
+      [agendamento]="agendamento"
+      (atualizado)="aoAtualizarAgendamento($event)"
+      (documentosRevalidados)="aoRevalidarDocumentos($event)"
+    ></app-motorista-pass>
   </div>
 
   <section class="agendamento-detalhe__documentos">

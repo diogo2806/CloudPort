@@ -23,7 +23,10 @@
       class="gate-agendamentos__detalhe"
       [agendamento]="selecionado"
       [uploadStatus]="uploadStatus"
+      [realtimeStatus]="realtimeStatus"
       (anexarDocumentos)="anexarDocumentos($event)"
+      (agendamentoAtualizado)="aoAtualizarAgendamento($event)"
+      (documentosRevalidados)="aoDocumentosRevalidados($event)"
     ></app-agendamento-detalhe>
   </div>
 

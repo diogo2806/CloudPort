@@ -3,14 +3,19 @@ package br.com.cloudport.servicogate.service;
 import br.com.cloudport.servicogate.config.AgendamentoRulesProperties;
 import br.com.cloudport.servicogate.dto.AgendamentoDTO;
 import br.com.cloudport.servicogate.dto.AgendamentoRequest;
+import br.com.cloudport.servicogate.dto.ConfirmacaoChegadaRequest;
 import br.com.cloudport.servicogate.dto.DocumentoAgendamentoDTO;
+import br.com.cloudport.servicogate.dto.DocumentoRevalidacaoResultadoDTO;
+import br.com.cloudport.servicogate.dto.DocumentoRevalidacaoResponse;
 import br.com.cloudport.servicogate.dto.DocumentoUploadRequest;
+import br.com.cloudport.servicogate.dto.GatePassQrCodeDTO;
 import br.com.cloudport.servicogate.dto.mapper.GateMapper;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.exception.NotFoundException;
 import br.com.cloudport.servicogate.integration.tos.TosIntegrationService;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.DocumentoAgendamento;
+import br.com.cloudport.servicogate.model.GatePass;
 import br.com.cloudport.servicogate.model.JanelaAtendimento;
 import br.com.cloudport.servicogate.model.Motorista;
 import br.com.cloudport.servicogate.model.Transportadora;
@@ -29,6 +34,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -40,6 +47,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
 
 @Service
 @Transactional
@@ -55,6 +63,8 @@ public class AgendamentoService {
     private final AgendamentoRulesProperties rulesProperties;
     private final TosIntegrationService tosIntegrationService;
     private final DashboardService dashboardService;
+    private final AgendamentoNotificationService notificationService;
+    private final QrCodeService qrCodeService;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AgendamentoService.class);
 
@@ -67,7 +77,9 @@ public class AgendamentoService {
                               DocumentoStorageService documentoStorageService,
                               AgendamentoRulesProperties rulesProperties,
                               TosIntegrationService tosIntegrationService,
-                              DashboardService dashboardService) {
+                              DashboardService dashboardService,
+                              AgendamentoNotificationService notificationService,
+                              QrCodeService qrCodeService) {
         this.agendamentoRepository = agendamentoRepository;
         this.janelaAtendimentoRepository = janelaAtendimentoRepository;
         this.transportadoraRepository = transportadoraRepository;
@@ -78,6 +90,8 @@ public class AgendamentoService {
         this.rulesProperties = rulesProperties;
         this.tosIntegrationService = tosIntegrationService;
         this.dashboardService = dashboardService;
+        this.notificationService = notificationService;
+        this.qrCodeService = qrCodeService;
     }
 
     @Transactional(readOnly = true)
@@ -99,6 +113,24 @@ public class AgendamentoService {
     public AgendamentoDTO buscarPorId(Long id) {
         Agendamento agendamento = obterAgendamento(id);
         return GateMapper.toAgendamentoDTO(agendamento);
+    }
+
+    @Transactional(readOnly = true)
+    public GatePassQrCodeDTO gerarQrCode(Long agendamentoId) {
+        Agendamento agendamento = obterAgendamento(agendamentoId);
+        GatePass gatePass = agendamento.getGatePass();
+        if (gatePass == null || !StringUtils.hasText(gatePass.getCodigo())) {
+            throw new NotFoundException("Gate pass não encontrado para o agendamento informado");
+        }
+        byte[] png = qrCodeService.gerarPng(gatePass.getCodigo(), 360);
+        String base64 = Base64.getEncoder().encodeToString(png);
+        return new GatePassQrCodeDTO("image/png", base64, gatePass.getCodigo());
+    }
+
+    @Transactional(readOnly = true)
+    public void publicarSnapshot(Long agendamentoId) {
+        Agendamento agendamento = obterAgendamento(agendamentoId);
+        notificationService.publicarResumoStatus(agendamento);
     }
 
     public AgendamentoDTO criar(AgendamentoRequest request) {
@@ -123,6 +155,7 @@ public class AgendamentoService {
         Agendamento salvo = agendamentoRepository.save(agendamento);
         agendamentoRepository.flush();
         dashboardService.publicarResumoGeral();
+        notificationService.publicarResumoStatus(salvo);
         return GateMapper.toAgendamentoDTO(salvo);
     }
 
@@ -150,6 +183,7 @@ public class AgendamentoService {
         Agendamento salvo = agendamentoRepository.save(existente);
         agendamentoRepository.flush();
         dashboardService.publicarResumoGeral();
+        notificationService.publicarResumoStatus(salvo);
         return GateMapper.toAgendamentoDTO(salvo);
     }
 
@@ -160,6 +194,64 @@ public class AgendamentoService {
         agendamentoRepository.save(agendamento);
         agendamentoRepository.flush();
         dashboardService.publicarResumoGeral();
+        notificationService.publicarResumoStatus(agendamento);
+    }
+
+    public AgendamentoDTO confirmarChegadaAntecipada(Long agendamentoId, ConfirmacaoChegadaRequest request) {
+        Agendamento agendamento = obterAgendamento(agendamentoId);
+        LocalDateTime chegada = request.getDataHoraChegada() != null ? request.getDataHoraChegada() : LocalDateTime.now();
+        agendamento.setHorarioRealChegada(chegada);
+        if (agendamento.getStatus() == StatusAgendamento.PENDENTE
+                || agendamento.getStatus() == StatusAgendamento.CONFIRMADO) {
+            agendamento.setStatus(StatusAgendamento.EM_ATENDIMENTO);
+        }
+        if (StringUtils.hasText(request.getObservacao())) {
+            String observacoes = StringUtils.hasText(agendamento.getObservacoes())
+                    ? agendamento.getObservacoes() + System.lineSeparator() + request.getObservacao()
+                    : request.getObservacao();
+            agendamento.setObservacoes(observacoes);
+        }
+        Agendamento salvo = agendamentoRepository.save(agendamento);
+        notificationService.publicarStatusAtualizado(salvo);
+        notificationService.publicarResumoStatus(salvo);
+        dashboardService.publicarResumoGeral();
+        return GateMapper.toAgendamentoDTO(salvo);
+    }
+
+    public DocumentoRevalidacaoResponse revalidarDocumentos(Long agendamentoId) {
+        Agendamento agendamento = obterAgendamento(agendamentoId);
+        List<DocumentoAgendamento> documentos = documentoAgendamentoRepository.findByAgendamentoId(agendamentoId);
+        List<DocumentoRevalidacaoResultadoDTO> resultados = new ArrayList<>();
+        LocalDateTime verificadoEm = LocalDateTime.now();
+        boolean todosValidos = true;
+        for (DocumentoAgendamento documento : documentos) {
+            boolean valido = documento.getUrlDocumento() != null && documentoStorageService.exists(documento.getUrlDocumento());
+            if (!valido) {
+                todosValidos = false;
+            }
+            resultados.add(new DocumentoRevalidacaoResultadoDTO(
+                    documento.getId(),
+                    documento.getNomeArquivo(),
+                    valido,
+                    verificadoEm,
+                    valido ? "Documento validado" : "Documento não encontrado no armazenamento"
+            ));
+        }
+        if (todosValidos) {
+            agendamento.setStatus(StatusAgendamento.CONFIRMADO);
+        }
+        String marcador = todosValidos ? "Documentos revalidados com sucesso" : "Revalidação encontrou inconsistências";
+        String anotacao = String.format("[%s] %s", verificadoEm, marcador);
+        if (StringUtils.hasText(agendamento.getObservacoes())) {
+            agendamento.setObservacoes(agendamento.getObservacoes() + System.lineSeparator() + anotacao);
+        } else {
+            agendamento.setObservacoes(anotacao);
+        }
+        Agendamento salvo = agendamentoRepository.save(agendamento);
+        notificationService.publicarDocumentosRevalidados(salvo, resultados);
+        notificationService.publicarResumoStatus(salvo);
+        dashboardService.publicarResumoGeral();
+        return new DocumentoRevalidacaoResponse(GateMapper.toAgendamentoDTO(salvo), resultados);
     }
 
     public DocumentoAgendamentoDTO adicionarDocumento(Long agendamentoId, DocumentoUploadRequest request, MultipartFile arquivo) {

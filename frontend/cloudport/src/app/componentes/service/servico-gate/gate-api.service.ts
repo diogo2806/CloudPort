@@ -6,8 +6,11 @@ import {
   Agendamento,
   AgendamentoFiltro,
   AgendamentoRequest,
+  ConfirmacaoChegadaPayload,
   DocumentoAgendamento,
+  DocumentoRevalidacaoResponse,
   GateEnumOption,
+  GatePassQrCode,
   Page
 } from '../../model/gate/agendamento.model';
 import {
@@ -46,6 +49,18 @@ export class GateApiService {
 
   cancelarAgendamento(id: number): Observable<void> {
     return this.http.delete<void>(`${this.agendamentosUrl}/${id}`);
+  }
+
+  confirmarChegadaAntecipada(id: number, payload: ConfirmacaoChegadaPayload): Observable<Agendamento> {
+    return this.http.post<Agendamento>(`${this.agendamentosUrl}/${id}/chegada`, payload);
+  }
+
+  revalidarDocumentos(id: number): Observable<DocumentoRevalidacaoResponse> {
+    return this.http.post<DocumentoRevalidacaoResponse>(`${this.agendamentosUrl}/${id}/revalidar-documentos`, {});
+  }
+
+  gerarQrCode(id: number): Observable<GatePassQrCode> {
+    return this.http.get<GatePassQrCode>(`${this.agendamentosUrl}/${id}/gate-pass/qr`);
   }
 
   listarJanelas(filtro?: JanelaFiltro): Observable<Page<JanelaAtendimento>> {

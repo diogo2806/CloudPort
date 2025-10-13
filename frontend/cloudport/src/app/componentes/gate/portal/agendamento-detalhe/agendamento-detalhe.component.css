@@ -34,6 +34,45 @@
   color: #6b7280;
 }
 
+.agendamento-detalhe__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #374151;
+  box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.6);
+}
+
+.agendamento-detalhe__status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #9ca3af;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.agendamento-detalhe__status-dot--ok {
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+}
+
+.agendamento-detalhe__status-dot--alert {
+  background: #f59e0b;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+
+.agendamento-detalhe__status-dot--error {
+  background: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+}
+
+.agendamento-detalhe__status-text {
+  font-weight: 600;
+}
+
 .badge {
   background: #2563eb;
   color: #fff;
@@ -43,10 +82,21 @@
   font-size: 0.85rem;
 }
 
+.agendamento-detalhe__resumo {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 320px);
+  gap: 24px;
+  align-items: start;
+}
+
 .agendamento-detalhe__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
+}
+
+.agendamento-detalhe__pass {
+  width: 100%;
 }
 
 .agendamento-detalhe__grid div {
@@ -241,5 +291,11 @@
   opacity: 0.6;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+@media (max-width: 1024px) {
+  .agendamento-detalhe__resumo {
+    grid-template-columns: 1fr;
+  }
 }
 

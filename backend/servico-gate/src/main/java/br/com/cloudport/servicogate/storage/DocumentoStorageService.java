@@ -8,4 +8,6 @@ public interface DocumentoStorageService {
     StoredDocumento armazenar(Long agendamentoId, MultipartFile arquivo);
 
     Resource carregarComoResource(String storageKey);
+
+    boolean exists(String storageKey);
 }

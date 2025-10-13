@@ -1,0 +1,49 @@
+{
+  "gate": {
+    "detail": {
+      "title": "Comprobante de programación",
+      "qr": {
+        "title": "Pase del conductor",
+        "subtitle": "Muestre este código QR en la garita.",
+        "download": "Descargar comprobante",
+        "print": "Imprimir",
+        "refresh": "Actualizar código QR",
+        "error": "No fue posible cargar el código QR"
+      },
+      "actions": {
+        "confirmArrival": "Confirmar llegada anticipada",
+        "revalidateDocs": "Revalidar documentos",
+        "confirmArrivalSuccess": "Llegada registrada correctamente",
+        "revalidateSuccess": "Documentos revalidados"
+      },
+      "instructions": {
+        "header": "Instrucciones",
+        "list": [
+          "Llegue al menos 15 minutos antes de su turno.",
+          "Tenga los documentos originales disponibles.",
+          "Mantenga el código QR visible para el tótem.",
+          "Siga las indicaciones de los operadores del gate."
+        ],
+        "download": "Instrucciones en PDF"
+      },
+      "fields": {
+        "code": "Código",
+        "carrier": "Transportista",
+        "driver": "Conductor",
+        "window": "Ventana"
+      },
+      "status": {
+        "revalidating": "Revalidando documentos...",
+        "confirming": "Confirmando llegada...",
+        "windowReminder": "Su ventana inicia en {{minutes}} minutos",
+        "loadingQr": "Generando código QR...",
+        "select": "Seleccione un agendamiento para generar el pase"
+      },
+      "realtime": {
+        "connected": "Actualizaciones en tiempo real activas",
+        "reconnecting": "Reconectando en {{seconds}}s (intento {{attempt}})",
+        "disconnected": "Actualizaciones en tiempo real no disponibles"
+      }
+    }
+  }
+}

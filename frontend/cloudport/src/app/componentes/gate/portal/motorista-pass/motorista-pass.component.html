@@ -1,0 +1,52 @@
+<section class="motorista-pass" *ngIf="agendamento; else selecione">
+  <header class="motorista-pass__header">
+    <div>
+      <h4>{{ 'gate.detail.qr.title' | translate }}</h4>
+      <p>{{ 'gate.detail.qr.subtitle' | translate }}</p>
+    </div>
+    <button type="button" class="motorista-pass__refresh" (click)="carregarQrCode()" [disabled]="carregandoQr">
+      {{ 'gate.detail.qr.refresh' | translate }}
+    </button>
+  </header>
+
+  <div class="motorista-pass__conteudo" [class.motorista-pass__conteudo--loading]="carregandoQr">
+    <div class="motorista-pass__qr" *ngIf="qrCodeDataUrl; else carregando">
+      <ngx-qrcode [qrc-value]="qrCodeDataUrl" [alt]="agendamento?.codigo"></ngx-qrcode>
+      <span class="motorista-pass__codigo">{{ qrCode?.conteudo }}</span>
+    </div>
+  </div>
+
+  <section class="motorista-pass__acoes">
+    <button type="button" class="btn" (click)="confirmarChegada()" [disabled]="confirmando">
+      {{ 'gate.detail.actions.confirmArrival' | translate }}
+    </button>
+    <button type="button" class="btn" (click)="revalidarDocumentos()" [disabled]="revalidando">
+      {{ 'gate.detail.actions.revalidateDocs' | translate }}
+    </button>
+    <button type="button" class="btn" (click)="gerarLinkDownload()">
+      {{ 'gate.detail.qr.download' | translate }}
+    </button>
+    <button type="button" class="btn" (click)="imprimir()">
+      {{ 'gate.detail.qr.print' | translate }}
+    </button>
+  </section>
+
+  <section class="motorista-pass__instrucoes">
+    <h5>{{ 'gate.detail.instructions.header' | translate }}</h5>
+    <ul>
+      <li *ngFor="let item of ('gate.detail.instructions.list' | translate)">{{ item }}</li>
+    </ul>
+  </section>
+
+  <p class="motorista-pass__erro" *ngIf="erro">{{ erro }}</p>
+</section>
+
+<ng-template #carregando>
+  <div class="motorista-pass__loading">{{ 'gate.detail.status.loadingQr' | translate }}</div>
+</ng-template>
+
+<ng-template #selecione>
+  <section class="motorista-pass motorista-pass--vazio">
+    <p>{{ 'gate.detail.status.select' | translate }}</p>
+  </section>
+</ng-template>

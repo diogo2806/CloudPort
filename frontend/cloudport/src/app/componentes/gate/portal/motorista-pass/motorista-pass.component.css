@@ -1,0 +1,131 @@
+.motorista-pass {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.motorista-pass--vazio {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #6b7280;
+}
+
+.motorista-pass__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.motorista-pass__header h4 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.motorista-pass__header p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.motorista-pass__refresh {
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.motorista-pass__conteudo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 220px;
+}
+
+.motorista-pass__conteudo--loading {
+  opacity: 0.5;
+}
+
+.motorista-pass__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.motorista-pass__codigo {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-size: 0.9rem;
+}
+
+.motorista-pass__acoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.motorista-pass__acoes .btn {
+  background: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.motorista-pass__acoes .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.motorista-pass__instrucoes {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.motorista-pass__instrucoes h5 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.motorista-pass__instrucoes ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #4b5563;
+  display: grid;
+  gap: 6px;
+}
+
+.motorista-pass__erro {
+  margin: 0;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.motorista-pass__loading {
+  font-size: 0.95rem;
+  color: #2563eb;
+}
+
+@media (max-width: 640px) {
+  .motorista-pass {
+    padding: 16px;
+  }
+
+  .motorista-pass__acoes {
+    grid-template-columns: 1fr;
+  }
+}

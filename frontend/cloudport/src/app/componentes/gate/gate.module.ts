@@ -8,9 +8,12 @@ import { GateRelatoriosComponent } from './analytics/gate-relatorios/gate-relato
 import { AgendamentosListComponent } from './portal/agendamentos-list/agendamentos-list.component';
 import { AgendamentoFormComponent } from './portal/agendamento-form/agendamento-form.component';
 import { AgendamentoDetalheComponent } from './portal/agendamento-detalhe/agendamento-detalhe.component';
+import { MotoristaPassComponent } from './portal/motorista-pass/motorista-pass.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { DynamicTableModule } from '../../dynamic-table/dynamic-table.module';
 import { NgChartsModule } from 'ng2-charts';
+import { QRCodeModule } from 'ngx-qrcode2';
+import { TranslateModule } from '@ngx-translate/core';
 import { GateOperadorConsoleComponent } from './operador/gate-operador-console/gate-operador-console.component';
 import { GateOperadorEventosComponent } from './operador/gate-operador-eventos/gate-operador-eventos.component';
 
@@ -24,7 +27,8 @@ import { GateOperadorEventosComponent } from './operador/gate-operador-eventos/g
     AgendamentoFormComponent,
     AgendamentoDetalheComponent,
     GateOperadorConsoleComponent,
-    GateOperadorEventosComponent
+    GateOperadorEventosComponent,
+    MotoristaPassComponent
   ],
   imports: [
     CommonModule,
@@ -32,6 +36,8 @@ import { GateOperadorEventosComponent } from './operador/gate-operador-eventos/g
     ReactiveFormsModule,
     DynamicTableModule,
     NgChartsModule,
+    QRCodeModule,
+    TranslateModule,
     GateRoutingModule
   ]
 })

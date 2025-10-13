@@ -1,0 +1,49 @@
+{
+  "gate": {
+    "detail": {
+      "title": "Booking receipt",
+      "qr": {
+        "title": "Driver pass",
+        "subtitle": "Show this QR Code at the gate.",
+        "download": "Download receipt",
+        "print": "Print",
+        "refresh": "Refresh QR Code",
+        "error": "Unable to load the QR Code"
+      },
+      "actions": {
+        "confirmArrival": "Confirm early arrival",
+        "revalidateDocs": "Revalidate documents",
+        "confirmArrivalSuccess": "Arrival successfully registered",
+        "revalidateSuccess": "Documents revalidated"
+      },
+      "instructions": {
+        "header": "Instructions",
+        "list": [
+          "Arrive at least 15 minutes before your slot.",
+          "Keep all original documents with you.",
+          "Keep the QR Code visible for kiosk scanning.",
+          "Follow the gate operator guidance."
+        ],
+        "download": "Instructions PDF"
+      },
+      "fields": {
+        "code": "Code",
+        "carrier": "Carrier",
+        "driver": "Driver",
+        "window": "Window"
+      },
+      "status": {
+        "revalidating": "Revalidating documents...",
+        "confirming": "Confirming arrival...",
+        "windowReminder": "Your window starts in {{minutes}} minutes",
+        "loadingQr": "Generating QR Code...",
+        "select": "Select a booking to generate the pass"
+      },
+      "realtime": {
+        "connected": "Realtime updates active",
+        "reconnecting": "Reconnecting in {{seconds}}s (attempt {{attempt}})",
+        "disconnected": "Realtime updates currently unavailable"
+      }
+    }
+  }
+}

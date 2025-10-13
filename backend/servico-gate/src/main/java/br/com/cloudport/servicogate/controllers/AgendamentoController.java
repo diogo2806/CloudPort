@@ -2,9 +2,13 @@ package br.com.cloudport.servicogate.controllers;
 
 import br.com.cloudport.servicogate.dto.AgendamentoDTO;
 import br.com.cloudport.servicogate.dto.AgendamentoRequest;
+import br.com.cloudport.servicogate.dto.ConfirmacaoChegadaRequest;
 import br.com.cloudport.servicogate.dto.DocumentoAgendamentoDTO;
+import br.com.cloudport.servicogate.dto.DocumentoRevalidacaoResponse;
 import br.com.cloudport.servicogate.dto.DocumentoUploadRequest;
+import br.com.cloudport.servicogate.dto.GatePassQrCodeDTO;
 import br.com.cloudport.servicogate.service.AgendamentoService;
+import br.com.cloudport.servicogate.service.AgendamentoNotificationService;
 import br.com.cloudport.servicogate.service.DocumentoDownload;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -32,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -41,9 +46,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class AgendamentoController {
 
     private final AgendamentoService agendamentoService;
+    private final AgendamentoNotificationService notificationService;
 
-    public AgendamentoController(AgendamentoService agendamentoService) {
+    public AgendamentoController(AgendamentoService agendamentoService,
+                                 AgendamentoNotificationService notificationService) {
         this.agendamentoService = agendamentoService;
+        this.notificationService = notificationService;
     }
 
     @GetMapping
@@ -64,6 +72,22 @@ public class AgendamentoController {
         return agendamentoService.buscarPorId(id);
     }
 
+    @GetMapping(value = "/{id}/status-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Fluxo em tempo real com atualizações do agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
+    public SseEmitter acompanharStatus(@PathVariable Long id) {
+        SseEmitter emitter = notificationService.conectar(id);
+        agendamentoService.publicarSnapshot(id);
+        return emitter;
+    }
+
+    @GetMapping("/{id}/gate-pass/qr")
+    @Operation(summary = "Gera QR Code do gate pass do agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
+    public GatePassQrCodeDTO gerarQrCode(@PathVariable Long id) {
+        return agendamentoService.gerarQrCode(id);
+    }
+
     @PostMapping
     @Operation(summary = "Cria um novo agendamento")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR')")
@@ -77,6 +101,21 @@ public class AgendamentoController {
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR')")
     public AgendamentoDTO atualizar(@PathVariable Long id, @Valid @RequestBody AgendamentoRequest request) {
         return agendamentoService.atualizar(id, request);
+    }
+
+    @PostMapping("/{id}/chegada")
+    @Operation(summary = "Confirma a chegada (inclusive antecipada) do agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE')")
+    public AgendamentoDTO confirmarChegada(@PathVariable Long id,
+                                           @Valid @RequestBody ConfirmacaoChegadaRequest request) {
+        return agendamentoService.confirmarChegadaAntecipada(id, request);
+    }
+
+    @PostMapping("/{id}/revalidar-documentos")
+    @Operation(summary = "Revalida os documentos anexados ao agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE')")
+    public DocumentoRevalidacaoResponse revalidarDocumentos(@PathVariable Long id) {
+        return agendamentoService.revalidarDocumentos(id);
     }
 
     @DeleteMapping("/{id}")

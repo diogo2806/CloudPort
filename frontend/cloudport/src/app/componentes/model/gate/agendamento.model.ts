@@ -34,6 +34,62 @@ export interface GatePass {
   eventos: GateEvent[] | null;
 }
 
+export interface GatePassQrCode {
+  mimeType: string;
+  base64: string;
+  conteudo: string;
+}
+
+export interface DocumentoRevalidacaoResultado {
+  documentoId: number;
+  nomeArquivo: string | null;
+  valido: boolean;
+  verificadoEm: string;
+  mensagem: string;
+}
+
+export interface DocumentoRevalidacaoResponse {
+  agendamento: Agendamento;
+  resultados: DocumentoRevalidacaoResultado[];
+}
+
+export interface ConfirmacaoChegadaPayload {
+  antecipada: boolean;
+  dataHoraChegada?: string;
+  observacao?: string | null;
+}
+
+export interface AgendamentoStatusEvent {
+  agendamentoId: number;
+  status: string;
+  statusDescricao: string | null;
+  horarioRealChegada: string | null;
+  horarioRealSaida: string | null;
+  observacao: string | null;
+}
+
+export interface JanelaLembrete {
+  agendamentoId: number;
+  codigoAgendamento: string;
+  horarioPrevistoChegada: string;
+  horarioPrevistoSaida: string;
+  minutosRestantes: number;
+}
+
+export interface AgendamentoRealtimeConnection {
+  state: 'connected' | 'reconnecting' | 'disconnected';
+  attempt?: number;
+  delayMs?: number;
+  delaySeconds?: number;
+}
+
+export type AgendamentoRealtimeEvent =
+  | { type: 'status'; payload: AgendamentoStatusEvent }
+  | { type: 'window-reminder'; payload: JanelaLembrete }
+  | { type: 'documentos-revalidados'; payload: DocumentoRevalidacaoResultado[] }
+  | { type: 'snapshot'; payload: Agendamento }
+  | { type: 'connection'; payload: AgendamentoRealtimeConnection };
+
 export interface Agendamento {
   id: number;
   codigo: string;

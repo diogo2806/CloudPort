@@ -1,0 +1,94 @@
+<section class="gate-analytics" aria-labelledby="gateDashboardTitulo">
+  <header class="cabecalho">
+    <div>
+      <h2 id="gateDashboardTitulo">Dashboard do Gate</h2>
+      <p class="descricao">Acompanhe a ocupação de slots, pontualidade e tempos médios do gate em tempo real.</p>
+    </div>
+  </header>
+
+  <form class="filtros" [formGroup]="filtrosForm" aria-label="Filtros do dashboard">
+    <div class="campo">
+      <label for="inicio">Início</label>
+      <input id="inicio" type="date" formControlName="inicio" aria-describedby="inicioHelp" />
+      <span id="inicioHelp" class="ajuda">Selecione a data inicial do período analisado.</span>
+    </div>
+
+    <div class="campo">
+      <label for="fim">Fim</label>
+      <input id="fim" type="date" formControlName="fim" aria-describedby="fimHelp" />
+      <span id="fimHelp" class="ajuda">Selecione a data final do período analisado.</span>
+    </div>
+
+    <div class="campo">
+      <label for="transportadora">Transportadora</label>
+      <select id="transportadora" formControlName="transportadoraId">
+        <option [ngValue]="null">Todas</option>
+        <option
+          *ngFor="let transportadora of transportadoras$ | async"
+          [ngValue]="transportadora.codigo && !isNaN(+transportadora.codigo) ? +transportadora.codigo : null"
+        >
+          {{ transportadora.descricao }}
+        </option>
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="tipoOperacao">Tipo de operação</label>
+      <select id="tipoOperacao" formControlName="tipoOperacao">
+        <option value="">Todas</option>
+        <option *ngFor="let tipo of tiposOperacao$ | async" [value]="tipo.codigo">{{ tipo.descricao }}</option>
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="tipoGrafico">Tipo de gráfico</label>
+      <select id="tipoGrafico" formControlName="tipoGrafico">
+        <option value="bar">Colunas</option>
+        <option value="line">Linhas</option>
+      </select>
+    </div>
+
+    <div class="acoes">
+      <button type="button" class="botao-secundario" (click)="limparFiltros()">Limpar filtros</button>
+    </div>
+  </form>
+
+  <div class="estado" *ngIf="carregando" aria-live="polite">
+    Carregando indicadores...
+  </div>
+
+  <div class="estado erro" *ngIf="erro" role="alert">
+    {{ erro }}
+  </div>
+
+  <section class="resumo" *ngIf="resumo as dados">
+    <article class="card" aria-live="polite">
+      <h3>Total de agendamentos</h3>
+      <p>{{ dados.totalAgendamentos | number:'1.0-0' }}</p>
+    </article>
+    <article class="card" aria-live="polite">
+      <h3>Pontualidade</h3>
+      <p>{{ dados.percentualPontualidade | number:'1.1-1' }}%</p>
+    </article>
+    <article class="card" aria-live="polite">
+      <h3>No-show</h3>
+      <p>{{ dados.percentualNoShow | number:'1.1-1' }}%</p>
+    </article>
+    <article class="card" aria-live="polite">
+      <h3>Tempo médio turnaround</h3>
+      <p>{{ dados.tempoMedioTurnaroundMinutos | number:'1.0-0' }} min</p>
+    </article>
+  </section>
+
+  <section class="graficos" *ngIf="resumo">
+    <div class="grafico" role="img" aria-label="Ocupação de slots por hora">
+      <canvas baseChart [data]="ocupacaoChart" [options]="ocupacaoOptions" [type]="chartType"></canvas>
+    </div>
+    <div class="grafico" role="img" aria-label="Tempo médio de permanência em minutos">
+      <canvas baseChart [data]="turnaroundChart" [options]="turnaroundOptions" [type]="chartType"></canvas>
+    </div>
+    <div class="grafico" role="img" aria-label="Indicadores de pontualidade, no-show e ocupação">
+      <canvas baseChart [data]="pontualidadeChart" [options]="pontualidadeOptions" type="doughnut"></canvas>
+    </div>
+  </section>
+</section>

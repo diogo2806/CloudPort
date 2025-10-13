@@ -32,16 +32,13 @@ public class UserInitializer implements CommandLineRunner {
         ensureRoleExists("ROLE_OPERADOR_GATE");
         ensureRoleExists("ROLE_TRANSPORTADORA");
 
-        Set<UserRole> roles = new HashSet<>();
-        roles.add(new UserRole(adminRole));
-
         if (!userRepository.findByLogin(adminLogin).isPresent()) {
             User adminUser = new User(adminLogin, adminPassword, "Administrador CloudPort",
-                    null, null, roles);
+                    null, null, new HashSet<>());
 
-            for (UserRole userRole : roles) {
-                userRole.setUser(adminUser);
-            }
+            Set<UserRole> roles = adminUser.getRoles();
+            UserRole adminUserRole = new UserRole(adminUser, adminRole);
+            roles.add(adminUserRole);
 
             userRepository.save(adminUser);
         }

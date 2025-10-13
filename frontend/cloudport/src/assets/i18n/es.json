@@ -54,6 +54,15 @@
         "status": "Estado del pase",
         "atualizadoEm": "Actualizado el {{data}}"
       },
+      "realtime": {
+        "titulo": "Estado en tiempo real",
+        "status": {
+          "conectando": "Conectando al flujo en tiempo real...",
+          "conectado": "Conexión activa. Las actualizaciones llegarán al instante.",
+          "reconectando": "Reintentando la conexión (intento {{tentativa}}) en {{segundos}}s...",
+          "desconectado": "Conexión perdida. Esperando un nuevo intento..."
+        }
+      },
       "instrucoesArquivoTitulo": "Instrucciones para el conductor - Turno {{codigo}}",
       "ultimaRevalidacao": "Última revalidación",
       "abrirDocumento": "Abrir"

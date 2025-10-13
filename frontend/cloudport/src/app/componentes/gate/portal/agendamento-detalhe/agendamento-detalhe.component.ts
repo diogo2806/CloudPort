@@ -34,6 +34,11 @@ interface JanelaProximaPayload {
   minutosRestantes: number;
 }
 
+interface RealtimeReconexaoPayload {
+  tentativa: number;
+  delayMs: number;
+}
+
 @Component({
   selector: 'app-agendamento-detalhe',
   templateUrl: './agendamento-detalhe.component.html',
@@ -62,6 +67,9 @@ export class AgendamentoDetalheComponent implements OnDestroy {
   notificacaoErro: string | null = null;
   carregandoConfirmacao = false;
   carregandoRevalidacao = false;
+  conexaoEstado: 'conectando' | 'conectado' | 'reconectando' | 'desconectado' = 'desconectado';
+  reconexaoEmSegundos: number | null = null;
+  reconexaoTentativa: number | null = null;
 
   private realtimeSub?: Subscription;
   private notificacaoSolicitada = false;
@@ -77,6 +85,9 @@ export class AgendamentoDetalheComponent implements OnDestroy {
   ngOnDestroy(): void {
     this.realtimeSub?.unsubscribe();
     this.liberarPreviews();
+    this.conexaoEstado = 'desconectado';
+    this.reconexaoEmSegundos = null;
+    this.reconexaoTentativa = null;
   }
 
   aoSelecionarArquivos(evento: Event): void {
@@ -205,11 +216,21 @@ export class AgendamentoDetalheComponent implements OnDestroy {
     return Array.isArray(valor) ? valor : [valor];
   }
 
+  get conexaoParametros(): Record<string, string | number> {
+    return {
+      segundos: this.reconexaoEmSegundos ?? '',
+      tentativa: this.reconexaoTentativa ?? ''
+    };
+  }
+
   private conectarRealtime(agendamento: Agendamento | null): void {
     this.realtimeSub?.unsubscribe();
     this.janelaMensagem = null;
     this.statusMensagem = null;
     this.notificacaoErro = null;
+    this.conexaoEstado = agendamento ? 'conectando' : 'desconectado';
+    this.reconexaoEmSegundos = null;
+    this.reconexaoTentativa = null;
     if (!agendamento) {
       return;
     }
@@ -225,6 +246,7 @@ export class AgendamentoDetalheComponent implements OnDestroy {
       next: (event) => this.processarEvento(event),
       error: () => {
         this.notificacaoErro = this.translate.instant('gate.agendamentoDetalhe.realtimeErro');
+        this.conexaoEstado = 'desconectado';
       }
     });
   }
@@ -240,6 +262,21 @@ export class AgendamentoDetalheComponent implements OnDestroy {
           });
         }
         break;
+      case 'conexao-estabelecida':
+        this.conexaoEstado = 'conectado';
+        this.reconexaoEmSegundos = null;
+        this.reconexaoTentativa = null;
+        break;
+      case 'conexao-perdida':
+        this.conexaoEstado = 'desconectado';
+        break;
+      case 'reconectando': {
+        const payload = evento.data as RealtimeReconexaoPayload | null;
+        this.reconexaoTentativa = payload?.tentativa ?? null;
+        this.reconexaoEmSegundos = payload ? Math.max(1, Math.ceil(payload.delayMs / 1000)) : null;
+        this.conexaoEstado = 'reconectando';
+        break;
+      }
       case 'janela-proxima':
         this.exibirJanelaProxima(evento.data as JanelaProximaPayload);
         break;

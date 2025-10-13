@@ -54,6 +54,15 @@
         "status": "Status do passe",
         "atualizadoEm": "Atualizado em {{data}}"
       },
+      "realtime": {
+        "titulo": "Atualização em tempo real",
+        "status": {
+          "conectando": "Conectando ao fluxo em tempo real...",
+          "conectado": "Conexão ativa. Eventos serão recebidos instantaneamente.",
+          "reconectando": "Tentando reconectar (tentativa {{tentativa}}) em {{segundos}}s...",
+          "desconectado": "Conexão perdida. Aguardando nova tentativa..."
+        }
+      },
       "instrucoesArquivoTitulo": "Instruções ao motorista - Agendamento {{codigo}}",
       "ultimaRevalidacao": "Última revalidação",
       "abrirDocumento": "Abrir"

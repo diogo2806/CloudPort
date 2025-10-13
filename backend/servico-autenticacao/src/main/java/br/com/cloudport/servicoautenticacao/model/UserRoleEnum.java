@@ -1,8 +1,10 @@
 package br.com.cloudport.servicoautenticacao.model;
 
 public enum UserRoleEnum {
-    ADMIN("admin"),
-    USER("user");
+    ADMIN_PORTO("ROLE_ADMIN_PORTO"),
+    PLANEJADOR("ROLE_PLANEJADOR"),
+    OPERADOR_GATE("ROLE_OPERADOR_GATE"),
+    TRANSPORTADORA("ROLE_TRANSPORTADORA");
 
     private final String role;
 

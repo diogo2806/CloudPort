@@ -9,20 +9,22 @@ import { NotificacoesComponent } from './componentes/notificacoes/notificacoes.c
 import { PrivacidadeComponent } from './componentes/privacidade/privacidade.component';
 import { UsuariosListaComponent } from './componentes/usuarios-lista/usuarios-lista.component';
 
+const homeChildRoutes: Routes = [
+  { path: '', redirectTo: 'role', pathMatch: 'full' },
+  { path: 'role', component: RoleTabelaComponent },
+  { path: 'seguranca', component: SegurancaComponent },
+  { path: 'notificacoes', component: NotificacoesComponent },
+  { path: 'privacidade', component: PrivacidadeComponent },
+  { path: 'lista-de-usuarios', component: UsuariosListaComponent }
+];
+
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
   {
     path: 'home',
     component: HomeComponent,
     canActivate: [AuthGuard],
-    children: [
-      { path: '', redirectTo: 'role', pathMatch: 'full' },
-      { path: 'role', component: RoleTabelaComponent },
-      { path: 'seguranca', component: SegurancaComponent },
-      { path: 'notificacoes', component: NotificacoesComponent },
-      { path: 'privacidade', component: PrivacidadeComponent },
-      { path: 'lista-de-usuarios', component: UsuariosListaComponent }
-    ]
+    children: homeChildRoutes
   },
   { path: '', redirectTo: 'home', pathMatch: 'full' },
 ];

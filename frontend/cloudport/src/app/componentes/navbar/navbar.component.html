@@ -3,20 +3,16 @@
     <li (click)="toggleSubmenu($event)">
       <a href="#">Configurações</a>
       <ul>
-        <li><a (click)="openTab('Role')">Geral</a></li>
-        <li><a (click)="openTab('Role')">Perfil</a></li>
-        <li><a (click)="openTab('Segurança')">Segurança</a></li>
-        <li><a (click)="openTab('Notificações')">Notificações</a></li>
-        <li><a (click)="openTab('Privacidade')">Privacidade</a></li>
+        <li><a (click)="openTab(tabs.role)">Role</a></li>
+        <li><a (click)="openTab(tabs.seguranca)">Segurança</a></li>
+        <li><a (click)="openTab(tabs.notificacoes)">Notificações</a></li>
+        <li><a (click)="openTab(tabs.privacidade)">Privacidade</a></li>
       </ul>
     </li>
     <li (click)="toggleSubmenu($event)">
       <a href="#">Usuários</a>
       <ul>
-        <li><a (click)="openTab('Lista de usuários')">Lista de usuários</a></li>
-        <li><a (click)="openTab('Role')">Adicionar usuário</a></li>
-        <li><a (click)="openTab('Role')">Gerenciar usuários</a></li>
-        <li><a (click)="openTab('Role')">Role</a></li>
+        <li><a (click)="openTab(tabs.listaDeUsuarios)">Lista de usuários</a></li>
       </ul>
     </li>
   </ul>

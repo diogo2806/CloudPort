@@ -1,7 +1,7 @@
 import { Component, HostListener, ElementRef, OnDestroy, OnInit } from '@angular/core';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { Router } from '@angular/router';
-import { TabService } from './TabService';
+import { TabItem, TabService } from './TabService';
 import { Subscription } from 'rxjs';
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
@@ -27,6 +27,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
     'privacidade',
     'lista-de-usuarios'
   ]);
+  readonly tabs: Record<string, TabItem> = {
+    role: { id: 'role', label: 'Role' },
+    seguranca: { id: 'seguranca', label: 'Segurança' },
+    notificacoes: { id: 'notificacoes', label: 'Notificações' },
+    privacidade: { id: 'privacidade', label: 'Privacidade' },
+    listaDeUsuarios: { id: 'lista-de-usuarios', label: 'Lista de usuários' }
+  };
   private menuStatusSubscription?: Subscription;
 
   constructor(
@@ -51,10 +58,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.menuStatusSubscription?.unsubscribe();
   }
 
-  openTab(tabName: string) {
-    const route = this.resolveChildRoute(tabName);
-    const content = this.tabService.getTabContent(tabName) ?? { message: `Conteúdo padrão para a aba ${tabName}` };
-    this.tabService.openTab(tabName, content);
+  openTab(tab: TabItem) {
+    const route = this.resolveChildRoute(tab.id);
+    const content = this.tabService.getTabContent(tab.id) ?? { message: `Conteúdo padrão para a aba ${tab.label}` };
+    this.tabService.openTab(tab, content);
     this.router.navigate(['/home', route]);
   }
 
@@ -83,18 +90,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
-  private resolveChildRoute(tabName: string): string {
-    const normalizedTab = this.normalizeTabName(tabName);
-    return this.validChildRoutes.has(normalizedTab) ? normalizedTab : 'role';
-  }
-
-  private normalizeTabName(tabName: string): string {
-    return tabName
-      ? tabName
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-      : '';
+  private resolveChildRoute(tabId: string): string {
+    return this.validChildRoutes.has(tabId) ? tabId : 'role';
   }
 }

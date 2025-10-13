@@ -1,24 +1,29 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
+export interface TabItem {
+  id: string;
+  label: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class TabService {
-  private tabsSubject = new BehaviorSubject<string[]>([]);
+  private tabsSubject = new BehaviorSubject<TabItem[]>([]);
   tabs$ = this.tabsSubject.asObservable();
   private contentSubject = new BehaviorSubject<any>(null);
   content$ = this.contentSubject.asObservable();
 
-  private tabContents: { [tabName: string]: any } = {};
+  private tabContents: { [tabId: string]: any } = {};
 
-  openTab(tab: string, content?: any) {
+  openTab(tab: TabItem, content?: any) {
     const tabs = this.tabsSubject.value;
-    if (!tabs.includes(tab)) {
+    if (!tabs.find(existingTab => existingTab.id === tab.id)) {
       this.tabsSubject.next([...tabs, tab]);
     }
     if (content) {
-      this.tabContents[tab] = content;
+      this.tabContents[tab.id] = content;
     }
   }
 
@@ -26,17 +31,17 @@ export class TabService {
     this.contentSubject.next(content);
   }
 
-  closeTab(tab: string) {
+  closeTab(tabId: string) {
     const tabs = this.tabsSubject.value;
-    this.tabsSubject.next(tabs.filter(t => t !== tab));
-    delete this.tabContents[tab];
+    this.tabsSubject.next(tabs.filter(t => t.id !== tabId));
+    delete this.tabContents[tabId];
   }
 
-  getTabContent(tab: string): any {
-    return this.tabContents[tab];
+  getTabContent(tabId: string): any {
+    return this.tabContents[tabId];
   }
 
-  setTabContent(tab: string, content: any) {
-    this.tabContents[tab] = content;
+  setTabContent(tabId: string, content: any) {
+    this.tabContents[tabId] = content;
   }
 }

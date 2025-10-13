@@ -1,7 +1,7 @@
 import { Component, ViewChild, OnInit } from '@angular/core';
 import { Router, RouteReuseStrategy, RouterOutlet } from '@angular/router';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
-import { TabService } from '../navbar/TabService';
+import { TabItem, TabService } from '../navbar/TabService';
 import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
 
 @Component({
@@ -13,8 +13,8 @@ export class HomeComponent implements OnInit {
 
   @ViewChild('outlet', { read: RouterOutlet }) outlet!: RouterOutlet;
   userToken: string = '';
-  tabs: string[] = [];
-  selectedTab = '';
+  tabs: TabItem[] = [];
+  selectedTabId = '';
   filteredData: any[] = [];
   data: { [key: string]: any } = {};
   tabContent: { [key: string]: any } = {};
@@ -44,17 +44,20 @@ export class HomeComponent implements OnInit {
     this.tabService.tabs$.subscribe(tabs => {
       this.tabs = tabs;
       if (tabs.length > 0) {
-        this.selectedTab = tabs[tabs.length - 1];
-        this.router.navigate(['/home', this.resolveChildRoute(this.selectedTab)]);
+        const lastTab = tabs[tabs.length - 1];
+        this.selectedTabId = lastTab.id;
+        this.router.navigate(['/home', this.resolveChildRoute(this.selectedTabId)]);
+      } else {
+        this.selectedTabId = '';
       }
     });
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
   }
 
-  navigateTo(tabName: string) {
-    this.selectedTab = tabName;
-    this.tabContent[tabName] = this.tabService.getTabContent(tabName);
-    this.router.navigate(['/home', this.resolveChildRoute(tabName)]);
+  navigateTo(tabId: string) {
+    this.selectedTabId = tabId;
+    this.tabContent[tabId] = this.tabService.getTabContent(tabId);
+    this.router.navigate(['/home', this.resolveChildRoute(tabId)]);
   }
 
   logout() {
@@ -69,30 +72,20 @@ export class HomeComponent implements OnInit {
     alert(this.authenticationService.currentUserValue?.token);
   }
 
-  closeTab(tab: string) {
-    console.log(`Classe HomeComponent: Método closeTab chamado com o parâmetro clearHandlers=${tab}.`);
-    const route = this.resolveChildRoute(tab);
+  closeTab(tabId: string) {
+    console.log(`Classe HomeComponent: Método closeTab chamado com o parâmetro clearHandlers=${tabId}.`);
+    const route = this.resolveChildRoute(tabId);
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction(route);
-    console.log(`Classe HomeComponent: Método closeTab chamado com o parâmetro tab=${tab}.`);
-    this.tabService.closeTab(tab);
+    console.log(`Classe HomeComponent: Método closeTab chamado com o parâmetro tab=${tabId}.`);
+    this.tabService.closeTab(tabId);
+    delete this.tabContent[tabId];
   }
 
   objectKeys(obj: any): string[] {
     return Object.keys(obj);
   }
 
-  private resolveChildRoute(tabName: string): string {
-    const normalizedTab = this.normalizeTabName(tabName);
-    return this.validChildRoutes.has(normalizedTab) ? normalizedTab : 'role';
-  }
-
-  private normalizeTabName(tabName: string): string {
-    return tabName
-      ? tabName
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-      : '';
+  private resolveChildRoute(tabId: string): string {
+    return this.validChildRoutes.has(tabId) ? tabId : 'role';
   }
 }

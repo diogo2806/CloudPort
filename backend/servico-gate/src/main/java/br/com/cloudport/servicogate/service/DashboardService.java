@@ -46,11 +46,13 @@ public class DashboardService {
     }
 
     public DashboardResumoDTO obterResumo(DashboardFiltroDTO filtro) {
+        DashboardFiltroDTO filtroNormalizado = normalizarFiltro(filtro);
+
         DashboardMetricsProjection projection = agendamentoRepository.calcularMetricasDashboard(
-                filtro.getInicio(),
-                filtro.getFim(),
-                filtro.getTransportadoraId(),
-                filtro.getTipoOperacao() != null ? filtro.getTipoOperacao().name() : null,
+                filtroNormalizado.getInicio(),
+                filtroNormalizado.getFim(),
+                filtroNormalizado.getTransportadoraId(),
+                filtroNormalizado.getTipoOperacao() != null ? filtroNormalizado.getTipoOperacao().name() : null,
                 TOLERANCIA_PONTUALIDADE_MINUTOS
         );
 
@@ -60,7 +62,7 @@ public class DashboardService {
         double turnaround = Optional.ofNullable(projection.getTurnaroundMedio()).orElse(0D);
         double ocupacao = Optional.ofNullable(projection.getOcupacaoSlots()).orElse(0D);
 
-        List<Agendamento> agendamentosFiltrados = buscarAgendamentos(filtro);
+        List<Agendamento> agendamentosFiltrados = buscarAgendamentos(filtroNormalizado);
 
         DashboardResumoDTO resumo = new DashboardResumoDTO();
         resumo.setTotalAgendamentos(total);
@@ -70,13 +72,11 @@ public class DashboardService {
         resumo.setTempoMedioTurnaroundMinutos(turnaround);
         resumo.setOcupacaoPorHora(calcularOcupacaoPorHora(agendamentosFiltrados));
         resumo.setTurnaroundPorDia(calcularTurnaroundPorDia(agendamentosFiltrados));
-
-        publicarAtualizacao(resumo);
         return resumo;
     }
 
     public List<RelatorioAgendamentoDTO> buscarRelatorio(DashboardFiltroDTO filtro) {
-        List<Agendamento> agendamentos = buscarAgendamentos(filtro);
+        List<Agendamento> agendamentos = buscarAgendamentos(normalizarFiltro(filtro));
         if (CollectionUtils.isEmpty(agendamentos)) {
             return Collections.emptyList();
         }
@@ -99,7 +99,17 @@ public class DashboardService {
         emitter.onCompletion(() -> emitters.remove(emitter));
         emitter.onTimeout(() -> emitters.remove(emitter));
         emitter.onError(throwable -> emitters.remove(emitter));
+        enviarSnapshotInicial(emitter);
         return emitter;
+    }
+
+    public void publicarResumo(DashboardFiltroDTO filtro) {
+        DashboardResumoDTO resumo = obterResumo(filtro);
+        publicarAtualizacao(resumo);
+    }
+
+    public void publicarResumoGeral() {
+        publicarResumo(null);
     }
 
     private void publicarAtualizacao(DashboardResumoDTO resumo) {
@@ -118,6 +128,10 @@ public class DashboardService {
         });
     }
 
+    private DashboardFiltroDTO normalizarFiltro(DashboardFiltroDTO filtro) {
+        return filtro != null ? filtro : new DashboardFiltroDTO();
+    }
+
     private List<Agendamento> buscarAgendamentos(DashboardFiltroDTO filtro) {
         return agendamentoRepository.buscarRelatorio(
                 filtro.getInicio(),
@@ -125,6 +139,18 @@ public class DashboardService {
                 filtro.getTransportadoraId(),
                 filtro.getTipoOperacao()
         );
+    }
+
+    private void enviarSnapshotInicial(SseEmitter emitter) {
+        try {
+            DashboardResumoDTO resumo = obterResumo(null);
+            emitter.send(SseEmitter.event()
+                    .name("dashboard-atualizado")
+                    .data(resumo));
+        } catch (IOException ex) {
+            emitter.completeWithError(ex);
+            emitters.remove(emitter);
+        }
     }
 
     private List<OcupacaoPorHoraDTO> calcularOcupacaoPorHora(List<Agendamento> agendamentos) {

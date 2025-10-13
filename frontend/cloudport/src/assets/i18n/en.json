@@ -54,6 +54,15 @@
         "status": "Pass status",
         "atualizadoEm": "Updated on {{data}}"
       },
+      "realtime": {
+        "titulo": "Real-time status",
+        "status": {
+          "conectando": "Connecting to the real-time stream...",
+          "conectado": "Live connection active. Updates will arrive instantly.",
+          "reconectando": "Retrying connection (attempt {{tentativa}}) in {{segundos}}s...",
+          "desconectado": "Connection lost. Waiting for a new attempt..."
+        }
+      },
       "instrucoesArquivoTitulo": "Driver instructions - Booking {{codigo}}",
       "ultimaRevalidacao": "Last revalidation",
       "abrirDocumento": "Open"

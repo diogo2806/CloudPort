@@ -7,6 +7,27 @@
     <span class="badge">{{ agendamento?.statusDescricao || agendamento?.status }}</span>
   </header>
 
+  <div class="agendamento-detalhe__realtime">
+    <span class="realtime__titulo">{{ 'gate.agendamentoDetalhe.realtime.titulo' | translate }}</span>
+    <div class="realtime__status">
+      <span
+        class="realtime__indicador"
+        [ngClass]="{
+          'realtime__indicador--conectado': conexaoEstado === 'conectado',
+          'realtime__indicador--reconectando': conexaoEstado === 'reconectando',
+          'realtime__indicador--desconectado': conexaoEstado === 'desconectado',
+          'realtime__indicador--conectando': conexaoEstado === 'conectando'
+        }"
+      ></span>
+      <span class="realtime__mensagem">
+        {{
+          ('gate.agendamentoDetalhe.realtime.status.' + conexaoEstado)
+            | translate: conexaoParametros
+        }}
+      </span>
+    </div>
+  </div>
+
   <div class="agendamento-detalhe__alertas">
     <div class="alerta alerta--info" *ngIf="janelaMensagem">{{ janelaMensagem }}</div>
     <div class="alerta alerta--sucesso" *ngIf="statusMensagem">{{ statusMensagem }}</div>

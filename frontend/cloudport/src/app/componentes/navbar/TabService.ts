@@ -37,11 +37,12 @@ export class TabService {
 
   private tabContents: { [tabId: string]: any } = {};
 
-  openTab(tab: TabItem, content?: any): void {
-    const normalizedId = normalizeTabId(tab.id);
+  openTab(tab: TabItem | string, content?: any): void {
+    const tabToRegister = this.resolveTab(tab);
+    const normalizedId = normalizeTabId(tabToRegister.id);
     const registeredTab = TAB_REGISTRY[normalizedId] ?? {
       id: normalizedId,
-      label: tab.label ?? normalizedId
+      label: tabToRegister.label ?? normalizedId
     };
     const tabToOpen: TabItem = { ...registeredTab };
     const tabs = this.tabsSubject.value;
@@ -70,5 +71,29 @@ export class TabService {
 
   setTabContent(tabId: string, content: any): void {
     this.tabContents[normalizeTabId(tabId)] = content;
+  }
+
+  private resolveTab(tab: TabItem | string): TabItem {
+    if (typeof tab !== 'string') {
+      return tab;
+    }
+
+    const normalizedId = normalizeTabId(tab);
+    const registryById = TAB_REGISTRY[normalizedId];
+    if (registryById) {
+      return registryById;
+    }
+
+    const registryByLabel = Object.values(TAB_REGISTRY).find(
+      registeredTab => registeredTab.label.toLowerCase() === tab.toLowerCase()
+    );
+    if (registryByLabel) {
+      return registryByLabel;
+    }
+
+    return {
+      id: normalizedId,
+      label: tab
+    };
   }
 }

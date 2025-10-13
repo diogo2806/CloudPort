@@ -19,10 +19,13 @@ public class RegisterDTO {
     @NotEmpty(message = "Informe ao menos uma role.")
     private Set<@NotBlank(message = "A role não pode ser vazia.") String> roles;
 
+    @Size(max = 255, message = "O nome deve ter no máximo 255 caracteres.")
     private String nome;
 
+    @Size(max = 30, message = "O documento da transportadora deve ter no máximo 30 caracteres.")
     private String transportadoraDocumento;
 
+    @Size(max = 255, message = "O nome da transportadora deve ter no máximo 255 caracteres.")
     private String transportadoraNome;
 
     public RegisterDTO() {}

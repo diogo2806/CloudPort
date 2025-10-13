@@ -205,11 +205,26 @@ console.log("handleTableContextMenu: ", event)
 
 
   closeContextMenu(event: MouseEvent): void {
-    const target = event?.target as Node | null;
-    const clickedInsideGrid = !!(target && this.gridTable?.nativeElement?.contains(target));
+    if (!event) {
+      return;
+    }
 
-    const contextMenuElement = document.querySelector('.context-menu');
-    const clickedInsideMenu = !!(target && contextMenuElement?.contains(target));
+    const target = event.target as Node | null;
+    const gridElement = this.gridTable?.nativeElement as HTMLElement | undefined;
+    const contextMenuElement = document.querySelector('.context-menu') as HTMLElement | null;
+    const eventPath: EventTarget[] = typeof event.composedPath === 'function' ? event.composedPath() : [];
+
+    const clickedInsideGrid = !!(
+      target &&
+      gridElement &&
+      (gridElement.contains(target) || eventPath.includes(gridElement))
+    );
+
+    const clickedInsideMenu = !!(
+      target &&
+      contextMenuElement &&
+      (contextMenuElement.contains(target) || eventPath.includes(contextMenuElement))
+    );
 
     if (!clickedInsideGrid && !clickedInsideMenu) {
       this.rightClick.emit(null);

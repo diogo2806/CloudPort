@@ -15,12 +15,11 @@ const homeChildRoutes: Routes = [
   { path: 'seguranca', component: SegurancaComponent },
   { path: 'notificacoes', component: NotificacoesComponent },
   { path: 'privacidade', component: PrivacidadeComponent },
-  { path: 'lista-de-usuarios', component: UsuariosListaComponent }
-];
-
-const homeChildRoutes: Routes = [
-  { path: '', redirectTo: 'role', pathMatch: 'full' },
-  { path: 'role', component: RoleTabelaComponent },
+  { path: 'lista-de-usuarios', component: UsuariosListaComponent },
+  {
+    path: 'gate',
+    loadChildren: () => import('./componentes/gate/gate.module').then(m => m.GateModule)
+  }
 ];
 
 const routes: Routes = [
@@ -31,7 +30,7 @@ const routes: Routes = [
     canActivate: [AuthGuard],
     children: homeChildRoutes
   },
-  { path: '', redirectTo: 'home', pathMatch: 'full' },
+  { path: '', redirectTo: 'home', pathMatch: 'full' }
 ];
 
 @NgModule({

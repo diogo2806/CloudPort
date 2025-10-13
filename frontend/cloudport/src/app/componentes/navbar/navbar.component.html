@@ -1,6 +1,6 @@
 <nav class="app-navbar" *ngIf="mostrarMenu">
   <ul>
-    <li (click)="toggleSubmenu($event)">
+    <li *ngIf="configurationTabs.length" (click)="toggleSubmenu($event)">
       <a href="#">Configurações</a>
       <ul>
         <li *ngFor="let tab of configurationTabs">
@@ -8,7 +8,15 @@
         </li>
       </ul>
     </li>
-    <li (click)="toggleSubmenu($event)">
+    <li *ngIf="gateTabs.length" (click)="toggleSubmenu($event)">
+      <a href="#">Gate</a>
+      <ul>
+        <li *ngFor="let tab of gateTabs">
+          <a (click)="openTab(tab)">{{ tab.label }}</a>
+        </li>
+      </ul>
+    </li>
+    <li *ngIf="userTabs.length" (click)="toggleSubmenu($event)">
       <a href="#">Usuários</a>
       <ul>
         <li *ngFor="let tab of userTabs">

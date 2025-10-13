@@ -50,17 +50,17 @@ describe('LoginComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should default returnUrl to /home when query param is missing', () => {
-    expect(component.returnUrl).toBe('/home');
+  it('should default returnUrl to /home/role when query param is missing', () => {
+    expect(component.returnUrl).toBe('/home/role');
   });
 
-  it('should redirect to /home when login succeeds without returnUrl', () => {
+  it('should redirect to /home/role when login succeeds without returnUrl', () => {
     const router = TestBed.inject(Router);
     const navigateSpy = spyOn(router, 'navigateByUrl');
 
     component.loginForm.setValue({ username: 'john', password: 'secret' });
     component.onSubmit();
 
-    expect(navigateSpy).toHaveBeenCalledWith('/home');
+    expect(navigateSpy).toHaveBeenCalledWith('/home/role');
   });
 });

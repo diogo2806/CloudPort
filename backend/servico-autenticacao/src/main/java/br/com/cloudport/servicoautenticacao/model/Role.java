@@ -19,7 +19,7 @@ public class Role {
     @Column
     private String name;
 
-    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "role")
     private Set<UserRole> userRoles = new HashSet<>();
 
     // Default constructor

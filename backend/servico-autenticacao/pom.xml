@@ -16,10 +16,8 @@
 	<properties>
 		<java.version>11</java.version>
 	</properties>
-	<dependencies>
-		<!-- ... suas outras dependências ... -->
-
-		<dependency>
+        <dependencies>
+                <dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
@@ -83,24 +81,20 @@
 			<artifactId>postgresql</artifactId>
                         <version>42.5.5</version>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-log4j2</artifactId>
-		</dependency>
-
-<dependency>
-    <groupId>com.auth0</groupId>
-    <artifactId>java-jwt</artifactId>
-    <version>3.18.1</version>
-</dependency>
-<dependency>
-    <groupId>org.hibernate.validator</groupId>
-    <artifactId>hibernate-validator</artifactId>
-    <version>6.2.0.Final</version>
-</dependency>
-
-
-
+                <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-log4j2</artifactId>
+                </dependency>
+                <dependency>
+                        <groupId>com.auth0</groupId>
+                        <artifactId>java-jwt</artifactId>
+                        <version>3.18.1</version>
+                </dependency>
+                <dependency>
+                        <groupId>org.hibernate.validator</groupId>
+                        <artifactId>hibernate-validator</artifactId>
+                        <version>6.2.0.Final</version>
+                </dependency>
 	</dependencies>
 
 	<build>

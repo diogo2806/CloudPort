@@ -54,6 +54,7 @@ public class AgendamentoService {
     private final DocumentoStorageService documentoStorageService;
     private final AgendamentoRulesProperties rulesProperties;
     private final TosIntegrationService tosIntegrationService;
+    private final DashboardService dashboardService;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AgendamentoService.class);
 
@@ -65,7 +66,8 @@ public class AgendamentoService {
                               DocumentoAgendamentoRepository documentoAgendamentoRepository,
                               DocumentoStorageService documentoStorageService,
                               AgendamentoRulesProperties rulesProperties,
-                              TosIntegrationService tosIntegrationService) {
+                              TosIntegrationService tosIntegrationService,
+                              DashboardService dashboardService) {
         this.agendamentoRepository = agendamentoRepository;
         this.janelaAtendimentoRepository = janelaAtendimentoRepository;
         this.transportadoraRepository = transportadoraRepository;
@@ -75,6 +77,7 @@ public class AgendamentoService {
         this.documentoStorageService = documentoStorageService;
         this.rulesProperties = rulesProperties;
         this.tosIntegrationService = tosIntegrationService;
+        this.dashboardService = dashboardService;
     }
 
     @Transactional(readOnly = true)
@@ -118,6 +121,8 @@ public class AgendamentoService {
         Agendamento agendamento = new Agendamento();
         aplicarDados(agendamento, request, janela);
         Agendamento salvo = agendamentoRepository.save(agendamento);
+        agendamentoRepository.flush();
+        dashboardService.publicarResumoGeral();
         return GateMapper.toAgendamentoDTO(salvo);
     }
 
@@ -143,6 +148,8 @@ public class AgendamentoService {
 
         aplicarDados(existente, request, janela);
         Agendamento salvo = agendamentoRepository.save(existente);
+        agendamentoRepository.flush();
+        dashboardService.publicarResumoGeral();
         return GateMapper.toAgendamentoDTO(salvo);
     }
 
@@ -151,6 +158,8 @@ public class AgendamentoService {
         validarEdicaoPermitida(agendamento);
         agendamento.setStatus(StatusAgendamento.CANCELADO);
         agendamentoRepository.save(agendamento);
+        agendamentoRepository.flush();
+        dashboardService.publicarResumoGeral();
     }
 
     public DocumentoAgendamentoDTO adicionarDocumento(Long agendamentoId, DocumentoUploadRequest request, MultipartFile arquivo) {

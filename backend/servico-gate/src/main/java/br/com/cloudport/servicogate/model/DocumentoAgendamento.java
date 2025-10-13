@@ -1,5 +1,6 @@
 package br.com.cloudport.servicogate.model;
 
+import java.time.LocalDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -35,6 +36,9 @@ public class DocumentoAgendamento extends AbstractAuditableEntity {
 
     @Column(name = "tamanho_bytes")
     private Long tamanhoBytes;
+
+    @Column(name = "ultima_revalidacao")
+    private LocalDateTime ultimaRevalidacao;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agendamento_id", nullable = false)
@@ -94,6 +98,14 @@ public class DocumentoAgendamento extends AbstractAuditableEntity {
 
     public void setTamanhoBytes(Long tamanhoBytes) {
         this.tamanhoBytes = tamanhoBytes;
+    }
+
+    public LocalDateTime getUltimaRevalidacao() {
+        return ultimaRevalidacao;
+    }
+
+    public void setUltimaRevalidacao(LocalDateTime ultimaRevalidacao) {
+        this.ultimaRevalidacao = ultimaRevalidacao;
     }
 
     public Agendamento getAgendamento() {

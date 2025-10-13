@@ -11,6 +11,7 @@ export interface DocumentoAgendamento {
   nomeArquivo: string;
   contentType: string;
   tamanhoBytes: number;
+  ultimaRevalidacao?: string | null;
 }
 
 export interface GateEvent {
@@ -32,6 +33,7 @@ export interface GatePass {
   dataEntrada: string | null;
   dataSaida: string | null;
   eventos: GateEvent[] | null;
+  token: string | null;
 }
 
 export interface Agendamento {

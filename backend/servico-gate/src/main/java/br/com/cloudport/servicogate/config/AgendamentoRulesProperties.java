@@ -26,6 +26,11 @@ public class AgendamentoRulesProperties {
      */
     private Duration edicaoAtraso = Duration.ofHours(2);
 
+    /**
+     * Antecedência para disparo de notificações de janela próxima.
+     */
+    private Duration notificacaoJanelaAntecedencia = Duration.ofMinutes(30);
+
     public Duration getAntecedenciaMinima() {
         return antecedenciaMinima;
     }
@@ -56,5 +61,13 @@ public class AgendamentoRulesProperties {
 
     public void setEdicaoAtraso(Duration edicaoAtraso) {
         this.edicaoAtraso = edicaoAtraso;
+    }
+
+    public Duration getNotificacaoJanelaAntecedencia() {
+        return notificacaoJanelaAntecedencia;
+    }
+
+    public void setNotificacaoJanelaAntecedencia(Duration notificacaoJanelaAntecedencia) {
+        this.notificacaoJanelaAntecedencia = notificacaoJanelaAntecedencia;
     }
 }

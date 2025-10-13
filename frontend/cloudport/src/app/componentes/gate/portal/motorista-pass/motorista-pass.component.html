@@ -1,0 +1,31 @@
+<section class="motorista-pass" *ngIf="gatePass && qrData; else vazio">
+  <header class="motorista-pass__cabecalho">
+    <h4>{{ 'gate.agendamentoDetalhe.motoristaPass.titulo' | translate }}</h4>
+    <p>{{ 'gate.agendamentoDetalhe.motoristaPass.subtitulo' | translate }}</p>
+  </header>
+
+  <div class="motorista-pass__codigo">
+    <qrcode [qrdata]="qrData" [width]="200" [margin]="1"></qrcode>
+  </div>
+
+  <dl class="motorista-pass__dados">
+    <div>
+      <dt>{{ 'gate.agendamentoDetalhe.motoristaPass.codigo' | translate }}</dt>
+      <dd>{{ gatePass?.codigo || agendamentoCodigo }}</dd>
+    </div>
+    <div>
+      <dt>{{ 'gate.agendamentoDetalhe.motoristaPass.status' | translate }}</dt>
+      <dd>{{ statusDescricao }}</dd>
+    </div>
+    <div *ngIf="atualizadoEm">
+      <dt>{{ 'gate.agendamentoDetalhe.motoristaPass.atualizadoEm' | translate: { data: (atualizadoEm | date:'short') } }}</dt>
+      <dd>{{ atualizadoEm | date: 'short' }}</dd>
+    </div>
+  </dl>
+</section>
+
+<ng-template #vazio>
+  <section class="motorista-pass motorista-pass--vazio">
+    <p>{{ 'gate.agendamentoDetalhe.selecione' | translate }}</p>
+  </section>
+</ng-template>

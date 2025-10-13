@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -39,6 +40,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -55,6 +57,7 @@ public class AgendamentoService {
     private final AgendamentoRulesProperties rulesProperties;
     private final TosIntegrationService tosIntegrationService;
     private final DashboardService dashboardService;
+    private final AgendamentoRealtimeService agendamentoRealtimeService;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AgendamentoService.class);
 
@@ -67,7 +70,8 @@ public class AgendamentoService {
                               DocumentoStorageService documentoStorageService,
                               AgendamentoRulesProperties rulesProperties,
                               TosIntegrationService tosIntegrationService,
-                              DashboardService dashboardService) {
+                              DashboardService dashboardService,
+                              AgendamentoRealtimeService agendamentoRealtimeService) {
         this.agendamentoRepository = agendamentoRepository;
         this.janelaAtendimentoRepository = janelaAtendimentoRepository;
         this.transportadoraRepository = transportadoraRepository;
@@ -78,6 +82,7 @@ public class AgendamentoService {
         this.rulesProperties = rulesProperties;
         this.tosIntegrationService = tosIntegrationService;
         this.dashboardService = dashboardService;
+        this.agendamentoRealtimeService = agendamentoRealtimeService;
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +103,7 @@ public class AgendamentoService {
     @Transactional(readOnly = true)
     public AgendamentoDTO buscarPorId(Long id) {
         Agendamento agendamento = obterAgendamento(id);
+        agendamentoRealtimeService.verificarJanelaProxima(agendamento);
         return GateMapper.toAgendamentoDTO(agendamento);
     }
 
@@ -123,6 +129,7 @@ public class AgendamentoService {
         Agendamento salvo = agendamentoRepository.save(agendamento);
         agendamentoRepository.flush();
         dashboardService.publicarResumoGeral();
+        agendamentoRealtimeService.notificarStatus(salvo);
         return GateMapper.toAgendamentoDTO(salvo);
     }
 
@@ -150,6 +157,7 @@ public class AgendamentoService {
         Agendamento salvo = agendamentoRepository.save(existente);
         agendamentoRepository.flush();
         dashboardService.publicarResumoGeral();
+        agendamentoRealtimeService.notificarStatus(salvo);
         return GateMapper.toAgendamentoDTO(salvo);
     }
 
@@ -160,6 +168,7 @@ public class AgendamentoService {
         agendamentoRepository.save(agendamento);
         agendamentoRepository.flush();
         dashboardService.publicarResumoGeral();
+        agendamentoRealtimeService.notificarStatus(agendamento);
     }
 
     public DocumentoAgendamentoDTO adicionarDocumento(Long agendamentoId, DocumentoUploadRequest request, MultipartFile arquivo) {
@@ -169,15 +178,34 @@ public class AgendamentoService {
 
         DocumentoAgendamento documento = new DocumentoAgendamento();
         documento.setAgendamento(agendamento);
-        documento.setTipoDocumento(request.getTipoDocumento());
-        documento.setNumero(request.getNumero());
+        documento.setTipoDocumento(resolverTipoDocumento(request, arquivo));
+        documento.setNumero(request != null ? request.getNumero() : null);
         documento.setUrlDocumento(storedDocumento.getStorageKey());
         documento.setNomeArquivo(storedDocumento.getNomeOriginal());
         documento.setContentType(storedDocumento.getContentType());
         documento.setTamanhoBytes(storedDocumento.getTamanho());
+        documento.setUltimaRevalidacao(LocalDateTime.now());
 
         DocumentoAgendamento salvo = documentoAgendamentoRepository.save(documento);
+        agendamento.getDocumentos().add(salvo);
+        agendamentoRealtimeService.notificarDocumentosAtualizados(agendamento);
         return GateMapper.toDocumentoAgendamentoDTO(salvo);
+    }
+
+    public AgendamentoDTO revalidarDocumentos(Long agendamentoId) {
+        Agendamento agendamento = obterAgendamento(agendamentoId);
+        validarEdicaoPermitida(agendamento);
+        LocalDateTime agora = LocalDateTime.now();
+        List<DocumentoAgendamento> documentos = agendamento.getDocumentos() != null
+                ? agendamento.getDocumentos()
+                : Collections.emptyList();
+        if (documentos.isEmpty()) {
+            throw new BusinessException("Não há documentos cadastrados para revalidação");
+        }
+        documentos.forEach(documento -> documento.setUltimaRevalidacao(agora));
+        documentoAgendamentoRepository.saveAll(documentos);
+        agendamentoRealtimeService.notificarDocumentosRevalidados(agendamento);
+        return GateMapper.toAgendamentoDTO(agendamento);
     }
 
     @Transactional(readOnly = true)
@@ -203,6 +231,23 @@ public class AgendamentoService {
         return documentoAgendamentoRepository.findByAgendamentoId(agendamento.getId()).stream()
                 .map(GateMapper::toDocumentoAgendamentoDTO)
                 .collect(Collectors.toList());
+    }
+
+    private String resolverTipoDocumento(DocumentoUploadRequest request, MultipartFile arquivo) {
+        if (request != null && StringUtils.hasText(request.getTipoDocumento())) {
+            return request.getTipoDocumento();
+        }
+        if (arquivo != null) {
+            if (StringUtils.hasText(arquivo.getContentType())) {
+                return arquivo.getContentType();
+            }
+            String originalFilename = arquivo.getOriginalFilename();
+            if (StringUtils.hasText(originalFilename) && originalFilename.contains(".")) {
+                String extensao = originalFilename.substring(originalFilename.lastIndexOf('.') + 1);
+                return extensao.toUpperCase(Locale.ROOT);
+            }
+        }
+        return "ARQUIVO";
     }
 
     private String determinarContentType(org.springframework.core.io.Resource resource) {

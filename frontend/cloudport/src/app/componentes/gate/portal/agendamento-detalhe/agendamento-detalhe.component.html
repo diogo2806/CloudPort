@@ -2,45 +2,71 @@
   <header class="agendamento-detalhe__cabecalho">
     <div>
       <h3>{{ agendamento?.codigo }}</h3>
-      <p>{{ agendamento?.transportadoraNome || 'Transportadora não informada' }}</p>
+      <p>{{ agendamento?.transportadoraNome || '—' }}</p>
     </div>
     <span class="badge">{{ agendamento?.statusDescricao || agendamento?.status }}</span>
   </header>
 
+  <div class="agendamento-detalhe__alertas">
+    <div class="alerta alerta--info" *ngIf="janelaMensagem">{{ janelaMensagem }}</div>
+    <div class="alerta alerta--sucesso" *ngIf="statusMensagem">{{ statusMensagem }}</div>
+    <div class="alerta alerta--aviso" *ngIf="notificacaoErro">{{ notificacaoErro }}</div>
+  </div>
+
   <div class="agendamento-detalhe__grid">
     <div>
-      <span class="rotulo">Operação</span>
+      <span class="rotulo">{{ 'gate.agendamentoDetalhe.operacao' | translate }}</span>
       <span>{{ agendamento?.tipoOperacaoDescricao || agendamento?.tipoOperacao }}</span>
     </div>
     <div>
-      <span class="rotulo">Janela</span>
+      <span class="rotulo">{{ 'gate.agendamentoDetalhe.janela' | translate }}</span>
       <span>
         {{ agendamento?.dataJanela | date: 'dd/MM/yyyy' }}
         {{ agendamento?.horaInicioJanela }} - {{ agendamento?.horaFimJanela }}
       </span>
     </div>
     <div>
-      <span class="rotulo">Motorista</span>
+      <span class="rotulo">{{ 'gate.agendamentoDetalhe.motorista' | translate }}</span>
       <span>{{ agendamento?.motoristaNome || '—' }}</span>
     </div>
     <div>
-      <span class="rotulo">Placa</span>
+      <span class="rotulo">{{ 'gate.agendamentoDetalhe.placa' | translate }}</span>
       <span>{{ agendamento?.placaVeiculo || '—' }}</span>
     </div>
     <div>
-      <span class="rotulo">Chegada Prevista</span>
+      <span class="rotulo">{{ 'gate.agendamentoDetalhe.chegadaPrevista' | translate }}</span>
       <span>{{ agendamento?.horarioPrevistoChegada || '—' }}</span>
     </div>
     <div>
-      <span class="rotulo">Saída Prevista</span>
+      <span class="rotulo">{{ 'gate.agendamentoDetalhe.saidaPrevista' | translate }}</span>
       <span>{{ agendamento?.horarioPrevistoSaida || '—' }}</span>
     </div>
   </div>
 
+  <div class="agendamento-detalhe__acoes">
+    <button type="button" class="btn" (click)="confirmarChegadaAntecipada()" [disabled]="carregandoConfirmacao">
+      {{ 'gate.agendamentoDetalhe.confirmarChegada' | translate }}
+    </button>
+    <button type="button" class="btn" (click)="revalidarDocumentos()" [disabled]="carregandoRevalidacao">
+      {{ 'gate.agendamentoDetalhe.revalidarDocumentos' | translate }}
+    </button>
+    <button type="button" class="btn" (click)="baixarComprovante()">
+      {{ 'gate.agendamentoDetalhe.downloadComprovante' | translate }}
+    </button>
+    <button type="button" class="btn" (click)="imprimir()">
+      {{ 'gate.agendamentoDetalhe.imprimir' | translate }}
+    </button>
+  </div>
+
+  <app-motorista-pass class="agendamento-detalhe__pass"
+    [gatePass]="agendamento?.gatePass"
+    [agendamentoCodigo]="agendamento?.codigo"
+  ></app-motorista-pass>
+
   <section class="agendamento-detalhe__documentos">
     <header>
-      <h4>Documentos anexados</h4>
-      <span>{{ agendamento?.documentos?.length || 0 }} documentos</span>
+      <h4>{{ 'gate.agendamentoDetalhe.documentosAnexados' | translate }}</h4>
+      <span>{{ 'gate.agendamentoDetalhe.quantidadeDocumentos' | translate: { quantidade: agendamento?.documentos?.length || 0 } }}</span>
     </header>
 
     <ul class="documentos" *ngIf="agendamento?.documentos?.length; else nenhumDocumento" [attr.aria-live]="'polite'">
@@ -48,20 +74,26 @@
         <div>
           <strong>{{ documento.nomeArquivo }}</strong>
           <span>{{ documento.tamanhoBytes / 1024 | number: '1.0-0' }} KB</span>
+          <small *ngIf="documento.ultimaRevalidacao">
+            {{ 'gate.agendamentoDetalhe.ultimaRevalidacao' | translate }}:
+            {{ documento.ultimaRevalidacao | date: 'short' }}
+          </small>
         </div>
-        <a [href]="documento.urlDocumento" target="_blank" rel="noopener">Abrir</a>
+        <a [href]="documento.urlDocumento" target="_blank" rel="noopener">
+          {{ 'gate.agendamentoDetalhe.abrirDocumento' | translate }}
+        </a>
       </li>
     </ul>
 
     <ng-template #nenhumDocumento>
-      <p class="documentos__vazio">Nenhum documento enviado ainda.</p>
+      <p class="documentos__vazio">{{ 'gate.agendamentoDetalhe.nenhumDocumento' | translate }}</p>
     </ng-template>
   </section>
 
   <section class="agendamento-detalhe__upload">
-    <h4>Adicionar documentos</h4>
+    <h4>{{ 'gate.agendamentoDetalhe.adicionarDocumentos' | translate }}</h4>
     <label class="upload__botao">
-      Selecionar arquivos
+      {{ 'gate.agendamentoDetalhe.selecionarArquivos' | translate }}
       <input type="file" multiple (change)="aoSelecionarArquivos($event)" [disabled]="existeUploadEmAndamento()" />
     </label>
 
@@ -82,7 +114,11 @@
             <span class="preenchimento" [style.width.%]="progresso.progress"></span>
           </div>
           <small class="status" [class.status--erro]="progresso.status === 'erro'">
-            {{ progresso.status === 'concluido' ? 'Concluído' : progresso.status === 'erro' ? 'Erro' : progresso.progress + '%' }}
+            {{ progresso.status === 'concluido'
+              ? ('gate.agendamentoDetalhe.uploadConcluido' | translate)
+              : progresso.status === 'erro'
+                ? ('gate.agendamentoDetalhe.uploadErro' | translate)
+                : progresso.progress + '%' }}
           </small>
         </div>
       </article>
@@ -94,14 +130,20 @@
       [disabled]="!documentosSelecionados.length || existeUploadEmAndamento()"
       (click)="enviarDocumentos()"
     >
-      Enviar documentos
+      {{ 'gate.agendamentoDetalhe.enviarDocumentos' | translate }}
     </button>
+  </section>
+
+  <section class="agendamento-detalhe__instrucoes">
+    <h4>{{ 'gate.agendamentoDetalhe.instrucoesTitulo' | translate }}</h4>
+    <ul>
+      <li *ngFor="let instrucao of instrucoes">{{ instrucao }}</li>
+    </ul>
   </section>
 </section>
 
 <ng-template #selecione>
   <section class="agendamento-detalhe agendamento-detalhe--vazio">
-    <p>Selecione um agendamento para visualizar os detalhes.</p>
+    <p>{{ 'gate.agendamentoDetalhe.selecione' | translate }}</p>
   </section>
 </ng-template>
-

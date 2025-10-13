@@ -1,5 +1,7 @@
 package br.com.cloudport.servicogate.dto;
 
+import java.time.LocalDateTime;
+
 public class DocumentoAgendamentoDTO {
 
     private Long id;
@@ -9,12 +11,14 @@ public class DocumentoAgendamentoDTO {
     private String nomeArquivo;
     private String contentType;
     private Long tamanhoBytes;
+    private LocalDateTime ultimaRevalidacao;
 
     public DocumentoAgendamentoDTO() {
     }
 
     public DocumentoAgendamentoDTO(Long id, String tipoDocumento, String numero, String urlDocumento,
-                                   String nomeArquivo, String contentType, Long tamanhoBytes) {
+                                   String nomeArquivo, String contentType, Long tamanhoBytes,
+                                   LocalDateTime ultimaRevalidacao) {
         this.id = id;
         this.tipoDocumento = tipoDocumento;
         this.numero = numero;
@@ -22,6 +26,7 @@ public class DocumentoAgendamentoDTO {
         this.nomeArquivo = nomeArquivo;
         this.contentType = contentType;
         this.tamanhoBytes = tamanhoBytes;
+        this.ultimaRevalidacao = ultimaRevalidacao;
     }
 
     public Long getId() {
@@ -78,5 +83,13 @@ public class DocumentoAgendamentoDTO {
 
     public void setTamanhoBytes(Long tamanhoBytes) {
         this.tamanhoBytes = tamanhoBytes;
+    }
+
+    public LocalDateTime getUltimaRevalidacao() {
+        return ultimaRevalidacao;
+    }
+
+    public void setUltimaRevalidacao(LocalDateTime ultimaRevalidacao) {
+        this.ultimaRevalidacao = ultimaRevalidacao;
     }
 }

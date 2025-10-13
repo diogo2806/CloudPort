@@ -1,0 +1,79 @@
+.motorista-pass {
+  background: var(--card-background, #fff);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  min-width: 0;
+}
+
+.motorista-pass--vazio {
+  text-align: center;
+  color: #64748b;
+  border: 1px dashed #cbd5f5;
+}
+
+.motorista-pass__cabecalho {
+  text-align: center;
+}
+
+.motorista-pass__cabecalho h4 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.motorista-pass__cabecalho p {
+  margin: 0.25rem 0 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.motorista-pass__codigo {
+  background: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.motorista-pass__dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem 1.5rem;
+  width: 100%;
+  margin: 0;
+}
+
+.motorista-pass__dados div {
+  background: rgba(15, 23, 42, 0.03);
+  padding: 0.75rem;
+  border-radius: 10px;
+}
+
+.motorista-pass__dados dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}
+
+.motorista-pass__dados dd {
+  margin: 0;
+  font-weight: 600;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+@media (max-width: 768px) {
+  .motorista-pass {
+    padding: 1rem;
+  }
+
+  .motorista-pass__codigo {
+    width: 100%;
+  }
+}

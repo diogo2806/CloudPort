@@ -5,6 +5,7 @@ import br.com.cloudport.servicogate.dto.AgendamentoRequest;
 import br.com.cloudport.servicogate.dto.DocumentoAgendamentoDTO;
 import br.com.cloudport.servicogate.dto.DocumentoUploadRequest;
 import br.com.cloudport.servicogate.service.AgendamentoService;
+import br.com.cloudport.servicogate.service.AgendamentoRealtimeService;
 import br.com.cloudport.servicogate.service.DocumentoDownload;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/gate/agendamentos")
@@ -41,9 +43,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class AgendamentoController {
 
     private final AgendamentoService agendamentoService;
+    private final AgendamentoRealtimeService agendamentoRealtimeService;
 
-    public AgendamentoController(AgendamentoService agendamentoService) {
+    public AgendamentoController(AgendamentoService agendamentoService,
+                                 AgendamentoRealtimeService agendamentoRealtimeService) {
         this.agendamentoService = agendamentoService;
+        this.agendamentoRealtimeService = agendamentoRealtimeService;
     }
 
     @GetMapping
@@ -62,6 +67,13 @@ public class AgendamentoController {
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
     public AgendamentoDTO buscarPorId(@PathVariable Long id) {
         return agendamentoService.buscarPorId(id);
+    }
+
+    @GetMapping(value = "/{id}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Acompanha atualizações em tempo real do agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
+    public SseEmitter acompanhar(@PathVariable Long id) {
+        return agendamentoRealtimeService.registrar(id);
     }
 
     @PostMapping
@@ -91,10 +103,17 @@ public class AgendamentoController {
     @Operation(summary = "Realiza upload de documento para o agendamento")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
     public ResponseEntity<DocumentoAgendamentoDTO> uploadDocumento(@PathVariable Long id,
-                                                                   @Valid @RequestPart("metadata") DocumentoUploadRequest metadata,
+                                                                   @Valid @RequestPart(value = "metadata", required = false) DocumentoUploadRequest metadata,
                                                                    @RequestPart("file") MultipartFile arquivo) {
         DocumentoAgendamentoDTO documento = agendamentoService.adicionarDocumento(id, metadata, arquivo);
         return ResponseEntity.status(HttpStatus.CREATED).body(documento);
+    }
+
+    @PostMapping("/{id}/documentos/revalidar")
+    @Operation(summary = "Revalida os documentos anexados ao agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
+    public AgendamentoDTO revalidarDocumentos(@PathVariable Long id) {
+        return agendamentoService.revalidarDocumentos(id);
     }
 
     @GetMapping("/{id}/documentos")

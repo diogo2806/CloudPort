@@ -1,6 +1,7 @@
 package br.com.cloudport.servicogate.service;
 
 import br.com.cloudport.servicogate.config.GateFlowProperties;
+import br.com.cloudport.servicogate.dto.AgendamentoDTO;
 import br.com.cloudport.servicogate.dto.GateDecisionDTO;
 import br.com.cloudport.servicogate.dto.GateFlowRequest;
 import br.com.cloudport.servicogate.dto.ManualReleaseAction;
@@ -64,19 +65,22 @@ public class GateFlowService {
     private final GateFlowProperties flowProperties;
     private final TosIntegrationService tosIntegrationService;
     private final GateMetrics gateMetrics;
+    private final AgendamentoRealtimeService agendamentoRealtimeService;
 
     public GateFlowService(AgendamentoRepository agendamentoRepository,
                            GatePassRepository gatePassRepository,
                            GateEventRepository gateEventRepository,
                            GateFlowProperties flowProperties,
                            TosIntegrationService tosIntegrationService,
-                           GateMetrics gateMetrics) {
+                           GateMetrics gateMetrics,
+                           AgendamentoRealtimeService agendamentoRealtimeService) {
         this.agendamentoRepository = agendamentoRepository;
         this.gatePassRepository = gatePassRepository;
         this.gateEventRepository = gateEventRepository;
         this.flowProperties = flowProperties;
         this.tosIntegrationService = tosIntegrationService;
         this.gateMetrics = gateMetrics;
+        this.agendamentoRealtimeService = agendamentoRealtimeService;
     }
 
     public GateDecisionDTO registrarEntrada(GateFlowRequest request) {
@@ -110,6 +114,7 @@ public class GateFlowService {
                     statusContainer != null && statusContainer.isLiberacaoAduaneira());
 
             sucesso = true;
+            agendamentoRealtimeService.notificarStatus(agendamento);
             return GateDecisionDTO.autorizado(evento.getStatus(), agendamento, gatePass,
                     "Entrada liberada com sucesso");
         } catch (RuntimeException ex) {
@@ -150,6 +155,7 @@ public class GateFlowService {
                     "Saída registrada", resolverOperador(request.getOperador()), timestamp);
             LOGGER.info("Saída registrada para agendamento {}", agendamento.getCodigo());
 
+            agendamentoRealtimeService.notificarStatus(agendamento);
             return GateDecisionDTO.autorizado(evento.getStatus(), agendamento, gatePass,
                     "Saída registrada e gate finalizado");
         } catch (RuntimeException ex) {
@@ -193,7 +199,31 @@ public class GateFlowService {
         Agendamento agendamento = obterAgendamento(agendamentoId);
         TosSyncResponse sincronizacao = tosIntegrationService.sincronizar(agendamento);
         LOGGER.info("Sincronização solicitada para agendamento {}", agendamento.getCodigo());
+        agendamentoRealtimeService.notificarStatus(agendamento);
         return sincronizacao;
+    }
+
+    public AgendamentoDTO confirmarChegadaAntecipada(Long agendamentoId) {
+        Agendamento agendamento = obterAgendamento(agendamentoId);
+        if (EnumSet.of(StatusAgendamento.CANCELADO, StatusAgendamento.NO_SHOW, StatusAgendamento.COMPLETO)
+                .contains(agendamento.getStatus())) {
+            throw new BusinessException("Agendamento não permite confirmação antecipada no status atual");
+        }
+        if (agendamento.getStatus() == StatusAgendamento.EM_EXECUCAO) {
+            return GateMapper.toAgendamentoDTO(agendamento);
+        }
+        GatePass gatePass = obterOuCriarGatePass(agendamento);
+        agendamento.setStatus(StatusAgendamento.EM_ATENDIMENTO);
+        gatePass.setStatus(StatusGate.AGUARDANDO_ENTRADA);
+
+        gatePassRepository.save(gatePass);
+        agendamentoRepository.save(agendamento);
+
+        registrarEvento(gatePass, StatusGate.AGUARDANDO_ENTRADA, null,
+                "Chegada antecipada confirmada", resolverOperador(null), LocalDateTime.now());
+        agendamentoRealtimeService.notificarStatus(agendamento);
+        agendamentoRealtimeService.verificarJanelaProxima(agendamento);
+        return GateMapper.toAgendamentoDTO(agendamento);
     }
 
     private Agendamento localizarAgendamento(GateFlowRequest request) {
@@ -216,17 +246,25 @@ public class GateFlowService {
             gatePass = new GatePass();
             gatePass.setAgendamento(agendamento);
             gatePass.setCodigo(gerarCodigoGatePass(agendamento));
+            gatePass.setToken(gerarTokenGatePass());
             gatePass.setStatus(StatusGate.AGUARDANDO_ENTRADA);
             gatePass = gatePassRepository.save(gatePass);
             agendamento.setGatePass(gatePass);
         } else if (agendamento.getGatePass() == null) {
             agendamento.setGatePass(gatePass);
         }
+        if (!StringUtils.hasText(gatePass.getToken())) {
+            gatePass.setToken(gerarTokenGatePass());
+        }
         return gatePass;
     }
 
     private String gerarCodigoGatePass(Agendamento agendamento) {
         return "GP-" + agendamento.getCodigo() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(Locale.ROOT);
+    }
+
+    private String gerarTokenGatePass() {
+        return UUID.randomUUID().toString();
     }
 
     private void validarStatusParaEntrada(Agendamento agendamento) {
@@ -289,6 +327,7 @@ public class GateFlowService {
         event.setRegistradoEm(timestamp != null ? timestamp : LocalDateTime.now());
         GateEvent salvo = gateEventRepository.save(event);
         gatePass.getEventos().add(salvo);
+        agendamentoRealtimeService.notificarGatePass(gatePass);
         return salvo;
     }
 

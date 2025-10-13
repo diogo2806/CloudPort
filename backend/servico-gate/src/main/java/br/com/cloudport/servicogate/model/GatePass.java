@@ -32,6 +32,9 @@ public class GatePass extends AbstractAuditableEntity {
     @Column(name = "status", nullable = false, length = 40)
     private StatusGate status;
 
+    @Column(name = "token", nullable = false, length = 120)
+    private String token;
+
     @Column(name = "data_entrada")
     private LocalDateTime dataEntrada;
 
@@ -67,6 +70,14 @@ public class GatePass extends AbstractAuditableEntity {
 
     public void setStatus(StatusGate status) {
         this.status = status;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public LocalDateTime getDataEntrada() {

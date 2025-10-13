@@ -31,6 +31,7 @@ O projeto depende das seguintes bibliotecas e ferramentas:
 2. Certifique-se de que você tem o Maven e o JDK 17 instalados.
 3. Navegue até a raiz do projeto via linha de comando.
 4. Copie o arquivo `env.example` para `.env` e ajuste as variáveis de ambiente de acordo com sua infraestrutura (RabbitMQ, PostgreSQL e chaves JWT).
+   - As credenciais e segredos não possuem mais valores padrão no `application.properties`; a aplicação só inicia quando `SPRING_RABBITMQ_USERNAME`, `SPRING_RABBITMQ_PASSWORD`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `SPRING_SECURITY_USER_NAME`, `SPRING_SECURITY_USER_PASSWORD` (opcional) e `JWT_SECRET` estiverem definidos.
 5. Exporte as variáveis definidas no `.env` para o seu shell (`export $(grep -v '^#' .env | xargs)` em ambientes Unix) ou configure-as no serviço de execução da aplicação.
 6. Execute `createdb servico_autenticacao`.
 7. Execute `mvn spring-boot:run`.

@@ -1,0 +1,134 @@
+<section class="gate-relatorios" aria-labelledby="gateRelatoriosTitulo">
+  <header class="cabecalho">
+    <div>
+      <h2 id="gateRelatoriosTitulo">Relatórios do Gate</h2>
+      <p class="descricao">Exporte os indicadores operacionais do gate e visualize a evolução diária do desempenho.</p>
+    </div>
+    <div class="acoes-exportacao">
+      <button type="button" class="botao-primario" (click)="exportar('csv')" [disabled]="exportando">
+        Exportar CSV
+      </button>
+      <button type="button" class="botao-primario" (click)="exportar('xlsx')" [disabled]="exportando">
+        Exportar Excel
+      </button>
+    </div>
+  </header>
+
+  <p class="mensagem" *ngIf="mensagem" aria-live="polite">{{ mensagem }}</p>
+
+  <form class="filtros" [formGroup]="filtrosForm" aria-label="Filtros dos relatórios">
+    <div class="campo">
+      <label for="inicioRelatorio">Início</label>
+      <input id="inicioRelatorio" type="date" formControlName="inicio" />
+    </div>
+
+    <div class="campo">
+      <label for="fimRelatorio">Fim</label>
+      <input id="fimRelatorio" type="date" formControlName="fim" />
+    </div>
+
+    <div class="campo">
+      <label for="transportadoraRelatorio">Transportadora</label>
+      <select id="transportadoraRelatorio" formControlName="transportadoraId">
+        <option [ngValue]="null">Todas</option>
+        <option
+          *ngFor="let transportadora of transportadoras$ | async"
+          [ngValue]="transportadora.codigo && !isNaN(+transportadora.codigo) ? +transportadora.codigo : null"
+        >
+          {{ transportadora.descricao }}
+        </option>
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="tipoOperacaoRelatorio">Tipo de operação</label>
+      <select id="tipoOperacaoRelatorio" formControlName="tipoOperacao">
+        <option value="">Todas</option>
+        <option *ngFor="let tipo of tiposOperacao$ | async" [value]="tipo.codigo">{{ tipo.descricao }}</option>
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="tipoGraficoRelatorio">Tipo de gráfico</label>
+      <select id="tipoGraficoRelatorio" formControlName="tipoGrafico">
+        <option value="line">Linhas</option>
+        <option value="bar">Colunas</option>
+      </select>
+    </div>
+
+    <div class="acoes">
+      <button type="button" class="botao-secundario" (click)="limparFiltros()">Limpar filtros</button>
+    </div>
+  </form>
+
+  <div class="estado" *ngIf="carregando" aria-live="polite">Processando consulta...</div>
+  <div class="estado erro" *ngIf="erro" role="alert">{{ erro }}</div>
+
+  <section class="resumo" *ngIf="resumo as dados">
+    <article class="card" aria-live="polite">
+      <h3>Total agendamentos</h3>
+      <p>{{ dados.totalAgendamentos | number:'1.0-0' }}</p>
+    </article>
+    <article class="card" aria-live="polite">
+      <h3>Pontualidade média</h3>
+      <p>{{ dados.percentualPontualidade | number:'1.1-1' }}%</p>
+    </article>
+    <article class="card" aria-live="polite">
+      <h3>No-show</h3>
+      <p>{{ dados.percentualNoShow | number:'1.1-1' }}%</p>
+    </article>
+    <article class="card" aria-live="polite">
+      <h3>Ocupação média</h3>
+      <p>{{ dados.percentualOcupacaoSlots | number:'1.1-1' }}%</p>
+    </article>
+  </section>
+
+  <section class="graficos" *ngIf="resumo">
+    <div class="grafico" role="img" aria-label="Histórico de ocupação dos slots">
+      <canvas baseChart [data]="ocupacaoChart" [options]="ocupacaoOptions" [type]="chartType"></canvas>
+    </div>
+    <div class="grafico" role="img" aria-label="Tempo médio de permanência diário">
+      <canvas baseChart [data]="turnaroundChart" [options]="turnaroundOptions" [type]="chartType"></canvas>
+    </div>
+  </section>
+
+  <section class="tabelas" *ngIf="resumo as dadosTabela">
+    <h3>Detalhamento por hora</h3>
+    <div class="tabela-wrapper" role="region" aria-live="polite" tabindex="0">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Hora</th>
+            <th scope="col">Agendamentos</th>
+            <th scope="col">Capacidade</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of dadosTabela.ocupacaoPorHora">
+            <td>{{ item.horaInicio }}</td>
+            <td>{{ item.totalAgendamentos }}</td>
+            <td>{{ item.capacidadeSlot }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Tempo médio por dia</h3>
+    <div class="tabela-wrapper" role="region" aria-live="polite" tabindex="0">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Dia</th>
+            <th scope="col">Tempo médio (min)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of dadosTabela.turnaroundPorDia">
+            <td>{{ item.dia }}</td>
+            <td>{{ item.tempoMedioMinutos ?? '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>

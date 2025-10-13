@@ -2,7 +2,8 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { GateAgendamentosComponent } from './agendamentos/gate-agendamentos.component';
 import { GateJanelasComponent } from './janelas/gate-janelas.component';
-import { GateDashboardComponent } from './dashboard/gate-dashboard.component';
+import { GateDashboardComponent } from './analytics/gate-dashboard/gate-dashboard.component';
+import { GateRelatoriosComponent } from './analytics/gate-relatorios/gate-relatorios.component';
 import { GateOperadorConsoleComponent } from './operador/gate-operador-console/gate-operador-console.component';
 import { GateOperadorEventosComponent } from './operador/gate-operador-eventos/gate-operador-eventos.component';
 
@@ -11,6 +12,7 @@ const routes: Routes = [
   { path: 'agendamentos', component: GateAgendamentosComponent },
   { path: 'janelas', component: GateJanelasComponent },
   { path: 'dashboard', component: GateDashboardComponent },
+  { path: 'relatorios', component: GateRelatoriosComponent },
   {
     path: 'operador',
     children: [

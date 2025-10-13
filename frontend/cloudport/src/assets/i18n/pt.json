@@ -19,6 +19,7 @@
       "confirmarChegada": "Confirmar chegada antecipada",
       "revalidarDocumentos": "Revalidar documentação",
       "downloadComprovante": "Download do comprovante",
+      "downloadInstrucoes": "Download das instruções",
       "imprimir": "Imprimir",
       "instrucoesTitulo": "Instruções ao motorista",
       "instrucoes": [
@@ -53,6 +54,7 @@
         "status": "Status do passe",
         "atualizadoEm": "Atualizado em {{data}}"
       },
+      "instrucoesArquivoTitulo": "Instruções ao motorista - Agendamento {{codigo}}",
       "ultimaRevalidacao": "Última revalidação",
       "abrirDocumento": "Abrir"
     }

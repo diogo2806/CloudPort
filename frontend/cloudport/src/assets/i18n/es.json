@@ -19,6 +19,7 @@
       "confirmarChegada": "Confirmar llegada anticipada",
       "revalidarDocumentos": "Revalidar documentación",
       "downloadComprovante": "Descargar comprobante",
+      "downloadInstrucoes": "Descargar instrucciones",
       "imprimir": "Imprimir",
       "instrucoesTitulo": "Instrucciones para el conductor",
       "instrucoes": [
@@ -53,6 +54,7 @@
         "status": "Estado del pase",
         "atualizadoEm": "Actualizado el {{data}}"
       },
+      "instrucoesArquivoTitulo": "Instrucciones para el conductor - Turno {{codigo}}",
       "ultimaRevalidacao": "Última revalidación",
       "abrirDocumento": "Abrir"
     }

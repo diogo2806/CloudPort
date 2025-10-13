@@ -10,7 +10,14 @@ export class PushNotificationService {
     if ('serviceWorker' in navigator) {
       this.registrationPromise = navigator.serviceWorker
         .register('/assets/sw.js')
-        .catch(() => null);
+        .then(() => navigator.serviceWorker.ready)
+        .catch(async () => {
+          try {
+            return await navigator.serviceWorker.ready;
+          } catch {
+            return null;
+          }
+        });
     }
   }
 
@@ -18,17 +25,28 @@ export class PushNotificationService {
     if (!('Notification' in window)) {
       return false;
     }
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
+    try {
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
+    } catch {
+      return false;
+    }
   }
 
   async showNotification(title: string, options?: NotificationOptions): Promise<void> {
     if (!('Notification' in window)) {
       return;
     }
-    const permission = Notification.permission === 'granted'
-      ? 'granted'
-      : await Notification.requestPermission();
+    let permission: NotificationPermission;
+    if (Notification.permission === 'granted') {
+      permission = 'granted';
+    } else {
+      try {
+        permission = await Notification.requestPermission();
+      } catch {
+        permission = 'denied';
+      }
+    }
     if (permission !== 'granted') {
       throw new Error('notification-permission-denied');
     }

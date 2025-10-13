@@ -19,6 +19,7 @@
       "confirmarChegada": "Confirm early arrival",
       "revalidarDocumentos": "Revalidate documentation",
       "downloadComprovante": "Download receipt",
+      "downloadInstrucoes": "Download instructions",
       "imprimir": "Print",
       "instrucoesTitulo": "Driver instructions",
       "instrucoes": [
@@ -53,6 +54,7 @@
         "status": "Pass status",
         "atualizadoEm": "Updated on {{data}}"
       },
+      "instrucoesArquivoTitulo": "Driver instructions - Booking {{codigo}}",
       "ultimaRevalidacao": "Last revalidation",
       "abrirDocumento": "Open"
     }

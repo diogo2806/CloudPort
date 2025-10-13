@@ -167,6 +167,31 @@ export class AgendamentoDetalheComponent implements OnDestroy {
     }
   }
 
+  baixarInstrucoes(): void {
+    if (!this.agendamento) {
+      return;
+    }
+    const instrucoes = this.instrucoes;
+    if (!instrucoes.length) {
+      return;
+    }
+    const titulo = this.translate.instant('gate.agendamentoDetalhe.instrucoesArquivoTitulo', {
+      codigo: this.agendamento.codigo
+    });
+    const conteudo = [
+      titulo,
+      '='.repeat(50),
+      ...instrucoes.map((instrucao, indice) => `${indice + 1}. ${instrucao}`)
+    ].join('\n');
+    const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${this.agendamento.codigo}-instrucoes.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   trackPorDocumento(_: number, documento: DocumentoAgendamento): number {
     return documento.id;
   }

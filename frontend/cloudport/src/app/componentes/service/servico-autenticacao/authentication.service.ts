@@ -19,7 +19,7 @@ export class AuthenticationService {
         const currentUser = currentUserData ? this.mapToUser(currentUserData) : null;
         this.currentUserSubject = new BehaviorSubject<User | null>(currentUser);
         this.currentUser = this.currentUserSubject.asObservable();
-        this.menuStatus = new BehaviorSubject<boolean>(!!currentUser);
+        this.menuStatus = new BehaviorSubject<boolean>(this.shouldDisplayMenu(currentUser?.roles ?? []));
         this.currentMenuStatus = this.menuStatus.asObservable();
     }
 
@@ -35,6 +35,7 @@ export class AuthenticationService {
                 // store user details and jwt token in local storage to keep user logged in between page refreshes
                 localStorage.setItem('currentUser', JSON.stringify(user));
                 this.currentUserSubject.next(user);
+                this.updateMenuStatus(this.shouldDisplayMenu(user.roles));
                 return user;
             }));
     }
@@ -65,27 +66,97 @@ export class AuthenticationService {
         return this.menuStatus.getValue();
     }
 
+    hasRole(role: string): boolean {
+        const normalized = role?.startsWith('ROLE_') ? role : `ROLE_${(role ?? '').toUpperCase()}`;
+        return this.getCurrentRoles().includes(normalized);
+    }
+
+    hasAnyRole(...roles: string[]): boolean {
+        if (!roles || roles.length === 0) {
+            return false;
+        }
+        return roles.some(role => this.hasRole(role));
+    }
+
+    getCurrentRoles(): string[] {
+        return this.currentUserSubject.getValue()?.roles ?? [];
+    }
+
+    private shouldDisplayMenu(roles: string[]): boolean {
+        const normalizedRoles = this.normalizeRoles(roles);
+        const allowedRoles = [
+            'ROLE_ADMIN_PORTO',
+            'ROLE_PLANEJADOR',
+            'ROLE_OPERADOR_GATE',
+            'ROLE_TRANSPORTADORA'
+        ];
+        return normalizedRoles.some(role => allowedRoles.includes(role));
+    }
+
     private mapToUser(data: any): User {
         if (!data) {
             return new User();
         }
 
         const source = data.data ?? data;
-        const roles = Array.isArray(source.roles)
+        const token = source.token ?? data.token ?? '';
+        const decoded = this.decodeToken(token);
+        const responseRoles = Array.isArray(source.roles)
             ? source.roles
             : (source.roles ? [source.roles] : []);
-        const perfil = source.perfil ?? data.perfil ?? (roles.length > 0 ? roles[0] : '');
-        const nome = source.nome ?? source.name ?? source.login ?? data.nome ?? data.login ?? '';
-        const id = source.id ?? data.id ?? source.userId ?? data.userId ?? '';
+        const tokenRoles = Array.isArray(decoded?.roles)
+            ? decoded.roles
+            : (decoded?.role ? [decoded.role] : []);
+        const roles = this.normalizeRoles([...(responseRoles || []), ...(tokenRoles || [])]);
+        const perfil = decoded?.perfil ?? source.perfil ?? data.perfil ?? (roles.length > 0 ? roles[0] : '');
+        const nome = decoded?.nome ?? source.nome ?? source.name ?? source.login ?? data.nome ?? data.login ?? '';
+        const id = decoded?.userId ?? source.id ?? data.id ?? source.userId ?? data.userId ?? '';
+        const transportadoraDocumento = decoded?.transportadoraDocumento ?? source.transportadoraDocumento ?? null;
+        const transportadoraNome = decoded?.transportadoraNome ?? source.transportadoraNome ?? null;
 
         return new User(
             id,
             nome,
-            source.token ?? data.token ?? '',
+            token,
             source.email ?? data.email ?? '',
             source.senha ?? data.senha ?? '',
             perfil,
-            roles
+            roles,
+            transportadoraDocumento,
+            transportadoraNome
         );
+    }
+
+    private decodeToken(token: string | undefined): any | null {
+        if (!token) {
+            return null;
+        }
+        const segments = token.split('.');
+        if (segments.length < 2) {
+            return null;
+        }
+        try {
+            const payload = segments[1]
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+            const decodedPayload = decodeURIComponent(atob(payload)
+                .split('')
+                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join(''));
+            return JSON.parse(decodedPayload);
+        } catch (error) {
+            console.warn('Falha ao decodificar token JWT', error);
+            return null;
+        }
+    }
+
+    private normalizeRoles(roles: string[] | undefined): string[] {
+        if (!roles) {
+            return [];
+        }
+        const normalized = roles
+            .filter(role => !!role)
+            .map(role => role.startsWith('ROLE_') ? role : `ROLE_${role.toUpperCase()}`);
+        return Array.from(new Set(normalized));
     }
 }

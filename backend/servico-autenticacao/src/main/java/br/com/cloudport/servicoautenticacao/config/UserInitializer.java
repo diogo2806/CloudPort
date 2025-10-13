@@ -27,18 +27,17 @@ public class UserInitializer implements CommandLineRunner {
         String adminLogin = "gitpod";
         String adminPassword = new BCryptPasswordEncoder().encode("gitpod");
 
-        Role adminRole = roleRepository.findByName("ADMIN")
-                             .orElseGet(() -> {
-                                 Role newAdminRole = new Role("ADMIN");
-                                 roleRepository.save(newAdminRole);
-                                 return newAdminRole;
-                             });
+        Role adminRole = ensureRoleExists("ROLE_ADMIN_PORTO");
+        ensureRoleExists("ROLE_PLANEJADOR");
+        ensureRoleExists("ROLE_OPERADOR_GATE");
+        ensureRoleExists("ROLE_TRANSPORTADORA");
 
         Set<UserRole> roles = new HashSet<>();
         roles.add(new UserRole(adminRole));
 
         if (!userRepository.findByLogin(adminLogin).isPresent()) {
-            User adminUser = new User(adminLogin, adminPassword, roles);
+            User adminUser = new User(adminLogin, adminPassword, "Administrador CloudPort",
+                    null, null, roles);
 
             for (UserRole userRole : roles) {
                 userRole.setUser(adminUser);
@@ -46,5 +45,13 @@ public class UserInitializer implements CommandLineRunner {
 
             userRepository.save(adminUser);
         }
+    }
+
+    private Role ensureRoleExists(String roleName) {
+        return roleRepository.findByName(roleName)
+                .orElseGet(() -> {
+                    Role role = new Role(roleName);
+                    return roleRepository.save(role);
+                });
     }
 }

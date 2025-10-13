@@ -18,6 +18,11 @@ const homeChildRoutes: Routes = [
   { path: 'lista-de-usuarios', component: UsuariosListaComponent }
 ];
 
+const homeChildRoutes: Routes = [
+  { path: '', redirectTo: 'role', pathMatch: 'full' },
+  { path: 'role', component: RoleTabelaComponent },
+];
+
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
   {

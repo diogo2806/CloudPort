@@ -2,6 +2,7 @@ package br.com.cloudport.servicogate.config;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -12,7 +13,7 @@ public class GateFlowProperties {
     private Duration toleranciaEntradaAtraso = Duration.ofMinutes(30);
     private Duration toleranciaSaidaAntecipada = Duration.ofMinutes(30);
     private Duration toleranciaSaidaAtraso = Duration.ofMinutes(30);
-    private List<String> rolesLiberacaoManual = new ArrayList<>();
+    private List<String> rolesLiberacaoManual = new ArrayList<>(Collections.singletonList("ROLE_OPERADOR_GATE"));
 
     public Duration getToleranciaEntradaAntecipada() {
         return toleranciaEntradaAntecipada;

@@ -15,6 +15,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,30 +29,35 @@ public class ConfigController {
 
     @GetMapping("/tipos-operacao")
     @Operation(summary = "Lista os tipos de operação disponíveis")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<EnumResponseDTO>> listarTiposOperacao() {
         return buildEnumResponse(TipoOperacao.values(), TipoOperacao::getDescricao);
     }
 
     @GetMapping("/status-agendamento")
     @Operation(summary = "Lista os status possíveis de um agendamento")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<EnumResponseDTO>> listarStatusAgendamento() {
         return buildEnumResponse(StatusAgendamento.values(), StatusAgendamento::getDescricao);
     }
 
     @GetMapping("/status-gate")
     @Operation(summary = "Lista os status disponíveis para um gate pass")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<EnumResponseDTO>> listarStatusGate() {
         return buildEnumResponse(StatusGate.values(), StatusGate::getDescricao);
     }
 
     @GetMapping("/motivos-excecao")
     @Operation(summary = "Lista os motivos de exceção configurados")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<EnumResponseDTO>> listarMotivosExcecao() {
         return buildEnumResponse(MotivoExcecao.values(), MotivoExcecao::getDescricao);
     }
 
     @GetMapping("/canais-entrada")
     @Operation(summary = "Lista os canais de entrada aceitos pela operação")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<EnumResponseDTO>> listarCanaisEntrada() {
         return buildEnumResponse(CanalEntrada.values(), CanalEntrada::getDescricao);
     }

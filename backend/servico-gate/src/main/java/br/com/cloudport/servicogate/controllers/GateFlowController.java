@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,6 +30,7 @@ public class GateFlowController {
 
     @PostMapping("/entrada")
     @Operation(summary = "Processa um evento de entrada identificado por placa ou QR code")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
     public ResponseEntity<GateDecisionDTO> registrarEntrada(@Valid @RequestBody GateFlowRequest request) {
         GateDecisionDTO decision = gateFlowService.registrarEntrada(request);
         return ResponseEntity.ok(decision);
@@ -36,6 +38,7 @@ public class GateFlowController {
 
     @PostMapping("/saida")
     @Operation(summary = "Processa um evento de saída identificado por placa ou QR code")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
     public ResponseEntity<GateDecisionDTO> registrarSaida(@Valid @RequestBody GateFlowRequest request) {
         GateDecisionDTO decision = gateFlowService.registrarSaida(request);
         return ResponseEntity.ok(decision);
@@ -43,6 +46,7 @@ public class GateFlowController {
 
     @PostMapping("/agendamentos/{id}/liberacao-manual")
     @Operation(summary = "Registra liberação ou bloqueio manual para um agendamento")
+    @PreAuthorize("hasRole('OPERADOR_GATE')")
     public ResponseEntity<GateEventDTO> liberarManual(@PathVariable("id") Long agendamentoId,
                                                       @Valid @RequestBody ManualReleaseRequest request) {
         GateEventDTO evento = gateFlowService.liberarManual(agendamentoId, request);
@@ -51,6 +55,7 @@ public class GateFlowController {
 
     @PostMapping("/agendamentos/{id}/sincronizar")
     @Operation(summary = "Força a ressincronização das informações do agendamento com o TOS")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE','PLANEJADOR')")
     public ResponseEntity<TosSyncResponse> sincronizar(@PathVariable("id") Long agendamentoId) {
         TosSyncResponse sincronizacao = gateFlowService.sincronizarAgendamento(agendamentoId);
         return ResponseEntity.ok(sincronizacao);

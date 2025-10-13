@@ -3,6 +3,8 @@ import { AuthenticationService } from '../service/servico-autenticacao/authentic
 import { Router } from '@angular/router';
 import { TabItem, TabService, TAB_REGISTRY, normalizeTabId } from './TabService';
 import { Subscription } from 'rxjs';
+import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
+import { TabService } from '../service/tab.service';
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   const originalMethod = descriptor.value;
@@ -30,6 +32,37 @@ export class NavbarComponent implements OnInit, OnDestroy {
     TAB_REGISTRY['lista-de-usuarios']
   ];
   private menuStatusSubscription?: Subscription;
+
+  menuItems: NavbarItem[] = [
+    {
+      label: 'Configurações',
+      roles: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
+      children: [
+        { label: 'Geral', tab: 'Role', roles: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'] },
+        { label: 'Perfil', tab: 'Role', roles: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'] },
+        { label: 'Segurança', tab: 'login', roles: ['ROLE_ADMIN_PORTO'] },
+        { label: 'Notificações', tab: 'login', roles: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'] },
+        { label: 'Privacidade', tab: 'login', roles: ['ROLE_ADMIN_PORTO'] }
+      ]
+    },
+    {
+      label: 'Usuários',
+      roles: ['ROLE_ADMIN_PORTO'],
+      children: [
+        { label: 'Lista de usuários', tab: 'login', roles: ['ROLE_ADMIN_PORTO'] },
+        { label: 'Adicionar usuário', tab: 'Role', roles: ['ROLE_ADMIN_PORTO'] },
+        { label: 'Gerenciar usuários', tab: 'Role', roles: ['ROLE_ADMIN_PORTO'] },
+        { label: 'Role', tab: 'Role', roles: ['ROLE_ADMIN_PORTO'] }
+      ]
+    },
+    {
+      label: 'Transportadora',
+      roles: ['ROLE_TRANSPORTADORA'],
+      children: [
+        { label: 'Meus agendamentos', tab: 'Role', roles: ['ROLE_TRANSPORTADORA'] }
+      ]
+    }
+  ];
 
   constructor(
     private authenticationService: AuthenticationService,

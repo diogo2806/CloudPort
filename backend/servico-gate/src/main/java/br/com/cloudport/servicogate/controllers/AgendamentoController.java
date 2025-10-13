@@ -20,6 +20,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,6 +48,7 @@ public class AgendamentoController {
 
     @GetMapping
     @Operation(summary = "Lista agendamentos com filtros de período e paginação")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
     public Page<AgendamentoDTO> listar(@Parameter(description = "Data inicial do período (inclusive)")
                                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
                                        @Parameter(description = "Data final do período (inclusive)")
@@ -57,12 +59,14 @@ public class AgendamentoController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Detalha um agendamento específico")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
     public AgendamentoDTO buscarPorId(@PathVariable Long id) {
         return agendamentoService.buscarPorId(id);
     }
 
     @PostMapping
     @Operation(summary = "Cria um novo agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR')")
     public ResponseEntity<AgendamentoDTO> criar(@Valid @RequestBody AgendamentoRequest request) {
         AgendamentoDTO criado = agendamentoService.criar(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(criado);
@@ -70,12 +74,14 @@ public class AgendamentoController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Atualiza um agendamento existente")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR')")
     public AgendamentoDTO atualizar(@PathVariable Long id, @Valid @RequestBody AgendamentoRequest request) {
         return agendamentoService.atualizar(id, request);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Cancela um agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR')")
     public ResponseEntity<Void> cancelar(@PathVariable Long id) {
         agendamentoService.cancelar(id);
         return ResponseEntity.noContent().build();
@@ -83,6 +89,7 @@ public class AgendamentoController {
 
     @PostMapping(value = "/{id}/documentos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Realiza upload de documento para o agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
     public ResponseEntity<DocumentoAgendamentoDTO> uploadDocumento(@PathVariable Long id,
                                                                    @Valid @RequestPart("metadata") DocumentoUploadRequest metadata,
                                                                    @RequestPart("file") MultipartFile arquivo) {
@@ -92,12 +99,14 @@ public class AgendamentoController {
 
     @GetMapping("/{id}/documentos")
     @Operation(summary = "Lista documentos de um agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
     public List<DocumentoAgendamentoDTO> listarDocumentos(@PathVariable Long id) {
         return agendamentoService.listarDocumentos(id);
     }
 
     @GetMapping("/{agendamentoId}/documentos/{documentoId}")
     @Operation(summary = "Download de documento do agendamento")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
     public ResponseEntity<org.springframework.core.io.Resource> downloadDocumento(@PathVariable Long agendamentoId,
                                                                                   @PathVariable Long documentoId) {
         DocumentoDownload download = agendamentoService.baixarDocumento(agendamentoId, documentoId);

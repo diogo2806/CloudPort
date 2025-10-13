@@ -22,11 +22,13 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
         ])
     ]
 })
+const DEFAULT_PROTECTED_ROUTE = '/home/role';
+
 export class LoginComponent implements OnInit {
     loginForm: FormGroup = this.formBuilder.group({}); // Initialized here
     loading = false;
     submitted = false;
-    returnUrl: string = '/home'; // Initialized with a sensible default route
+    returnUrl: string = DEFAULT_PROTECTED_ROUTE; // Initialized with a sensible default route
     error = '';
 
     constructor(
@@ -53,7 +55,7 @@ export class LoginComponent implements OnInit {
         // get return url from route parameters or default to '/'
         const requestedReturnUrl = this.route.snapshot.queryParams['returnUrl'];
         const hasCustomReturnUrl = typeof requestedReturnUrl === 'string' && requestedReturnUrl.trim().length > 0;
-        this.returnUrl = hasCustomReturnUrl ? requestedReturnUrl : '/home';
+        this.returnUrl = hasCustomReturnUrl ? requestedReturnUrl : DEFAULT_PROTECTED_ROUTE;
         (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
     }
 

@@ -1,0 +1,22 @@
+<section class="notificacoes">
+  <h2>Preferências de Notificações</h2>
+  <p>Selecione os canais pelos quais deseja receber alertas.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Canal</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let canal of canais">
+        <td>{{ canal.canal }}</td>
+        <td>
+          <span [class.habilitado]="canal.habilitado" [class.desabilitado]="!canal.habilitado">
+            {{ canal.habilitado ? 'Ativado' : 'Desativado' }}
+          </span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>

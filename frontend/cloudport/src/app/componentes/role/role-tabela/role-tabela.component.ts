@@ -40,7 +40,7 @@ export class RoleTabelaComponent  implements OnInit, AfterViewInit {
 
   // Lista dos papeis
   roles: any[] = [];
-  selectedTab: string = 'defaultTab'; // ou qualquer valor padrão que faça sentido para o seu caso
+  selectedTab: string = 'role';
   @ViewChild(ModalComponent) modal!: ModalComponent; // Referência ao ModalComponent
 
 
@@ -220,8 +220,8 @@ closeContextMenu(event: MouseEvent) {
   @logMethod
   loadRoles() {
     const storedRolesData = this.tabService.getTabContent(this.selectedTab);
-    if (storedRolesData && storedRolesData.content) {
-      this.roles = storedRolesData.content;
+    if (storedRolesData) {
+      this.roles = storedRolesData;
       return; // Se já temos dados armazenados, não precisamos fazer a chamada HTTP
     }
 

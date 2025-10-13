@@ -21,8 +21,10 @@ import { RouteReuseStrategy } from '@angular/router';
 import { JwtInterceptor } from './componentes/service/servico-autenticacao/jwt.interceptor';
 import { ModalComponent } from './componentes/modal/modal.component';
 import { RoleCadastroComponent } from './componentes/role/role-cadastro/role-cadastro.component';
-
-
+import { SegurancaComponent } from './componentes/seguranca/seguranca.component';
+import { NotificacoesComponent } from './componentes/notificacoes/notificacoes.component';
+import { PrivacidadeComponent } from './componentes/privacidade/privacidade.component';
+import { UsuariosListaComponent } from './componentes/usuarios-lista/usuarios-lista.component';
 
 @NgModule({
   declarations: [
@@ -37,12 +39,15 @@ import { RoleCadastroComponent } from './componentes/role/role-cadastro/role-cad
     DynamicTableComponent,
     ModalComponent,
     RoleCadastroComponent,
-  
+    SegurancaComponent,
+    NotificacoesComponent,
+    PrivacidadeComponent,
+    UsuariosListaComponent,
 
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule, 
+    AppRoutingModule,
     BrowserAnimationsModule,
     ReactiveFormsModule,
     FormsModule,

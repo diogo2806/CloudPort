@@ -1,5 +1,7 @@
-import { Component, ElementRef, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, ElementRef, OnDestroy, OnInit } from '@angular/core';
+import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { Router } from '@angular/router';
+import { TabItem, TabService, TAB_REGISTRY, normalizeTabId } from './TabService';
 import { Subscription } from 'rxjs';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { TabService } from '../service/tab.service';
@@ -13,18 +15,6 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   return descriptor;
 }
 
-interface NavbarChildItem {
-  label: string;
-  tab: string;
-  roles?: string[];
-}
-
-interface NavbarItem {
-  label: string;
-  roles?: string[];
-  children: NavbarChildItem[];
-}
-
 @Component({
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
@@ -32,8 +22,15 @@ interface NavbarItem {
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   mostrarMenu: boolean = false;
-  private readonly defaultChildRoute = 'role';
-  private readonly validChildRoutes = new Set(['role', 'login']);
+  readonly configurationTabs: TabItem[] = [
+    TAB_REGISTRY.role,
+    TAB_REGISTRY.seguranca,
+    TAB_REGISTRY.notificacoes,
+    TAB_REGISTRY.privacidade
+  ];
+  readonly userTabs: TabItem[] = [
+    TAB_REGISTRY['lista-de-usuarios']
+  ];
   private menuStatusSubscription?: Subscription;
 
   menuItems: NavbarItem[] = [
@@ -68,39 +65,37 @@ export class NavbarComponent implements OnInit, OnDestroy {
   ];
 
   constructor(
-      private authenticationService: AuthenticationService,
-      private router: Router,
-      private tabService: TabService,
-      private eRef: ElementRef
+    private authenticationService: AuthenticationService,
+    private router: Router,
+    private tabService: TabService,
+    private eRef: ElementRef
   ) {
     console.log('Classe NavbarComponent: Método construtor chamado.');
+    this.mostrarMenu = this.authenticationService.getMenuStatusValue();
   }
 
   ngOnInit(): void {
-      console.log('Classe NavbarComponent: Método ngOnInit iniciado.');
-      this.menuStatusSubscription = this.authenticationService.currentMenuStatus.subscribe(
-          mostrar => this.mostrarMenu = mostrar
-      );
-      console.log('Classe NavbarComponent: Método ngOnInit finalizado.');
+    console.log('Classe NavbarComponent: Método ngOnInit iniciado.');
+    this.menuStatusSubscription = this.authenticationService.currentMenuStatus.subscribe(
+      mostrar => this.mostrarMenu = mostrar
+    );
+    console.log('Classe NavbarComponent: Método ngOnInit finalizado.');
   }
 
   ngOnDestroy(): void {
-      this.menuStatusSubscription?.unsubscribe();
+    this.menuStatusSubscription?.unsubscribe();
   }
 
-  @logMethod
-  openTab(tabName: string) {
-    if (!tabName) {
-      return;
-    }
-    let content = { message: `Conteúdo padrão para a aba ${tabName}` };
-    this.tabService.openTab(tabName);
-    this.router.navigate(['/home', this.resolveChildRoute(tabName)]);
-    content = this.tabService.getTabContent(tabName);
-    this.tabService.openTab(tabName, content);
+  openTab(tab: TabItem) {
+    const normalizedId = normalizeTabId(tab.id);
+    const canonicalTab = TAB_REGISTRY[normalizedId] ?? tab;
+    const content = this.tabService.getTabContent(normalizedId) ?? {
+      message: `Conteúdo padrão para a aba ${canonicalTab.label}`
+    };
+    this.tabService.openTab(canonicalTab, content);
+    this.router.navigate(['/home', normalizedId]);
   }
 
-  @logMethod
   toggleSubmenu(event: Event) {
     console.log('Classe NavbarComponent: Método toggleSubmenu chamado.');
     event.preventDefault();
@@ -124,17 +119,5 @@ export class NavbarComponent implements OnInit, OnDestroy {
       const submenus = this.eRef.nativeElement.querySelectorAll('.app-navbar ul li > ul');
       submenus.forEach((submenu: HTMLElement) => submenu.style.display = 'none');
     }
-  }
-
-  canDisplay(roles?: string[]): boolean {
-    if (!roles || roles.length === 0) {
-      return true;
-    }
-    return this.authenticationService.hasAnyRole(...roles);
-  }
-
-  private resolveChildRoute(tabName: string): string {
-    const normalizedTab = tabName ? tabName.toLowerCase() : '';
-    return this.validChildRoutes.has(normalizedTab) ? normalizedTab : this.defaultChildRoute;
   }
 }

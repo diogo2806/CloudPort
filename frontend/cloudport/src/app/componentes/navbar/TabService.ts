@@ -1,52 +1,71 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
+export interface TabItem {
+  id: string;
+  label: string;
+}
+
+export const DEFAULT_TAB_ID = 'role';
+
+export const TAB_REGISTRY: Readonly<Record<string, TabItem>> = {
+  role: { id: 'role', label: 'Role' },
+  seguranca: { id: 'seguranca', label: 'Segurança' },
+  notificacoes: { id: 'notificacoes', label: 'Notificações' },
+  privacidade: { id: 'privacidade', label: 'Privacidade' },
+  'lista-de-usuarios': { id: 'lista-de-usuarios', label: 'Lista de usuários' }
+};
+
+export const VALID_TAB_IDS = new Set<string>(Object.keys(TAB_REGISTRY));
+
+export function normalizeTabId(tabId: string): string {
+  const normalized = tabId?.trim().toLowerCase() ?? '';
+  return VALID_TAB_IDS.has(normalized) ? normalized : DEFAULT_TAB_ID;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class TabService {
-  private tabsSubject = new BehaviorSubject<string[]>([]);
+  private tabsSubject = new BehaviorSubject<TabItem[]>([]);
   tabs$ = this.tabsSubject.asObservable();
   private contentSubject = new BehaviorSubject<any>(null);
   content$ = this.contentSubject.asObservable();
 
-  // Armazenamento para o conteúdo de cada aba
-  private tabContents: { [tabName: string]: any } = {};
+  private tabContents: { [tabId: string]: any } = {};
 
-
-  openTab(tab: string, content?: any) {
+  openTab(tab: TabItem, content?: any) {
+    const normalizedId = normalizeTabId(tab.id);
+    const registeredTab = TAB_REGISTRY[normalizedId] ?? {
+      id: normalizedId,
+      label: tab.label ?? normalizedId
+    };
+    const tabToOpen: TabItem = { ...registeredTab };
     const tabs = this.tabsSubject.value;
-    if (!tabs.includes(tab)) {
-      this.tabsSubject.next([...tabs, tab]);
-      if (content) {
-        this.tabContents[tab] = content;
-      }
+    if (!tabs.find(existingTab => existingTab.id === normalizedId)) {
+      this.tabsSubject.next([...tabs, tabToOpen]);
+    }
+    if (content !== undefined) {
+      this.tabContents[normalizedId] = content;
     }
   }
 
-  
-    setContent(content: any) {
-      this.contentSubject.next(content);
-    }
-    
-    
-  closeTab(tab: string) {
+  setContent(content: any) {
+    this.contentSubject.next(content);
+  }
+
+  closeTab(tabId: string) {
+    const normalizedId = normalizeTabId(tabId);
     const tabs = this.tabsSubject.value;
-    this.tabsSubject.next(tabs.filter(t => t !== tab));
-    // Remova o conteúdo da aba quando ela for fechada
-    delete this.tabContents[tab];
+    this.tabsSubject.next(tabs.filter(t => t.id !== normalizedId));
+    delete this.tabContents[normalizedId];
   }
 
-  getTabContent(tab: string): any {
-    const content = this.tabContents[tab];
-    if (content) {
-    } else {
-    }
-    return content;
+  getTabContent(tabId: string): any {
+    return this.tabContents[normalizeTabId(tabId)];
   }
 
-  setTabContent(tab: string, content: any) {
-    this.tabContents[tab] = content;
+  setTabContent(tabId: string, content: any) {
+    this.tabContents[normalizeTabId(tabId)] = content;
   }
 }

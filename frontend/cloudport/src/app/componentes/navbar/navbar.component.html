@@ -1,14 +1,20 @@
 <nav class="app-navbar" *ngIf="mostrarMenu">
   <ul>
-    <ng-container *ngFor="let item of menuItems">
-      <li *ngIf="canDisplay(item.roles)" (click)="toggleSubmenu($event)">
-        <a href="#">{{ item.label }}</a>
-        <ul>
-          <ng-container *ngFor="let child of item.children">
-            <li *ngIf="canDisplay(child.roles)"><a (click)="openTab(child.tab); $event.stopPropagation();">{{ child.label }}</a></li>
-          </ng-container>
-        </ul>
-      </li>
-    </ng-container>
+    <li (click)="toggleSubmenu($event)">
+      <a href="#">Configurações</a>
+      <ul>
+        <li *ngFor="let tab of configurationTabs">
+          <a (click)="openTab(tab)">{{ tab.label }}</a>
+        </li>
+      </ul>
+    </li>
+    <li (click)="toggleSubmenu($event)">
+      <a href="#">Usuários</a>
+      <ul>
+        <li *ngFor="let tab of userTabs">
+          <a (click)="openTab(tab)">{{ tab.label }}</a>
+        </li>
+      </ul>
+    </li>
   </ul>
 </nav>

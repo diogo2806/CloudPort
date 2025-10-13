@@ -1,0 +1,12 @@
+<section class="privacidade">
+  <h2>Centro de Privacidade</h2>
+  <p>Ajuste como seus dados são utilizados dentro da plataforma.</p>
+  <ul>
+    <li *ngFor="let opcao of opcoes">
+      <span class="status" [class.ativo]="opcao.ativo" [class.inativo]="!opcao.ativo">
+        {{ opcao.ativo ? 'Ativo' : 'Inativo' }}
+      </span>
+      {{ opcao.descricao }}
+    </li>
+  </ul>
+</section>

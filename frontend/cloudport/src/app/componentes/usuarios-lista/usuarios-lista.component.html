@@ -1,0 +1,24 @@
+<section class="usuarios-lista">
+  <h2>Lista de Usuários</h2>
+  <p>Resumo dos usuários cadastrados no sistema.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>E-mail</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let usuario of usuarios">
+        <td>{{ usuario.nome }}</td>
+        <td>{{ usuario.email }}</td>
+        <td>
+          <span [class.ativo]="usuario.status === 'Ativo'" [class.inativo]="usuario.status !== 'Ativo'">
+            {{ usuario.status }}
+          </span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>

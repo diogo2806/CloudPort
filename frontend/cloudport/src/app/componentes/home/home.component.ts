@@ -22,6 +22,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private tabSubscription?: Subscription;
   private readonly defaultChildRoute = DEFAULT_TAB_ID;
   private readonly defaultTab = TAB_REGISTRY[this.defaultChildRoute];
+  private defaultTabOpened = false;
 
   constructor(
     private router: Router,
@@ -42,7 +43,10 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.tabs = tabs;
       if (tabs.length === 0) {
         this.selectedTabId = this.defaultChildRoute;
-        this.openDefaultTab();
+        if (!this.defaultTabOpened) {
+          this.defaultTabOpened = true;
+          this.openDefaultTab();
+        }
         return;
       }
       const lastTab = tabs[tabs.length - 1];
@@ -95,9 +99,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private openDefaultTab(): void {
-    if (this.defaultTab) {
-      this.tabService.openTab(this.defaultTab);
-    }
+    const defaultLabel = this.defaultTab?.label ?? 'Role';
+    this.tabService.openTab(defaultLabel);
+    const initialContent = this.tabService.getTabContent(this.defaultChildRoute) ?? {
+      message: `Conteúdo padrão para a aba ${defaultLabel}`
+    };
+    this.tabService.setTabContent(this.defaultChildRoute, initialContent);
+    this.tabContent[this.defaultChildRoute] = initialContent;
     this.navigateToChild(this.defaultChildRoute);
   }
 

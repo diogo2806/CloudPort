@@ -9,6 +9,8 @@ import { AgendamentoFormComponent } from './portal/agendamento-form/agendamento-
 import { AgendamentoDetalheComponent } from './portal/agendamento-detalhe/agendamento-detalhe.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { DynamicTableModule } from '../../dynamic-table/dynamic-table.module';
+import { GateOperadorConsoleComponent } from './operador/gate-operador-console/gate-operador-console.component';
+import { GateOperadorEventosComponent } from './operador/gate-operador-eventos/gate-operador-eventos.component';
 
 @NgModule({
   declarations: [
@@ -17,7 +19,9 @@ import { DynamicTableModule } from '../../dynamic-table/dynamic-table.module';
     GateDashboardComponent,
     AgendamentosListComponent,
     AgendamentoFormComponent,
-    AgendamentoDetalheComponent
+    AgendamentoDetalheComponent,
+    GateOperadorConsoleComponent,
+    GateOperadorEventosComponent
   ],
   imports: [
     CommonModule,

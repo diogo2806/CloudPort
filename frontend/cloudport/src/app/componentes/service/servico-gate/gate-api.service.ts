@@ -89,6 +89,14 @@ export class GateApiService {
     return this.http.get<GateEnumOption[]>(`${this.configUrl}/canais-entrada`);
   }
 
+  listarTiposOcorrencia(): Observable<GateEnumOption[]> {
+    return this.http.get<GateEnumOption[]>(`${this.configUrl}/tipos-ocorrencia`);
+  }
+
+  listarNiveisEvento(): Observable<GateEnumOption[]> {
+    return this.http.get<GateEnumOption[]>(`${this.configUrl}/niveis-evento`);
+  }
+
   uploadDocumentoAgendamento(id: number, arquivo: File): Observable<HttpEvent<DocumentoAgendamento>> {
     const formData = new FormData();
     formData.append('arquivo', arquivo, arquivo.name);

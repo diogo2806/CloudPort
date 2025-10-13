@@ -3,12 +3,22 @@ import { RouterModule, Routes } from '@angular/router';
 import { GateAgendamentosComponent } from './agendamentos/gate-agendamentos.component';
 import { GateJanelasComponent } from './janelas/gate-janelas.component';
 import { GateDashboardComponent } from './dashboard/gate-dashboard.component';
+import { GateOperadorConsoleComponent } from './operador/gate-operador-console/gate-operador-console.component';
+import { GateOperadorEventosComponent } from './operador/gate-operador-eventos/gate-operador-eventos.component';
 
 const routes: Routes = [
   { path: '', redirectTo: 'agendamentos', pathMatch: 'full' },
   { path: 'agendamentos', component: GateAgendamentosComponent },
   { path: 'janelas', component: GateJanelasComponent },
-  { path: 'dashboard', component: GateDashboardComponent }
+  { path: 'dashboard', component: GateDashboardComponent },
+  {
+    path: 'operador',
+    children: [
+      { path: '', redirectTo: 'console', pathMatch: 'full' },
+      { path: 'console', component: GateOperadorConsoleComponent },
+      { path: 'eventos', component: GateOperadorEventosComponent }
+    ]
+  }
 ];
 
 @NgModule({

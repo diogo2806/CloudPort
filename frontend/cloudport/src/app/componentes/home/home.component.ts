@@ -1,15 +1,16 @@
-import { Component, ViewChild, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router, RouteReuseStrategy, RouterOutlet } from '@angular/router';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { TabItem, TabService } from '../navbar/TabService';
 import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
 
   @ViewChild('outlet', { read: RouterOutlet }) outlet!: RouterOutlet;
   userToken: string = '';
@@ -18,8 +19,10 @@ export class HomeComponent implements OnInit {
   filteredData: any[] = [];
   data: { [key: string]: any } = {};
   tabContent: { [key: string]: any } = {};
+  private tabSubscription?: Subscription;
+  private readonly defaultChildRoute = 'role';
   private readonly validChildRoutes = new Set([
-    'role',
+    this.defaultChildRoute,
     'seguranca',
     'notificacoes',
     'privacidade',
@@ -41,23 +44,31 @@ export class HomeComponent implements OnInit {
 
   ngOnInit() {
     console.log('Classe HomeComponent: Método ngOnInit iniciado.');
-    this.tabService.tabs$.subscribe(tabs => {
+    this.tabSubscription = this.tabService.tabs$.subscribe(tabs => {
       this.tabs = tabs;
       if (tabs.length > 0) {
         const lastTab = tabs[tabs.length - 1];
-        this.selectedTabId = lastTab.id;
-        this.router.navigate(['/home', this.resolveChildRoute(this.selectedTabId)]);
+        const route = this.resolveChildRoute(lastTab.id);
+        this.selectedTabId = this.validChildRoutes.has(lastTab.id) ? lastTab.id : this.defaultChildRoute;
+        this.router.navigate(['/home', route]);
       } else {
-        this.selectedTabId = '';
+        this.selectedTabId = this.defaultChildRoute;
+        this.router.navigate(['/home', this.defaultChildRoute]);
       }
     });
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
   }
 
+  ngOnDestroy(): void {
+    this.tabSubscription?.unsubscribe();
+  }
+
   navigateTo(tabId: string) {
-    this.selectedTabId = tabId;
-    this.tabContent[tabId] = this.tabService.getTabContent(tabId);
-    this.router.navigate(['/home', this.resolveChildRoute(tabId)]);
+    const route = this.resolveChildRoute(tabId);
+    const normalizedTabId = this.validChildRoutes.has(tabId) ? tabId : this.defaultChildRoute;
+    this.selectedTabId = normalizedTabId;
+    this.tabContent[normalizedTabId] = this.tabService.getTabContent(normalizedTabId);
+    this.router.navigate(['/home', route]);
   }
 
   logout() {
@@ -79,6 +90,9 @@ export class HomeComponent implements OnInit {
     console.log(`Classe HomeComponent: Método closeTab chamado com o parâmetro tab=${tabId}.`);
     this.tabService.closeTab(tabId);
     delete this.tabContent[tabId];
+    if (route !== tabId) {
+      delete this.tabContent[route];
+    }
   }
 
   objectKeys(obj: any): string[] {
@@ -86,6 +100,7 @@ export class HomeComponent implements OnInit {
   }
 
   private resolveChildRoute(tabId: string): string {
-    return this.validChildRoutes.has(tabId) ? tabId : 'role';
+    const normalizedTab = tabId?.toLowerCase() ?? '';
+    return this.validChildRoutes.has(normalizedTab) ? normalizedTab : this.defaultChildRoute;
   }
 }

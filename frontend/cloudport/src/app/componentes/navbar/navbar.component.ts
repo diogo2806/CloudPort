@@ -20,8 +20,9 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   mostrarMenu: boolean = false;
+  private readonly defaultChildRoute = 'role';
   private readonly validChildRoutes = new Set([
-    'role',
+    this.defaultChildRoute,
     'seguranca',
     'notificacoes',
     'privacidade',
@@ -91,6 +92,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   private resolveChildRoute(tabId: string): string {
-    return this.validChildRoutes.has(tabId) ? tabId : 'role';
+    const normalizedTab = tabId?.toLowerCase() ?? '';
+    return this.validChildRoutes.has(normalizedTab) ? normalizedTab : this.defaultChildRoute;
   }
 }

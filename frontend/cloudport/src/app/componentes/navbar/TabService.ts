@@ -6,6 +6,23 @@ export interface TabItem {
   label: string;
 }
 
+export const DEFAULT_TAB_ID = 'role';
+
+export const TAB_REGISTRY: Readonly<Record<string, TabItem>> = {
+  role: { id: 'role', label: 'Role' },
+  seguranca: { id: 'seguranca', label: 'Segurança' },
+  notificacoes: { id: 'notificacoes', label: 'Notificações' },
+  privacidade: { id: 'privacidade', label: 'Privacidade' },
+  'lista-de-usuarios': { id: 'lista-de-usuarios', label: 'Lista de usuários' }
+};
+
+export const VALID_TAB_IDS = new Set<string>(Object.keys(TAB_REGISTRY));
+
+export function normalizeTabId(tabId: string): string {
+  const normalized = tabId?.trim().toLowerCase() ?? '';
+  return VALID_TAB_IDS.has(normalized) ? normalized : DEFAULT_TAB_ID;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -18,12 +35,18 @@ export class TabService {
   private tabContents: { [tabId: string]: any } = {};
 
   openTab(tab: TabItem, content?: any) {
+    const normalizedId = normalizeTabId(tab.id);
+    const registeredTab = TAB_REGISTRY[normalizedId] ?? {
+      id: normalizedId,
+      label: tab.label ?? normalizedId
+    };
+    const tabToOpen: TabItem = { ...registeredTab };
     const tabs = this.tabsSubject.value;
-    if (!tabs.find(existingTab => existingTab.id === tab.id)) {
-      this.tabsSubject.next([...tabs, tab]);
+    if (!tabs.find(existingTab => existingTab.id === normalizedId)) {
+      this.tabsSubject.next([...tabs, tabToOpen]);
     }
-    if (content) {
-      this.tabContents[tab.id] = content;
+    if (content !== undefined) {
+      this.tabContents[normalizedId] = content;
     }
   }
 
@@ -32,16 +55,17 @@ export class TabService {
   }
 
   closeTab(tabId: string) {
+    const normalizedId = normalizeTabId(tabId);
     const tabs = this.tabsSubject.value;
-    this.tabsSubject.next(tabs.filter(t => t.id !== tabId));
-    delete this.tabContents[tabId];
+    this.tabsSubject.next(tabs.filter(t => t.id !== normalizedId));
+    delete this.tabContents[normalizedId];
   }
 
   getTabContent(tabId: string): any {
-    return this.tabContents[tabId];
+    return this.tabContents[normalizeTabId(tabId)];
   }
 
   setTabContent(tabId: string, content: any) {
-    this.tabContents[tabId] = content;
+    this.tabContents[normalizeTabId(tabId)] = content;
   }
 }

@@ -3,16 +3,17 @@
     <li (click)="toggleSubmenu($event)">
       <a href="#">Configurações</a>
       <ul>
-        <li><a (click)="openTab(tabs.role)">Role</a></li>
-        <li><a (click)="openTab(tabs.seguranca)">Segurança</a></li>
-        <li><a (click)="openTab(tabs.notificacoes)">Notificações</a></li>
-        <li><a (click)="openTab(tabs.privacidade)">Privacidade</a></li>
+        <li *ngFor="let tab of configurationTabs">
+          <a (click)="openTab(tab)">{{ tab.label }}</a>
+        </li>
       </ul>
     </li>
     <li (click)="toggleSubmenu($event)">
       <a href="#">Usuários</a>
       <ul>
-        <li><a (click)="openTab(tabs.listaDeUsuarios)">Lista de usuários</a></li>
+        <li *ngFor="let tab of userTabs">
+          <a (click)="openTab(tab)">{{ tab.label }}</a>
+        </li>
       </ul>
     </li>
   </ul>

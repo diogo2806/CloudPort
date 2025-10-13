@@ -1,7 +1,7 @@
 import { Component, HostListener, ElementRef, OnDestroy, OnInit } from '@angular/core';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
 import { Router } from '@angular/router';
-import { TabItem, TabService } from './TabService';
+import { TabItem, TabService, TAB_REGISTRY, normalizeTabId } from './TabService';
 import { Subscription } from 'rxjs';
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
@@ -20,21 +20,15 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   mostrarMenu: boolean = false;
-  private readonly defaultChildRoute = 'role';
-  private readonly validChildRoutes = new Set([
-    this.defaultChildRoute,
-    'seguranca',
-    'notificacoes',
-    'privacidade',
-    'lista-de-usuarios'
-  ]);
-  readonly tabs: Record<string, TabItem> = {
-    role: { id: 'role', label: 'Role' },
-    seguranca: { id: 'seguranca', label: 'Segurança' },
-    notificacoes: { id: 'notificacoes', label: 'Notificações' },
-    privacidade: { id: 'privacidade', label: 'Privacidade' },
-    listaDeUsuarios: { id: 'lista-de-usuarios', label: 'Lista de usuários' }
-  };
+  readonly configurationTabs: TabItem[] = [
+    TAB_REGISTRY.role,
+    TAB_REGISTRY.seguranca,
+    TAB_REGISTRY.notificacoes,
+    TAB_REGISTRY.privacidade
+  ];
+  readonly userTabs: TabItem[] = [
+    TAB_REGISTRY['lista-de-usuarios']
+  ];
   private menuStatusSubscription?: Subscription;
 
   constructor(
@@ -60,10 +54,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   openTab(tab: TabItem) {
-    const route = this.resolveChildRoute(tab.id);
-    const content = this.tabService.getTabContent(tab.id) ?? { message: `Conteúdo padrão para a aba ${tab.label}` };
-    this.tabService.openTab(tab, content);
-    this.router.navigate(['/home', route]);
+    const normalizedId = normalizeTabId(tab.id);
+    const canonicalTab = TAB_REGISTRY[normalizedId] ?? tab;
+    const content = this.tabService.getTabContent(normalizedId) ?? {
+      message: `Conteúdo padrão para a aba ${canonicalTab.label}`
+    };
+    this.tabService.openTab(canonicalTab, content);
+    this.router.navigate(['/home', normalizedId]);
   }
 
   toggleSubmenu(event: Event) {
@@ -89,10 +86,5 @@ export class NavbarComponent implements OnInit, OnDestroy {
       const submenus = this.eRef.nativeElement.querySelectorAll('.app-navbar ul li > ul');
       submenus.forEach((submenu: HTMLElement) => submenu.style.display = 'none');
     }
-  }
-
-  private resolveChildRoute(tabId: string): string {
-    const normalizedTab = tabId?.toLowerCase() ?? '';
-    return this.validChildRoutes.has(normalizedTab) ? normalizedTab : this.defaultChildRoute;
   }
 }

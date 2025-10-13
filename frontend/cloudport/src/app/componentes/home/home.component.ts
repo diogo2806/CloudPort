@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router, RouteReuseStrategy, RouterOutlet } from '@angular/router';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
-import { TabItem, TabService } from '../navbar/TabService';
+import { TabItem, TabService, TAB_REGISTRY, DEFAULT_TAB_ID, normalizeTabId } from '../navbar/TabService';
 import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
 import { Subscription } from 'rxjs';
 
@@ -20,14 +20,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   data: { [key: string]: any } = {};
   tabContent: { [key: string]: any } = {};
   private tabSubscription?: Subscription;
-  private readonly defaultChildRoute = 'role';
-  private readonly validChildRoutes = new Set([
-    this.defaultChildRoute,
-    'seguranca',
-    'notificacoes',
-    'privacidade',
-    'lista-de-usuarios'
-  ]);
+  private readonly defaultChildRoute = DEFAULT_TAB_ID;
+  private readonly defaultTab = TAB_REGISTRY[this.defaultChildRoute];
 
   constructor(
     private router: Router,
@@ -46,15 +40,16 @@ export class HomeComponent implements OnInit, OnDestroy {
     console.log('Classe HomeComponent: Método ngOnInit iniciado.');
     this.tabSubscription = this.tabService.tabs$.subscribe(tabs => {
       this.tabs = tabs;
-      if (tabs.length > 0) {
-        const lastTab = tabs[tabs.length - 1];
-        const route = this.resolveChildRoute(lastTab.id);
-        this.selectedTabId = this.validChildRoutes.has(lastTab.id) ? lastTab.id : this.defaultChildRoute;
-        this.router.navigate(['/home', route]);
-      } else {
+      if (tabs.length === 0) {
         this.selectedTabId = this.defaultChildRoute;
-        this.router.navigate(['/home', this.defaultChildRoute]);
+        this.openDefaultTab();
+        return;
       }
+      const lastTab = tabs[tabs.length - 1];
+      const route = this.resolveChildRoute(lastTab.id);
+      this.selectedTabId = route;
+      this.tabContent[route] = this.tabService.getTabContent(route);
+      this.router.navigate(['/home', route]);
     });
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
   }
@@ -65,9 +60,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   navigateTo(tabId: string) {
     const route = this.resolveChildRoute(tabId);
-    const normalizedTabId = this.validChildRoutes.has(tabId) ? tabId : this.defaultChildRoute;
-    this.selectedTabId = normalizedTabId;
-    this.tabContent[normalizedTabId] = this.tabService.getTabContent(normalizedTabId);
+    this.selectedTabId = route;
+    this.tabContent[route] = this.tabService.getTabContent(route);
     this.router.navigate(['/home', route]);
   }
 
@@ -88,11 +82,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     const route = this.resolveChildRoute(tabId);
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction(route);
     console.log(`Classe HomeComponent: Método closeTab chamado com o parâmetro tab=${tabId}.`);
-    this.tabService.closeTab(tabId);
-    delete this.tabContent[tabId];
-    if (route !== tabId) {
-      delete this.tabContent[route];
-    }
+    this.tabService.closeTab(route);
+    delete this.tabContent[route];
   }
 
   objectKeys(obj: any): string[] {
@@ -100,7 +91,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private resolveChildRoute(tabId: string): string {
-    const normalizedTab = tabId?.toLowerCase() ?? '';
-    return this.validChildRoutes.has(normalizedTab) ? normalizedTab : this.defaultChildRoute;
+    return normalizeTabId(tabId);
+  }
+
+  private openDefaultTab(): void {
+    if (this.defaultTab) {
+      this.tabService.openTab(this.defaultTab);
+    }
+    this.router.navigate(['/home', this.defaultChildRoute]);
   }
 }

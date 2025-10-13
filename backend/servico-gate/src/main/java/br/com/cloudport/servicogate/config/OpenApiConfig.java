@@ -13,8 +13,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @EnableConfigurationProperties({
         AgendamentoRulesProperties.class,
         DocumentoStorageProperties.class,
-        GateFlowProperties.class,
-        HardwareIntegrationProperties.class
+        GateFlowProperties.class
 })
 public class OpenApiConfig {
 

@@ -3,9 +3,10 @@ package br.com.cloudport.servicoautenticacao.controllers;
 import br.com.cloudport.servicoautenticacao.dto.AuthenticationDTO;
 import br.com.cloudport.servicoautenticacao.dto.LoginResponseDTO;
 import br.com.cloudport.servicoautenticacao.dto.RegisterDTO;
+import br.com.cloudport.servicoautenticacao.dto.UserInfoDTO;
+import br.com.cloudport.servicoautenticacao.model.Role;
 import br.com.cloudport.servicoautenticacao.model.User;
 import br.com.cloudport.servicoautenticacao.model.UserRole;
-import br.com.cloudport.servicoautenticacao.model.Role;
 import br.com.cloudport.servicoautenticacao.repositories.RoleRepository;
 import br.com.cloudport.servicoautenticacao.config.TokenService;
 import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
@@ -13,11 +14,14 @@ import br.com.cloudport.servicoautenticacao.repositories.UserRoleRepository;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,8 +30,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
 
 @RestController
 @RequestMapping("/auth")
@@ -53,19 +59,25 @@ public class AuthenticationController {
         User user = (User) auth.getPrincipal();
         var token = tokenService.generateToken(user);
 
-        Set<String> roles = user.getRoles().stream()
-                                 .map(userRole -> userRole.getRole().getName())
-                                 .collect(Collectors.toSet());
+        Set<String> roles = java.util.Optional.ofNullable(user.getRoles()).orElse(java.util.Collections.emptySet()).stream()
+                                 .map(UserRole::getRole)
+                                 .map(Role::getName)
+                                 .filter(StringUtils::hasText)
+                                 .map(roleName -> roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName.toUpperCase())
+                                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
         String perfil = roles.stream().findFirst().orElse("");
+        String nome = StringUtils.hasText(user.getNome()) ? user.getNome() : user.getLogin();
 
         return ResponseEntity.ok(new LoginResponseDTO(
                 user.getId(),
                 user.getLogin(),
-                user.getLogin(),
+                nome,
                 perfil,
                 token,
-                roles
+                roles,
+                user.getTransportadoraDocumento(),
+                user.getTransportadoraNome()
         ));
     }
 
@@ -107,7 +119,8 @@ public class AuthenticationController {
                     .collect(Collectors.toSet());
         }
 
-        User newUser = new User(data.getLogin(), encryptedPassword, roles);
+        User newUser = new User(data.getLogin(), encryptedPassword, data.getNome(),
+                data.getTransportadoraDocumento(), data.getTransportadoraNome(), roles);
 
         roles.forEach(role -> role.setUser(newUser));
 
@@ -115,5 +128,13 @@ public class AuthenticationController {
         this.userRoleRepository.saveAll(roles);
 
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/usuarios/{login}")
+    @PreAuthorize("hasRole('ADMIN_PORTO')")
+    public ResponseEntity<UserInfoDTO> buscarUsuario(@PathVariable String login) {
+        User user = userRepository.findByLogin(login)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+        return ResponseEntity.ok(UserInfoDTO.fromUser(user));
     }
 }

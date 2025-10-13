@@ -6,7 +6,9 @@ export class User {
       email: string = '',
       senha: string = '',
       perfil: string = '',
-      roles: string[] = []
+      roles: string[] = [],
+      transportadoraDocumento: string | null = null,
+      transportadoraNome: string | null = null
     ) {
       this.id = id;
       this.nome = nome;
@@ -15,6 +17,8 @@ export class User {
       this.senha = senha;
       this.perfil = perfil;
       this.roles = roles;
+      this.transportadoraDocumento = transportadoraDocumento;
+      this.transportadoraNome = transportadoraNome;
     }
 
     public id: string;
@@ -24,5 +28,7 @@ export class User {
     public senha: string;
     public perfil: string;
     public roles: string[];
+    public transportadoraDocumento: string | null;
+    public transportadoraNome: string | null;
   }
 

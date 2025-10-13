@@ -19,12 +19,26 @@ public class RegisterDTO {
     @NotEmpty(message = "Informe ao menos uma role.")
     private Set<@NotBlank(message = "A role não pode ser vazia.") String> roles;
 
+    private String nome;
+
+    private String transportadoraDocumento;
+
+    private String transportadoraNome;
+
     public RegisterDTO() {}
 
     public RegisterDTO(String login, String password, Set<String> roles) {
         this.login = login;
         this.password = password;
         this.roles = roles;
+    }
+
+    public RegisterDTO(String login, String password, Set<String> roles, String nome,
+                       String transportadoraDocumento, String transportadoraNome) {
+        this(login, password, roles);
+        this.nome = nome;
+        this.transportadoraDocumento = transportadoraDocumento;
+        this.transportadoraNome = transportadoraNome;
     }
 
     public String getLogin() {
@@ -49,5 +63,29 @@ public class RegisterDTO {
 
     public void setRoles(Set<String> roles) {
         this.roles = roles;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public String getTransportadoraDocumento() {
+        return transportadoraDocumento;
+    }
+
+    public void setTransportadoraDocumento(String transportadoraDocumento) {
+        this.transportadoraDocumento = transportadoraDocumento;
+    }
+
+    public String getTransportadoraNome() {
+        return transportadoraNome;
+    }
+
+    public void setTransportadoraNome(String transportadoraNome) {
+        this.transportadoraNome = transportadoraNome;
     }
 }

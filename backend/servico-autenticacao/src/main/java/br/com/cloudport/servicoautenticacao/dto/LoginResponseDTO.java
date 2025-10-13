@@ -11,14 +11,25 @@ public class LoginResponseDTO {
     private final String perfil;
     private final String token;
     private final Set<String> roles;
+    private final String transportadoraDocumento;
+    private final String transportadoraNome;
 
-    public LoginResponseDTO(UUID id, String login, String nome, String perfil, String token, Set<String> roles) {
+    public LoginResponseDTO(UUID id,
+                            String login,
+                            String nome,
+                            String perfil,
+                            String token,
+                            Set<String> roles,
+                            String transportadoraDocumento,
+                            String transportadoraNome) {
         this.id = id;
         this.login = login;
         this.nome = nome;
         this.perfil = perfil;
         this.token = token;
         this.roles = roles;
+        this.transportadoraDocumento = transportadoraDocumento;
+        this.transportadoraNome = transportadoraNome;
     }
 
     public UUID getId() {
@@ -43,6 +54,14 @@ public class LoginResponseDTO {
 
     public Set<String> getRoles() {
         return roles;
+    }
+
+    public String getTransportadoraDocumento() {
+        return transportadoraDocumento;
+    }
+
+    public String getTransportadoraNome() {
+        return transportadoraNome;
     }
 }
 

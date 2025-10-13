@@ -1,0 +1,325 @@
+<div class="console-wrapper" *ngIf="(painel$ | async) as painel">
+  <header class="console-header">
+    <div>
+      <h1>Console do Operador de Gate</h1>
+      <p>Monitoramento em tempo real das filas de entrada e saída, veículos em atendimento e ocorrências recentes.</p>
+    </div>
+    <div class="console-status" [ngClass]="(statusConexao$ | async)">
+      <span class="status-indicador"></span>
+      <span class="status-texto">
+        Conexão: {{ (statusConexao$ | async) === 'conectado' ? 'Ativa' : (statusConexao$ | async) === 'conectando' ? 'Conectando...' : 'Offline' }}
+      </span>
+    </div>
+  </header>
+
+  <section class="alertas-realtime" *ngIf="(alertasRecentes$ | async)?.length as quantidadeAlertas" [class.alertas-realtime-visivel]="quantidadeAlertas > 0">
+    <h2>Alertas Recentes</h2>
+    <article *ngFor="let alerta of (alertasRecentes$ | async)" class="alerta-card" [ngClass]="{'alerta-critico': alerta.nivel === 'CRITICA', 'alerta-atencao': alerta.nivel === 'ALERTA'}">
+      <div>
+        <strong>{{ alerta.tipo }}</strong>
+        <span class="alerta-descricao">{{ alerta.descricao }}</span>
+      </div>
+      <div class="alerta-meta">
+        <span>{{ alerta.registradoEm | date:'shortTime' }}</span>
+        <span *ngIf="alerta.placaVeiculo">Placa: {{ alerta.placaVeiculo }}</span>
+      </div>
+    </article>
+  </section>
+
+  <section class="filas-container">
+    <div class="fila-coluna" *ngFor="let fila of painel.filasEntrada">
+      <header>
+        <h2>Fila de Entrada - {{ fila.nome }}</h2>
+        <span class="fila-contador">{{ fila.quantidade }} veículos</span>
+        <span class="fila-espera" *ngIf="fila.tempoMedioEsperaMinutos">Tempo médio: {{ fila.tempoMedioEsperaMinutos }} min</span>
+      </header>
+      <div class="veiculos-grid">
+        <article class="veiculo-card" *ngFor="let veiculo of fila.veiculos"
+                 [ngClass]="{
+                   'veiculo-excecao-critica': possuiExcecaoCritica(veiculo),
+                   'veiculo-excecao-alerta': !possuiExcecaoCritica(veiculo) && possuiExcecaoAlerta(veiculo)
+                 }">
+          <header>
+            <div class="veiculo-identificacao">
+              <strong class="placa">{{ veiculo.placa }}</strong>
+              <span class="status">{{ veiculo.statusDescricao || veiculo.status }}</span>
+            </div>
+            <div class="veiculo-tempo" *ngIf="veiculo.tempoFilaMinutos !== null && veiculo.tempoFilaMinutos !== undefined">
+              {{ veiculo.tempoFilaMinutos }} min em fila
+            </div>
+          </header>
+          <div class="veiculo-detalhes">
+            <p *ngIf="veiculo.transportadora"><strong>Transportadora:</strong> {{ veiculo.transportadora }}</p>
+            <p *ngIf="veiculo.documento"><strong>Documento:</strong> {{ veiculo.documento }}</p>
+            <p *ngIf="veiculo.motorista"><strong>Motorista:</strong> {{ veiculo.motorista }}</p>
+            <p *ngIf="veiculo.canalEntrada"><strong>Canal:</strong> {{ veiculo.canalEntrada }}</p>
+          </div>
+          <div class="veiculo-excecoes" *ngIf="veiculo.excecoes?.length">
+            <span class="excecoes-titulo">Exceções</span>
+            <div class="excecoes-lista">
+              <span *ngFor="let excecao of veiculo.excecoes" [ngClass]="classeExcecao(excecao)">
+                {{ excecao.descricao }}
+              </span>
+            </div>
+          </div>
+          <div class="veiculo-contatos" *ngIf="veiculo.contatos?.length">
+            <span class="contatos-titulo">Contato rápido</span>
+            <ul>
+              <li *ngFor="let contato of veiculo.contatos">
+                <a [href]="contatoLink(contato.tipo, contato.valor)" target="_blank" rel="noopener">
+                  {{ contatoDescricao(contato.tipo) }}
+                </a>
+              </li>
+            </ul>
+          </div>
+          <footer class="veiculo-acoes">
+            <button type="button" class="btn primario" (click)="abrirModalLiberacao(veiculo)">
+              Liberar manualmente
+            </button>
+            <button type="button" class="btn secundario" (click)="abrirModalBloqueio(veiculo)">
+              Bloquear
+            </button>
+            <button type="button" class="btn terciario" (click)="abrirModalOcorrencia(veiculo)">
+              Registrar ocorrência
+            </button>
+            <button type="button" class="btn texto" [disabled]="!veiculo.podeImprimirComprovante" (click)="imprimirComprovante(veiculo)">
+              Imprimir comprovante
+            </button>
+          </footer>
+        </article>
+      </div>
+    </div>
+
+    <div class="fila-coluna" *ngFor="let fila of painel.filasSaida">
+      <header>
+        <h2>Fila de Saída - {{ fila.nome }}</h2>
+        <span class="fila-contador">{{ fila.quantidade }} veículos</span>
+        <span class="fila-espera" *ngIf="fila.tempoMedioEsperaMinutos">Tempo médio: {{ fila.tempoMedioEsperaMinutos }} min</span>
+      </header>
+      <div class="veiculos-grid">
+        <article class="veiculo-card" *ngFor="let veiculo of fila.veiculos"
+                 [ngClass]="{
+                   'veiculo-excecao-critica': possuiExcecaoCritica(veiculo),
+                   'veiculo-excecao-alerta': !possuiExcecaoCritica(veiculo) && possuiExcecaoAlerta(veiculo)
+                 }">
+          <header>
+            <div class="veiculo-identificacao">
+              <strong class="placa">{{ veiculo.placa }}</strong>
+              <span class="status">{{ veiculo.statusDescricao || veiculo.status }}</span>
+            </div>
+            <div class="veiculo-tempo" *ngIf="veiculo.tempoFilaMinutos !== null && veiculo.tempoFilaMinutos !== undefined">
+              {{ veiculo.tempoFilaMinutos }} min em fila
+            </div>
+          </header>
+          <div class="veiculo-detalhes">
+            <p *ngIf="veiculo.transportadora"><strong>Transportadora:</strong> {{ veiculo.transportadora }}</p>
+            <p *ngIf="veiculo.documento"><strong>Documento:</strong> {{ veiculo.documento }}</p>
+            <p *ngIf="veiculo.motorista"><strong>Motorista:</strong> {{ veiculo.motorista }}</p>
+            <p *ngIf="veiculo.canalEntrada"><strong>Canal:</strong> {{ veiculo.canalEntrada }}</p>
+          </div>
+          <div class="veiculo-excecoes" *ngIf="veiculo.excecoes?.length">
+            <span class="excecoes-titulo">Exceções</span>
+            <div class="excecoes-lista">
+              <span *ngFor="let excecao of veiculo.excecoes" [ngClass]="classeExcecao(excecao)">
+                {{ excecao.descricao }}
+              </span>
+            </div>
+          </div>
+          <div class="veiculo-contatos" *ngIf="veiculo.contatos?.length">
+            <span class="contatos-titulo">Contato rápido</span>
+            <ul>
+              <li *ngFor="let contato of veiculo.contatos">
+                <a [href]="contatoLink(contato.tipo, contato.valor)" target="_blank" rel="noopener">
+                  {{ contatoDescricao(contato.tipo) }}
+                </a>
+              </li>
+            </ul>
+          </div>
+          <footer class="veiculo-acoes">
+            <button type="button" class="btn primario" (click)="abrirModalLiberacao(veiculo)">
+              Liberar manualmente
+            </button>
+            <button type="button" class="btn secundario" (click)="abrirModalBloqueio(veiculo)">
+              Bloquear
+            </button>
+            <button type="button" class="btn terciario" (click)="abrirModalOcorrencia(veiculo)">
+              Registrar ocorrência
+            </button>
+            <button type="button" class="btn texto" [disabled]="!veiculo.podeImprimirComprovante" (click)="imprimirComprovante(veiculo)">
+              Imprimir comprovante
+            </button>
+          </footer>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="atendimento-container">
+    <header>
+      <h2>Veículos em Atendimento</h2>
+      <span>{{ painel.veiculosAtendimento.length }} em atendimento</span>
+    </header>
+    <div class="atendimento-grid">
+      <article *ngFor="let veiculo of painel.veiculosAtendimento" class="atendimento-card"
+               [ngClass]="{
+                 'veiculo-excecao-critica': possuiExcecaoCritica(veiculo),
+                 'veiculo-excecao-alerta': !possuiExcecaoCritica(veiculo) && possuiExcecaoAlerta(veiculo)
+               }">
+        <header>
+          <strong class="placa">{{ veiculo.placa }}</strong>
+          <span class="status">{{ veiculo.statusDescricao || veiculo.status }}</span>
+        </header>
+        <p *ngIf="veiculo.transportadora"><strong>Transportadora:</strong> {{ veiculo.transportadora }}</p>
+        <p *ngIf="veiculo.motorista"><strong>Motorista:</strong> {{ veiculo.motorista }}</p>
+        <p *ngIf="veiculo.documento"><strong>Documento:</strong> {{ veiculo.documento }}</p>
+        <div class="veiculo-excecoes" *ngIf="veiculo.excecoes?.length">
+          <span class="excecoes-titulo">Exceções</span>
+          <div class="excecoes-lista">
+            <span *ngFor="let excecao of veiculo.excecoes" [ngClass]="classeExcecao(excecao)">
+              {{ excecao.descricao }}
+            </span>
+          </div>
+        </div>
+        <footer class="veiculo-acoes">
+          <button type="button" class="btn primario" (click)="abrirModalLiberacao(veiculo)">
+            Liberar manualmente
+          </button>
+          <button type="button" class="btn secundario" (click)="abrirModalBloqueio(veiculo)">
+            Bloquear
+          </button>
+          <button type="button" class="btn terciario" (click)="abrirModalOcorrencia(veiculo)">
+            Registrar ocorrência
+          </button>
+          <button type="button" class="btn texto" [disabled]="!veiculo.podeImprimirComprovante" (click)="imprimirComprovante(veiculo)">
+            Imprimir comprovante
+          </button>
+        </footer>
+      </article>
+    </div>
+  </section>
+
+  <section class="historico-container">
+    <header>
+      <h2>Histórico recente</h2>
+      <a routerLink="../eventos" class="link-eventos">Ver todos os eventos</a>
+    </header>
+    <ul>
+      <li *ngFor="let evento of painel.historico | slice:0:10" [ngClass]="{'historico-critico': evento.nivel === 'CRITICA', 'historico-alerta': evento.nivel === 'ALERTA'}">
+        <div>
+          <strong>{{ evento.tipo }}</strong>
+          <span>{{ evento.descricao }}</span>
+        </div>
+        <div class="historico-meta">
+          <span>{{ evento.registradoEm | date:'short' }}</span>
+          <span *ngIf="evento.placaVeiculo">Placa: {{ evento.placaVeiculo }}</span>
+        </div>
+      </li>
+    </ul>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="modalLiberacaoAberto">
+  <div class="modal-conteudo">
+    <header>
+      <h2>Liberar veículo manualmente</h2>
+      <button type="button" class="modal-fechar" (click)="fecharModais()">&times;</button>
+    </header>
+    <form [formGroup]="formLiberacao" (ngSubmit)="confirmarLiberacao()">
+      <label for="canalEntrada">Canal de entrada</label>
+      <select id="canalEntrada" formControlName="canalEntrada">
+        <option value="" disabled>Selecione</option>
+        <option *ngFor="let canal of (canaisEntrada$ | async)" [value]="canal.codigo">{{ canal.descricao }}</option>
+      </select>
+      <div class="erro-campo" *ngIf="formLiberacao.controls.canalEntrada.invalid && formLiberacao.controls.canalEntrada.touched">
+        Informe o canal utilizado pelo veículo.
+      </div>
+
+      <label for="justificativaLiberacao">Justificativa</label>
+      <textarea id="justificativaLiberacao" rows="3" formControlName="justificativa" placeholder="Descreva o motivo da liberação manual"></textarea>
+      <div class="erro-campo" *ngIf="formLiberacao.controls.justificativa.invalid && formLiberacao.controls.justificativa.touched">
+        Informe uma justificativa com pelo menos 5 caracteres.
+      </div>
+
+      <label class="checkbox-inline">
+        <input type="checkbox" formControlName="notificarTransportadora" />
+        Notificar transportadora
+      </label>
+
+      <footer class="modal-acoes">
+        <button type="submit" class="btn primario" [disabled]="formLiberacao.invalid">Confirmar liberação</button>
+        <button type="button" class="btn secundario" (click)="fecharModais()">Cancelar</button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="modalBloqueioAberto">
+  <div class="modal-conteudo">
+    <header>
+      <h2>Bloquear veículo</h2>
+      <button type="button" class="modal-fechar" (click)="fecharModais()">&times;</button>
+    </header>
+    <form [formGroup]="formBloqueio" (ngSubmit)="confirmarBloqueio()">
+      <label for="motivoBloqueio">Motivo do bloqueio</label>
+      <select id="motivoBloqueio" formControlName="motivoCodigo">
+        <option value="" disabled>Selecione</option>
+        <option *ngFor="let motivo of (motivosBloqueio$ | async)" [value]="motivo.codigo">{{ motivo.descricao }}</option>
+      </select>
+      <div class="erro-campo" *ngIf="formBloqueio.controls.motivoCodigo.invalid && formBloqueio.controls.motivoCodigo.touched">
+        Informe o motivo do bloqueio.
+      </div>
+
+      <label for="justificativaBloqueio">Justificativa</label>
+      <textarea id="justificativaBloqueio" rows="3" formControlName="justificativa"></textarea>
+      <div class="erro-campo" *ngIf="formBloqueio.controls.justificativa.invalid && formBloqueio.controls.justificativa.touched">
+        Informe uma justificativa com pelo menos 5 caracteres.
+      </div>
+
+      <label for="bloqueioAte">Bloqueio até</label>
+      <input id="bloqueioAte" type="datetime-local" formControlName="bloqueioAte" />
+      <div class="erro-campo" *ngIf="formBloqueio.controls.bloqueioAte.invalid && formBloqueio.controls.bloqueioAte.touched">
+        Informe a data e hora de revisão do bloqueio.
+      </div>
+
+      <footer class="modal-acoes">
+        <button type="submit" class="btn primario" [disabled]="formBloqueio.invalid">Confirmar bloqueio</button>
+        <button type="button" class="btn secundario" (click)="fecharModais()">Cancelar</button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="modalOcorrenciaAberto">
+  <div class="modal-conteudo">
+    <header>
+      <h2>Registrar ocorrência</h2>
+      <button type="button" class="modal-fechar" (click)="fecharModais()">&times;</button>
+    </header>
+    <form [formGroup]="formOcorrencia" (ngSubmit)="confirmarOcorrencia()">
+      <label for="tipoOcorrencia">Tipo de ocorrência</label>
+      <select id="tipoOcorrencia" formControlName="tipoCodigo">
+        <option value="" disabled>Selecione</option>
+        <option *ngFor="let tipo of (tiposOcorrencia$ | async)" [value]="tipo.codigo">{{ tipo.descricao }}</option>
+      </select>
+      <div class="erro-campo" *ngIf="formOcorrencia.controls.tipoCodigo.invalid && formOcorrencia.controls.tipoCodigo.touched">
+        Informe o tipo de ocorrência.
+      </div>
+
+      <label for="descricaoOcorrencia">Descrição</label>
+      <textarea id="descricaoOcorrencia" rows="4" formControlName="descricao" placeholder="Descreva o que ocorreu"></textarea>
+      <div class="erro-campo" *ngIf="formOcorrencia.controls.descricao.invalid && formOcorrencia.controls.descricao.touched">
+        Informe uma descrição com pelo menos 5 caracteres.
+      </div>
+
+      <footer class="modal-acoes">
+        <button type="submit" class="btn primario" [disabled]="formOcorrencia.invalid">Enviar ocorrência</button>
+        <button type="button" class="btn secundario" (click)="fecharModais()">Cancelar</button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<div class="feedback-container" *ngIf="mensagemFeedback || erroAcao">
+  <div class="feedback-mensagem" *ngIf="mensagemFeedback">{{ mensagemFeedback }}</div>
+  <div class="feedback-erro" *ngIf="erroAcao">{{ erroAcao }}</div>
+</div>

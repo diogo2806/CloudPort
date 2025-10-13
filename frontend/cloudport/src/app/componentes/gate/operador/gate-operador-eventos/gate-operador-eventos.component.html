@@ -1,0 +1,42 @@
+<section class="eventos-wrapper">
+  <header class="eventos-header">
+    <div>
+      <h1>Eventos do Gate</h1>
+      <p>Acompanhe a linha do tempo de eventos relevantes do gate com atualização contínua.</p>
+    </div>
+    <div class="status-badge" [ngClass]="(statusConexao$ | async)">
+      <span class="indicador"></span>
+      <span>
+        {{ (statusConexao$ | async) === 'conectado' ? 'Tempo real' : (statusConexao$ | async) === 'conectando' ? 'Reconectando...' : 'Sem conexão' }}
+      </span>
+    </div>
+  </header>
+
+  <section class="filtros">
+    <form [formGroup]="filtros">
+      <label for="nivelFiltro">Nível</label>
+      <select id="nivelFiltro" formControlName="nivel">
+        <option *ngFor="let nivel of (niveisEvento$ | async)" [value]="nivel.codigo">{{ nivel.descricao }}</option>
+      </select>
+
+      <label for="buscaFiltro">Buscar</label>
+      <input id="buscaFiltro" type="search" formControlName="busca" placeholder="Digite placa, transportadora ou palavra-chave" />
+    </form>
+  </section>
+
+  <section class="lista-eventos">
+    <article *ngFor="let evento of (eventosFiltrados$ | async)" [ngClass]="classeNivel(evento.nivel)">
+      <header>
+        <strong>{{ evento.tipo }}</strong>
+        <span>{{ evento.registradoEm | date:'short' }}</span>
+      </header>
+      <p>{{ evento.descricao }}</p>
+      <footer>
+        <span *ngIf="evento.placaVeiculo">Placa: {{ evento.placaVeiculo }}</span>
+        <span *ngIf="evento.transportadora">Transportadora: {{ evento.transportadora }}</span>
+        <span *ngIf="evento.usuario">Operador: {{ evento.usuario }}</span>
+      </footer>
+    </article>
+    <p class="vazio" *ngIf="!(eventosFiltrados$ | async)?.length">Nenhum evento encontrado para os filtros informados.</p>
+  </section>
+</section>

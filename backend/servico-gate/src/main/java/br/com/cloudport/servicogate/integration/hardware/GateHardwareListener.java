@@ -5,6 +5,7 @@ import br.com.cloudport.servicogate.dto.GateFlowRequest;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.exception.NotFoundException;
 import br.com.cloudport.servicogate.model.enums.StatusGate;
+import br.com.cloudport.servicogate.monitoring.GateMetrics;
 import br.com.cloudport.servicogate.service.GateFlowService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -21,14 +22,17 @@ public class GateHardwareListener {
 
     private final GateFlowService gateFlowService;
     private final GateHardwarePublisher publisher;
+    private final GateMetrics gateMetrics;
     private final ObjectMapper objectMapper;
 
     public GateHardwareListener(GateFlowService gateFlowService,
                                 GateHardwarePublisher publisher,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                GateMetrics gateMetrics) {
         this.gateFlowService = gateFlowService;
         this.publisher = publisher;
         this.objectMapper = objectMapper;
+        this.gateMetrics = gateMetrics;
     }
 
     @RabbitListener(queues = "${cloudport.gate.hardware.entrada-queue}")
@@ -45,6 +49,7 @@ public class GateHardwareListener {
         if (!StringUtils.hasText(payload)) {
             return;
         }
+        boolean sucesso = false;
         try {
             HardwareEventMessage event = objectMapper.readValue(payload, HardwareEventMessage.class);
             GateFlowRequest request = event.toRequest();
@@ -52,12 +57,15 @@ public class GateHardwareListener {
                     ? gateFlowService.registrarEntrada(request)
                     : gateFlowService.registrarSaida(request);
             publicarDecisao(decision, event, entrada);
+            sucesso = true;
         } catch (BusinessException | NotFoundException ex) {
             LOGGER.warn("Falha ao processar evento de hardware: {}", ex.getMessage());
             publicarDecisao(GateDecisionDTO.negado(StatusGate.RETIDO, null, null, ex.getMessage()),
                     criarFallbackEvento(payload), entrada);
         } catch (Exception ex) {
             LOGGER.error("Erro inesperado ao processar evento do hardware", ex);
+        } finally {
+            gateMetrics.registrarConsumoFila(entrada ? "entrada" : "saida", sucesso);
         }
     }
 

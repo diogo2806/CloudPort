@@ -1,6 +1,8 @@
 package br.com.cloudport.servicogate.integration.tos;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.retry.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
@@ -64,6 +66,11 @@ public class TosClientConfig {
                 .retryExceptions(Exception.class)
                 .build();
         return Retry.of("tosClient", config);
+    }
+
+    @Bean
+    public CircuitBreaker tosCircuitBreaker(CircuitBreakerRegistry registry) {
+        return registry.circuitBreaker("tosApi");
     }
 
     @Bean

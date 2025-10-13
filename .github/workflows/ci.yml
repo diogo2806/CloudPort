@@ -48,6 +48,20 @@ jobs:
         working-directory: frontend/cloudport
         run: npm ci
 
+      - name: Executar testes unitários
+        working-directory: frontend/cloudport
+        run: npm run test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Instalar navegadores do Playwright
+        working-directory: frontend/cloudport
+        run: npx playwright install --with-deps
+
+      - name: Executar testes end-to-end
+        working-directory: frontend/cloudport
+        env:
+          CI: 'true'
+        run: npm run e2e
+
       - name: Build project
         working-directory: frontend/cloudport
         run: npm run build --if-present

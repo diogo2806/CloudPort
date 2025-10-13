@@ -247,20 +247,25 @@ console.log("handleTableContextMenu: ", event)
 
 onBtExport() {
   try {
-    // Obter os dados das linhas filtradas percorrendo todos os nós disponíveis
-    const dados: any[] = [];
-    this.gridApi.forEachNodeAfterFilter((node) => {
+    // Coletar todas as linhas filtradas (mesmo que não estejam renderizadas na tela)
+    const dadosFiltrados: any[] = [];
+    const coletarNos: (callback: (node: any) => void) => void =
+      this.gridApi.forEachNodeAfterFilterAndSort?.bind(this.gridApi) ??
+      this.gridApi.forEachNodeAfterFilter.bind(this.gridApi);
+
+    coletarNos((node: any) => {
       if (node.data) {
-        dados.push(node.data);
+        dadosFiltrados.push({ ...node.data });
       }
     });
 
     // Converter os dados coletados para JSON antes da exportação
-    const jsonData = JSON.parse(JSON.stringify(dados));
+    const jsonData = dadosFiltrados.map((linha) => JSON.parse(JSON.stringify(linha)));
 
-    // Preparar as colunas para exportação
-    const columns = this.columns.map(column => ({ [column]: '' }));
-    const exportData = jsonData.length ? jsonData : columns;
+    // Preparar estrutura padrão caso não haja dados filtrados
+    const exportData = jsonData.length
+      ? jsonData
+      : [this.columns.reduce((acc, column) => ({ ...acc, [column]: '' }), {})];
 
     // Usar a biblioteca XLSX para exportar os dados
     const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(exportData);

@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   Agendamento,
   AgendamentoFiltro,
   AgendamentoRequest,
+  DocumentoAgendamento,
   GateEnumOption,
   Page
 } from '../../model/gate/agendamento.model';
@@ -86,6 +87,15 @@ export class GateApiService {
 
   listarCanaisEntrada(): Observable<GateEnumOption[]> {
     return this.http.get<GateEnumOption[]>(`${this.configUrl}/canais-entrada`);
+  }
+
+  uploadDocumentoAgendamento(id: number, arquivo: File): Observable<HttpEvent<DocumentoAgendamento>> {
+    const formData = new FormData();
+    formData.append('arquivo', arquivo, arquivo.name);
+    return this.http.post<DocumentoAgendamento>(`${this.agendamentosUrl}/${id}/documentos`, formData, {
+      reportProgress: true,
+      observe: 'events'
+    });
   }
 
   private buildParams(filters?: Record<string, string | number | boolean | undefined | null>): HttpParams {

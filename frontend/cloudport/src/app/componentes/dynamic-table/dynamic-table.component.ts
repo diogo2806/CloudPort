@@ -1,6 +1,6 @@
 /* dynamic-table.component.ts */
 import { ViewChild, ElementRef } from '@angular/core';
-import { Component, Input, OnInit, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit, Output, EventEmitter, OnChanges, SimpleChanges, OnDestroy } from '@angular/core';
 import { AfterViewInit } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { ColDef, GridApi, GridOptions, GridReadyEvent, IDateFilterParams, IMultiFilterParams, ISetFilterParams } from 'ag-grid-community';
@@ -24,7 +24,7 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
   templateUrl: './dynamic-table.component.html',
   styleUrls: ['./dynamic-table.component.css']
 })
-export class DynamicTableComponent implements OnInit, AfterViewInit {
+export class DynamicTableComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
 
   private _data: any[] = [];
   private gridApi!: GridApi;
@@ -48,6 +48,8 @@ export class DynamicTableComponent implements OnInit, AfterViewInit {
   @Input() selectedTab: string = '';
   @ViewChild('gridTable') gridTable!: ElementRef;
   @Output() gridReady = new EventEmitter<GridReadyEvent>();
+  @Output() rowClicked = new EventEmitter<any>();
+  @Output() rowDoubleClicked = new EventEmitter<any>();
 
   @Output() createRole = new EventEmitter<void>();
 
@@ -69,13 +71,8 @@ export class DynamicTableComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     console.log('Classe DynamicTableComponent: : Método ngOnInit iniciado.');
-   
-    this.columnDefinitions = this.columns.map(column => ({
-      headerName: column,
-      field: column,
-      filter: true,
-      sortable: true
-    }));
+
+    this.updateColumnDefinitions();
     this.filteredData = [...this.data];
   
    // this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
@@ -152,12 +149,9 @@ console.log("handleTableContextMenu: ", event)
 
 
   ngOnDestroy() {
-   // if (this.gridTable && this.gridTable.nativeElement) {
-   // document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-    // this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-    //}
-    this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-
+    if (this.gridTable && this.gridTable.nativeElement) {
+      this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
+    }
   }
   
 
@@ -324,6 +318,7 @@ onBtExport() {
 
   onCellDoubleClicked(event: any) {
     console.log('DynamicTableComponent onCellDoubleClicked: Célula clicada com o botão direito:', event);
+    this.rowDoubleClicked.emit(event);
   }
 /*
   @logMethod
@@ -338,6 +333,7 @@ onBtExport() {
   
   onRowClicked(event: any) {
     console.log('onRowClicked: ', event);
+    this.rowClicked.emit(event);
     //this.rightClick.emit({event});
   }
   
@@ -356,6 +352,15 @@ onBtExport() {
   
   get data(): any[] {
     return this._data;
+  }
+
+  private updateColumnDefinitions(): void {
+    this.columnDefinitions = this.columns.map(column => ({
+      headerName: column,
+      field: column,
+      filter: true,
+      sortable: true
+    }));
   }
   
 
@@ -422,3 +427,13 @@ onBtExport() {
 
   
 }
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['columns']) {
+      this.updateColumnDefinitions();
+      if (this.gridApi && this.filteredData) {
+        this.gridApi.setColumnDefs(this.columnDefinitions);
+        this.gridApi.refreshClientSideRowModel('everything');
+      }
+    }
+  }
+

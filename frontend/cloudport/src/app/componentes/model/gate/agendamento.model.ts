@@ -92,4 +92,17 @@ export interface AgendamentoRequest {
   horarioPrevistoChegada: string;
   horarioPrevistoSaida: string;
   observacoes?: string | null;
+  placaVeiculo?: string | null;
+  motoristaCpf?: string | null;
+}
+
+export interface UploadDocumentoStatus {
+  fileName: string;
+  progress: number;
+  status: 'pendente' | 'enviando' | 'concluido' | 'erro';
+}
+
+export interface AgendamentoFormPayload {
+  request: AgendamentoRequest;
+  arquivos: File[];
 }

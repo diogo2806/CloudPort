@@ -1,0 +1,15 @@
+<div class="confirmacao-modal">
+  <div class="confirmacao-modal__content">
+    <h3 class="confirmacao-modal__titulo">{{ data?.titulo || 'Confirmação' }}</h3>
+    <p class="confirmacao-modal__mensagem">{{ data?.mensagem }}</p>
+    <div class="confirmacao-modal__acoes">
+      <button type="button" class="btn btn--secundario" (click)="cancelar()">
+        {{ data?.textoCancelar || 'Cancelar' }}
+      </button>
+      <button type="button" class="btn btn--primario" (click)="confirmar()">
+        {{ data?.textoConfirmar || 'Confirmar' }}
+      </button>
+    </div>
+  </div>
+</div>
+

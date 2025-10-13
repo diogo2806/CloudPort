@@ -1,0 +1,262 @@
+.agendamento-formulario {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.agendamento-formulario__cabecalho h3 {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+  color: #1f2937;
+}
+
+.agendamento-formulario__cabecalho p {
+  margin: 0;
+  color: #6b7280;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo span {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.campo small {
+  color: #dc2626;
+  font-size: 0.8rem;
+}
+
+.campo--full {
+  grid-column: 1 / -1;
+}
+
+.alerta {
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+}
+
+.documentos {
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.documentos header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.documentos h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #1f2937;
+}
+
+.documentos p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.documentos__contador {
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.documentos__existentes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.documentos__item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: inset 0 0 0 1px rgba(209, 213, 219, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  width: fit-content;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+}
+
+.upload input {
+  display: none;
+}
+
+.previews {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.preview {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: inset 0 0 0 1px rgba(209, 213, 219, 0.6);
+  display: flex;
+  gap: 12px;
+}
+
+.preview__icone {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #1f2937;
+  text-transform: uppercase;
+}
+
+.preview__icone--imagem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.preview__dados {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.preview__dados strong {
+  color: #1f2937;
+}
+
+.preview__dados small {
+  color: #6b7280;
+}
+
+.preview__progresso {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.barra {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.preenchimento {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  transition: width 0.2s ease;
+}
+
+.preview__progresso small {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.preview__progresso .status--erro {
+  color: #dc2626;
+}
+
+.erro {
+  color: #dc2626;
+  font-size: 0.85rem;
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.btn--primario {
+  background: #2563eb;
+  color: #fff;
+}
+
+.btn:hover:not(:disabled) {
+  box-shadow: 0 8px 18px rgba(107, 114, 128, 0.2);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+

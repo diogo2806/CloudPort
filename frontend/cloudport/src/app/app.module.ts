@@ -14,7 +14,6 @@ import { FooterComponent } from './componentes/footer/footer.component';
 import { NavbarComponent } from './componentes/navbar/navbar.component';
 import { RoleTabelaComponent } from './componentes/role/role-tabela/role-tabela.component';
 import { ContextMenuComponent } from './componentes/context-menu/context-menu.component';
-import { DynamicTableComponent } from './componentes/dynamic-table/dynamic-table.component';
 import { AgGridModule } from 'ag-grid-angular';
 import { CustomReuseStrategy } from './componentes/tab-content/customreusestrategy';
 import { RouteReuseStrategy } from '@angular/router';
@@ -25,6 +24,8 @@ import { SegurancaComponent } from './componentes/seguranca/seguranca.component'
 import { NotificacoesComponent } from './componentes/notificacoes/notificacoes.component';
 import { PrivacidadeComponent } from './componentes/privacidade/privacidade.component';
 import { UsuariosListaComponent } from './componentes/usuarios-lista/usuarios-lista.component';
+import { DynamicTableModule } from './componentes/dynamic-table/dynamic-table.module';
+import { ConfirmacaoModalComponent } from './componentes/modal/confirmacao-modal/confirmacao-modal.component';
 
 @NgModule({
   declarations: [
@@ -36,8 +37,8 @@ import { UsuariosListaComponent } from './componentes/usuarios-lista/usuarios-li
     NavbarComponent,
     RoleTabelaComponent,
     ContextMenuComponent,
-    DynamicTableComponent,
     ModalComponent,
+    ConfirmacaoModalComponent,
     RoleCadastroComponent,
     SegurancaComponent,
     NotificacoesComponent,
@@ -53,7 +54,8 @@ import { UsuariosListaComponent } from './componentes/usuarios-lista/usuarios-li
     FormsModule,
     HttpClientModule,
     TranslateModule.forRoot(),
-    AgGridModule
+    AgGridModule,
+    DynamicTableModule
   ],
   providers: [
     { provide: RouteReuseStrategy, useClass: CustomReuseStrategy },

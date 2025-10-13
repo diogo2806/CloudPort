@@ -1,0 +1,59 @@
+<section class="agendamentos-lista">
+  <header class="agendamentos-lista__cabecalho">
+    <div>
+      <h3>Agendamentos</h3>
+      <p class="agendamentos-lista__subtitulo">
+        {{ loading ? 'Atualizando agendamentos...' : 'Selecione uma linha para visualizar os detalhes.' }}
+      </p>
+    </div>
+    <div class="agendamentos-lista__acoes">
+      <button type="button" class="btn btn--primario" (click)="novoAgendamento()">
+        Novo
+      </button>
+      <button
+        type="button"
+        class="btn"
+        [disabled]="selectedId === null"
+        (click)="editarAgendamento()"
+      >
+        Editar
+      </button>
+      <button
+        type="button"
+        class="btn btn--perigo"
+        [disabled]="selectedId === null"
+        (click)="cancelarAgendamento()"
+      >
+        Cancelar
+      </button>
+      <button type="button" class="btn" (click)="atualizarLista()">
+        Atualizar
+      </button>
+    </div>
+  </header>
+
+  <ng-container *ngIf="!loading; else carregando">
+    <div class="agendamentos-lista__tabela" *ngIf="dadosTabela.length; else vazio">
+      <app-dynamic-table
+        [columns]="colunas"
+        [data]="dadosTabela"
+        (rowClicked)="onRowClicked($event)"
+        (rowDoubleClicked)="onRowDoubleClicked($event)"
+      ></app-dynamic-table>
+    </div>
+  </ng-container>
+
+  <ng-template #carregando>
+    <div class="agendamentos-lista__estado">
+      <span class="spinner"></span>
+      <span>Carregando agendamentos...</span>
+    </div>
+  </ng-template>
+
+  <ng-template #vazio>
+    <div class="agendamentos-lista__estado">
+      Nenhum agendamento encontrado para o filtro atual.
+    </div>
+  </ng-template>
+</section>
+

@@ -1,8 +1,7 @@
-import { Component, Input, ViewChild, ViewContainerRef, ComponentFactoryResolver, ComponentRef, AfterViewInit, OnInit, Type, Injector } from '@angular/core';
-import { PopupService } from '../service/popupService';
+import { Component, Input, ViewChild, ViewContainerRef, ComponentRef, AfterViewInit, Type, Injector, ChangeDetectorRef } from '@angular/core';
+import { PopupService, PopupState } from '../service/popupService';
 import { RoleCadastroComponent } from '../role/role-cadastro/role-cadastro.component'; // Importe todos os componentes que você pode querer carregar dinamicamente
-import { ChangeDetectorRef } from '@angular/core';
-import { Renderer2, ElementRef } from '@angular/core';
+import { ConfirmacaoModalComponent } from './confirmacao-modal/confirmacao-modal.component';
 
 
 function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
@@ -15,8 +14,9 @@ function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
 }
 
 
-const componentMapping = {
+const componentMapping: Record<string, Type<any>> = {
   'role': RoleCadastroComponent,
+  'confirmacao': ConfirmacaoModalComponent,
   // Adicione outros mapeamentos aqui
 };
 @Component({
@@ -38,44 +38,54 @@ export class ModalComponent implements AfterViewInit {
 
 
 
-  constructor(private viewContainerRef: ViewContainerRef, private componentFactoryResolver: ComponentFactoryResolver, private popupService: PopupService, private cdRef: ChangeDetectorRef) {
+  constructor(private viewContainerRef: ViewContainerRef, private popupService: PopupService, private cdRef: ChangeDetectorRef) {
     // Removido a subscrição aqui
   }
 
   @logMethod
   ngAfterViewInit() {
-    this.popupService.showPopup$.subscribe(popup => {
+    this.popupService.showPopup$.subscribe((popup) => {
       console.log('Recebido:', popup);
       this.entityType = popup.type;
       this.showPopup = popup.show;
-      this.loadComponent(popup.type);
+      if (popup.show) {
+        this.loadComponent(popup);
+      } else if (this.componentRef) {
+        this.componentRef.destroy();
+        this.componentRef = null;
+      }
     });
   }
 
   @logMethod
-loadComponent(componentTypeString: string) {
-  if (this.componentRef) {
-    this.componentRef.destroy();
-    this.componentRef = null;
+  loadComponent(popup: PopupState) {
+    if (this.componentRef) {
+      this.componentRef.destroy();
+      this.componentRef = null;
+    }
+
+    const componentType = componentMapping[popup.type as keyof typeof componentMapping];
+
+    if (!componentType) {
+      console.error(`Componente não encontrado para o tipo: ${popup.type}`);
+      return;
+    }
+
+
+    console.log('componentTypeString: ' + popup.type);
+
+    const injector = Injector.create({ providers: [], parent: this.viewContainerRef.injector });
+
+    this.componentRef = this.viewContainerRef.createComponent(componentType, {
+      injector: injector
+    });
+
+    if (this.componentRef && popup.data !== undefined) {
+      Object.assign(this.componentRef.instance, { data: popup.data });
+    }
+
+    this.cdRef.detectChanges();
   }
-
-  const componentType = componentMapping[componentTypeString as keyof typeof componentMapping];
-
-  if (!componentType) {
-    console.error(`Componente não encontrado para o tipo: ${componentTypeString}`);
-    return;
-  }
-
-
-  console.log('componentTypeString: '+componentTypeString);
-  
-  const injector = Injector.create({providers: [], parent: this.viewContainerRef.injector});
-  
-  // Correção aqui: passar componentType como primeiro argumento e o objeto de opções como segundo argumento
-  this.componentRef = this.viewContainerRef.createComponent(componentType, {
-    injector: injector
-  });
-}
 
 
 

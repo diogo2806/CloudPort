@@ -1,0 +1,107 @@
+<section class="agendamento-detalhe" *ngIf="agendamento; else selecione">
+  <header class="agendamento-detalhe__cabecalho">
+    <div>
+      <h3>{{ agendamento?.codigo }}</h3>
+      <p>{{ agendamento?.transportadoraNome || 'Transportadora não informada' }}</p>
+    </div>
+    <span class="badge">{{ agendamento?.statusDescricao || agendamento?.status }}</span>
+  </header>
+
+  <div class="agendamento-detalhe__grid">
+    <div>
+      <span class="rotulo">Operação</span>
+      <span>{{ agendamento?.tipoOperacaoDescricao || agendamento?.tipoOperacao }}</span>
+    </div>
+    <div>
+      <span class="rotulo">Janela</span>
+      <span>
+        {{ agendamento?.dataJanela | date: 'dd/MM/yyyy' }}
+        {{ agendamento?.horaInicioJanela }} - {{ agendamento?.horaFimJanela }}
+      </span>
+    </div>
+    <div>
+      <span class="rotulo">Motorista</span>
+      <span>{{ agendamento?.motoristaNome || '—' }}</span>
+    </div>
+    <div>
+      <span class="rotulo">Placa</span>
+      <span>{{ agendamento?.placaVeiculo || '—' }}</span>
+    </div>
+    <div>
+      <span class="rotulo">Chegada Prevista</span>
+      <span>{{ agendamento?.horarioPrevistoChegada || '—' }}</span>
+    </div>
+    <div>
+      <span class="rotulo">Saída Prevista</span>
+      <span>{{ agendamento?.horarioPrevistoSaida || '—' }}</span>
+    </div>
+  </div>
+
+  <section class="agendamento-detalhe__documentos">
+    <header>
+      <h4>Documentos anexados</h4>
+      <span>{{ agendamento?.documentos?.length || 0 }} documentos</span>
+    </header>
+
+    <ul class="documentos" *ngIf="agendamento?.documentos?.length; else nenhumDocumento" [attr.aria-live]="'polite'">
+      <li class="documento" *ngFor="let documento of agendamento?.documentos; trackBy: trackPorDocumento">
+        <div>
+          <strong>{{ documento.nomeArquivo }}</strong>
+          <span>{{ documento.tamanhoBytes / 1024 | number: '1.0-0' }} KB</span>
+        </div>
+        <a [href]="documento.urlDocumento" target="_blank" rel="noopener">Abrir</a>
+      </li>
+    </ul>
+
+    <ng-template #nenhumDocumento>
+      <p class="documentos__vazio">Nenhum documento enviado ainda.</p>
+    </ng-template>
+  </section>
+
+  <section class="agendamento-detalhe__upload">
+    <h4>Adicionar documentos</h4>
+    <label class="upload__botao">
+      Selecionar arquivos
+      <input type="file" multiple (change)="aoSelecionarArquivos($event)" [disabled]="existeUploadEmAndamento()" />
+    </label>
+
+    <div class="previews" *ngIf="documentosSelecionados.length">
+      <article class="preview" *ngFor="let preview of documentosSelecionados; trackBy: trackPorPreview">
+        <div class="preview__thumb" *ngIf="preview.url; else icone">
+          <img [src]="preview.url" [alt]="preview.nome" />
+        </div>
+        <ng-template #icone>
+          <div class="preview__icone">{{ preview.tipo.split('/')[1] || 'arquivo' }}</div>
+        </ng-template>
+        <div class="preview__dados">
+          <strong>{{ preview.nome }}</strong>
+          <small>{{ preview.tamanho }}</small>
+        </div>
+        <div class="preview__progresso" *ngIf="acompanharProgresso(preview.nome) as progresso">
+          <div class="barra">
+            <span class="preenchimento" [style.width.%]="progresso.progress"></span>
+          </div>
+          <small class="status" [class.status--erro]="progresso.status === 'erro'">
+            {{ progresso.status === 'concluido' ? 'Concluído' : progresso.status === 'erro' ? 'Erro' : progresso.progress + '%' }}
+          </small>
+        </div>
+      </article>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn--primario"
+      [disabled]="!documentosSelecionados.length || existeUploadEmAndamento()"
+      (click)="enviarDocumentos()"
+    >
+      Enviar documentos
+    </button>
+  </section>
+</section>
+
+<ng-template #selecione>
+  <section class="agendamento-detalhe agendamento-detalhe--vazio">
+    <p>Selecione um agendamento para visualizar os detalhes.</p>
+  </section>
+</ng-template>
+

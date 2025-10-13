@@ -1,4 +1,44 @@
 <section class="gate-agendamentos">
-  <h2>{{ titulo }}</h2>
-  <p>Selecione um agendamento para visualizar os detalhes.</p>
+  <header class="gate-agendamentos__cabecalho">
+    <div>
+      <h2>{{ titulo }}</h2>
+      <p>Gestão integrada de janelas, documentos e status em tempo real.</p>
+    </div>
+  </header>
+
+  <div class="gate-agendamentos__conteudo">
+    <app-agendamentos-list
+      class="gate-agendamentos__lista"
+      [agendamentos]="agendamentos$ | async"
+      [loading]="carregandoLista"
+      [selectedId]="selecionadoId"
+      (selecionar)="selecionarAgendamento($event)"
+      (editar)="editarAgendamento($event)"
+      (cancelar)="cancelarAgendamento($event)"
+      (criar)="criarAgendamento()"
+      (atualizar)="atualizarLista()"
+    ></app-agendamentos-list>
+
+    <app-agendamento-detalhe
+      class="gate-agendamentos__detalhe"
+      [agendamento]="selecionado"
+      [uploadStatus]="uploadStatus"
+      (anexarDocumentos)="anexarDocumentos($event)"
+    ></app-agendamento-detalhe>
+  </div>
+
+  <section class="gate-agendamentos__form" *ngIf="exibirFormulario">
+    <app-agendamento-form
+      [agendamento]="emEdicao"
+      [tiposOperacao$]="tiposOperacao$"
+      [status$]="status$"
+      [janelas$]="janelas$"
+      [documentosExistentes]="documentosExistentes"
+      [uploadStatus]="uploadStatus"
+      (salvar)="salvar($event)"
+      (cancelar)="cancelarFormulario()"
+    ></app-agendamento-form>
+  </section>
+
+  <app-modal></app-modal>
 </section>

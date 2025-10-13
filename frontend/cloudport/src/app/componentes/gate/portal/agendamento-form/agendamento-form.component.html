@@ -1,0 +1,177 @@
+<section class="agendamento-formulario">
+  <header class="agendamento-formulario__cabecalho">
+    <div>
+      <h3>{{ emEdicao ? 'Editar agendamento' : 'Novo agendamento' }}</h3>
+      <p>Preencha os campos obrigatórios e valide os horários dentro da janela selecionada.</p>
+    </div>
+  </header>
+
+  <form [formGroup]="formulario" (ngSubmit)="onSubmit()" novalidate>
+    <div class="grid">
+      <label class="campo">
+        <span>Código *</span>
+        <input type="text" formControlName="codigo" autocomplete="off" />
+        <small *ngIf="formulario.get('codigo')?.touched && formulario.get('codigo')?.invalid">Informe o código.</small>
+      </label>
+
+      <label class="campo">
+        <span>Tipo de operação *</span>
+        <select formControlName="tipoOperacao">
+          <option value="" disabled>Selecione</option>
+          <option *ngFor="let opcao of (tiposOperacao$ | async)" [value]="opcao.codigo">
+            {{ opcao.descricao }}
+          </option>
+        </select>
+        <small *ngIf="formulario.get('tipoOperacao')?.touched && formulario.get('tipoOperacao')?.invalid">
+          Selecione um tipo de operação.
+        </small>
+      </label>
+
+      <label class="campo">
+        <span>Status *</span>
+        <select formControlName="status">
+          <option value="" disabled>Selecione</option>
+          <option *ngFor="let opcao of (status$ | async)" [value]="opcao.codigo">
+            {{ opcao.descricao }}
+          </option>
+        </select>
+        <small *ngIf="formulario.get('status')?.touched && formulario.get('status')?.invalid">
+          Informe o status do agendamento.
+        </small>
+      </label>
+
+      <label class="campo">
+        <span>ID Transportadora *</span>
+        <input type="number" formControlName="transportadoraId" />
+        <small *ngIf="formulario.get('transportadoraId')?.touched && formulario.get('transportadoraId')?.invalid">
+          Informe a transportadora.
+        </small>
+      </label>
+
+      <label class="campo">
+        <span>ID Motorista *</span>
+        <input type="number" formControlName="motoristaId" />
+        <small *ngIf="formulario.get('motoristaId')?.touched && formulario.get('motoristaId')?.invalid">
+          Informe o motorista.
+        </small>
+      </label>
+
+      <label class="campo">
+        <span>CPF do motorista *</span>
+        <input
+          type="text"
+          formControlName="motoristaCpf"
+          maxlength="14"
+          (input)="aplicarMascaraCpf($event)"
+          autocomplete="off"
+        />
+        <small *ngIf="formulario.get('motoristaCpf')?.touched && formulario.get('motoristaCpf')?.hasError('cpfInvalido')">
+          CPF inválido.
+        </small>
+      </label>
+
+      <label class="campo">
+        <span>ID Veículo *</span>
+        <input type="number" formControlName="veiculoId" />
+        <small *ngIf="formulario.get('veiculoId')?.touched && formulario.get('veiculoId')?.invalid">
+          Informe o veículo.
+        </small>
+      </label>
+
+      <label class="campo">
+        <span>Placa *</span>
+        <input type="text" formControlName="placaVeiculo" maxlength="8" (input)="aplicarMascaraPlaca($event)" />
+        <small *ngIf="formulario.get('placaVeiculo')?.touched && formulario.get('placaVeiculo')?.hasError('placaInvalida')">
+          Placa inválida.
+        </small>
+      </label>
+
+      <label class="campo">
+        <span>Janela de atendimento *</span>
+        <select formControlName="janelaAtendimentoId">
+          <option value="" disabled>Selecione</option>
+          <option *ngFor="let janela of janelasDisponiveis" [value]="janela.id">
+            {{ janela.data | date: 'dd/MM/yyyy' }} - {{ janela.horaInicio }} / {{ janela.horaFim }}
+          </option>
+        </select>
+        <small *ngIf="formulario.get('janelaAtendimentoId')?.touched && formulario.get('janelaAtendimentoId')?.invalid">
+          Escolha uma janela.
+        </small>
+      </label>
+
+      <label class="campo">
+        <span>Horário previsto de chegada *</span>
+        <input type="time" formControlName="horarioPrevistoChegada" />
+      </label>
+
+      <label class="campo">
+        <span>Horário previsto de saída *</span>
+        <input type="time" formControlName="horarioPrevistoSaida" />
+      </label>
+
+      <label class="campo campo--full">
+        <span>Observações</span>
+        <textarea formControlName="observacoes" rows="3" placeholder="Informações relevantes para a operação"></textarea>
+      </label>
+    </div>
+
+    <div class="alerta" *ngIf="formulario.errors?.horarioJanelaInvalido">
+      Os horários previstos devem estar dentro da janela selecionada e a saída deve ser posterior à chegada.
+    </div>
+
+    <section class="documentos">
+      <header>
+        <div>
+          <h4>Documentos obrigatórios</h4>
+          <p>Envie todos os comprovantes necessários. Formatos suportados: PDF, imagens e planilhas.</p>
+        </div>
+        <span class="documentos__contador">
+          {{ documentosExistentes?.length || 0 }} anexos existentes
+        </span>
+      </header>
+
+      <div class="documentos__existentes" *ngIf="documentosExistentes?.length">
+        <article class="documentos__item" *ngFor="let documento of documentosExistentes">
+          <strong>{{ documento.nomeArquivo }}</strong>
+          <small>{{ documento.tamanhoBytes / 1024 | number: '1.0-0' }} KB</small>
+        </article>
+      </div>
+
+      <label class="upload">
+        Selecionar arquivos
+        <input type="file" multiple (change)="aoSelecionarArquivos($event)" />
+      </label>
+
+      <div class="previews" *ngIf="documentosSelecionados.length">
+        <article class="preview" *ngFor="let preview of documentosSelecionados">
+          <div class="preview__icone" [class.preview__icone--imagem]="preview.url">
+            <img *ngIf="preview.url" [src]="preview.url" [alt]="preview.nome" />
+            <span *ngIf="!preview.url">{{ preview.tipo.split('/')[1] || 'arquivo' }}</span>
+          </div>
+          <div class="preview__dados">
+            <strong>{{ preview.nome }}</strong>
+            <small>{{ preview.tamanho }}</small>
+            <div class="preview__progresso" *ngIf="acompanharProgresso(preview.nome) as progresso">
+              <div class="barra">
+                <span class="preenchimento" [style.width.%]="progresso.progress"></span>
+              </div>
+              <small [class.status--erro]="progresso.status === 'erro'">
+                {{ progresso.status === 'concluido' ? 'Concluído' : progresso.status === 'erro' ? 'Erro' : progresso.progress + '%' }}
+              </small>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <small class="erro" *ngIf="formulario.get('documentos')?.touched && formulario.get('documentos')?.hasError('documentosObrigatorios')">
+        Anexe ao menos um documento.
+      </small>
+    </section>
+
+    <footer class="acoes">
+      <button type="submit" class="btn btn--primario">Salvar</button>
+      <button type="button" class="btn" (click)="cancelarEdicao()">Cancelar</button>
+    </footer>
+  </form>
+</section>
+

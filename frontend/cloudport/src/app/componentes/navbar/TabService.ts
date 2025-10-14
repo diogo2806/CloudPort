@@ -4,19 +4,22 @@ import { BehaviorSubject } from 'rxjs';
 export interface TabItem {
   id: string;
   label: string;
+  route?: string[];
+  disabled?: boolean;
+  comingSoonMessage?: string;
 }
 
 export const DEFAULT_TAB_ID = 'role';
 
 export const TAB_REGISTRY: Readonly<Record<string, TabItem>> = {
-  role: { id: 'role', label: 'Role' },
-  seguranca: { id: 'seguranca', label: 'Segurança' },
-  notificacoes: { id: 'notificacoes', label: 'Notificações' },
-  privacidade: { id: 'privacidade', label: 'Privacidade' },
-  'lista-de-usuarios': { id: 'lista-de-usuarios', label: 'Lista de usuários' },
-  'gate/agendamentos': { id: 'gate/agendamentos', label: 'Agendamentos do Gate' },
-  'gate/janelas': { id: 'gate/janelas', label: 'Janelas de Atendimento' },
-  'gate/dashboard': { id: 'gate/dashboard', label: 'Dashboard do Gate' }
+  role: { id: 'role', label: 'Role', route: ['role'] },
+  seguranca: { id: 'seguranca', label: 'Segurança', route: ['seguranca'] },
+  notificacoes: { id: 'notificacoes', label: 'Notificações', route: ['notificacoes'] },
+  privacidade: { id: 'privacidade', label: 'Privacidade', route: ['privacidade'] },
+  'lista-de-usuarios': { id: 'lista-de-usuarios', label: 'Lista de usuários', route: ['lista-de-usuarios'] },
+  'gate/agendamentos': { id: 'gate/agendamentos', label: 'Agendamentos do Gate', route: ['gate', 'agendamentos'] },
+  'gate/janelas': { id: 'gate/janelas', label: 'Janelas de Atendimento', route: ['gate', 'janelas'] },
+  'gate/dashboard': { id: 'gate/dashboard', label: 'Dashboard do Gate', route: ['gate', 'dashboard'] }
 };
 
 export const VALID_TAB_IDS = new Set<string>(Object.keys(TAB_REGISTRY));
@@ -24,6 +27,15 @@ export const VALID_TAB_IDS = new Set<string>(Object.keys(TAB_REGISTRY));
 export function normalizeTabId(tabId: string): string {
   const normalized = tabId?.trim().toLowerCase() ?? '';
   return VALID_TAB_IDS.has(normalized) ? normalized : DEFAULT_TAB_ID;
+}
+
+export function resolveRouteSegments(tabId: string): string[] {
+  const normalized = normalizeTabId(tabId);
+  const canonical = TAB_REGISTRY[normalized];
+  if (canonical?.route && canonical.route.length > 0) {
+    return canonical.route;
+  }
+  return normalized.split('/');
 }
 
 @Injectable({
@@ -39,6 +51,9 @@ export class TabService {
 
   openTab(tab: TabItem | string, content?: any): void {
     const tabToRegister = this.resolveTab(tab);
+    if (tabToRegister.disabled) {
+      return;
+    }
     const normalizedId = normalizeTabId(tabToRegister.id);
     const registeredTab = TAB_REGISTRY[normalizedId] ?? {
       id: normalizedId,

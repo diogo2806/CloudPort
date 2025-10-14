@@ -10,12 +10,31 @@ import { PrivacidadeComponent } from './componentes/privacidade/privacidade.comp
 import { UsuariosListaComponent } from './componentes/usuarios-lista/usuarios-lista.component';
 
 const homeChildRoutes: Routes = [
-  { path: '', redirectTo: 'role', pathMatch: 'full' },
-  { path: 'role', component: RoleTabelaComponent },
-  { path: 'seguranca', component: SegurancaComponent },
-  { path: 'notificacoes', component: NotificacoesComponent },
-  { path: 'privacidade', component: PrivacidadeComponent },
-  { path: 'lista-de-usuarios', component: UsuariosListaComponent },
+  {
+    path: '',
+    pathMatch: 'full',
+    redirectTo: 'role'
+  },
+  {
+    path: 'role',
+    component: RoleTabelaComponent
+  },
+  {
+    path: 'seguranca',
+    component: SegurancaComponent
+  },
+  {
+    path: 'notificacoes',
+    component: NotificacoesComponent
+  },
+  {
+    path: 'privacidade',
+    component: PrivacidadeComponent
+  },
+  {
+    path: 'lista-de-usuarios',
+    component: UsuariosListaComponent
+  },
   {
     path: 'gate',
     loadChildren: () => import('./componentes/gate/gate.module').then(m => m.GateModule)

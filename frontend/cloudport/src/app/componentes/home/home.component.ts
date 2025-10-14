@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router, RouteReuseStrategy, RouterOutlet } from '@angular/router';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
-import { TabItem, TabService, TAB_REGISTRY, DEFAULT_TAB_ID, normalizeTabId } from '../navbar/TabService';
+import { TabItem, TabService, TAB_REGISTRY, DEFAULT_TAB_ID, normalizeTabId, resolveRouteSegments } from '../navbar/TabService';
 import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
 import { Subscription } from 'rxjs';
 
@@ -110,7 +110,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private navigateToChild(route: string): void {
-    const commands = ['/home', ...route.split('/')];
+    const commands = ['/home', ...resolveRouteSegments(route)];
     this.router.navigate(commands);
   }
 }

@@ -8,10 +8,10 @@ export const environment = {
         logout: `${baseLink}/auth/logout`
     },
     users: {
-        getAll: `${baseLink}/users/all`,
-        getById: (id: number) => `${baseLink}/users/${id}`,
-        update: `${baseLink}/users/update`,
-        delete: `${baseLink}/users/delete`
+        getAll: `${baseLink}/api/usuarios`,
+        getByLogin: (login: string) => `${baseLink}/auth/usuarios/${login}`,
+        update: `${baseLink}/auth/usuarios`,
+        delete: `${baseLink}/auth/usuarios`
     },
     role: {
         create: `${baseLink}/api/roles`,

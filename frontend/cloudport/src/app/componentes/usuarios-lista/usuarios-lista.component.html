@@ -1,7 +1,13 @@
 <section class="usuarios-lista">
   <h2>Lista de Usuários</h2>
   <p>Resumo dos usuários cadastrados no sistema.</p>
-  <table>
+  <div *ngIf="estaCarregando" class="estado estado-carregamento">Carregando usuários...</div>
+  <div *ngIf="!estaCarregando && erroCarregamento" class="estado estado-erro">{{ erroCarregamento }}</div>
+  <p *ngIf="!estaCarregando && !erroCarregamento && usuarios.length === 0" class="estado estado-vazio">
+    Nenhum usuário cadastrado até o momento.
+  </p>
+
+  <table *ngIf="!estaCarregando && !erroCarregamento && usuarios.length > 0">
     <thead>
       <tr>
         <th>Nome</th>

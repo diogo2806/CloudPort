@@ -22,7 +22,13 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             String placa,
             List<StatusAgendamento> status);
 
+    Optional<Agendamento> findFirstByVeiculoIdAndStatusInOrderByHorarioPrevistoChegadaDesc(
+            Long veiculoId,
+            List<StatusAgendamento> status);
+
     List<Agendamento> findByStatus(StatusAgendamento status);
+
+    List<Agendamento> findByStatusInOrderByHorarioPrevistoChegadaAsc(List<StatusAgendamento> status);
 
     List<Agendamento> findByJanelaAtendimentoData(LocalDate data);
 

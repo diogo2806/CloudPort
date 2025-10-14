@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface GateEventRepository extends JpaRepository<GateEvent, Long> {
 
     List<GateEvent> findByGatePassIdOrderByRegistradoEmAsc(Long gatePassId);
+
+    List<GateEvent> findTop100ByOrderByRegistradoEmDesc();
 }

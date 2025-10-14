@@ -9,6 +9,7 @@ import br.com.cloudport.servicogate.dto.ManualReleaseRequest;
 import br.com.cloudport.servicogate.dto.TosContainerStatus;
 import br.com.cloudport.servicogate.dto.TosSyncResponse;
 import br.com.cloudport.servicogate.dto.mapper.GateMapper;
+import br.com.cloudport.servicogate.dto.mapper.GateOperadorMapper;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.exception.NotFoundException;
 import br.com.cloudport.servicogate.integration.tos.TosIntegrationService;
@@ -23,6 +24,7 @@ import br.com.cloudport.servicogate.monitoring.GateMetrics;
 import br.com.cloudport.servicogate.repository.AgendamentoRepository;
 import br.com.cloudport.servicogate.repository.GateEventRepository;
 import br.com.cloudport.servicogate.repository.GatePassRepository;
+import br.com.cloudport.servicogate.service.GateOperadorRealtimeService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -66,14 +68,16 @@ public class GateFlowService {
     private final TosIntegrationService tosIntegrationService;
     private final GateMetrics gateMetrics;
     private final AgendamentoRealtimeService agendamentoRealtimeService;
+    private final GateOperadorRealtimeService gateOperadorRealtimeService;
 
     public GateFlowService(AgendamentoRepository agendamentoRepository,
                            GatePassRepository gatePassRepository,
                            GateEventRepository gateEventRepository,
                            GateFlowProperties flowProperties,
                            TosIntegrationService tosIntegrationService,
-                           GateMetrics gateMetrics,
-                           AgendamentoRealtimeService agendamentoRealtimeService) {
+                              GateMetrics gateMetrics,
+                              AgendamentoRealtimeService agendamentoRealtimeService,
+                              GateOperadorRealtimeService gateOperadorRealtimeService) {
         this.agendamentoRepository = agendamentoRepository;
         this.gatePassRepository = gatePassRepository;
         this.gateEventRepository = gateEventRepository;
@@ -81,6 +85,7 @@ public class GateFlowService {
         this.tosIntegrationService = tosIntegrationService;
         this.gateMetrics = gateMetrics;
         this.agendamentoRealtimeService = agendamentoRealtimeService;
+        this.gateOperadorRealtimeService = gateOperadorRealtimeService;
     }
 
     public GateDecisionDTO registrarEntrada(GateFlowRequest request) {
@@ -328,6 +333,7 @@ public class GateFlowService {
         GateEvent salvo = gateEventRepository.save(event);
         gatePass.getEventos().add(salvo);
         agendamentoRealtimeService.notificarGatePass(gatePass);
+        gateOperadorRealtimeService.publicarEvento(GateOperadorMapper.toEventoDTO(salvo));
         return salvo;
     }
 

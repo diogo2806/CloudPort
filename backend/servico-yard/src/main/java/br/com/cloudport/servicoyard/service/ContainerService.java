@@ -1,25 +1,27 @@
 package br.com.cloudport.servicoyard.service;
 
 import br.com.cloudport.servicoyard.model.Container;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.Collections;
+import br.com.cloudport.servicoyard.repository.ContainerRepository;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ContainerService {
-    private final List<Container> containers = new ArrayList<>();
-    private final AtomicLong counter = new AtomicLong();
+    private final ContainerRepository containerRepository;
 
+    public ContainerService(ContainerRepository containerRepository) {
+        this.containerRepository = containerRepository;
+    }
+
+    @Transactional(readOnly = true)
     public List<Container> listContainers() {
-        return Collections.unmodifiableList(containers);
+        return containerRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
     }
 
     public Container addContainer(Container container) {
-        container.setId(counter.incrementAndGet());
-        containers.add(container);
-        return container;
+        container.setId(null);
+        return containerRepository.save(container);
     }
 }

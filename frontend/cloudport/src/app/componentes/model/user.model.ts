@@ -12,7 +12,7 @@ export class User {
     ) {
       this.id = id;
       this.nome = nome;
-      this.token = token;
+      this.token = token ?? '';
       this.email = email;
       this.senha = senha;
       this.perfil = perfil;

@@ -2,7 +2,7 @@ import { Component, ElementRef, HostListener, OnDestroy, OnInit } from '@angular
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
-import { TabItem, TAB_REGISTRY, normalizeTabId, TabService } from './TabService';
+import { TabItem, TAB_REGISTRY, normalizeTabId, resolveRouteSegments, TabService } from './TabService';
 
 @Component({
   selector: 'app-navbar',
@@ -60,6 +60,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   openTab(tab: TabItem): void {
+    if (tab.disabled) {
+      return;
+    }
     const normalizedId = normalizeTabId(tab.id);
     if (!this.canAccess(normalizedId)) {
       return;
@@ -69,23 +72,29 @@ export class NavbarComponent implements OnInit, OnDestroy {
       message: `Conteúdo padrão para a aba ${canonicalTab.label}`
     };
     this.tabService.openTab(canonicalTab, content);
-    const routeCommands = ['/home', ...normalizedId.split('/')];
+    const routeCommands = ['/home', ...resolveRouteSegments(normalizedId)];
     this.router.navigate(routeCommands);
+  }
+
+  handleTabSelection(event: Event, tab: TabItem): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (tab.disabled) {
+      return;
+    }
+    this.openTab(tab);
   }
 
   toggleSubmenu(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
 
-    const target = event.target as HTMLElement;
-    const submenu = target.nextElementSibling as HTMLElement;
+    const host = event.currentTarget as HTMLElement;
+    const submenu = host.querySelector('ul');
 
-    if (submenu) {
-      if (submenu.style.display === 'none' || submenu.style.display === '') {
-        submenu.style.display = 'block';
-      } else {
-        submenu.style.display = 'none';
-      }
+    if (submenu instanceof HTMLElement) {
+      const isHidden = submenu.style.display === 'none' || submenu.style.display === '';
+      submenu.style.display = isHidden ? 'block' : 'none';
     }
   }
 
@@ -99,9 +108,30 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   private resolveTabs(ids: string[]): TabItem[] {
     return ids
-      .map(id => TAB_REGISTRY[id])
+      .map(id => this.resolveTabById(id))
       .filter((tab): tab is TabItem => !!tab)
-      .filter(tab => this.canAccess(tab.id));
+      .filter(tab => tab.disabled || this.canAccess(tab.id));
+  }
+
+  private resolveTabById(id: string): TabItem | undefined {
+    const registered = TAB_REGISTRY[id];
+    if (registered) {
+      return registered;
+    }
+    return {
+      id,
+      label: this.formatPlaceholderLabel(id),
+      disabled: true,
+      comingSoonMessage: 'Em breve'
+    };
+  }
+
+  private formatPlaceholderLabel(value: string): string {
+    return value
+      .split(/[\\/\-]/)
+      .filter(segment => segment.trim().length > 0)
+      .map(segment => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
   }
 
   private canAccess(tabId: string): boolean {

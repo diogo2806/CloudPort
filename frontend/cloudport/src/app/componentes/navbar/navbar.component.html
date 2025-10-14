@@ -1,26 +1,53 @@
 <nav class="app-navbar" *ngIf="mostrarMenu">
   <ul>
     <li *ngIf="configurationTabs.length" (click)="toggleSubmenu($event)">
-      <a href="#">Configurações</a>
+      <button type="button" class="submenu-trigger">Configurações</button>
       <ul>
         <li *ngFor="let tab of configurationTabs">
-          <a (click)="openTab(tab)">{{ tab.label }}</a>
+          <button
+            type="button"
+            class="submenu-item"
+            [class.coming-soon]="tab.disabled"
+            [disabled]="tab.disabled"
+            (click)="handleTabSelection($event, tab)"
+          >
+            <span>{{ tab.label }}</span>
+            <span *ngIf="tab.disabled" class="submenu-badge">{{ tab.comingSoonMessage || 'Em breve' }}</span>
+          </button>
         </li>
       </ul>
     </li>
     <li *ngIf="gateTabs.length" (click)="toggleSubmenu($event)">
-      <a href="#">Gate</a>
+      <button type="button" class="submenu-trigger">Gate</button>
       <ul>
         <li *ngFor="let tab of gateTabs">
-          <a (click)="openTab(tab)">{{ tab.label }}</a>
+          <button
+            type="button"
+            class="submenu-item"
+            [class.coming-soon]="tab.disabled"
+            [disabled]="tab.disabled"
+            (click)="handleTabSelection($event, tab)"
+          >
+            <span>{{ tab.label }}</span>
+            <span *ngIf="tab.disabled" class="submenu-badge">{{ tab.comingSoonMessage || 'Em breve' }}</span>
+          </button>
         </li>
       </ul>
     </li>
     <li *ngIf="userTabs.length" (click)="toggleSubmenu($event)">
-      <a href="#">Usuários</a>
+      <button type="button" class="submenu-trigger">Usuários</button>
       <ul>
         <li *ngFor="let tab of userTabs">
-          <a (click)="openTab(tab)">{{ tab.label }}</a>
+          <button
+            type="button"
+            class="submenu-item"
+            [class.coming-soon]="tab.disabled"
+            [disabled]="tab.disabled"
+            (click)="handleTabSelection($event, tab)"
+          >
+            <span>{{ tab.label }}</span>
+            <span *ngIf="tab.disabled" class="submenu-badge">{{ tab.comingSoonMessage || 'Em breve' }}</span>
+          </button>
         </li>
       </ul>
     </li>

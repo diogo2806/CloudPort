@@ -24,4 +24,10 @@ describe('User model', () => {
     expect(user.perfil).toBe('');
     expect(user.roles).toEqual([]);
   });
+
+  it('deve garantir que o token seja atribuído mesmo quando não informado', () => {
+    const user = new User('2', 'Maria', undefined as unknown as string);
+
+    expect(user.token).toBe('');
+  });
 });

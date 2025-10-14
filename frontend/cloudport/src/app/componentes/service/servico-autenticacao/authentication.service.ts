@@ -99,7 +99,11 @@ export class AuthenticationService {
         }
 
         const source = data.data ?? data;
-        const token = source.token ?? data.token ?? '';
+        const token = source.token
+            ?? data.token
+            ?? source.accessToken
+            ?? data.accessToken
+            ?? '';
         const decoded = this.decodeToken(token);
         const responseRoles = Array.isArray(source.roles)
             ? source.roles

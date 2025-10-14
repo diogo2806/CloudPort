@@ -1,20 +1,45 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { finalize } from 'rxjs/operators';
 
-interface UsuarioResumo {
-  nome: string;
-  email: string;
-  status: 'Ativo' | 'Inativo';
-}
+import { UsuariosService, UsuarioResumo } from '../service/servico-autenticacao/usuarios.service';
 
 @Component({
   selector: 'app-usuarios-lista',
   templateUrl: './usuarios-lista.component.html',
   styleUrls: ['./usuarios-lista.component.css']
 })
-export class UsuariosListaComponent {
-  usuarios: UsuarioResumo[] = [
-    { nome: 'Ana Silva', email: 'ana.silva@empresa.com', status: 'Ativo' },
-    { nome: 'Bruno Souza', email: 'bruno.souza@empresa.com', status: 'Inativo' },
-    { nome: 'Carla Lima', email: 'carla.lima@empresa.com', status: 'Ativo' }
-  ];
+export class UsuariosListaComponent implements OnInit {
+  usuarios: UsuarioResumo[] = [];
+  estaCarregando = false;
+  erroCarregamento: string | null = null;
+
+  constructor(private readonly usuariosService: UsuariosService) {}
+
+  ngOnInit(): void {
+    this.carregarUsuarios();
+  }
+
+  private carregarUsuarios(): void {
+    this.estaCarregando = true;
+    this.erroCarregamento = null;
+    this.usuariosService
+      .listarUsuarios()
+      .pipe(finalize(() => (this.estaCarregando = false)))
+      .subscribe({
+        next: (usuarios) => {
+          this.usuarios = usuarios;
+        },
+        error: (erro) => {
+          this.erroCarregamento = this.resolverMensagemErro(erro);
+          this.usuarios = [];
+        }
+      });
+  }
+
+  private resolverMensagemErro(erro: any): string {
+    const mensagem = erro?.error?.message ?? erro?.message;
+    return mensagem && typeof mensagem === 'string'
+      ? mensagem
+      : 'Não foi possível carregar os usuários. Tente novamente em instantes.';
+  }
 }

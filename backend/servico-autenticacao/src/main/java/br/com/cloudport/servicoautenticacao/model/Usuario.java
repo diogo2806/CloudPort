@@ -1,5 +1,18 @@
 package br.com.cloudport.servicoautenticacao.model;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -8,28 +21,22 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import javax.persistence.*;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 @Table(name = "users")
 @Entity(name = "users")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
-public class User implements UserDetails {
+public class Usuario implements UserDetails {
+
     @Id
     private UUID id;
 
     @Column
     private String login;
 
-    @Column
-    private String password;
+    @Column(name = "password")
+    private String senha;
 
     @Column(name = "nome")
     private String nome;
@@ -40,19 +47,19 @@ public class User implements UserDetails {
     @Column(name = "transportadora_nome")
     private String transportadoraNome;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private Set<UserRole> roles;
+    @OneToMany(mappedBy = "usuario", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private Set<UsuarioPapel> papeis = new HashSet<>();
 
-    public User(String login, String password, Set<UserRole> roles){
+    public Usuario(String login, String senha, Set<UsuarioPapel> papeis) {
         this.id = UUID.randomUUID();
         this.login = login;
-        this.password = password;
-        this.roles = roles;
+        this.senha = senha;
+        this.papeis = papeis != null ? papeis : new HashSet<>();
     }
 
-    public User(String login, String password, String nome, String transportadoraDocumento,
-                String transportadoraNome, Set<UserRole> roles) {
-        this(login, password, roles);
+    public Usuario(String login, String senha, String nome, String transportadoraDocumento,
+                    String transportadoraNome, Set<UsuarioPapel> papeis) {
+        this(login, senha, papeis);
         this.nome = nome;
         this.transportadoraDocumento = transportadoraDocumento;
         this.transportadoraNome = transportadoraNome;
@@ -60,12 +67,12 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return this.roles.stream()
-                .map(UserRole::getRole)
+        return this.papeis.stream()
+                .map(UsuarioPapel::getPapel)
                 .filter(Objects::nonNull)
-                .map(Role::getName)
+                .map(Papel::getNome)
                 .filter(Objects::nonNull)
-                .map(name -> name.startsWith("ROLE_") ? name : "ROLE_" + name.toUpperCase())
+                .map(nomePapel -> nomePapel.startsWith("ROLE_") ? nomePapel : "ROLE_" + nomePapel.toUpperCase())
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
     }
@@ -93,34 +100,22 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
-    }    
-    
+    }
+
     @Override
     public String getPassword() {
-        return password;
+        return senha;
     }
 
-    public String getNome() {
-        return nome;
+    public void setSenha(String senha) {
+        this.senha = senha;
     }
 
-    public void setNome(String nome) {
-        this.nome = nome;
+    public Set<UsuarioPapel> getPapeis() {
+        return papeis;
     }
 
-    public String getTransportadoraDocumento() {
-        return transportadoraDocumento;
-    }
-
-    public void setTransportadoraDocumento(String transportadoraDocumento) {
-        this.transportadoraDocumento = transportadoraDocumento;
-    }
-
-    public String getTransportadoraNome() {
-        return transportadoraNome;
-    }
-
-    public void setTransportadoraNome(String transportadoraNome) {
-        this.transportadoraNome = transportadoraNome;
+    public void setPapeis(Set<UsuarioPapel> papeis) {
+        this.papeis = papeis;
     }
 }

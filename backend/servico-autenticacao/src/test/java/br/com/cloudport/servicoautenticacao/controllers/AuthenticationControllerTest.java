@@ -1,15 +1,19 @@
 package br.com.cloudport.servicoautenticacao.controllers;
 
-import br.com.cloudport.servicoautenticacao.config.TokenService;
 import br.com.cloudport.servicoautenticacao.app.configuracoes.dto.AuthenticationDTO;
 import br.com.cloudport.servicoautenticacao.app.configuracoes.dto.RegisterDTO;
-import br.com.cloudport.servicoautenticacao.model.Role;
-import br.com.cloudport.servicoautenticacao.model.User;
-import br.com.cloudport.servicoautenticacao.model.UserRole;
-import br.com.cloudport.servicoautenticacao.repositories.RoleRepository;
-import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
-import br.com.cloudport.servicoautenticacao.repositories.UserRoleRepository;
+import br.com.cloudport.servicoautenticacao.app.usuarioslista.UsuarioRepositorio;
+import br.com.cloudport.servicoautenticacao.config.TokenService;
+import br.com.cloudport.servicoautenticacao.model.Papel;
+import br.com.cloudport.servicoautenticacao.model.Usuario;
+import br.com.cloudport.servicoautenticacao.model.UsuarioPapel;
+import br.com.cloudport.servicoautenticacao.repositories.PapelRepositorio;
+import br.com.cloudport.servicoautenticacao.repositories.UsuarioPapelRepositorio;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,15 +27,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Optional;
-import java.util.Set;
-
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -48,27 +47,27 @@ class AuthenticationControllerTest {
     private AuthenticationManager authenticationManager;
 
     @MockBean
-    private UserRepository userRepository;
+    private UsuarioRepositorio usuarioRepositorio;
 
     @MockBean
-    private RoleRepository roleRepository;
+    private PapelRepositorio papelRepositorio;
 
     @MockBean
     private TokenService tokenService;
 
     @MockBean
-    private UserRoleRepository userRoleRepository;
+    private UsuarioPapelRepositorio usuarioPapelRepositorio;
 
     @Test
-    void login_success() throws Exception {
-        Role role = new Role("ADMIN");
-        UserRole userRole = new UserRole(role);
-        Set<UserRole> roles = Collections.singleton(userRole);
-        User user = new User("test", "pass", roles);
+    void login_sucesso() throws Exception {
+        Papel papel = new Papel("ADMIN");
+        UsuarioPapel usuarioPapel = new UsuarioPapel(papel);
+        Set<UsuarioPapel> papeis = Collections.singleton(usuarioPapel);
+        Usuario usuario = new Usuario("test", "pass", papeis);
 
-        Authentication auth = new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList());
-        when(authenticationManager.authenticate(any())).thenReturn(auth);
-        when(tokenService.generateToken(user)).thenReturn("token");
+        Authentication autenticacao = new UsernamePasswordAuthenticationToken(usuario, null, Collections.emptyList());
+        when(authenticationManager.authenticate(any())).thenReturn(autenticacao);
+        when(tokenService.generateToken(usuario)).thenReturn("token");
 
         AuthenticationDTO dto = new AuthenticationDTO("test", "pass");
 
@@ -76,7 +75,7 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(user.getId().toString()))
+                .andExpect(jsonPath("$.id").value(usuario.getId().toString()))
                 .andExpect(jsonPath("$.login").value("test"))
                 .andExpect(jsonPath("$.nome").value("test"))
                 .andExpect(jsonPath("$.perfil").value("ADMIN"))
@@ -85,7 +84,7 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void login_invalidCredentials() throws Exception {
+    void login_credenciaisInvalidas() throws Exception {
         when(authenticationManager.authenticate(any()))
                 .thenThrow(new BadCredentialsException("bad creds"));
 
@@ -98,7 +97,7 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void login_invalidPayload_returnsBadRequestWithMessages() throws Exception {
+    void login_payloadInvalido_retornaErrosDeValidacao() throws Exception {
         AuthenticationDTO dto = new AuthenticationDTO("", "");
 
         mockMvc.perform(post("/auth/login")
@@ -111,7 +110,7 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void login_shortFields_returnsBadRequestWithSizeMessages() throws Exception {
+    void login_camposCurtos_retornaErrosDeValidacao() throws Exception {
         AuthenticationDTO dto = new AuthenticationDTO("ab", "123");
 
         mockMvc.perform(post("/auth/login")
@@ -124,9 +123,9 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void register_duplicateLogin() throws Exception {
-        when(userRepository.findByLogin("john"))
-                .thenReturn(Optional.of(new User()));
+    void registrar_loginDuplicado() throws Exception {
+        when(usuarioRepositorio.findByLogin("john"))
+                .thenReturn(Optional.of(new Usuario()));
 
         RegisterDTO dto = new RegisterDTO("john", "pass", Collections.singleton("ADMIN"));
 
@@ -138,7 +137,7 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void register_invalidPayload_returnsBadRequestWithMessages() throws Exception {
+    void registrar_payloadInvalido_retornaErros() throws Exception {
         RegisterDTO dto = new RegisterDTO("", "", Collections.emptySet());
 
         mockMvc.perform(post("/auth/register")
@@ -152,7 +151,7 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void register_blankRoleValue_returnsBadRequestWithElementMessage() throws Exception {
+    void registrar_roleEmBranco_retornaErroDeElemento() throws Exception {
         Set<String> roles = new LinkedHashSet<>();
         roles.add(" ");
         roles.add("ADMIN");
@@ -168,9 +167,9 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void register_success() throws Exception {
-        when(userRepository.findByLogin("john")).thenReturn(Optional.empty());
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.of(new Role("ADMIN")));
+    void registrar_sucesso() throws Exception {
+        when(usuarioRepositorio.findByLogin("john")).thenReturn(Optional.empty());
+        when(papelRepositorio.findByNome("ADMIN")).thenReturn(Optional.of(new Papel("ADMIN")));
 
         RegisterDTO dto = new RegisterDTO("john", "pass", Collections.singleton("ADMIN"));
 
@@ -179,23 +178,23 @@ class AuthenticationControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk());
 
-        verify(userRepository).save(any(User.class));
+        verify(usuarioRepositorio).save(any(Usuario.class));
 
-        ArgumentCaptor<Iterable<UserRole>> rolesCaptor = ArgumentCaptor.forClass(Iterable.class);
-        verify(userRoleRepository).saveAll(rolesCaptor.capture());
+        ArgumentCaptor<Iterable<UsuarioPapel>> papeisCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(usuarioPapelRepositorio).saveAll(papeisCaptor.capture());
 
-        Iterable<UserRole> savedRoles = rolesCaptor.getValue();
-        assertNotNull(savedRoles);
-        assertTrue(savedRoles.iterator().hasNext());
-        UserRole savedRole = savedRoles.iterator().next();
-        assertNotNull(savedRole.getUser());
-        assertEquals("john", savedRole.getUser().getLogin());
+        Iterable<UsuarioPapel> papeisSalvos = papeisCaptor.getValue();
+        assertNotNull(papeisSalvos);
+        assertTrue(papeisSalvos.iterator().hasNext());
+        UsuarioPapel papelSalvo = papeisSalvos.iterator().next();
+        assertNotNull(papelSalvo.getUsuario());
+        assertEquals("john", papelSalvo.getUsuario().getLogin());
     }
 
     @Test
-    void register_roleNotFound() throws Exception {
-        when(userRepository.findByLogin("john")).thenReturn(Optional.empty());
-        when(roleRepository.findByName("UNKNOWN")).thenReturn(Optional.empty());
+    void registrar_papelNaoEncontrado() throws Exception {
+        when(usuarioRepositorio.findByLogin("john")).thenReturn(Optional.empty());
+        when(papelRepositorio.findByNome("UNKNOWN")).thenReturn(Optional.empty());
 
         RegisterDTO dto = new RegisterDTO("john", "pass", Collections.singleton("UNKNOWN"));
 
@@ -203,6 +202,6 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("Role 'UNKNOWN' não encontrada."));
+                .andExpect(jsonPath("$.message").value("Papel 'UNKNOWN' não encontrado."));
     }
 }

@@ -1,30 +1,32 @@
 package br.com.cloudport.servicoautenticacao.config;
 
-import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
+import br.com.cloudport.servicoautenticacao.app.usuarioslista.UsuarioRepositorio;
+import br.com.cloudport.servicoautenticacao.model.Usuario;
+import java.io.IOException;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
-    @Autowired
-    TokenService tokenService;
-    @Autowired
-    UserRepository userRepository;
+    private final TokenService tokenService;
+    private final UsuarioRepositorio usuarioRepositorio;
+
+    public SecurityFilter(TokenService tokenService, UsuarioRepositorio usuarioRepositorio) {
+        this.tokenService = tokenService;
+        this.usuarioRepositorio = usuarioRepositorio;
+    }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         var token = this.recoverToken(request);
         if(!StringUtils.hasText(token)){
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token ausente");
@@ -33,16 +35,15 @@ public class SecurityFilter extends OncePerRequestFilter {
 
         var login = tokenService.validateToken(token);
         if (login.isEmpty()) {
-            // SECURITY: evita acessar o repositório quando o token é inválido
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido");
             return;
         }
 
         var loginValue = login.get();
-        UserDetails user = userRepository.findByLogin(loginValue)
-                                         .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + loginValue));
+        Usuario usuario = usuarioRepositorio.findByLogin(loginValue)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado para o login: " + loginValue));
 
-        var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+        var authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         filterChain.doFilter(request, response);
@@ -50,9 +51,10 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     private String recoverToken(HttpServletRequest request){
         var authHeader = request.getHeader("Authorization");
-        if(!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) return null;
+        if(!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
         var token = authHeader.substring(7).trim();
-        // SECURITY: ignora cabeçalhos Bearer vazios, reduzindo tentativas de bypass
         return StringUtils.hasText(token) ? token : null;
     }
 }

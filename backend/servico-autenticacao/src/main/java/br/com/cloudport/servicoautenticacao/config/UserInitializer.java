@@ -1,54 +1,54 @@
 package br.com.cloudport.servicoautenticacao.config;
 
-import br.com.cloudport.servicoautenticacao.model.User;
-import br.com.cloudport.servicoautenticacao.model.UserRole;
-import br.com.cloudport.servicoautenticacao.model.Role;
-import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
-import br.com.cloudport.servicoautenticacao.repositories.RoleRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import br.com.cloudport.servicoautenticacao.app.usuarioslista.UsuarioRepositorio;
+import br.com.cloudport.servicoautenticacao.model.Papel;
+import br.com.cloudport.servicoautenticacao.model.Usuario;
+import br.com.cloudport.servicoautenticacao.model.UsuarioPapel;
+import br.com.cloudport.servicoautenticacao.repositories.PapelRepositorio;
+import java.util.HashSet;
+import java.util.Set;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Component
 public class UserInitializer implements CommandLineRunner {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UsuarioRepositorio usuarioRepositorio;
+    private final PapelRepositorio papelRepositorio;
 
-    @Autowired
-    private RoleRepository roleRepository;
+    public UserInitializer(UsuarioRepositorio usuarioRepositorio, PapelRepositorio papelRepositorio) {
+        this.usuarioRepositorio = usuarioRepositorio;
+        this.papelRepositorio = papelRepositorio;
+    }
 
     @Override
     public void run(String... args) {
-        String adminLogin = "gitpod";
-        String adminPassword = new BCryptPasswordEncoder().encode("gitpod");
+        String loginAdministrador = "gitpod";
+        String senhaAdministrador = new BCryptPasswordEncoder().encode("gitpod");
 
-        Role adminRole = ensureRoleExists("ROLE_ADMIN_PORTO");
-        ensureRoleExists("ROLE_PLANEJADOR");
-        ensureRoleExists("ROLE_OPERADOR_GATE");
-        ensureRoleExists("ROLE_TRANSPORTADORA");
+        Papel papelAdministrador = garantirPapel("ROLE_ADMIN_PORTO");
+        garantirPapel("ROLE_PLANEJADOR");
+        garantirPapel("ROLE_OPERADOR_GATE");
+        garantirPapel("ROLE_TRANSPORTADORA");
 
-        if (!userRepository.findByLogin(adminLogin).isPresent()) {
-            User adminUser = new User(adminLogin, adminPassword, "Administrador CloudPort",
+        if (usuarioRepositorio.findByLogin(loginAdministrador).isEmpty()) {
+            Usuario administrador = new Usuario(loginAdministrador, senhaAdministrador, "Administrador CloudPort",
                     null, null, new HashSet<>());
 
-            Set<UserRole> roles = adminUser.getRoles();
-            UserRole adminUserRole = new UserRole(adminUser, adminRole);
-            roles.add(adminUserRole);
+            Set<UsuarioPapel> papeis = administrador.getPapeis();
+            UsuarioPapel papelUsuarioAdministrador = new UsuarioPapel(administrador, papelAdministrador);
+            papeis.add(papelUsuarioAdministrador);
 
-            userRepository.save(adminUser);
+            usuarioRepositorio.save(administrador);
         }
     }
 
-    private Role ensureRoleExists(String roleName) {
-        return roleRepository.findByName(roleName)
+    private Papel garantirPapel(String identificadorPapel) {
+        return papelRepositorio.findByNome(identificadorPapel)
                 .orElseGet(() -> {
-                    Role role = new Role(roleName);
-                    return roleRepository.save(role);
+                    Papel papel = new Papel(identificadorPapel);
+                    return papelRepositorio.save(papel);
                 });
     }
 }

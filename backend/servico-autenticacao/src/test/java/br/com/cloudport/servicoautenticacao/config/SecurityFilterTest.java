@@ -1,15 +1,14 @@
 package br.com.cloudport.servicoautenticacao.config;
 
-import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
+import br.com.cloudport.servicoautenticacao.app.usuarioslista.UsuarioRepositorio;
+import java.io.IOException;
+import java.util.Optional;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import java.io.IOException;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -19,18 +18,15 @@ class SecurityFilterTest {
 
     private SecurityFilter securityFilter;
     private TokenService tokenService;
-    private UserRepository userRepository;
+    private UsuarioRepositorio usuarioRepositorio;
     private FilterChain filterChain;
 
     @BeforeEach
     void setUp() {
-        securityFilter = new SecurityFilter();
         tokenService = mock(TokenService.class);
-        userRepository = mock(UserRepository.class);
+        usuarioRepositorio = mock(UsuarioRepositorio.class);
+        securityFilter = new SecurityFilter(tokenService, usuarioRepositorio);
         filterChain = mock(FilterChain.class);
-
-        securityFilter.tokenService = tokenService;
-        securityFilter.userRepository = userRepository;
     }
 
     @Test
@@ -45,7 +41,7 @@ class SecurityFilterTest {
 
         assertEquals(401, response.getStatus());
         verify(tokenService).validateToken("invalid");
-        verifyNoInteractions(userRepository);
+        verifyNoInteractions(usuarioRepositorio);
         verify(filterChain, never()).doFilter(any(), any());
     }
 
@@ -58,7 +54,7 @@ class SecurityFilterTest {
 
         assertEquals(401, response.getStatus());
         verifyNoInteractions(tokenService);
-        verifyNoInteractions(userRepository);
+        verifyNoInteractions(usuarioRepositorio);
         verify(filterChain, never()).doFilter(any(), any());
     }
 }

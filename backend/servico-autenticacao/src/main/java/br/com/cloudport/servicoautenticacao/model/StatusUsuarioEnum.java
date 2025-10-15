@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoautenticacao.model;
 
-public enum StatusEnum {
-    ACTIVE, INACTIVE
+public enum StatusUsuarioEnum {
+    ATIVO,
+    INATIVO
 }

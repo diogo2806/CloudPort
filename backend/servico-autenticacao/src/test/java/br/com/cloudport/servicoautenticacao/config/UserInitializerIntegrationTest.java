@@ -1,14 +1,13 @@
 package br.com.cloudport.servicoautenticacao.config;
 
-import br.com.cloudport.servicoautenticacao.model.User;
-import br.com.cloudport.servicoautenticacao.model.UserRole;
-import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
-import br.com.cloudport.servicoautenticacao.repositories.UserRoleRepository;
+import br.com.cloudport.servicoautenticacao.app.usuarioslista.UsuarioRepositorio;
+import br.com.cloudport.servicoautenticacao.model.Usuario;
+import br.com.cloudport.servicoautenticacao.model.UsuarioPapel;
+import br.com.cloudport.servicoautenticacao.repositories.UsuarioPapelRepositorio;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,28 +15,28 @@ import static org.junit.jupiter.api.Assertions.*;
 class UserInitializerIntegrationTest {
 
     @Autowired
-    private UserRepository userRepository;
+    private UsuarioRepositorio usuarioRepositorio;
 
     @Autowired
-    private UserRoleRepository userRoleRepository;
+    private UsuarioPapelRepositorio usuarioPapelRepositorio;
 
     @Test
-    void initialAdminUserHasPersistedRoles() {
-        User adminUser = userRepository.findByLogin("gitpod").orElse(null);
-        assertNotNull(adminUser, "Usuário administrador inicial não foi criado");
+    void usuarioAdministradorInicialPossuiPapeisPersistidos() {
+        Usuario administrador = usuarioRepositorio.findByLogin("gitpod").orElse(null);
+        assertNotNull(administrador, "Usuário administrador inicial não foi criado");
 
-        assertNotNull(adminUser.getRoles(), "Coleção de papéis não deve ser nula");
-        assertFalse(adminUser.getRoles().isEmpty(), "Usuário administrador deve possuir ao menos um papel associado");
-        adminUser.getRoles().forEach(userRole -> {
-            assertNotNull(userRole.getUser(), "UserRole deve manter referência ao usuário");
-            assertEquals(adminUser.getId(), userRole.getUser().getId(), "UserRole deve estar vinculado ao usuário administrador");
+        assertNotNull(administrador.getPapeis(), "Coleção de papéis não deve ser nula");
+        assertFalse(administrador.getPapeis().isEmpty(), "Usuário administrador deve possuir ao menos um papel associado");
+        administrador.getPapeis().forEach(usuarioPapel -> {
+            assertNotNull(usuarioPapel.getUsuario(), "Vínculo deve manter referência ao usuário");
+            assertEquals(administrador.getId(), usuarioPapel.getUsuario().getId(), "Vínculo deve estar ligado ao administrador");
         });
 
-        List<UserRole> persistedRoles = userRoleRepository.findAll();
-        assertFalse(persistedRoles.isEmpty(), "Deve haver registros de vínculo usuário-papel persistidos");
-        persistedRoles.forEach(userRole -> {
-            assertNotNull(userRole.getId(), "UserRole deve possuir identificador persistido");
-            assertNotNull(userRole.getUser(), "UserRole persistido deve estar vinculado a um usuário");
+        List<UsuarioPapel> papeisPersistidos = usuarioPapelRepositorio.findAll();
+        assertFalse(papeisPersistidos.isEmpty(), "Deve haver registros de vínculo usuário-papel persistidos");
+        papeisPersistidos.forEach(usuarioPapel -> {
+            assertNotNull(usuarioPapel.getId(), "Vínculo deve possuir identificador persistido");
+            assertNotNull(usuarioPapel.getUsuario(), "Vínculo persistido deve estar vinculado a um usuário");
         });
     }
 }

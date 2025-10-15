@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoyard.app.gestor;
+package br.com.cloudport.servicoyard.repository;
 
 import br.com.cloudport.servicoyard.model.Container;
 import org.springframework.data.jpa.repository.JpaRepository;

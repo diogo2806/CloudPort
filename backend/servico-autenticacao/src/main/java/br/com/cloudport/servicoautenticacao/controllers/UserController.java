@@ -1,7 +1,7 @@
-package br.com.cloudport.servicoautenticacao.app.administracao;
+package br.com.cloudport.servicoautenticacao.controllers;
 
 import br.com.cloudport.servicoautenticacao.app.administracao.dto.UserSummaryDTO;
-import br.com.cloudport.servicoautenticacao.app.administracao.UserService;
+import br.com.cloudport.servicoautenticacao.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

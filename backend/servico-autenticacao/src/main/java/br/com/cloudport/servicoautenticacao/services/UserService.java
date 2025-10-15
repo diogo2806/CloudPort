@@ -1,7 +1,7 @@
-package br.com.cloudport.servicoautenticacao.app.administracao;
+package br.com.cloudport.servicoautenticacao.services;
 
 import br.com.cloudport.servicoautenticacao.app.administracao.dto.UserSummaryDTO;
-import br.com.cloudport.servicoautenticacao.app.administracao.UserRepository;
+import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

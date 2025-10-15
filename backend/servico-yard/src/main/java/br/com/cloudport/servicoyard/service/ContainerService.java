@@ -1,7 +1,7 @@
-package br.com.cloudport.servicoyard.app.gestor;
+package br.com.cloudport.servicoyard.service;
 
 import br.com.cloudport.servicoyard.model.Container;
-import br.com.cloudport.servicoyard.app.gestor.ContainerRepository;
+import br.com.cloudport.servicoyard.repository.ContainerRepository;
 import java.util.List;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;

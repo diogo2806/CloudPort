@@ -1,7 +1,7 @@
 package br.com.cloudport.servicogate.integration.tos;
 
-import br.com.cloudport.servicogate.dto.TosBookingInfo;
-import br.com.cloudport.servicogate.dto.TosContainerStatus;
+import br.com.cloudport.servicogate.app.gestor.dto.TosBookingInfo;
+import br.com.cloudport.servicogate.app.gestor.dto.TosContainerStatus;
 import br.com.cloudport.servicogate.integration.tos.model.TosBookingResponse;
 import br.com.cloudport.servicogate.integration.tos.model.TosContainerStatusResponse;
 import br.com.cloudport.servicogate.integration.tos.model.TosCustomsReleaseResponse;

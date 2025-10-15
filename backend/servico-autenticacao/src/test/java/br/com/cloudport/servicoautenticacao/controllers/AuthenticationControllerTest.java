@@ -1,8 +1,8 @@
 package br.com.cloudport.servicoautenticacao.controllers;
 
 import br.com.cloudport.servicoautenticacao.config.TokenService;
-import br.com.cloudport.servicoautenticacao.dto.AuthenticationDTO;
-import br.com.cloudport.servicoautenticacao.dto.RegisterDTO;
+import br.com.cloudport.servicoautenticacao.app.configuracoes.dto.AuthenticationDTO;
+import br.com.cloudport.servicoautenticacao.app.configuracoes.dto.RegisterDTO;
 import br.com.cloudport.servicoautenticacao.model.Role;
 import br.com.cloudport.servicoautenticacao.model.User;
 import br.com.cloudport.servicoautenticacao.model.UserRole;

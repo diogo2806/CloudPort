@@ -1,6 +1,6 @@
 package br.com.cloudport.servicogate.integration.hardware;
 
-import br.com.cloudport.servicogate.dto.GateDecisionDTO;
+import br.com.cloudport.servicogate.app.gestor.dto.GateDecisionDTO;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.io.Serializable;
 import java.time.LocalDateTime;

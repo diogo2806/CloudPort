@@ -1,7 +1,7 @@
 package br.com.cloudport.servicogate.integration.hardware;
 
 import br.com.cloudport.servicogate.config.HardwareIntegrationProperties;
-import br.com.cloudport.servicogate.dto.GateDecisionDTO;
+import br.com.cloudport.servicogate.app.gestor.dto.GateDecisionDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;

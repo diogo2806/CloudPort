@@ -1,7 +1,7 @@
 package br.com.cloudport.servicogate.security;
 
 import br.com.cloudport.servicogate.model.Transportadora;
-import br.com.cloudport.servicogate.repository.TransportadoraRepository;
+import br.com.cloudport.servicogate.app.configuracoes.TransportadoraRepository;
 import java.util.Locale;
 import java.util.Optional;
 import org.springframework.stereotype.Service;

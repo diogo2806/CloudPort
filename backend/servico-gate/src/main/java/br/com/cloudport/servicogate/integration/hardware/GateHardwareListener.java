@@ -1,12 +1,12 @@
 package br.com.cloudport.servicogate.integration.hardware;
 
-import br.com.cloudport.servicogate.dto.GateDecisionDTO;
-import br.com.cloudport.servicogate.dto.GateFlowRequest;
+import br.com.cloudport.servicogate.app.gestor.dto.GateDecisionDTO;
+import br.com.cloudport.servicogate.app.gestor.dto.GateFlowRequest;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.exception.NotFoundException;
 import br.com.cloudport.servicogate.model.enums.StatusGate;
 import br.com.cloudport.servicogate.monitoring.GateMetrics;
-import br.com.cloudport.servicogate.service.GateFlowService;
+import br.com.cloudport.servicogate.app.gestor.GateFlowService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

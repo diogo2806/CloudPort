@@ -1,6 +1,6 @@
 package br.com.cloudport.servicogate.integration.hardware;
 
-import br.com.cloudport.servicogate.dto.GateFlowRequest;
+import br.com.cloudport.servicogate.app.gestor.dto.GateFlowRequest;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDateTime;

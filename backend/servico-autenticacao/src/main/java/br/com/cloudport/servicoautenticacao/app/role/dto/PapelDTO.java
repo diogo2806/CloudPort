@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoautenticacao.app.administracao.dto;
+package br.com.cloudport.servicoautenticacao.app.role.dto;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

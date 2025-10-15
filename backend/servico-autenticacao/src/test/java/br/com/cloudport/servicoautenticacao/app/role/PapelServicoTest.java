@@ -1,6 +1,6 @@
-package br.com.cloudport.servicoautenticacao.services;
+package br.com.cloudport.servicoautenticacao.app.role;
 
-import br.com.cloudport.servicoautenticacao.app.administracao.dto.PapelDTO;
+import br.com.cloudport.servicoautenticacao.app.role.dto.PapelDTO;
 import br.com.cloudport.servicoautenticacao.model.Papel;
 import br.com.cloudport.servicoautenticacao.repositories.PapelRepositorio;
 import br.com.cloudport.servicoautenticacao.repositories.UsuarioPapelRepositorio;
@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-class PapelServiceTest {
+class PapelServicoTest {
 
     @Mock
     private PapelRepositorio papelRepositorio;
@@ -24,7 +24,7 @@ class PapelServiceTest {
     private UsuarioPapelRepositorio usuarioPapelRepositorio;
 
     @InjectMocks
-    private PapelService papelService;
+    private PapelServico papelServico;
 
     @BeforeEach
     void setUp() {
@@ -43,7 +43,7 @@ class PapelServiceTest {
             return papel;
         });
 
-        PapelDTO resultado = papelService.salvarPapel(dto);
+        PapelDTO resultado = papelServico.salvarPapel(dto);
 
         assertNotNull(resultado.getId());
         assertEquals("ADMIN", resultado.getNome());
@@ -57,7 +57,7 @@ class PapelServiceTest {
 
         when(papelRepositorio.findByNome("ADMIN")).thenReturn(Optional.of(new Papel("ADMIN")));
 
-        assertThrows(IllegalArgumentException.class, () -> papelService.salvarPapel(dto));
+        assertThrows(IllegalArgumentException.class, () -> papelServico.salvarPapel(dto));
         verify(papelRepositorio, never()).save(any());
     }
 }

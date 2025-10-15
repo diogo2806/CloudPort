@@ -1,71 +1,69 @@
 package br.com.cloudport.servicoautenticacao.config;
 
-import br.com.cloudport.servicoautenticacao.model.Role;
-import br.com.cloudport.servicoautenticacao.model.User;
-import br.com.cloudport.servicoautenticacao.model.UserRole;
+import br.com.cloudport.servicoautenticacao.model.Papel;
+import br.com.cloudport.servicoautenticacao.model.Usuario;
+import br.com.cloudport.servicoautenticacao.model.UsuarioPapel;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.HashMap;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.crypto.SecretKey;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 
 @Service
 public class TokenService {
     @Value("${api.security.token.secret}")
     private String secret;
 
-    public String generateToken(User user){
+    public String generateToken(Usuario usuario){
         try{
             SecretKey algorithm = signingKey();
-            Set<String> roles = Optional.ofNullable(user.getRoles()).orElseGet(Collections::emptySet).stream()
-                    .map(UserRole::getRole)
-                    .map(Role::getName)
+            Set<String> papeis = Optional.ofNullable(usuario.getPapeis()).orElseGet(Collections::emptySet).stream()
+                    .map(UsuarioPapel::getPapel)
+                    .map(Papel::getNome)
                     .filter(StringUtils::hasText)
-                    .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase())
+                    .map(nomePapel -> nomePapel.startsWith("ROLE_") ? nomePapel : "ROLE_" + nomePapel.toUpperCase())
                     .collect(Collectors.toSet());
 
-            String perfil = roles.stream().findFirst().orElse(null);
+            String perfil = papeis.stream().findFirst().orElse(null);
 
             var claims = new HashMap<String, Object>();
-            if (user.getId() != null) {
-                claims.put("userId", user.getId().toString());
+            if (usuario.getId() != null) {
+                claims.put("userId", usuario.getId().toString());
             }
-            if (StringUtils.hasText(user.getNome())) {
-                claims.put("nome", user.getNome());
+            if (StringUtils.hasText(usuario.getNome())) {
+                claims.put("nome", usuario.getNome());
             }
             if (StringUtils.hasText(perfil)) {
                 claims.put("perfil", perfil);
             }
-            if (!CollectionUtils.isEmpty(roles)) {
-                claims.put("roles", roles);
+            if (!CollectionUtils.isEmpty(papeis)) {
+                claims.put("roles", papeis);
             }
-            if (StringUtils.hasText(user.getTransportadoraDocumento())) {
-                claims.put("transportadoraDocumento", user.getTransportadoraDocumento());
+            if (StringUtils.hasText(usuario.getTransportadoraDocumento())) {
+                claims.put("transportadoraDocumento", usuario.getTransportadoraDocumento());
             }
-            if (StringUtils.hasText(user.getTransportadoraNome())) {
-                claims.put("transportadoraNome", user.getTransportadoraNome());
+            if (StringUtils.hasText(usuario.getTransportadoraNome())) {
+                claims.put("transportadoraNome", usuario.getTransportadoraNome());
             }
 
             return Jwts.builder()
                     .setIssuer("auth-api")
-                    .setSubject(user.getLogin())
+                    .setSubject(usuario.getLogin())
                     .setExpiration(Date.from(genExpirationDate()))
                     .addClaims(claims)
                     .signWith(algorithm, SignatureAlgorithm.HS256)
@@ -86,7 +84,6 @@ public class TokenService {
                     .getBody();
             return Optional.ofNullable(claims.getSubject());
         } catch (JwtException | IllegalArgumentException exception){
-            // SECURITY: evita autenticação com tokens inválidos propagando ausência de subject
             return Optional.empty();
         }
     }

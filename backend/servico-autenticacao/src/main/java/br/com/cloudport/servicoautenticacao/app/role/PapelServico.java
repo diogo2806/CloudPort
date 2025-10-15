@@ -1,6 +1,6 @@
-package br.com.cloudport.servicoautenticacao.services;
+package br.com.cloudport.servicoautenticacao.app.role;
 
-import br.com.cloudport.servicoautenticacao.app.administracao.dto.PapelDTO;
+import br.com.cloudport.servicoautenticacao.app.role.dto.PapelDTO;
 import br.com.cloudport.servicoautenticacao.exception.PapelNaoEncontradoException;
 import br.com.cloudport.servicoautenticacao.model.Papel;
 import br.com.cloudport.servicoautenticacao.repositories.PapelRepositorio;
@@ -12,12 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class PapelService {
+public class PapelServico {
 
     private final PapelRepositorio papelRepositorio;
     private final UsuarioPapelRepositorio usuarioPapelRepositorio;
 
-    public PapelService(PapelRepositorio papelRepositorio, UsuarioPapelRepositorio usuarioPapelRepositorio) {
+    public PapelServico(PapelRepositorio papelRepositorio, UsuarioPapelRepositorio usuarioPapelRepositorio) {
         this.papelRepositorio = papelRepositorio;
         this.usuarioPapelRepositorio = usuarioPapelRepositorio;
     }

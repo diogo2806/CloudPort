@@ -1,7 +1,6 @@
-package br.com.cloudport.servicoautenticacao.controllers;
+package br.com.cloudport.servicoautenticacao.app.role;
 
-import br.com.cloudport.servicoautenticacao.app.administracao.dto.PapelDTO;
-import br.com.cloudport.servicoautenticacao.services.PapelService;
+import br.com.cloudport.servicoautenticacao.app.role.dto.PapelDTO;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,41 +14,41 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/roles")
-public class PapelController {
+public class PapelControlador {
 
-    private final PapelService papelService;
+    private final PapelServico papelServico;
 
-    public PapelController(PapelService papelService) {
-        this.papelService = papelService;
+    public PapelControlador(PapelServico papelServico) {
+        this.papelServico = papelServico;
     }
 
     @PostMapping
     public ResponseEntity<PapelDTO> criarPapel(@RequestBody PapelDTO papelDTO) {
-        PapelDTO papelSalvo = papelService.salvarPapel(papelDTO);
+        PapelDTO papelSalvo = papelServico.salvarPapel(papelDTO);
         return ResponseEntity.ok(papelSalvo);
     }
 
     @GetMapping("/{nome}")
     public ResponseEntity<PapelDTO> buscarPapel(@PathVariable String nome) {
-        PapelDTO papel = papelService.buscarPorNome(nome);
+        PapelDTO papel = papelServico.buscarPorNome(nome);
         return ResponseEntity.ok(papel);
     }
 
     @GetMapping
     public ResponseEntity<List<PapelDTO>> listarPapeis() {
-        List<PapelDTO> papeis = papelService.listarTodos();
+        List<PapelDTO> papeis = papelServico.listarTodos();
         return ResponseEntity.ok(papeis);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<PapelDTO> atualizarPapel(@PathVariable Long id, @RequestBody PapelDTO papelDTO) {
-        PapelDTO papelAtualizado = papelService.atualizar(id, papelDTO);
+        PapelDTO papelAtualizado = papelServico.atualizar(id, papelDTO);
         return ResponseEntity.ok(papelAtualizado);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> removerPapel(@PathVariable Long id) {
-        papelService.remover(id);
+        papelServico.remover(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,6 +1,6 @@
 package br.com.cloudport.servicoautenticacao.config;
 
-import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
+import br.com.cloudport.servicoautenticacao.app.administracao.UserRepository;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;

@@ -1,6 +1,6 @@
-package br.com.cloudport.servicoautenticacao.app.configuracoes;
+package br.com.cloudport.servicoautenticacao.services;
 
-import br.com.cloudport.servicoautenticacao.app.administracao.UserRepository;
+import br.com.cloudport.servicoautenticacao.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

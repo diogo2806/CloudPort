@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoautenticacao.app.administracao;
+package br.com.cloudport.servicoautenticacao.repositories;
 
 import br.com.cloudport.servicoautenticacao.model.Role;
 import org.springframework.data.jpa.repository.JpaRepository;

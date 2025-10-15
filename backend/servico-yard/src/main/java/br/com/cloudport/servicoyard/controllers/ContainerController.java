@@ -1,7 +1,7 @@
-package br.com.cloudport.servicoyard.app.gestor;
+package br.com.cloudport.servicoyard.controllers;
 
 import br.com.cloudport.servicoyard.model.Container;
-import br.com.cloudport.servicoyard.app.gestor.ContainerService;
+import br.com.cloudport.servicoyard.service.ContainerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

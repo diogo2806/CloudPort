@@ -1,6 +1,7 @@
-package br.com.cloudport.servicoautenticacao.app.administracao;
+package br.com.cloudport.servicoautenticacao.services;
 
 import br.com.cloudport.servicoautenticacao.app.administracao.dto.RoleDTO;
+import br.com.cloudport.servicoautenticacao.services.RoleService;
 import br.com.cloudport.servicoautenticacao.model.Role;
 import br.com.cloudport.servicoautenticacao.repositories.RoleRepository;
 import br.com.cloudport.servicoautenticacao.repositories.UserRoleRepository;

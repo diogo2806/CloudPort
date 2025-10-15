@@ -1,10 +1,10 @@
-package br.com.cloudport.servicoautenticacao.app.administracao;
+package br.com.cloudport.servicoautenticacao.services;
 
 import br.com.cloudport.servicoautenticacao.app.administracao.dto.RoleDTO;
 import br.com.cloudport.servicoautenticacao.exception.RoleNotFoundException;
 import br.com.cloudport.servicoautenticacao.model.Role;
-import br.com.cloudport.servicoautenticacao.app.administracao.RoleRepository;
-import br.com.cloudport.servicoautenticacao.app.administracao.UserRoleRepository;
+import br.com.cloudport.servicoautenticacao.repositories.RoleRepository;
+import br.com.cloudport.servicoautenticacao.repositories.UserRoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.Comparator;

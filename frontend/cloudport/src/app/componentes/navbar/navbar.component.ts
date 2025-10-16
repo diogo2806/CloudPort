@@ -1,7 +1,7 @@
 import { Component, ElementRef, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
+import { ServicoAutenticacao } from '../service/servico-autenticacao/servico-autenticacao.service';
 import { TabItem, TAB_REGISTRY, normalizeTabId, resolveRouteSegments, TabService } from './TabService';
 
 @Component({
@@ -29,16 +29,16 @@ export class NavbarComponent implements OnInit, OnDestroy {
   };
 
   constructor(
-    private readonly authenticationService: AuthenticationService,
+    private readonly servicoAutenticacao: ServicoAutenticacao,
     private readonly router: Router,
     private readonly tabService: TabService,
     private readonly eRef: ElementRef
   ) {
-    this.mostrarMenu = this.authenticationService.getMenuStatusValue();
+    this.mostrarMenu = this.servicoAutenticacao.obterStatusMenuAtual();
   }
 
   ngOnInit(): void {
-    this.menuStatusSubscription = this.authenticationService.currentMenuStatus.subscribe(
+    this.menuStatusSubscription = this.servicoAutenticacao.statusMenuObservavel.subscribe(
       mostrar => this.mostrarMenu = mostrar
     );
   }
@@ -140,6 +140,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (!roles || roles.length === 0) {
       return true;
     }
-    return this.authenticationService.hasAnyRole(...roles);
+    return this.servicoAutenticacao.possuiAlgumPapel(...roles);
   }
 }

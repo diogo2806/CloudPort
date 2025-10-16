@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router, RouteReuseStrategy, RouterOutlet } from '@angular/router';
-import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
+import { ServicoAutenticacao } from '../service/servico-autenticacao/servico-autenticacao.service';
 import { TabItem, TabService, TAB_REGISTRY, DEFAULT_TAB_ID, normalizeTabId, resolveRouteSegments } from '../navbar/TabService';
 import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
 import { Subscription } from 'rxjs';
@@ -26,14 +26,14 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
-    private authenticationService: AuthenticationService,
+    private servicoAutenticacao: ServicoAutenticacao,
     private tabService: TabService,
     private reuseStrategy: RouteReuseStrategy
   ) {
     console.log('Classe HomeComponent: Método construtor chamado.');
-    const currentUser: any = this.authenticationService.currentUserValue;
-    if (currentUser && currentUser.token) {
-      this.userToken = currentUser.token;
+    const usuarioAtual: any = this.servicoAutenticacao.obterUsuarioAtual();
+    if (usuarioAtual && usuarioAtual.token) {
+      this.userToken = usuarioAtual.token;
     }
   }
 
@@ -71,14 +71,14 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   logout() {
     console.log('Classe HomeComponent: Método logout chamado.');
-    this.authenticationService.logout();
+    this.servicoAutenticacao.encerrarSessao();
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
     this.router.navigate(['login']);
   }
 
   Alert() {
     console.log('Classe HomeComponent: Método Alert chamado.');
-    alert(this.authenticationService.currentUserValue?.token);
+    alert(this.servicoAutenticacao.obterUsuarioAtual()?.token);
   }
 
   closeTab(tabId: string) {

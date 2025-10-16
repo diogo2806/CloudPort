@@ -5,19 +5,21 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
 import { LoginComponent } from './login.component';
-import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
+import { ServicoAutenticacao } from '../service/servico-autenticacao/servico-autenticacao.service';
 import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
 
-class MockAuthenticationService {
-  currentUserValue = null;
-
-  login() {
-    return of({ token: 'fake-token', login: 'user', roles: [] });
+class MockServicoAutenticacao {
+  obterUsuarioAtual() {
+    return null;
   }
 
-  updateMenuStatus(_status: boolean) {}
+  autenticar() {
+    return of({ token: 'fake-token', login: 'usuario', roles: [] });
+  }
 
-  setUserName(_username: string) {}
+  atualizarStatusMenu(_status: boolean) {}
+
+  definirNomeUsuario(_nome: string) {}
 }
 
 const activatedRouteStub = {
@@ -36,7 +38,7 @@ describe('LoginComponent', () => {
       imports: [RouterTestingModule],
       providers: [
         FormBuilder,
-        { provide: AuthenticationService, useClass: MockAuthenticationService },
+        { provide: ServicoAutenticacao, useClass: MockServicoAutenticacao },
         { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: RouteReuseStrategy, useClass: CustomReuseStrategy }
       ]
@@ -51,15 +53,15 @@ describe('LoginComponent', () => {
   });
 
   it('should default returnUrl to /home/role when query param is missing', () => {
-    expect(component.returnUrl).toBe('/home/role');
+    expect(component.rotaRetorno).toBe('/home/role');
   });
 
   it('should redirect to /home/role when login succeeds without returnUrl', () => {
     const router = TestBed.inject(Router);
     const navigateSpy = spyOn(router, 'navigateByUrl');
 
-    component.loginForm.setValue({ username: 'john', password: 'secret' });
-    component.onSubmit();
+    component.formularioLogin.setValue({ login: 'joao', senha: 'segredo' });
+    component.aoEnviar();
 
     expect(navigateSpy).toHaveBeenCalledWith('/home/role');
   });

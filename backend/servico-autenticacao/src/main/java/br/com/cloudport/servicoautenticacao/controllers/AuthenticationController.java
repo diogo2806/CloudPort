@@ -99,11 +99,20 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<Void> registrar(@RequestBody @Valid RegisterDTO dados){
-        if (this.usuarioRepositorio.findByLogin(dados.getLogin()).isPresent()) {
+        String loginSanitizado;
+        String senhaSanitizada;
+        try {
+            loginSanitizado = SanitizadorEntrada.sanitizarLogin(dados.getLogin());
+            senhaSanitizada = SanitizadorEntrada.sanitizarSenha(dados.getPassword());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
+
+        if (this.usuarioRepositorio.findByLogin(loginSanitizado).isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Login informado já está em uso.");
         }
 
-        String senhaCriptografada = new BCryptPasswordEncoder().encode(dados.getPassword());
+        String senhaCriptografada = new BCryptPasswordEncoder().encode(senhaSanitizada);
 
         Set<String> papeisPermitidosNormalizados = Arrays.stream(papeisPermitidosAutoCadastro.split(","))
                 .map(String::trim)
@@ -135,7 +144,7 @@ public class AuthenticationController {
                     .collect(Collectors.toSet());
         }
 
-        Usuario novoUsuario = new Usuario(dados.getLogin(), senhaCriptografada, dados.getNome(),
+        Usuario novoUsuario = new Usuario(loginSanitizado, senhaCriptografada, dados.getNome(),
                 dados.getTransportadoraDocumento(), dados.getTransportadoraNome(), papeis);
 
         papeis.forEach(papel -> papel.setUsuario(novoUsuario));

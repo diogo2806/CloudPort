@@ -3,6 +3,7 @@ package br.com.cloudport.servicoautenticacao.controllers;
 import br.com.cloudport.servicoautenticacao.app.configuracoes.dto.AuthenticationDTO;
 import br.com.cloudport.servicoautenticacao.app.configuracoes.dto.LoginResponseDTO;
 import br.com.cloudport.servicoautenticacao.app.configuracoes.dto.RegisterDTO;
+import br.com.cloudport.servicoautenticacao.app.configuracoes.validacao.SanitizadorEntrada;
 import br.com.cloudport.servicoautenticacao.app.administracao.dto.UsuarioInfoDTO;
 import br.com.cloudport.servicoautenticacao.app.usuarioslista.UsuarioRepositorio;
 import br.com.cloudport.servicoautenticacao.config.TokenService;
@@ -59,7 +60,16 @@ public class AuthenticationController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO dados){
-        var usernamePassword = new UsernamePasswordAuthenticationToken(dados.getLogin(), dados.getPassword());
+        String loginSanitizado;
+        String senhaSanitizada;
+        try {
+            loginSanitizado = SanitizadorEntrada.sanitizarLogin(dados.getLogin());
+            senhaSanitizada = SanitizadorEntrada.sanitizarSenha(dados.getSenha());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
+
+        var usernamePassword = new UsernamePasswordAuthenticationToken(loginSanitizado, senhaSanitizada);
         var autenticacao = this.authenticationManager.authenticate(usernamePassword);
 
         Usuario usuario = (Usuario) autenticacao.getPrincipal();

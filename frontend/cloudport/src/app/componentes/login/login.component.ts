@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute, RouteReuseStrategy } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { first } from 'rxjs/operators';
-import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
+import { ServicoAutenticacao } from '../service/servico-autenticacao/servico-autenticacao.service';
 import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
 
 // Importações para animações
@@ -22,70 +22,86 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
         ])
     ]
 })
-const DEFAULT_PROTECTED_ROUTE = '/home/role';
+const ROTA_PROTEGIDA_PADRAO = '/home/role';
 
 export class LoginComponent implements OnInit {
-    loginForm: FormGroup = this.formBuilder.group({}); // Initialized here
-    loading = false;
-    submitted = false;
-    returnUrl: string = DEFAULT_PROTECTED_ROUTE; // Initialized with a sensible default route
-    error = '';
+    formularioLogin: FormGroup = this.formBuilder.group({});
+    carregando = false;
+    enviado = false;
+    rotaRetorno: string = ROTA_PROTEGIDA_PADRAO;
+    mensagemErro = '';
 
     constructor(
         private formBuilder: FormBuilder,
         private route: ActivatedRoute,
         private router: Router,
-        private authenticationService: AuthenticationService,
+        private servicoAutenticacao: ServicoAutenticacao,
         private reuseStrategy: RouteReuseStrategy // Injete a estratégia de reutilização de rota aqui
-      
+
     ) {
         // redirect to home if already logged in
-        if (this.authenticationService.currentUserValue) {
-            this.router.navigateByUrl(this.returnUrl);
+        if (this.servicoAutenticacao.obterUsuarioAtual()) {
+            this.router.navigateByUrl(this.rotaRetorno);
         }
     }
 
     ngOnInit() {
-        this.authenticationService.updateMenuStatus(false);
-        this.loginForm = this.formBuilder.group({
-            username: ['', Validators.required],
-            password: ['', Validators.required]
+        this.servicoAutenticacao.atualizarStatusMenu(false);
+        this.formularioLogin = this.formBuilder.group({
+            login: ['', [Validators.required, Validators.pattern(/^[\p{L}\p{N}@._-]+$/u)]],
+            senha: ['', [Validators.required, Validators.minLength(6)]]
         });
 
         // get return url from route parameters or default to '/'
         const requestedReturnUrl = this.route.snapshot.queryParams['returnUrl'];
         const hasCustomReturnUrl = typeof requestedReturnUrl === 'string' && requestedReturnUrl.trim().length > 0;
-        this.returnUrl = hasCustomReturnUrl ? requestedReturnUrl : DEFAULT_PROTECTED_ROUTE;
+        this.rotaRetorno = hasCustomReturnUrl ? requestedReturnUrl : ROTA_PROTEGIDA_PADRAO;
         (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
     }
 
     // convenience getter for easy access to form fields
     get f() {
-        return this.loginForm.controls;
+        return this.formularioLogin.controls;
     }
 
-    onSubmit() {
-        this.submitted = true;
+    aoEnviar() {
+        this.enviado = true;
 
         // stop here if form is invalid
-        if (this.loginForm.invalid) {
+        if (this.formularioLogin.invalid) {
             return;
         }
 
-        this.loading = true;
-        this.authenticationService.login(this.f['username'].value, this.f['password'].value)
+        const loginSanitizado = this.sanitizarCampo(this.f['login'].value);
+        const senhaSanitizada = this.sanitizarCampo(this.f['senha'].value);
+        this.formularioLogin.patchValue({ login: loginSanitizado, senha: senhaSanitizada }, { emitEvent: false, onlySelf: true });
+
+        this.mensagemErro = '';
+        this.carregando = true;
+        this.servicoAutenticacao.autenticar(loginSanitizado, senhaSanitizada)
             .pipe(first())
             .subscribe(
                 data => {
 
-                    this.router.navigateByUrl(this.returnUrl);
-                    this.authenticationService.setUserName(this.f['username'].value);
-                    this.authenticationService.updateMenuStatus(true); // set mostrarMenu to true after successful login
+                    this.router.navigateByUrl(this.rotaRetorno);
+                    this.servicoAutenticacao.definirNomeUsuario(loginSanitizado);
+                    this.servicoAutenticacao.atualizarStatusMenu(true); // set mostrarMenu to true after successful login
                     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
+                    this.carregando = false;
                 },
                 error => {
-                    this.error = error;
-                    this.loading = false;
+                    this.mensagemErro = error;
+                    this.carregando = false;
                 });
+    }
+
+    private sanitizarCampo(valor: string): string {
+        if (!valor) {
+            return '';
+        }
+        return valor
+            .normalize('NFKC')
+            .replace(/[<>"'`\\]/g, '')
+            .trim();
     }
 }

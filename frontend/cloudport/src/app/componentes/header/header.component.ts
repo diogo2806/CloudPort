@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { AuthenticationService } from '../service/servico-autenticacao/authentication.service';
+import { ServicoAutenticacao } from '../service/servico-autenticacao/servico-autenticacao.service';
 import { Router, ActivatedRoute, RouteReuseStrategy } from '@angular/router';
 import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
 import { Subscription } from 'rxjs';
@@ -18,19 +18,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private authenticationService: AuthenticationService,
+    private servicoAutenticacao: ServicoAutenticacao,
     private reuseStrategy: RouteReuseStrategy 
   ) {
-    let currentUser: any = this.authenticationService.currentUserValue;
-    if (currentUser && currentUser.token) {
-      this.userToken = currentUser.token;
+    let usuarioAtual: any = this.servicoAutenticacao.obterUsuarioAtual();
+    if (usuarioAtual && usuarioAtual.token) {
+      this.userToken = usuarioAtual.token;
     }
   }
 
 
   ngOnInit(): void {
-    this.mostrarMenu = this.authenticationService.getMenuStatusValue();
-    this.menuStatusSubscription = this.authenticationService.currentMenuStatus.subscribe(status => {
+    this.mostrarMenu = this.servicoAutenticacao.obterStatusMenuAtual();
+    this.menuStatusSubscription = this.servicoAutenticacao.statusMenuObservavel.subscribe(status => {
       this.mostrarMenu = status;
     });
   }
@@ -41,7 +41,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
 
   logout() {
-    this.authenticationService.logout();
+    this.servicoAutenticacao.encerrarSessao();
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
     this.router.navigate(['login']);
   }

@@ -1,80 +1,52 @@
-
-<!--
-<section class="container py-5">
-
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="bg-white rounded-lg shadow-sm p-5">        
-  
-          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-            
-            <div class="form-group">
-              <input type="text" id="loginFormUser1" formControlName="username" class="form-control"
-                  [ngClass]="{ 'is-invalid': submitted && f['username'].errors }" placeholder="Name"/>
-              <div *ngIf="submitted && f['username'].errors" class="invalid-feedback">
-                <div *ngIf="f['username'].errors['required']">{{'Username is required'| translate }}</div>
-              </div>
-            </div>
-  <br>
-            
-            <div class="form-group">
-              <input type="password" id="loginFormPassword1" formControlName="password" class="form-control"
-                  [ngClass]="{ 'is-invalid': submitted && f['password'].errors }" placeholder="Password"/>
-              <div *ngIf="submitted && f['password'].errors" class="invalid-feedback">
-                <div *ngIf="f['password'].errors['required']">{{'Password is required'| translate }}</div>
-              </div>
-            </div>
-  
-            
-            <div class="text-center mt-4">
-              <button [disabled]="loading" class="btn btn-primary">
-                <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
-                {{ 'Log in' | translate }}
-              </button>
-              <div *ngIf="error" class="alert alert-danger mt-3 mb-0">{{error}}</div>
-              <hr class="hr-light mb-3 mt-4">
-            </div>
-          </form>
-  
-        </div>
-      </div>
-    </div>
-  </section>
--->
-
 <section class="container py-5">
   <div class="row">
     <div class="col-lg-8 mx-auto">
-          <div class="bg-white rounded-lg shadow-sm p-5 box">        
-            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-                  <!-- User -->
-                  <div class="form-group">
-                      <input type="text" id="loginFormUser1" formControlName="username" class="form-control"
-                          [ngClass]="{ 'is-invalid': submitted && f['username'].errors }" placeholder="Name"/>
-                      <div *ngIf="submitted && f['username'].errors" class="invalid-feedback">
-                          <div *ngIf="f['username'].errors['required']">{{'Username is required'| translate }}</div>
-                      </div>
-                  </div>
-                  <br>
-                  <!-- Password -->
-                  <div class="form-group">
-                      <input type="password" id="loginFormPassword1" formControlName="password" class="form-control"
-                          [ngClass]="{ 'is-invalid': submitted && f['password'].errors }" placeholder="Password"/>
-                      <div *ngIf="submitted && f['password'].errors" class="invalid-feedback">
-                          <div *ngIf="f['password'].errors['required']">{{'Password is required'| translate }}</div>
-                      </div>
-                  </div>
-                  <!-- Sign in button -->
-                  <div class="text-center mt-4">
-                      <button [disabled]="loading" class="btn btn-primary">
-                          <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
-                          {{ 'Log in' | translate }}
-                      </button>
-                      <div *ngIf="error" class="alert alert-danger mt-3 mb-0">{{error}}</div>
-                      <hr class="hr-light mb-3 mt-4">
-                  </div>
-            </form>
+      <div class="bg-white rounded-lg shadow-sm p-5 box">
+        <form [formGroup]="formularioLogin" (ngSubmit)="aoEnviar()">
+          <div class="form-group">
+            <label class="form-label" for="loginFormUser1">Login</label>
+            <input
+              type="text"
+              id="loginFormUser1"
+              formControlName="login"
+              class="form-control"
+              [ngClass]="{ 'is-invalid': enviado && f['login'].errors }"
+              placeholder="Digite seu login"
+              autocomplete="username"
+            />
+            <div *ngIf="enviado && f['login'].errors" class="invalid-feedback">
+              <div *ngIf="f['login'].errors['required']">Login é obrigatório.</div>
+              <div *ngIf="f['login'].errors['pattern']">Utilize apenas letras, números e os caracteres @ . _ -</div>
+            </div>
           </div>
+
+          <div class="form-group mt-3">
+            <label class="form-label" for="loginFormPassword1">Senha</label>
+            <input
+              type="password"
+              id="loginFormPassword1"
+              formControlName="senha"
+              class="form-control"
+              [ngClass]="{ 'is-invalid': enviado && f['senha'].errors }"
+              placeholder="Digite sua senha"
+              autocomplete="current-password"
+            />
+            <div *ngIf="enviado && f['senha'].errors" class="invalid-feedback">
+              <div *ngIf="f['senha'].errors['required']">Senha é obrigatória.</div>
+              <div *ngIf="f['senha'].errors['minlength']">A senha deve ter ao menos 6 caracteres.</div>
+            </div>
+          </div>
+
+          <div class="text-center mt-4">
+            <button [disabled]="carregando" class="btn btn-primary w-100">
+              <span *ngIf="carregando" class="spinner-border spinner-border-sm mr-1" aria-hidden="true"></span>
+              <span *ngIf="!carregando">Entrar</span>
+              <span class="sr-only" *ngIf="carregando">Entrando...</span>
+            </button>
+            <div *ngIf="mensagemErro" class="alert alert-danger mt-3 mb-0" role="alert">{{ mensagemErro }}</div>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </section>

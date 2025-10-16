@@ -2,7 +2,7 @@
 import { Component, OnInit, ViewChild  } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
-import { AuthenticationService } from '../../service/servico-autenticacao/authentication.service';
+import { ServicoAutenticacao } from '../../service/servico-autenticacao/servico-autenticacao.service';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 //import * as XLSX from 'xlsx';
@@ -46,7 +46,7 @@ export class RoleTabelaComponent  implements OnInit, AfterViewInit {
 
   constructor(
     private http: HttpClient, 
-    private authenticationService: AuthenticationService,
+    private servicoAutenticacao: ServicoAutenticacao,
     private tabService: TabService,
     private renderer: Renderer2,
     private popupService: PopupService
@@ -225,7 +225,7 @@ closeContextMenu(event: MouseEvent) {
       return; // Se já temos dados armazenados, não precisamos fazer a chamada HTTP
     }
 
-    const token = this.authenticationService.currentUserValue?.token;
+    const token = this.servicoAutenticacao.obterUsuarioAtual()?.token;
 
     const httpOptions = {
       headers: new HttpHeaders({
@@ -257,7 +257,7 @@ closeContextMenu(event: MouseEvent) {
   // Cria um novo papel
   @logMethod
   createRole() {
-    const token = this.authenticationService.currentUserValue?.token;
+    const token = this.servicoAutenticacao.obterUsuarioAtual()?.token;
 
     const httpOptions = {
         headers: new HttpHeaders({
@@ -284,7 +284,7 @@ closeContextMenu(event: MouseEvent) {
   // Edita um papel existente
   @logMethod
   editRole(roleId: number) {
-    const token = this.authenticationService.currentUserValue?.token;
+    const token = this.servicoAutenticacao.obterUsuarioAtual()?.token;
 
     const httpOptions = {
         headers: new HttpHeaders({
@@ -311,7 +311,7 @@ closeContextMenu(event: MouseEvent) {
   // Desativa um papel
   @logMethod
   deactivateRole(roleId: number) {
-    const token = this.authenticationService.currentUserValue?.token;
+    const token = this.servicoAutenticacao.obterUsuarioAtual()?.token;
 
     const httpOptions = {
         headers: new HttpHeaders({

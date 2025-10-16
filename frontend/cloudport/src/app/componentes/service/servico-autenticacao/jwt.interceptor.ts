@@ -3,12 +3,12 @@ import { Injectable } from '@angular/core';
 import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-import { AuthenticationService } from './authentication.service';
+import { ServicoAutenticacao } from './servico-autenticacao.service';
 import { User } from '../../model/user.model';
 
 @Injectable()
 export class JwtInterceptor implements HttpInterceptor {
-    constructor(private authenticationService: AuthenticationService) { }
+    constructor(private servicoAutenticacao: ServicoAutenticacao) { }
 
     intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         const token = this.resolveToken();
@@ -25,7 +25,7 @@ export class JwtInterceptor implements HttpInterceptor {
     }
 
     private resolveToken(): string | null {
-        const currentUser = this.authenticationService.currentUserValue as (User & { [key: string]: any }) | null;
+        const currentUser = this.servicoAutenticacao.obterUsuarioAtual() as (User & { [key: string]: any }) | null;
 
         if (!currentUser) {
             return null;

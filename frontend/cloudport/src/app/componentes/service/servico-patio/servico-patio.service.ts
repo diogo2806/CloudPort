@@ -5,7 +5,7 @@ import { environment } from '../../service/endpoint';
 import { ClienteStompBasico, ManipuladorErro, ManipuladorMensagem } from './cliente-stomp-basico';
 
 export interface ConteinerMapa {
-  id: number;
+  id?: number;
   codigo: string;
   linha: number;
   coluna: number;
@@ -16,12 +16,40 @@ export interface ConteinerMapa {
 }
 
 export interface EquipamentoMapa {
-  id: number;
+  id?: number;
   identificador: string;
   tipoEquipamento: string;
   linha: number;
   coluna: number;
   statusOperacional: string;
+}
+
+export interface PosicaoPatio {
+  id: number;
+  linha: number;
+  coluna: number;
+  camadaOperacional: string;
+  ocupada: boolean;
+  codigoConteiner?: string;
+  statusConteiner?: string;
+}
+
+export interface MovimentoPatio {
+  id: number;
+  codigoConteiner?: string;
+  tipoMovimento: string;
+  descricao: string;
+  destino?: string;
+  linha?: number;
+  coluna?: number;
+  camadaOperacional?: string;
+  registradoEm: string;
+}
+
+export interface OpcoesCadastroPatio {
+  statusConteiner: string[];
+  tiposEquipamento: string[];
+  statusEquipamento: string[];
 }
 
 export interface MapaPatioResposta {
@@ -70,6 +98,22 @@ export class ServicoPatioService implements OnDestroy {
 
   obterFiltros(): Observable<FiltrosMapaPatio> {
     return this.http.get<FiltrosMapaPatio>(environment.patio.filtros);
+  }
+
+  listarPosicoes(): Observable<PosicaoPatio[]> {
+    return this.http.get<PosicaoPatio[]>(environment.patio.posicoes);
+  }
+
+  listarConteineres(): Observable<ConteinerMapa[]> {
+    return this.http.get<ConteinerMapa[]>(environment.patio.listaConteineres);
+  }
+
+  listarMovimentacoes(): Observable<MovimentoPatio[]> {
+    return this.http.get<MovimentoPatio[]>(environment.patio.movimentacoes);
+  }
+
+  obterOpcoesCadastro(): Observable<OpcoesCadastroPatio> {
+    return this.http.get<OpcoesCadastroPatio>(environment.patio.opcoes);
   }
 
   salvarConteiner(payload: ConteinerMapa): Observable<ConteinerMapa> {

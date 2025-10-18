@@ -41,6 +41,8 @@ const homeChildRoutes: Routes = [
   },
   {
     path: 'patio',
+    canActivate: [AuthGuard],
+    canLoad: [AuthGuard],
     loadChildren: () => import('./componentes/patio/patio.module').then(m => m.PatioModule)
   }
 ];
@@ -51,6 +53,7 @@ const routes: Routes = [
     path: 'home',
     component: HomeComponent,
     canActivate: [AuthGuard],
+    canActivateChild: [AuthGuard],
     children: homeChildRoutes
   },
   { path: '', redirectTo: 'home', pathMatch: 'full' }

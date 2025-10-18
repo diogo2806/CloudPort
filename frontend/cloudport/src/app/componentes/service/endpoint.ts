@@ -26,6 +26,10 @@ export const environment = {
     patio: {
         mapa: `${baseLink}/yard/patio/mapa`,
         filtros: `${baseLink}/yard/patio/filtros`,
+        posicoes: `${baseLink}/yard/patio/posicoes`,
+        listaConteineres: `${baseLink}/yard/patio/conteineres`,
+        movimentacoes: `${baseLink}/yard/patio/movimentacoes`,
+        opcoes: `${baseLink}/yard/patio/opcoes`,
         conteineres: `${baseLink}/yard/patio/conteineres`,
         equipamentos: `${baseLink}/yard/patio/equipamentos`,
         websocket: `${baseLink.replace('http', 'ws')}/ws/patio`

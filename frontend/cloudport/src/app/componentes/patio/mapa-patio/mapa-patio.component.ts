@@ -7,6 +7,7 @@ import {
   MapaPatioResposta,
   ServicoPatioService
 } from '../../service/servico-patio/servico-patio.service';
+import { SanitizadorConteudoService } from '../../service/sanitizacao/sanitizador-conteudo.service';
 
 interface FiltroFormulario {
   status: FormControl<string[]>;
@@ -32,7 +33,11 @@ export class MapaPatioComponent implements OnInit, OnDestroy {
   inscricaoTempoReal?: Subscription;
   inscricaoFormulario?: Subscription;
 
-  constructor(private readonly servicoPatio: ServicoPatioService, private readonly formBuilder: FormBuilder) {
+  constructor(
+    private readonly servicoPatio: ServicoPatioService,
+    private readonly formBuilder: FormBuilder,
+    private readonly sanitizador: SanitizadorConteudoService
+  ) {
     this.formularioFiltros = this.formBuilder.group({
       status: this.formBuilder.control<string[]>([]),
       tiposCarga: this.formBuilder.control<string[]>([]),
@@ -101,6 +106,10 @@ export class MapaPatioComponent implements OnInit, OnDestroy {
   obterTemplateLinhas(): string {
     const linhas = this.mapaFiltrado?.totalLinhas ?? 0;
     return `repeat(${linhas}, minmax(70px, 1fr))`;
+  }
+
+  sanitizarTexto(texto: string | null | undefined): string {
+    return this.sanitizador.sanitizar(texto ?? '');
   }
 
   private carregarFiltros(): void {

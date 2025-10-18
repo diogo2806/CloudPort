@@ -7,6 +7,9 @@ import br.com.cloudport.servicoyard.patio.dto.EquipamentoPatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.dto.FiltrosMapaPatioDto;
 import br.com.cloudport.servicoyard.patio.dto.MapaPatioFiltro;
 import br.com.cloudport.servicoyard.patio.dto.MapaPatioRespostaDto;
+import br.com.cloudport.servicoyard.patio.dto.MovimentoPatioDto;
+import br.com.cloudport.servicoyard.patio.dto.OpcoesCadastroPatioDto;
+import br.com.cloudport.servicoyard.patio.dto.PosicaoPatioDto;
 import br.com.cloudport.servicoyard.patio.servico.MapaPatioServico;
 import java.util.List;
 import javax.validation.Valid;
@@ -43,6 +46,26 @@ public class MapaPatioControlador {
     @GetMapping("/filtros")
     public FiltrosMapaPatioDto consultarFiltros() {
         return mapaPatioServico.consultarFiltros();
+    }
+
+    @GetMapping("/posicoes")
+    public List<PosicaoPatioDto> listarPosicoes() {
+        return mapaPatioServico.listarPosicoes();
+    }
+
+    @GetMapping("/conteineres")
+    public List<ConteinerMapaDto> listarConteineres() {
+        return mapaPatioServico.listarConteineres();
+    }
+
+    @GetMapping("/movimentacoes")
+    public List<MovimentoPatioDto> listarMovimentacoes() {
+        return mapaPatioServico.listarMovimentacoesRecentes();
+    }
+
+    @GetMapping("/opcoes")
+    public OpcoesCadastroPatioDto consultarOpcoesCadastro() {
+        return mapaPatioServico.consultarOpcoesCadastro();
     }
 
     @PostMapping("/conteineres")

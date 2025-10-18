@@ -13,31 +13,31 @@
     <div class="filtro-grupo">
       <label for="filtro-status">Status dos contêineres</label>
       <select id="filtro-status" multiple formControlName="status">
-        <option *ngFor="let status of filtrosDisponiveis.statusDisponiveis" [value]="status">{{ status }}</option>
+        <option *ngFor="let status of filtrosDisponiveis.statusDisponiveis" [value]="status">{{ sanitizarTexto(status) }}</option>
       </select>
     </div>
     <div class="filtro-grupo">
       <label for="filtro-tipo-carga">Tipo de carga</label>
       <select id="filtro-tipo-carga" multiple formControlName="tiposCarga">
-        <option *ngFor="let tipo of filtrosDisponiveis.tiposCargaDisponiveis" [value]="tipo">{{ tipo }}</option>
+        <option *ngFor="let tipo of filtrosDisponiveis.tiposCargaDisponiveis" [value]="tipo">{{ sanitizarTexto(tipo) }}</option>
       </select>
     </div>
     <div class="filtro-grupo">
       <label for="filtro-destino">Destino</label>
       <select id="filtro-destino" multiple formControlName="destinos">
-        <option *ngFor="let destino of filtrosDisponiveis.destinosDisponiveis" [value]="destino">{{ destino }}</option>
+        <option *ngFor="let destino of filtrosDisponiveis.destinosDisponiveis" [value]="destino">{{ sanitizarTexto(destino) }}</option>
       </select>
     </div>
     <div class="filtro-grupo">
       <label for="filtro-camada">Camada operacional</label>
       <select id="filtro-camada" multiple formControlName="camadas">
-        <option *ngFor="let camada of filtrosDisponiveis.camadasOperacionaisDisponiveis" [value]="camada">{{ camada }}</option>
+        <option *ngFor="let camada of filtrosDisponiveis.camadasOperacionaisDisponiveis" [value]="camada">{{ sanitizarTexto(camada) }}</option>
       </select>
     </div>
     <div class="filtro-grupo">
       <label for="filtro-equipamento">Tipos de equipamento</label>
       <select id="filtro-equipamento" multiple formControlName="tiposEquipamento">
-        <option *ngFor="let tipoEquipamento of filtrosDisponiveis.tiposEquipamentoDisponiveis" [value]="tipoEquipamento">{{ tipoEquipamento }}</option>
+        <option *ngFor="let tipoEquipamento of filtrosDisponiveis.tiposEquipamentoDisponiveis" [value]="tipoEquipamento">{{ sanitizarTexto(tipoEquipamento) }}</option>
       </select>
     </div>
   </section>
@@ -56,17 +56,17 @@
            [ngClass]="obterClasseStatus(conteiner.status)"
            aria-label="Contêiner {{ conteiner.codigo }}"
            role="button">
-        <span class="conteiner-codigo">{{ conteiner.codigo }}</span>
-        <span class="conteiner-detalhe">{{ conteiner.tipoCarga }}</span>
-        <span class="conteiner-detalhe">{{ conteiner.destino }}</span>
+        <span class="conteiner-codigo">{{ sanitizarTexto(conteiner.codigo) }}</span>
+        <span class="conteiner-detalhe">{{ sanitizarTexto(conteiner.tipoCarga) }}</span>
+        <span class="conteiner-detalhe">{{ sanitizarTexto(conteiner.destino) }}</span>
       </div>
       <div class="mapa-equipamento" *ngFor="let equipamento of mapaFiltrado.equipamentos"
            [style.gridRow]="(equipamento.linha + 1)"
            [style.gridColumn]="(equipamento.coluna + 1)"
            aria-label="Equipamento {{ equipamento.identificador }}"
            role="button">
-        <span class="equipamento-identificador">{{ equipamento.identificador }}</span>
-        <span class="equipamento-tipo">{{ equipamento.tipoEquipamento }}</span>
+        <span class="equipamento-identificador">{{ sanitizarTexto(equipamento.identificador) }}</span>
+        <span class="equipamento-tipo">{{ sanitizarTexto(equipamento.tipoEquipamento) }}</span>
       </div>
     </div>
   </section>

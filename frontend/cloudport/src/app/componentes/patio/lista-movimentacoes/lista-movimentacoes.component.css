@@ -1,0 +1,78 @@
+.lista-movimentacoes {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lista-movimentacoes header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lista-movimentacoes header button {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: none;
+  background-color: #0f766e;
+  color: #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.lista-movimentacoes header button:disabled {
+  background-color: #7ec5bc;
+  cursor: not-allowed;
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lista li {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 12px;
+  background-color: #fdfdfd;
+}
+
+.cabecalho {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cabecalho .tipo {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.cabecalho .horario {
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #1e293b;
+}
+
+.estado {
+  font-size: 0.95rem;
+  color: #333333;
+}
+
+.estado.erro {
+  color: #b30021;
+}

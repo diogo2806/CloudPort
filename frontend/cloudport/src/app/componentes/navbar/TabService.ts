@@ -19,7 +19,10 @@ export const TAB_REGISTRY: Readonly<Record<string, TabItem>> = {
   'lista-de-usuarios': { id: 'lista-de-usuarios', label: 'Lista de usuários', route: ['lista-de-usuarios'] },
   'gate/agendamentos': { id: 'gate/agendamentos', label: 'Agendamentos do Gate', route: ['gate', 'agendamentos'] },
   'gate/janelas': { id: 'gate/janelas', label: 'Janelas de Atendimento', route: ['gate', 'janelas'] },
-  'patio/mapa': { id: 'patio/mapa', label: 'Mapa do Pátio', route: ['patio', 'mapa'] }
+  'patio/mapa': { id: 'patio/mapa', label: 'Mapa do Pátio', route: ['patio', 'mapa'] },
+  'patio/posicoes': { id: 'patio/posicoes', label: 'Posições do Pátio', route: ['patio', 'posicoes'] },
+  'patio/movimentacoes': { id: 'patio/movimentacoes', label: 'Movimentações do Pátio', route: ['patio', 'movimentacoes'] },
+  'patio/movimentacao': { id: 'patio/movimentacao', label: 'Registrar movimentação', route: ['patio', 'movimentacao'] }
 };
 
 export const VALID_TAB_IDS = new Set<string>(Object.keys(TAB_REGISTRY));

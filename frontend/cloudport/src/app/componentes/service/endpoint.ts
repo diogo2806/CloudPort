@@ -7,6 +7,9 @@ export const environment = {
         login: `${baseLink}/auth/login`,
         logout: `${baseLink}/auth/logout`
     },
+    configuracoes: {
+        privacidade: `${baseLink}/api/configuracoes/privacidade`
+    },
     users: {
         getAll: `${baseLink}/api/usuarios`,
         getByLogin: (login: string) => `${baseLink}/auth/usuarios/${login}`,

@@ -1,0 +1,88 @@
+<div class="mapa-patio-container" [formGroup]="formularioFiltros">
+  <div class="cabecalho">
+    <h2>Mapa 2D do Pátio</h2>
+    <p class="descricao">Monitoramento em tempo real com camadas de equipamentos e filtros operacionais.</p>
+    <div class="status-carregamento" *ngIf="carregando || carregandoFiltros">Carregando informações do pátio...</div>
+    <div class="status-erro" *ngIf="erro">{{ erro }}</div>
+    <div class="status-atualizacao" *ngIf="mapaFiltrado">
+      Última atualização: {{ mapaFiltrado.atualizadoEm | date: 'dd/MM/yyyy HH:mm:ss' }}
+    </div>
+  </div>
+
+  <section class="painel-filtros" *ngIf="filtrosDisponiveis">
+    <div class="filtro-grupo">
+      <label for="filtro-status">Status dos contêineres</label>
+      <select id="filtro-status" multiple formControlName="status">
+        <option *ngFor="let status of filtrosDisponiveis.statusDisponiveis" [value]="status">{{ status }}</option>
+      </select>
+    </div>
+    <div class="filtro-grupo">
+      <label for="filtro-tipo-carga">Tipo de carga</label>
+      <select id="filtro-tipo-carga" multiple formControlName="tiposCarga">
+        <option *ngFor="let tipo of filtrosDisponiveis.tiposCargaDisponiveis" [value]="tipo">{{ tipo }}</option>
+      </select>
+    </div>
+    <div class="filtro-grupo">
+      <label for="filtro-destino">Destino</label>
+      <select id="filtro-destino" multiple formControlName="destinos">
+        <option *ngFor="let destino of filtrosDisponiveis.destinosDisponiveis" [value]="destino">{{ destino }}</option>
+      </select>
+    </div>
+    <div class="filtro-grupo">
+      <label for="filtro-camada">Camada operacional</label>
+      <select id="filtro-camada" multiple formControlName="camadas">
+        <option *ngFor="let camada of filtrosDisponiveis.camadasOperacionaisDisponiveis" [value]="camada">{{ camada }}</option>
+      </select>
+    </div>
+    <div class="filtro-grupo">
+      <label for="filtro-equipamento">Tipos de equipamento</label>
+      <select id="filtro-equipamento" multiple formControlName="tiposEquipamento">
+        <option *ngFor="let tipoEquipamento of filtrosDisponiveis.tiposEquipamentoDisponiveis" [value]="tipoEquipamento">{{ tipoEquipamento }}</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="painel-mapa" *ngIf="mapaFiltrado && mapaFiltrado.totalLinhas > 0 && mapaFiltrado.totalColunas > 0">
+    <div class="mapa-grid"
+         [style.gridTemplateColumns]="obterTemplateColunas()"
+         [style.gridTemplateRows]="obterTemplateLinhas()">
+      <div class="mapa-celula" *ngFor="let celula of obterCelulas(); let indice = index"
+           [attr.data-linha]="obterLinha(indice) + 1"
+           [attr.data-coluna]="obterColuna(indice) + 1">
+      </div>
+      <div class="mapa-conteiner" *ngFor="let conteiner of mapaFiltrado.conteineres"
+           [style.gridRow]="(conteiner.linha + 1)"
+           [style.gridColumn]="(conteiner.coluna + 1)"
+           [ngClass]="obterClasseStatus(conteiner.status)"
+           aria-label="Contêiner {{ conteiner.codigo }}"
+           role="button">
+        <span class="conteiner-codigo">{{ conteiner.codigo }}</span>
+        <span class="conteiner-detalhe">{{ conteiner.tipoCarga }}</span>
+        <span class="conteiner-detalhe">{{ conteiner.destino }}</span>
+      </div>
+      <div class="mapa-equipamento" *ngFor="let equipamento of mapaFiltrado.equipamentos"
+           [style.gridRow]="(equipamento.linha + 1)"
+           [style.gridColumn]="(equipamento.coluna + 1)"
+           aria-label="Equipamento {{ equipamento.identificador }}"
+           role="button">
+        <span class="equipamento-identificador">{{ equipamento.identificador }}</span>
+        <span class="equipamento-tipo">{{ equipamento.tipoEquipamento }}</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="mapa-vazio" *ngIf="mapaFiltrado && mapaFiltrado.conteineres.length === 0 && mapaFiltrado.equipamentos.length === 0">
+    Nenhum item atende aos filtros selecionados.
+  </div>
+
+  <section class="legenda">
+    <h3>Legenda operacional</h3>
+    <ul>
+      <li><span class="legenda-cor status-aguardando"></span> Aguardando retirada</li>
+      <li><span class="legenda-cor status-inspecionando"></span> Em inspeção</li>
+      <li><span class="legenda-cor status-despachado"></span> Despachado</li>
+      <li><span class="legenda-cor status-retido"></span> Retido</li>
+      <li><span class="legenda-cor status-danificado"></span> Danificado</li>
+    </ul>
+  </section>
+</div>

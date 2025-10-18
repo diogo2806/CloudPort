@@ -2,10 +2,12 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { BehaviorSubject, EMPTY, Observable, Subject, from, of } from 'rxjs';
 import { catchError, concatMap, finalize, map, shareReplay, switchMap, take, takeUntil, tap, toArray } from 'rxjs/operators';
 import { GateApiService } from '../../service/servico-gate/gate-api.service';
+import { GateDashboardService } from '../../service/servico-gate/gate-dashboard.service';
 import { Agendamento, AgendamentoFormPayload, DocumentoAgendamento, UploadDocumentoStatus } from '../../model/gate/agendamento.model';
 import { JanelaAtendimento } from '../../model/gate/janela.model';
 import { PopupService } from '../../service/popupService';
 import { HttpEventType } from '@angular/common/http';
+import { DashboardResumo } from '../../model/gate/dashboard.model';
 
 @Component({
   selector: 'app-gate-agendamentos',
@@ -33,11 +35,19 @@ export class GateAgendamentosComponent implements OnInit, OnDestroy {
   carregandoDetalhe = false;
   uploadStatus: UploadDocumentoStatus[] = [];
   documentosExistentes: DocumentoAgendamento[] | null = [];
+  resumoUso: DashboardResumo | null = null;
+  carregandoResumo = false;
+  erroResumo: string | null = null;
 
-  constructor(private readonly gateApi: GateApiService, private readonly popupService: PopupService) {}
+  constructor(
+    private readonly gateApi: GateApiService,
+    private readonly popupService: PopupService,
+    private readonly dashboardService: GateDashboardService
+  ) {}
 
   ngOnInit(): void {
     this.carregarAgendamentos();
+    this.carregarResumoUso();
   }
 
   ngOnDestroy(): void {
@@ -62,6 +72,7 @@ export class GateAgendamentosComponent implements OnInit, OnDestroy {
             this.selecionado = null;
           }
         }
+        this.carregarResumoUso();
       });
   }
 
@@ -168,6 +179,51 @@ export class GateAgendamentosComponent implements OnInit, OnDestroy {
         }
         this.carregarAgendamentos();
       });
+  }
+
+  carregarResumoUso(): void {
+    if (this.carregandoResumo) {
+      return;
+    }
+
+    this.carregandoResumo = true;
+    this.erroResumo = null;
+    this.dashboardService
+      .consultarResumo()
+      .pipe(
+        finalize(() => (this.carregandoResumo = false)),
+        takeUntil(this.destruir$)
+      )
+      .subscribe({
+        next: (resumo) => {
+          this.resumoUso = resumo;
+        },
+        error: () => {
+          this.erroResumo = 'Não foi possível carregar as métricas de adoção.';
+          this.resumoUso = null;
+        }
+      });
+  }
+
+  obterMensagemVariacaoAbandono(): string | null {
+    if (!this.resumoUso) {
+      return null;
+    }
+    const variacao = this.resumoUso.variacaoAbandonoPercentual;
+    if (Math.abs(variacao) < 0.01) {
+      return 'Taxa de abandono estável em comparação ao período anterior.';
+    }
+    const valorFormatado = Math.abs(variacao).toLocaleString('pt-BR', {
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0
+    });
+    return variacao >= 0
+      ? `Queda de ${valorFormatado}% no abandono do fluxo em comparação ao período anterior.`
+      : `Aumento de ${valorFormatado}% no abandono do fluxo em comparação ao período anterior.`;
+  }
+
+  variacaoAbandonoEhPositiva(): boolean {
+    return (this.resumoUso?.variacaoAbandonoPercentual ?? 0) >= 0;
   }
 
   private iniciarEdicao(id: number): void {

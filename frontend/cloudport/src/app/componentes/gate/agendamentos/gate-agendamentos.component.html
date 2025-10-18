@@ -6,6 +6,45 @@
     </div>
   </header>
 
+  <section class="gate-agendamentos__metricas" aria-live="polite">
+    <div class="metricas__cabecalho">
+      <h3>Métricas de adoção</h3>
+      <button type="button" class="btn btn--terciario" (click)="carregarResumoUso()" [disabled]="carregandoResumo">
+        {{ carregandoResumo ? 'Atualizando…' : 'Atualizar métricas' }}
+      </button>
+    </div>
+
+    <p class="metricas__estado" *ngIf="carregandoResumo">Carregando métricas consolidadas…</p>
+    <p class="metricas__estado metricas__estado--erro" *ngIf="!carregandoResumo && erroResumo">{{ erroResumo }}</p>
+
+    <div class="metricas__grid" *ngIf="!carregandoResumo && !erroResumo && resumoUso">
+      <article class="metricas__card" aria-label="Total de agendamentos no período">
+        <h4>Total no período</h4>
+        <strong>{{ resumoUso?.totalAgendamentos | number: '1.0-0' }}</strong>
+        <span>Agendamentos concluídos</span>
+      </article>
+
+      <article class="metricas__card" aria-label="Taxa de pontualidade">
+        <h4>Pontualidade</h4>
+        <strong>{{ resumoUso?.percentualPontualidade | number: '1.0-0' }}%</strong>
+        <span>Chegadas dentro da tolerância</span>
+      </article>
+
+      <article class="metricas__card" aria-label="Taxa de abandono do fluxo">
+        <h4>Abandono do fluxo</h4>
+        <strong>{{ resumoUso?.percentualAbandono | number: '1.0-0' }}%</strong>
+        <span>Período anterior: {{ resumoUso?.percentualAbandonoAnterior | number: '1.0-0' }}%</span>
+      </article>
+
+      <article class="metricas__card metricas__card--largura" aria-label="Mensagem de variação do abandono">
+        <h4>Confirmação de adoção</h4>
+        <p [ngClass]="{ 'texto--positivo': variacaoAbandonoEhPositiva(), 'texto--negativo': !variacaoAbandonoEhPositiva() }">
+          {{ obterMensagemVariacaoAbandono() }}
+        </p>
+      </article>
+    </div>
+  </section>
+
   <div class="gate-agendamentos__conteudo">
     <app-agendamentos-list
       class="gate-agendamentos__lista"

@@ -12,17 +12,81 @@ export interface TabItem {
 export const DEFAULT_TAB_ID = 'role';
 
 export const TAB_REGISTRY: Readonly<Record<string, TabItem>> = {
-  role: { id: 'role', label: 'Role', route: ['role'] },
-  seguranca: { id: 'seguranca', label: 'Segurança', route: ['seguranca'] },
-  notificacoes: { id: 'notificacoes', label: 'Notificações', route: ['notificacoes'] },
-  privacidade: { id: 'privacidade', label: 'Privacidade', route: ['privacidade'] },
-  'lista-de-usuarios': { id: 'lista-de-usuarios', label: 'Lista de usuários', route: ['lista-de-usuarios'] },
-  'gate/agendamentos': { id: 'gate/agendamentos', label: 'Agendamentos do Gate', route: ['gate', 'agendamentos'] },
-  'gate/janelas': { id: 'gate/janelas', label: 'Janelas de Atendimento', route: ['gate', 'janelas'] },
-  'patio/mapa': { id: 'patio/mapa', label: 'Mapa do Pátio', route: ['patio', 'mapa'] },
-  'patio/posicoes': { id: 'patio/posicoes', label: 'Posições do Pátio', route: ['patio', 'posicoes'] },
-  'patio/movimentacoes': { id: 'patio/movimentacoes', label: 'Movimentações do Pátio', route: ['patio', 'movimentacoes'] },
-  'patio/movimentacao': { id: 'patio/movimentacao', label: 'Registrar movimentação', route: ['patio', 'movimentacao'] }
+  role: {
+    id: 'role',
+    label: 'Perfis de Acesso',
+    route: ['role']
+  },
+  seguranca: {
+    id: 'seguranca',
+    label: 'Políticas de Segurança',
+    route: ['seguranca']
+  },
+  notificacoes: {
+    id: 'notificacoes',
+    label: 'Centro de Notificações',
+    route: ['notificacoes']
+  },
+  privacidade: {
+    id: 'privacidade',
+    label: 'Preferências de Privacidade',
+    route: ['privacidade']
+  },
+  'lista-de-usuarios': {
+    id: 'lista-de-usuarios',
+    label: 'Lista de Usuários',
+    route: ['lista-de-usuarios']
+  },
+  'gate/dashboard': {
+    id: 'gate/dashboard',
+    label: 'Painel do Gate',
+    route: ['gate', 'dashboard']
+  },
+  'gate/agendamentos': {
+    id: 'gate/agendamentos',
+    label: 'Agendamentos do Gate',
+    route: ['gate', 'agendamentos']
+  },
+  'gate/janelas': {
+    id: 'gate/janelas',
+    label: 'Janelas de Atendimento',
+    route: ['gate', 'janelas']
+  },
+  'gate/relatorios': {
+    id: 'gate/relatorios',
+    label: 'Relatórios do Gate',
+    route: ['gate', 'relatorios']
+  },
+  'gate/operador/console': {
+    id: 'gate/operador/console',
+    label: 'Console do Operador',
+    route: ['gate', 'operador', 'console']
+  },
+  'gate/operador/eventos': {
+    id: 'gate/operador/eventos',
+    label: 'Eventos do Operador',
+    route: ['gate', 'operador', 'eventos']
+  },
+  'patio/mapa': {
+    id: 'patio/mapa',
+    label: 'Mapa do Pátio',
+    route: ['patio', 'mapa']
+  },
+  'patio/posicoes': {
+    id: 'patio/posicoes',
+    label: 'Posições do Pátio',
+    route: ['patio', 'posicoes']
+  },
+  'patio/movimentacoes': {
+    id: 'patio/movimentacoes',
+    label: 'Movimentações do Pátio',
+    route: ['patio', 'movimentacoes']
+  },
+  'patio/movimentacao': {
+    id: 'patio/movimentacao',
+    label: 'Registrar Movimentação',
+    route: ['patio', 'movimentacao']
+  }
 };
 
 export const VALID_TAB_IDS = new Set<string>(Object.keys(TAB_REGISTRY));

@@ -15,7 +15,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   private readonly configurationTabIds = ['role', 'seguranca', 'notificacoes', 'privacidade'];
   private readonly userTabIds = ['lista-de-usuarios'];
-  private readonly gateTabIds = ['gate/agendamentos', 'gate/janelas'];
+  private readonly gateTabIds = [
+    'gate/dashboard',
+    'gate/agendamentos',
+    'gate/janelas',
+    'gate/relatorios',
+    'gate/operador/console',
+    'gate/operador/eventos'
+  ];
   private readonly yardTabIds = ['patio/mapa', 'patio/posicoes', 'patio/movimentacoes', 'patio/movimentacao'];
 
   private readonly tabRoles: Record<string, string[]> = {
@@ -24,8 +31,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
     notificacoes: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
     privacidade: ['ROLE_ADMIN_PORTO'],
     'lista-de-usuarios': ['ROLE_ADMIN_PORTO'],
+    'gate/dashboard': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
     'gate/agendamentos': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
     'gate/janelas': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
+    'gate/relatorios': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
+    'gate/operador/console': ['ROLE_ADMIN_PORTO', 'ROLE_OPERADOR_GATE', 'ROLE_PLANEJADOR'],
+    'gate/operador/eventos': ['ROLE_ADMIN_PORTO', 'ROLE_OPERADOR_GATE', 'ROLE_PLANEJADOR'],
     'patio/mapa': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
     'patio/posicoes': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
     'patio/movimentacoes': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],

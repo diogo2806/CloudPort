@@ -18,8 +18,7 @@ export const TAB_REGISTRY: Readonly<Record<string, TabItem>> = {
   privacidade: { id: 'privacidade', label: 'Privacidade', route: ['privacidade'] },
   'lista-de-usuarios': { id: 'lista-de-usuarios', label: 'Lista de usuários', route: ['lista-de-usuarios'] },
   'gate/agendamentos': { id: 'gate/agendamentos', label: 'Agendamentos do Gate', route: ['gate', 'agendamentos'] },
-  'gate/janelas': { id: 'gate/janelas', label: 'Janelas de Atendimento', route: ['gate', 'janelas'] },
-  'gate/dashboard': { id: 'gate/dashboard', label: 'Dashboard do Gate', route: ['gate', 'dashboard'] }
+  'gate/janelas': { id: 'gate/janelas', label: 'Janelas de Atendimento', route: ['gate', 'janelas'] }
 };
 
 export const VALID_TAB_IDS = new Set<string>(Object.keys(TAB_REGISTRY));

@@ -47,10 +47,11 @@ public class DashboardService {
 
     public DashboardResumoDTO obterResumo(DashboardFiltroDTO filtro) {
         DashboardFiltroDTO filtroNormalizado = normalizarFiltro(filtro);
+        PeriodoConsulta periodoAtual = determinarPeriodoConsulta(filtroNormalizado);
 
         DashboardMetricsProjection projection = agendamentoRepository.calcularMetricasDashboard(
-                filtroNormalizado.getInicio(),
-                filtroNormalizado.getFim(),
+                periodoAtual.getInicio(),
+                periodoAtual.getFim(),
                 filtroNormalizado.getTransportadoraId(),
                 filtroNormalizado.getTipoOperacao() != null ? filtroNormalizado.getTipoOperacao().name() : null,
                 TOLERANCIA_PONTUALIDADE_MINUTOS
@@ -62,21 +63,35 @@ public class DashboardService {
         double turnaround = Optional.ofNullable(projection.getTurnaroundMedio()).orElse(0D);
         double ocupacao = Optional.ofNullable(projection.getOcupacaoSlots()).orElse(0D);
 
-        List<Agendamento> agendamentosFiltrados = buscarAgendamentos(filtroNormalizado);
+        List<Agendamento> agendamentosFiltrados = buscarAgendamentos(filtroNormalizado, periodoAtual);
+
+        double percentualPontualidade = total > 0 ? (pontuais * 100.0) / total : 0D;
+        double percentualNoShow = calcularPercentualAbandono(total, noShow);
 
         DashboardResumoDTO resumo = new DashboardResumoDTO();
         resumo.setTotalAgendamentos(total);
-        resumo.setPercentualPontualidade(total > 0 ? (pontuais * 100.0) / total : 0D);
-        resumo.setPercentualNoShow(total > 0 ? (noShow * 100.0) / total : 0D);
+        resumo.setPercentualPontualidade(percentualPontualidade);
+        resumo.setPercentualNoShow(percentualNoShow);
         resumo.setPercentualOcupacaoSlots(ocupacao * 100.0);
         resumo.setTempoMedioTurnaroundMinutos(turnaround);
         resumo.setOcupacaoPorHora(calcularOcupacaoPorHora(agendamentosFiltrados));
         resumo.setTurnaroundPorDia(calcularTurnaroundPorDia(agendamentosFiltrados));
+        resumo.setPercentualAbandono(percentualNoShow);
+
+        ComparativoAbandono comparativoAbandono = calcularComparativoAbandono(
+                filtroNormalizado,
+                periodoAtual,
+                percentualNoShow
+        );
+        resumo.setPercentualAbandonoAnterior(comparativoAbandono.getTaxaAnterior());
+        resumo.setVariacaoAbandonoPercentual(comparativoAbandono.getVariacaoPercentual());
         return resumo;
     }
 
     public List<RelatorioAgendamentoDTO> buscarRelatorio(DashboardFiltroDTO filtro) {
-        List<Agendamento> agendamentos = buscarAgendamentos(normalizarFiltro(filtro));
+        DashboardFiltroDTO filtroNormalizado = normalizarFiltro(filtro);
+        PeriodoConsulta periodo = determinarPeriodoConsulta(filtroNormalizado);
+        List<Agendamento> agendamentos = buscarAgendamentos(filtroNormalizado, periodo);
         if (CollectionUtils.isEmpty(agendamentos)) {
             return Collections.emptyList();
         }
@@ -132,10 +147,10 @@ public class DashboardService {
         return filtro != null ? filtro : new DashboardFiltroDTO();
     }
 
-    private List<Agendamento> buscarAgendamentos(DashboardFiltroDTO filtro) {
+    private List<Agendamento> buscarAgendamentos(DashboardFiltroDTO filtro, PeriodoConsulta periodo) {
         return agendamentoRepository.buscarRelatorio(
-                filtro.getInicio(),
-                filtro.getFim(),
+                periodo.getInicio(),
+                periodo.getFim(),
                 filtro.getTransportadoraId(),
                 filtro.getTipoOperacao()
         );
@@ -196,6 +211,105 @@ public class DashboardService {
                 })
                 .sorted((a, b) -> a.getDia().compareTo(b.getDia()))
                 .collect(Collectors.toList());
+    }
+
+    private PeriodoConsulta determinarPeriodoConsulta(DashboardFiltroDTO filtro) {
+        LocalDateTime fim = filtro.getFim();
+        LocalDateTime inicio = filtro.getInicio();
+
+        if (inicio == null && fim == null) {
+            fim = LocalDateTime.now();
+            inicio = fim.minusDays(30);
+        } else if (inicio == null) {
+            inicio = fim.minusDays(30);
+        } else if (fim == null) {
+            fim = inicio.plusDays(30);
+        }
+
+        if (inicio.isAfter(fim)) {
+            LocalDateTime temp = inicio;
+            inicio = fim;
+            fim = temp;
+        }
+
+        return new PeriodoConsulta(inicio, fim);
+    }
+
+    private double calcularPercentualAbandono(long total, long totalNoShow) {
+        return total > 0 ? (totalNoShow * 100.0) / total : 0D;
+    }
+
+    private ComparativoAbandono calcularComparativoAbandono(DashboardFiltroDTO filtro,
+                                                            PeriodoConsulta periodoAtual,
+                                                            double taxaAtual) {
+        PeriodoConsulta periodoAnterior = periodoAtual.periodoAnterior();
+
+        DashboardMetricsProjection projectionAnterior = agendamentoRepository.calcularMetricasDashboard(
+                periodoAnterior.getInicio(),
+                periodoAnterior.getFim(),
+                filtro.getTransportadoraId(),
+                filtro.getTipoOperacao() != null ? filtro.getTipoOperacao().name() : null,
+                TOLERANCIA_PONTUALIDADE_MINUTOS
+        );
+
+        long totalAnterior = Optional.ofNullable(projectionAnterior.getTotalAgendamentos()).orElse(0L);
+        long noShowAnterior = Optional.ofNullable(projectionAnterior.getNoShow()).orElse(0L);
+        double taxaAnterior = calcularPercentualAbandono(totalAnterior, noShowAnterior);
+
+        double variacao = 0D;
+        if (taxaAnterior > 0D) {
+            variacao = ((taxaAnterior - taxaAtual) / taxaAnterior) * 100.0;
+        } else if (taxaAtual == 0D) {
+            variacao = 100D;
+        }
+
+        return new ComparativoAbandono(taxaAnterior, variacao);
+    }
+
+    private static final class PeriodoConsulta {
+        private final LocalDateTime inicio;
+        private final LocalDateTime fim;
+
+        private PeriodoConsulta(LocalDateTime inicio, LocalDateTime fim) {
+            this.inicio = inicio;
+            this.fim = fim;
+        }
+
+        private LocalDateTime getInicio() {
+            return inicio;
+        }
+
+        private LocalDateTime getFim() {
+            return fim;
+        }
+
+        private PeriodoConsulta periodoAnterior() {
+            Duration duracao = Duration.between(inicio, fim);
+            if (duracao.isZero() || duracao.isNegative()) {
+                duracao = Duration.ofDays(30);
+            }
+            LocalDateTime novoFim = inicio;
+            LocalDateTime novoInicio = inicio.minus(duracao);
+            return new PeriodoConsulta(novoInicio, novoFim);
+        }
+    }
+
+    private static final class ComparativoAbandono {
+        private final double taxaAnterior;
+        private final double variacaoPercentual;
+
+        private ComparativoAbandono(double taxaAnterior, double variacaoPercentual) {
+            this.taxaAnterior = taxaAnterior;
+            this.variacaoPercentual = variacaoPercentual;
+        }
+
+        private double getTaxaAnterior() {
+            return taxaAnterior;
+        }
+
+        private double getVariacaoPercentual() {
+            return variacaoPercentual;
+        }
     }
 
     private byte[] gerarCsv(List<RelatorioAgendamentoDTO> linhas) {

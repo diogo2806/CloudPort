@@ -21,29 +21,63 @@ test.use({
 });
 
 test.describe('Fluxos principais do Gate', () => {
-  test('Dashboard deve carregar cards principais', async ({ page }) => {
+  test('Agendamentos consolidados devem exibir métricas de adoção', async ({ page }) => {
     await page.route('**/gate/dashboard', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          totalAgendamentos: 5,
-          percentualPontualidade: 80,
-          percentualNoShow: 5,
-          percentualOcupacaoSlots: 70,
-          tempoMedioTurnaroundMinutos: 35,
+          totalAgendamentos: 18,
+          percentualPontualidade: 86,
+          percentualNoShow: 8,
+          percentualOcupacaoSlots: 72,
+          tempoMedioTurnaroundMinutos: 32,
           ocupacaoPorHora: [],
-          turnaroundPorDia: []
+          turnaroundPorDia: [],
+          percentualAbandono: 6,
+          percentualAbandonoAnterior: 10,
+          variacaoAbandonoPercentual: 40
         })
       });
     });
 
-    await page.goto('/home/gate/dashboard');
+    await page.route('**/gate/agendamentos', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          content: [],
+          totalElements: 0
+        })
+      });
+    });
 
-    await expect(page.getByText(/Dashboard do Gate/i)).toBeVisible();
+    await page.goto('/home/gate/agendamentos');
+
+    await expect(page.getByText(/Métricas de adoção/i)).toBeVisible();
+    await expect(page.getByText(/Queda de 40% no abandono do fluxo/i)).toBeVisible();
   });
 
   test('Agendamento completo e liberação manual simulados', async ({ page }) => {
+    await page.route('**/gate/dashboard', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          totalAgendamentos: 0,
+          percentualPontualidade: 0,
+          percentualNoShow: 0,
+          percentualOcupacaoSlots: 0,
+          tempoMedioTurnaroundMinutos: 0,
+          ocupacaoPorHora: [],
+          turnaroundPorDia: [],
+          percentualAbandono: 0,
+          percentualAbandonoAnterior: 0,
+          variacaoAbandonoPercentual: 0
+        })
+      });
+    });
+
     await page.route('**/gate/agendamentos', async (route) => {
       await route.fulfill({
         status: 200,

@@ -11,6 +11,9 @@ public class DashboardResumoDTO {
     private double tempoMedioTurnaroundMinutos;
     private List<OcupacaoPorHoraDTO> ocupacaoPorHora;
     private List<TempoMedioPermanenciaDTO> turnaroundPorDia;
+    private double percentualAbandono;
+    private double percentualAbandonoAnterior;
+    private double variacaoAbandonoPercentual;
 
     public long getTotalAgendamentos() {
         return totalAgendamentos;
@@ -66,5 +69,29 @@ public class DashboardResumoDTO {
 
     public void setTurnaroundPorDia(List<TempoMedioPermanenciaDTO> turnaroundPorDia) {
         this.turnaroundPorDia = turnaroundPorDia;
+    }
+
+    public double getPercentualAbandono() {
+        return percentualAbandono;
+    }
+
+    public void setPercentualAbandono(double percentualAbandono) {
+        this.percentualAbandono = percentualAbandono;
+    }
+
+    public double getPercentualAbandonoAnterior() {
+        return percentualAbandonoAnterior;
+    }
+
+    public void setPercentualAbandonoAnterior(double percentualAbandonoAnterior) {
+        this.percentualAbandonoAnterior = percentualAbandonoAnterior;
+    }
+
+    public double getVariacaoAbandonoPercentual() {
+        return variacaoAbandonoPercentual;
+    }
+
+    public void setVariacaoAbandonoPercentual(double variacaoAbandonoPercentual) {
+        this.variacaoAbandonoPercentual = variacaoAbandonoPercentual;
     }
 }

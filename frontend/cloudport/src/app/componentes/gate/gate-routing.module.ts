@@ -11,7 +11,7 @@ const routes: Routes = [
   { path: '', redirectTo: 'agendamentos', pathMatch: 'full' },
   { path: 'agendamentos', component: GateAgendamentosComponent },
   { path: 'janelas', component: GateJanelasComponent },
-  { path: 'dashboard', component: GateDashboardComponent },
+  { path: 'dashboard', redirectTo: 'agendamentos', pathMatch: 'full' },
   { path: 'relatorios', component: GateRelatoriosComponent },
   {
     path: 'operador',

@@ -17,6 +17,9 @@ export interface DashboardResumo {
   tempoMedioTurnaroundMinutos: number;
   ocupacaoPorHora: OcupacaoPorHora[];
   turnaroundPorDia: TempoMedioPermanencia[];
+  percentualAbandono: number;
+  percentualAbandonoAnterior: number;
+  variacaoAbandonoPercentual: number;
 }
 
 export interface DashboardFiltro {

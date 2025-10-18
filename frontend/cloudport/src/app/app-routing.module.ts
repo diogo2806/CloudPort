@@ -38,6 +38,10 @@ const homeChildRoutes: Routes = [
   {
     path: 'gate',
     loadChildren: () => import('./componentes/gate/gate.module').then(m => m.GateModule)
+  },
+  {
+    path: 'patio',
+    loadChildren: () => import('./componentes/patio/patio.module').then(m => m.PatioModule)
   }
 ];
 

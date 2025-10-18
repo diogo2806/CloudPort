@@ -22,5 +22,12 @@ export const environment = {
         getAll: `${baseLink}/api/roles`,
         update: (id: number) => `${baseLink}/api/roles/${id}`,
         delete: (id: number) => `${baseLink}/api/roles/${id}`
+    },
+    patio: {
+        mapa: `${baseLink}/yard/patio/mapa`,
+        filtros: `${baseLink}/yard/patio/filtros`,
+        conteineres: `${baseLink}/yard/patio/conteineres`,
+        equipamentos: `${baseLink}/yard/patio/equipamentos`,
+        websocket: `${baseLink.replace('http', 'ws')}/ws/patio`
     }
 };

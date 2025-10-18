@@ -16,6 +16,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private readonly configurationTabIds = ['role', 'seguranca', 'notificacoes', 'privacidade'];
   private readonly userTabIds = ['lista-de-usuarios'];
   private readonly gateTabIds = ['gate/agendamentos', 'gate/janelas'];
+  private readonly yardTabIds = ['patio/mapa'];
 
   private readonly tabRoles: Record<string, string[]> = {
     role: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
@@ -24,7 +25,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     privacidade: ['ROLE_ADMIN_PORTO'],
     'lista-de-usuarios': ['ROLE_ADMIN_PORTO'],
     'gate/agendamentos': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
-    'gate/janelas': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE']
+    'gate/janelas': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
+    'patio/mapa': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR']
   };
 
   constructor(
@@ -56,6 +58,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   get gateTabs(): TabItem[] {
     return this.resolveTabs(this.gateTabIds);
+  }
+
+  get yardTabs(): TabItem[] {
+    return this.resolveTabs(this.yardTabIds);
   }
 
   openTab(tab: TabItem): void {

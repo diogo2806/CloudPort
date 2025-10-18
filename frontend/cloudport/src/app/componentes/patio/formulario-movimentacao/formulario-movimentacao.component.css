@@ -1,0 +1,99 @@
+.formulario-movimentacao {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formulario-movimentacao header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formularios {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .formularios {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.bloco {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: #fdfdfd;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.campo input,
+.campo select {
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.duas-colunas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.acoes {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.acoes button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.acoes button.secundario {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.acoes button:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.mensagem {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.mensagem.sucesso {
+  color: #15803d;
+}
+
+.mensagem.erro {
+  color: #b30021;
+}
+
+.estado {
+  font-size: 0.95rem;
+  color: #475569;
+}

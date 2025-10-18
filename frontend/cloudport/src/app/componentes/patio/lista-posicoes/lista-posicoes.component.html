@@ -1,0 +1,39 @@
+<section class="lista-posicoes">
+  <header>
+    <h2>Posições do Pátio</h2>
+    <p>Consulte a disponibilidade de cada posição e identifique ocupações críticas.</p>
+    <button type="button" (click)="carregarPosicoes()" [disabled]="carregando">Atualizar posições</button>
+  </header>
+
+  <div class="estado" *ngIf="carregando">Carregando posições do pátio...</div>
+  <div class="estado erro" *ngIf="erro">{{ erro }}</div>
+
+  <table *ngIf="!carregando && !erro && posicoes.length" class="tabela-posicoes">
+    <thead>
+      <tr>
+        <th>Linha</th>
+        <th>Coluna</th>
+        <th>Camada</th>
+        <th>Ocupação</th>
+        <th>Contêiner</th>
+        <th>Status do contêiner</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let posicao of posicoes; trackBy: identificarPosicao">
+        <td>{{ posicao.linha }}</td>
+        <td>{{ posicao.coluna }}</td>
+        <td>{{ sanitizar(posicao.camadaOperacional) }}</td>
+        <td>
+          <span [class.ocupada]="posicao.ocupada" [class.livre]="!posicao.ocupada">{{ descricaoOcupacao(posicao) }}</span>
+        </td>
+        <td>{{ sanitizar(posicao.codigoConteiner) || '—' }}</td>
+        <td>{{ sanitizar(posicao.statusConteiner) || '—' }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="estado" *ngIf="!carregando && !erro && !posicoes.length">
+    Nenhuma posição foi encontrada no momento.
+  </div>
+</section>

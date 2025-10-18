@@ -1,0 +1,32 @@
+<section class="lista-movimentacoes">
+  <header>
+    <h2>Movimentações recentes</h2>
+    <p>Visualize os últimos registros de movimentação e acompanhe a operação em tempo real.</p>
+    <button type="button" (click)="carregarMovimentacoes()" [disabled]="carregando">Atualizar movimentações</button>
+  </header>
+
+  <div class="estado" *ngIf="carregando">Buscando movimentações...</div>
+  <div class="estado erro" *ngIf="erro">{{ erro }}</div>
+
+  <ul class="lista" *ngIf="!carregando && !erro && movimentacoes.length">
+    <li *ngFor="let movimento of movimentacoes; trackBy: identificarMovimento">
+      <div class="cabecalho">
+        <span class="tipo">{{ sanitizar(movimento.tipoMovimento) }}</span>
+        <span class="horario">{{ movimento.registradoEm | date: 'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      <div class="conteudo">
+        <span class="descricao">{{ sanitizar(movimento.descricao) }}</span>
+        <span class="conteiner" *ngIf="movimento.codigoConteiner">Contêiner: {{ sanitizar(movimento.codigoConteiner) }}</span>
+        <span class="destino" *ngIf="movimento.destino">Destino: {{ sanitizar(movimento.destino) }}</span>
+        <span class="posicao" *ngIf="movimento.linha !== undefined && movimento.coluna !== undefined">
+          Posição: Linha {{ movimento.linha }}, Coluna {{ movimento.coluna }}
+          <span *ngIf="movimento.camadaOperacional">- Camada {{ sanitizar(movimento.camadaOperacional) }}</span>
+        </span>
+      </div>
+    </li>
+  </ul>
+
+  <div class="estado" *ngIf="!carregando && !erro && !movimentacoes.length">
+    Nenhuma movimentação registrada nas últimas execuções.
+  </div>
+</section>

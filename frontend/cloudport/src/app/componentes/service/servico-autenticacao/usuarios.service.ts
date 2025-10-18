@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 
-import { environment as endpointConfig } from '../../service/endpoint';
+import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 
 export interface UsuarioResumo {
   id: string;
@@ -13,10 +13,14 @@ export interface UsuarioResumo {
 
 @Injectable({ providedIn: 'root' })
 export class UsuariosService {
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private configuracaoAplicacao: ConfiguracaoAplicacaoService
+  ) {}
 
   listarUsuarios(): Observable<UsuarioResumo[]> {
-    return this.http.get<UsuarioResumo[]>(endpointConfig.users.getAll).pipe(
+    const url = this.configuracaoAplicacao.construirUrlApi('/api/usuarios');
+    return this.http.get<UsuarioResumo[]>(url).pipe(
       map((usuarios) =>
         (usuarios ?? []).map((usuario) => ({
           ...usuario,

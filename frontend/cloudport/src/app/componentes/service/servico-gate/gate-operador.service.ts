@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, Subject, map, tap } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 import { GateApiService } from './gate-api.service';
 import {
   GateBloqueioRequest,
@@ -17,10 +17,6 @@ import { GateEnumOption } from '../../model/gate/agendamento.model';
   providedIn: 'root'
 })
 export class GateOperadorService implements OnDestroy {
-  private readonly operadorUrl = `${environment.baseApiUrl}/gate/operador`;
-  private readonly painelUrl = `${this.operadorUrl}/painel`;
-  private readonly eventosUrl = `${this.operadorUrl}/eventos`;
-
   private readonly painelSubject = new BehaviorSubject<GateOperadorPainel | null>(null);
   private readonly eventosSubject = new BehaviorSubject<GateOperadorEvento[]>([]);
   private readonly alertasSubject = new Subject<GateOperadorEvento>();
@@ -40,10 +36,14 @@ export class GateOperadorService implements OnDestroy {
   private eventSource: EventSource | null = null;
   private reconexaoTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private readonly http: HttpClient, private readonly gateApi: GateApiService) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly gateApi: GateApiService,
+    private readonly configuracaoAplicacao: ConfiguracaoAplicacaoService
+  ) {}
 
   carregarPainel(): Observable<GateOperadorPainel> {
-    return this.http.get<GateOperadorPainel>(this.painelUrl).pipe(
+    return this.http.get<GateOperadorPainel>(this.obterPainelUrl()).pipe(
       tap((painel) => {
         this.painelSubject.next(painel);
         if (painel.historico) {
@@ -54,7 +54,7 @@ export class GateOperadorService implements OnDestroy {
   }
 
   atualizarHistorico(): Observable<GateOperadorEvento[]> {
-    return this.http.get<GateOperadorEvento[]>(this.eventosUrl).pipe(
+    return this.http.get<GateOperadorEvento[]>(this.obterEventosUrl()).pipe(
       tap((eventos) => this.eventosSubject.next(eventos))
     );
   }
@@ -65,7 +65,7 @@ export class GateOperadorService implements OnDestroy {
     }
 
     this.conexaoStatusSubject.next('conectando');
-    const streamUrl = `${this.eventosUrl}/stream`;
+    const streamUrl = `${this.obterEventosUrl()}/stream`;
 
     try {
       this.eventSource = new EventSource(streamUrl);
@@ -109,25 +109,25 @@ export class GateOperadorService implements OnDestroy {
   }
 
   liberarVeiculo(veiculoId: number, payload: GateLiberacaoManualRequest): Observable<void> {
-    return this.http.post<void>(`${this.operadorUrl}/veiculos/${veiculoId}/liberacao`, payload).pipe(
+    return this.http.post<void>(`${this.obterOperadorUrl()}/veiculos/${veiculoId}/liberacao`, payload).pipe(
       tap(() => this.recarregarPainelComEvento())
     );
   }
 
   bloquearVeiculo(veiculoId: number, payload: GateBloqueioRequest): Observable<void> {
-    return this.http.post<void>(`${this.operadorUrl}/veiculos/${veiculoId}/bloqueio`, payload).pipe(
+    return this.http.post<void>(`${this.obterOperadorUrl()}/veiculos/${veiculoId}/bloqueio`, payload).pipe(
       tap(() => this.recarregarPainelComEvento())
     );
   }
 
   registrarOcorrencia(payload: GateOcorrenciaRequest): Observable<void> {
-    return this.http.post<void>(`${this.operadorUrl}/ocorrencias`, payload).pipe(
+    return this.http.post<void>(`${this.obterOperadorUrl()}/ocorrencias`, payload).pipe(
       tap(() => this.recarregarPainelComEvento())
     );
   }
 
   imprimirComprovante(veiculoId: number): Observable<void> {
-    return this.http.get(`${this.operadorUrl}/veiculos/${veiculoId}/comprovante`, {
+    return this.http.get(`${this.obterOperadorUrl()}/veiculos/${veiculoId}/comprovante`, {
       responseType: 'blob'
     }).pipe(
       tap((blob) => {
@@ -173,6 +173,18 @@ export class GateOperadorService implements OnDestroy {
     this.eventosSubject.complete();
     this.alertasSubject.complete();
     this.conexaoStatusSubject.complete();
+  }
+
+  private obterOperadorUrl(): string {
+    return this.configuracaoAplicacao.construirUrlApi('/gate/operador');
+  }
+
+  private obterPainelUrl(): string {
+    return `${this.obterOperadorUrl()}/painel`;
+  }
+
+  private obterEventosUrl(): string {
+    return `${this.obterOperadorUrl()}/eventos`;
   }
 
   private recarregarPainelComEvento(): void {

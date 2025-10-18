@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, OnDestroy } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-import { environment } from '../../service/endpoint';
+import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 import { ClienteStompBasico, ManipuladorErro, ManipuladorMensagem } from './cliente-stomp-basico';
 
 export interface ConteinerMapa {
@@ -89,39 +89,42 @@ export class ServicoPatioService implements OnDestroy {
   private sujeitoAtualizacoes = new Subject<EventoTempoRealMapa>();
   private conectado = false;
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly configuracaoAplicacao: ConfiguracaoAplicacaoService
+  ) {}
 
   obterMapa(filtro: FiltroConsultaMapa): Observable<MapaPatioResposta> {
     const params = this.construirParametros(filtro);
-    return this.http.get<MapaPatioResposta>(environment.patio.mapa, { params });
+    return this.http.get<MapaPatioResposta>(this.construirUrl('/mapa'), { params });
   }
 
   obterFiltros(): Observable<FiltrosMapaPatio> {
-    return this.http.get<FiltrosMapaPatio>(environment.patio.filtros);
+    return this.http.get<FiltrosMapaPatio>(this.construirUrl('/filtros'));
   }
 
   listarPosicoes(): Observable<PosicaoPatio[]> {
-    return this.http.get<PosicaoPatio[]>(environment.patio.posicoes);
+    return this.http.get<PosicaoPatio[]>(this.construirUrl('/posicoes'));
   }
 
   listarConteineres(): Observable<ConteinerMapa[]> {
-    return this.http.get<ConteinerMapa[]>(environment.patio.listaConteineres);
+    return this.http.get<ConteinerMapa[]>(this.construirUrl('/conteineres'));
   }
 
   listarMovimentacoes(): Observable<MovimentoPatio[]> {
-    return this.http.get<MovimentoPatio[]>(environment.patio.movimentacoes);
+    return this.http.get<MovimentoPatio[]>(this.construirUrl('/movimentacoes'));
   }
 
   obterOpcoesCadastro(): Observable<OpcoesCadastroPatio> {
-    return this.http.get<OpcoesCadastroPatio>(environment.patio.opcoes);
+    return this.http.get<OpcoesCadastroPatio>(this.construirUrl('/opcoes'));
   }
 
   salvarConteiner(payload: ConteinerMapa): Observable<ConteinerMapa> {
-    return this.http.post<ConteinerMapa>(environment.patio.conteineres, payload);
+    return this.http.post<ConteinerMapa>(this.construirUrl('/conteineres'), payload);
   }
 
   salvarEquipamento(payload: EquipamentoMapa): Observable<EquipamentoMapa> {
-    return this.http.post<EquipamentoMapa>(environment.patio.equipamentos, payload);
+    return this.http.post<EquipamentoMapa>(this.construirUrl('/equipamentos'), payload);
   }
 
   iniciarMonitoramentoTempoReal(): Observable<EventoTempoRealMapa> {
@@ -137,7 +140,7 @@ export class ServicoPatioService implements OnDestroy {
   }
 
   private conectarTempoReal(): void {
-    this.clienteStomp = new ClienteStompBasico(environment.patio.websocket);
+    this.clienteStomp = new ClienteStompBasico(this.obterUrlWebsocket());
     const manipuladorMensagem: ManipuladorMensagem = (corpo) => {
       try {
         const evento: EventoTempoRealMapa = JSON.parse(corpo);
@@ -153,6 +156,14 @@ export class ServicoPatioService implements OnDestroy {
 
     this.clienteStomp.conectar('/topico/patio', manipuladorMensagem, manipuladorErro);
     this.conectado = true;
+  }
+
+  private construirUrl(caminho: string): string {
+    return this.configuracaoAplicacao.construirUrlApi(`/yard/patio${caminho}`);
+  }
+
+  private obterUrlWebsocket(): string {
+    return this.configuracaoAplicacao.construirUrlWebsocket('/ws/patio');
   }
 
   private construirParametros(filtro: FiltroConsultaMapa): HttpParams {

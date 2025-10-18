@@ -4,6 +4,10 @@ CloudPort é um Terminal Operating System (TOS) modular construído sobre micros
 
 ## Visão geral da arquitetura
 
+### Política de Nomenclatura em Português do Brasil
+
+Toda a plataforma segue a [Política de Nomenclatura e Tradução em Português do Brasil](docs/politica-nomenclatura-ptbr.md). A política determina como entidades, variáveis, rotas e mensagens devem ser registradas, além de trazer o checklist obrigatório de revisão linguística. Antes de criar ou alterar qualquer funcionalidade, alinhe os termos com o Product Owner e registre a comunicação no canal `#cloudport-dev` conforme orientado no documento.
+
 O diagrama abaixo resume os blocos principais que suportam o fluxo operacional de gate:
 
 ```mermaid

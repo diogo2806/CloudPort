@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 import {
   Agendamento,
   AgendamentoFiltro,
@@ -20,20 +20,26 @@ import {
   providedIn: 'root'
 })
 export class GateApiService {
-  private readonly baseUrl = `${environment.baseApiUrl}/gate`;
-  private readonly agendamentosUrl = `${this.baseUrl}/agendamentos`;
-  private readonly janelasUrl = `${this.baseUrl}/janelas`;
-  private readonly configUrl = `${this.baseUrl}/config`;
+  private readonly agendamentosSegmento = '/agendamentos';
+  private readonly janelasSegmento = '/janelas';
+  private readonly configSegmento = '/config';
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly configuracaoAplicacao: ConfiguracaoAplicacaoService
+  ) {}
+
+  private get baseUrl(): string {
+    return this.configuracaoAplicacao.construirUrlApi('/gate');
+  }
 
   listarAgendamentos(filtro?: AgendamentoFiltro): Observable<Page<Agendamento>> {
     const params = this.buildParams(filtro);
-    return this.http.get<Page<Agendamento>>(this.agendamentosUrl, { params });
+    return this.http.get<Page<Agendamento>>(this.construirUrlAgendamentos(), { params });
   }
 
   obterAgendamentoPorId(id: number): Observable<Agendamento> {
-    return this.http.get<Agendamento>(`${this.agendamentosUrl}/${id}`);
+    return this.http.get<Agendamento>(`${this.construirUrlAgendamentos()}/${id}`);
   }
 
   confirmarChegadaAntecipada(id: number): Observable<Agendamento> {
@@ -41,68 +47,68 @@ export class GateApiService {
   }
 
   revalidarDocumentos(id: number): Observable<Agendamento> {
-    return this.http.post<Agendamento>(`${this.agendamentosUrl}/${id}/documentos/revalidar`, {});
+    return this.http.post<Agendamento>(`${this.construirUrlAgendamentos()}/${id}/documentos/revalidar`, {});
   }
 
   criarAgendamento(request: AgendamentoRequest): Observable<Agendamento> {
-    return this.http.post<Agendamento>(this.agendamentosUrl, request);
+    return this.http.post<Agendamento>(this.construirUrlAgendamentos(), request);
   }
 
   atualizarAgendamento(id: number, request: AgendamentoRequest): Observable<Agendamento> {
-    return this.http.put<Agendamento>(`${this.agendamentosUrl}/${id}`, request);
+    return this.http.put<Agendamento>(`${this.construirUrlAgendamentos()}/${id}`, request);
   }
 
   cancelarAgendamento(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.agendamentosUrl}/${id}`);
+    return this.http.delete<void>(`${this.construirUrlAgendamentos()}/${id}`);
   }
 
   listarJanelas(filtro?: JanelaFiltro): Observable<Page<JanelaAtendimento>> {
     const params = this.buildParams(filtro);
-    return this.http.get<Page<JanelaAtendimento>>(this.janelasUrl, { params });
+    return this.http.get<Page<JanelaAtendimento>>(this.construirUrlJanelas(), { params });
   }
 
   obterJanelaPorId(id: number): Observable<JanelaAtendimento> {
-    return this.http.get<JanelaAtendimento>(`${this.janelasUrl}/${id}`);
+    return this.http.get<JanelaAtendimento>(`${this.construirUrlJanelas()}/${id}`);
   }
 
   criarJanela(request: JanelaAtendimentoRequest): Observable<JanelaAtendimento> {
-    return this.http.post<JanelaAtendimento>(this.janelasUrl, request);
+    return this.http.post<JanelaAtendimento>(this.construirUrlJanelas(), request);
   }
 
   atualizarJanela(id: number, request: JanelaAtendimentoRequest): Observable<JanelaAtendimento> {
-    return this.http.put<JanelaAtendimento>(`${this.janelasUrl}/${id}`, request);
+    return this.http.put<JanelaAtendimento>(`${this.construirUrlJanelas()}/${id}`, request);
   }
 
   removerJanela(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.janelasUrl}/${id}`);
+    return this.http.delete<void>(`${this.construirUrlJanelas()}/${id}`);
   }
 
   listarTiposOperacao(): Observable<GateEnumOption[]> {
-    return this.http.get<GateEnumOption[]>(`${this.configUrl}/tipos-operacao`);
+    return this.http.get<GateEnumOption[]>(`${this.construirUrlConfig()}/tipos-operacao`);
   }
 
   listarStatusAgendamento(): Observable<GateEnumOption[]> {
-    return this.http.get<GateEnumOption[]>(`${this.configUrl}/status-agendamento`);
+    return this.http.get<GateEnumOption[]>(`${this.construirUrlConfig()}/status-agendamento`);
   }
 
   listarStatusGate(): Observable<GateEnumOption[]> {
-    return this.http.get<GateEnumOption[]>(`${this.configUrl}/status-gate`);
+    return this.http.get<GateEnumOption[]>(`${this.construirUrlConfig()}/status-gate`);
   }
 
   listarMotivosExcecao(): Observable<GateEnumOption[]> {
-    return this.http.get<GateEnumOption[]>(`${this.configUrl}/motivos-excecao`);
+    return this.http.get<GateEnumOption[]>(`${this.construirUrlConfig()}/motivos-excecao`);
   }
 
   listarCanaisEntrada(): Observable<GateEnumOption[]> {
-    return this.http.get<GateEnumOption[]>(`${this.configUrl}/canais-entrada`);
+    return this.http.get<GateEnumOption[]>(`${this.construirUrlConfig()}/canais-entrada`);
   }
 
   listarTiposOcorrencia(): Observable<GateEnumOption[]> {
-    return this.http.get<GateEnumOption[]>(`${this.configUrl}/tipos-ocorrencia`);
+    return this.http.get<GateEnumOption[]>(`${this.construirUrlConfig()}/tipos-ocorrencia`);
   }
 
   listarNiveisEvento(): Observable<GateEnumOption[]> {
-    return this.http.get<GateEnumOption[]>(`${this.configUrl}/niveis-evento`);
+    return this.http.get<GateEnumOption[]>(`${this.construirUrlConfig()}/niveis-evento`);
   }
 
   uploadDocumentoAgendamento(id: number, arquivo: File): Observable<HttpEvent<DocumentoAgendamento>> {
@@ -113,7 +119,7 @@ export class GateApiService {
     };
     formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     formData.append('arquivo', arquivo, arquivo.name);
-    return this.http.post<DocumentoAgendamento>(`${this.agendamentosUrl}/${id}/documentos`, formData, {
+    return this.http.post<DocumentoAgendamento>(`${this.construirUrlAgendamentos()}/${id}/documentos`, formData, {
       reportProgress: true,
       observe: 'events'
     });
@@ -143,5 +149,17 @@ export class GateApiService {
       });
 
     return params;
+  }
+
+  private construirUrlAgendamentos(): string {
+    return `${this.baseUrl}${this.agendamentosSegmento}`;
+  }
+
+  private construirUrlJanelas(): string {
+    return `${this.baseUrl}${this.janelasSegmento}`;
+  }
+
+  private construirUrlConfig(): string {
+    return `${this.baseUrl}${this.configSegmento}`;
   }
 }

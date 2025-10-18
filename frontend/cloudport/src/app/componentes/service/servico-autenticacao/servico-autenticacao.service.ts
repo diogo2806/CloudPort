@@ -4,7 +4,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { User } from '../../model/user.model';
-import { environment } from '../../../../environments/environment';
+import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 
 @Injectable({ providedIn: 'root' })
 export class ServicoAutenticacao {
@@ -13,7 +13,10 @@ export class ServicoAutenticacao {
     private readonly statusMenu$: BehaviorSubject<boolean>;
     public readonly statusMenuObservavel: Observable<boolean>;
 
-    constructor(private readonly http: HttpClient) {
+    constructor(
+        private readonly http: HttpClient,
+        private readonly configuracaoAplicacao: ConfiguracaoAplicacaoService
+    ) {
         const dadosArmazenados = localStorage.getItem('usuarioAtual');
         const usuarioArmazenado = dadosArmazenados ? JSON.parse(dadosArmazenados) : null;
         const usuarioAtual = usuarioArmazenado ? this.mapearParaUsuario(usuarioArmazenado) : null;
@@ -28,7 +31,7 @@ export class ServicoAutenticacao {
     }
 
     autenticar(login: string, senha: string) {
-        const url = `${environment.baseApiUrl}/auth/login`;
+        const url = this.configuracaoAplicacao.construirUrlApi('/auth/login');
         const loginSanitizado = this.sanitizarTextoSimples(login);
         const senhaSanitizada = this.sanitizarTextoSimples(senha);
         return this.http.post<any>(url, { login: loginSanitizado, senha: senhaSanitizada })

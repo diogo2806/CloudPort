@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment as endpointConfig } from '../endpoint';
+import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 
 export interface OpcaoPrivacidade {
   id: string;
@@ -11,9 +11,13 @@ export interface OpcaoPrivacidade {
 
 @Injectable({ providedIn: 'root' })
 export class PrivacidadeService {
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly configuracaoAplicacao: ConfiguracaoAplicacaoService
+  ) {}
 
   listarOpcoes(): Observable<OpcaoPrivacidade[]> {
-    return this.http.get<OpcaoPrivacidade[]>(endpointConfig.configuracoes.privacidade);
+    const url = this.configuracaoAplicacao.construirUrlApi('/api/configuracoes/privacidade');
+    return this.http.get<OpcaoPrivacidade[]>(url);
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 import { DashboardFiltro, DashboardResumo } from '../../model/gate/dashboard.model';
 import { GateEnumOption } from '../../model/gate/agendamento.model';
 
@@ -9,19 +9,19 @@ import { GateEnumOption } from '../../model/gate/agendamento.model';
   providedIn: 'root'
 })
 export class GateDashboardService {
-  private readonly dashboardUrl = `${environment.baseApiUrl}/gate/dashboard`;
-  private readonly configUrl = `${environment.baseApiUrl}/gate/config`;
-
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly configuracaoAplicacao: ConfiguracaoAplicacaoService
+  ) {}
 
   consultarResumo(filtro?: DashboardFiltro): Observable<DashboardResumo> {
     const params = this.buildParams(filtro);
-    return this.http.get<DashboardResumo>(this.dashboardUrl, { params });
+    return this.http.get<DashboardResumo>(this.obterDashboardUrl(), { params });
   }
 
   exportarResumo(formato: 'csv' | 'xlsx', filtro?: DashboardFiltro): Observable<Blob> {
     const params = this.buildParams(filtro);
-    const endpoint = `${this.dashboardUrl}/relatorios/${formato}`;
+    const endpoint = `${this.obterDashboardUrl()}/relatorios/${formato}`;
     const headers = formato === 'csv'
       ? { Accept: 'text/csv' }
       : { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
@@ -33,17 +33,18 @@ export class GateDashboardService {
   }
 
   listarTiposOperacao(): Observable<GateEnumOption[]> {
-    return this.http.get<GateEnumOption[]>(`${this.configUrl}/tipos-operacao`);
+    return this.http.get<GateEnumOption[]>(`${this.obterConfigUrl()}/tipos-operacao`);
   }
 
   listarTransportadoras(): Observable<GateEnumOption[]> {
-    return this.http.get<GateEnumOption[]>(`${this.configUrl}/transportadoras`);
+    return this.http.get<GateEnumOption[]>(`${this.obterConfigUrl()}/transportadoras`);
   }
 
   registrarStream(filtro?: DashboardFiltro): EventSource {
     const params = this.buildParams(filtro);
     const query = params.toString();
-    const url = query ? `${this.dashboardUrl}/stream?${query}` : `${this.dashboardUrl}/stream`;
+    const urlBase = this.obterDashboardUrl();
+    const url = query ? `${urlBase}/stream?${query}` : `${urlBase}/stream`;
     return new EventSource(url, { withCredentials: true });
   }
 
@@ -60,5 +61,12 @@ export class GateDashboardService {
       });
 
     return params;
+  }
+  private obterDashboardUrl(): string {
+    return this.configuracaoAplicacao.construirUrlApi('/gate/dashboard');
+  }
+
+  private obterConfigUrl(): string {
+    return this.configuracaoAplicacao.construirUrlApi('/gate/config');
   }
 }

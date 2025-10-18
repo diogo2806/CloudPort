@@ -1,6 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 
 export type AgendamentoRealtimeEventType =
   | 'snapshot'
@@ -31,7 +31,10 @@ export class AgendamentoRealtimeService {
   private readonly retryTimers = new Map<number, number>();
   private readonly retryAttempts = new Map<number, number>();
 
-  constructor(private readonly zone: NgZone) {}
+  constructor(
+    private readonly zone: NgZone,
+    private readonly configuracaoAplicacao: ConfiguracaoAplicacaoService
+  ) {}
 
   conectar(agendamentoId: number): Observable<AgendamentoRealtimeEvent> {
     return new Observable<AgendamentoRealtimeEvent>((subscriber) => {
@@ -76,7 +79,7 @@ export class AgendamentoRealtimeService {
         limparTimer();
         fecharFonte();
 
-        const url = `${environment.baseApiUrl}/gate/agendamentos/${agendamentoId}/stream`;
+        const url = this.configuracaoAplicacao.construirUrlApi(`/gate/agendamentos/${agendamentoId}/stream`);
         const eventSource = new EventSource(url, { withCredentials: true });
         this.sources.set(agendamentoId, eventSource);
 

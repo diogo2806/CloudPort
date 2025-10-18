@@ -1,4 +1,8 @@
 export const environment = {
   production: true,
-  baseApiUrl: 'https://8080-diogo2806-cloudport-z3o7260rnlo.ws-us104.gitpod.io'
+  /**
+   * A URL base da API é definida em tempo de execução via arquivo assets/configuracao.json.
+   * Esta propriedade permanece apenas para compatibilidade de build e não deve ser utilizada diretamente.
+   */
+  baseApiUrl: ''
 };

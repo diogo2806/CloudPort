@@ -1,7 +1,7 @@
 /* role.component.ts */
 import { Component, OnInit, ViewChild  } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { environment } from '../../../../environments/environment';
+import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 import { ServicoAutenticacao } from '../../service/servico-autenticacao/servico-autenticacao.service';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
@@ -45,12 +45,13 @@ export class RoleTabelaComponent  implements OnInit, AfterViewInit {
 
 
   constructor(
-    private http: HttpClient, 
+    private http: HttpClient,
     private servicoAutenticacao: ServicoAutenticacao,
     private tabService: TabService,
     private renderer: Renderer2,
-    private popupService: PopupService
-  ) { 
+    private popupService: PopupService,
+    private configuracaoAplicacao: ConfiguracaoAplicacaoService
+  ) {
 
    
 
@@ -234,7 +235,7 @@ closeContextMenu(event: MouseEvent) {
       })
     };
 
-    const url = `${environment.baseApiUrl}/api/roles`;
+    const url = this.obterUrlRoles();
     this.http.get<any[]>(url, httpOptions)
       .pipe(catchError((error: any) => {
         window.alert(error.message); // Aqui o popup é criado
@@ -269,7 +270,7 @@ closeContextMenu(event: MouseEvent) {
     // Aplica trim(), toUpperCase() e substitui espaços por sublinhados
     const roleName = this.roleName.trim().toUpperCase().replace(' ', '_');
 
-    const createUrl = `${environment.baseApiUrl}/api/roles`;
+    const createUrl = this.obterUrlRoles();
     this.http.post(createUrl, { name: roleName }, httpOptions)
         .pipe(catchError((error: any) => {
             window.alert(error.message); // Aqui o popup é criado
@@ -296,7 +297,7 @@ closeContextMenu(event: MouseEvent) {
     // Aplica trim(), toUpperCase() e substitui espaços por sublinhados roleName
     const roleName = this.roleName.trim().toUpperCase().replace(' ', '_');
 
-    const updateUrl = `${environment.baseApiUrl}/api/roles/${roleId}`;
+    const updateUrl = `${this.obterUrlRoles()}/${roleId}`;
     this.http.put(updateUrl, { name: roleName}, httpOptions)
         .pipe(catchError((error: any) => {
             window.alert(error.message); // Aqui o popup é criado
@@ -320,7 +321,7 @@ closeContextMenu(event: MouseEvent) {
         })
     };
 
-    const deleteUrl = `${environment.baseApiUrl}/api/roles/${roleId}`;
+    const deleteUrl = `${this.obterUrlRoles()}/${roleId}`;
     this.http.delete(deleteUrl, httpOptions)
       .pipe(catchError((error: any) => {
           if (error.status === 409) {
@@ -410,8 +411,8 @@ closeContextMenu(event: MouseEvent) {
       document.removeEventListener('contextmenu', this.boundHandleTableContextMenu);
     }
 
-    
+    private obterUrlRoles(): string {
+      return this.configuracaoAplicacao.construirUrlApi('/api/roles');
+    }
 
-
-    
 }

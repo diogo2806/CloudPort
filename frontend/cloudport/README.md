@@ -2,26 +2,46 @@
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 16.1.5.
 
-## Development server
+# CloudPort Front-end
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## Configuração dinâmica da URL da API
 
-## Code scaffolding
+A URL base consumida pelo front-end é definida em tempo de execução por meio do arquivo `src/assets/configuracao.json`. Esse arquivo é lido antes da inicialização do Angular e disponibilizado para todos os serviços através do `ConfiguracaoAplicacaoService`.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+1. Copie o arquivo de exemplo:
+   ```bash
+   cp src/assets/configuracao.exemplo.json src/assets/configuracao.json
+   ```
+2. Edite o arquivo `src/assets/configuracao.json` e informe o valor desejado para `baseApiUrl`, por exemplo:
+   ```json
+   {
+     "baseApiUrl": "http://localhost:8080"
+   }
+   ```
+3. Inicie a aplicação normalmente com `npm start` ou `ng serve`.
+
+Caso o arquivo não exista, esteja inacessível ou não contenha o campo `baseApiUrl`, a aplicação interromperá o carregamento e exibirá uma mensagem em português orientando sobre o problema.
+
+## Servidor de desenvolvimento
+
+Execute `ng serve` para iniciar o servidor de desenvolvimento. Acesse `http://localhost:4200/`. A aplicação será recarregada automaticamente sempre que qualquer arquivo fonte for alterado.
+
+## Geração de código
+
+Execute `ng generate component component-name` para criar um novo componente. Também é possível usar `ng generate directive|pipe|service|class|guard|interface|enum|module` conforme a necessidade.
 
 ## Build
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+Execute `ng build` para gerar o build do projeto. Os artefatos ficarão armazenados na pasta `dist/`.
 
-## Running unit tests
+## Testes unitários
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+Execute `ng test` para rodar os testes unitários com o [Karma](https://karma-runner.github.io).
 
-## Running end-to-end tests
+## Testes fim a fim
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+Execute `ng e2e` para rodar os testes fim a fim na plataforma desejada. Para utilizar esse comando é necessário adicionar previamente um pacote que implemente os recursos de testes e2e.
 
-## Further help
+## Ajuda adicional
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+Para mais informações sobre o Angular CLI utilize `ng help` ou consulte a [documentação oficial do Angular CLI](https://angular.io/cli).

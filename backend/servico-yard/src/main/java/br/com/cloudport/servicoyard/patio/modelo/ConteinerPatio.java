@@ -5,9 +5,12 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 @Entity
@@ -21,24 +24,20 @@ public class ConteinerPatio {
     @Column(name = "codigo", nullable = false, length = 30, unique = true)
     private String codigo;
 
-    @Column(name = "linha", nullable = false)
-    private Integer linha;
-
-    @Column(name = "coluna", nullable = false)
-    private Integer coluna;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status_conteiner", nullable = false, length = 30)
     private StatusConteiner status;
 
-    @Column(name = "tipo_carga", nullable = false, length = 40)
-    private String tipoCarga;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "carga_id", nullable = false)
+    private CargaPatio carga;
 
     @Column(name = "destino", nullable = false, length = 60)
     private String destino;
 
-    @Column(name = "camada_operacional", nullable = false, length = 40)
-    private String camadaOperacional;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "posicao_id", nullable = false)
+    private PosicaoPatio posicao;
 
     @Column(name = "atualizado_em", nullable = false)
     private LocalDateTime atualizadoEm;
@@ -46,16 +45,15 @@ public class ConteinerPatio {
     public ConteinerPatio() {
     }
 
-    public ConteinerPatio(Long id, String codigo, Integer linha, Integer coluna, StatusConteiner status,
-                          String tipoCarga, String destino, String camadaOperacional, LocalDateTime atualizadoEm) {
+    public ConteinerPatio(Long id, String codigo, StatusConteiner status,
+                          CargaPatio carga, String destino, PosicaoPatio posicao,
+                          LocalDateTime atualizadoEm) {
         this.id = id;
         this.codigo = codigo;
-        this.linha = linha;
-        this.coluna = coluna;
         this.status = status;
-        this.tipoCarga = tipoCarga;
+        this.carga = carga;
         this.destino = destino;
-        this.camadaOperacional = camadaOperacional;
+        this.posicao = posicao;
         this.atualizadoEm = atualizadoEm;
     }
 
@@ -75,20 +73,20 @@ public class ConteinerPatio {
         this.codigo = codigo;
     }
 
-    public Integer getLinha() {
-        return linha;
+    public CargaPatio getCarga() {
+        return carga;
     }
 
-    public void setLinha(Integer linha) {
-        this.linha = linha;
+    public void setCarga(CargaPatio carga) {
+        this.carga = carga;
     }
 
-    public Integer getColuna() {
-        return coluna;
+    public PosicaoPatio getPosicao() {
+        return posicao;
     }
 
-    public void setColuna(Integer coluna) {
-        this.coluna = coluna;
+    public void setPosicao(PosicaoPatio posicao) {
+        this.posicao = posicao;
     }
 
     public StatusConteiner getStatus() {
@@ -99,28 +97,12 @@ public class ConteinerPatio {
         this.status = status;
     }
 
-    public String getTipoCarga() {
-        return tipoCarga;
-    }
-
-    public void setTipoCarga(String tipoCarga) {
-        this.tipoCarga = tipoCarga;
-    }
-
     public String getDestino() {
         return destino;
     }
 
     public void setDestino(String destino) {
         this.destino = destino;
-    }
-
-    public String getCamadaOperacional() {
-        return camadaOperacional;
-    }
-
-    public void setCamadaOperacional(String camadaOperacional) {
-        this.camadaOperacional = camadaOperacional;
     }
 
     public LocalDateTime getAtualizadoEm() {

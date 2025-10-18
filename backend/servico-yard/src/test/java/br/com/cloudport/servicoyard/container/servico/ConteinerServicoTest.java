@@ -6,6 +6,7 @@ import br.com.cloudport.servicoyard.container.dto.RegistroAlocacaoDTO;
 import br.com.cloudport.servicoyard.container.dto.RegistroLiberacaoDTO;
 import br.com.cloudport.servicoyard.container.dto.RegistroTransferenciaDTO;
 import br.com.cloudport.servicoyard.container.entidade.TipoCargaConteiner;
+import br.com.cloudport.servicoyard.testes.BaseIntegracaoPostgresTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class ConteinerServicoTest {
+class ConteinerServicoTest extends BaseIntegracaoPostgresTest {
 
     @Autowired
     private ConteinerServico conteinerServico;

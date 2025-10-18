@@ -9,10 +9,18 @@ import br.com.cloudport.servicoyard.patio.dto.EventoMapaTempoRealDto;
 import br.com.cloudport.servicoyard.patio.dto.FiltrosMapaPatioDto;
 import br.com.cloudport.servicoyard.patio.dto.MapaPatioFiltro;
 import br.com.cloudport.servicoyard.patio.dto.MapaPatioRespostaDto;
+import br.com.cloudport.servicoyard.patio.dto.EventoMovimentoPatioDto;
 import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
+import br.com.cloudport.servicoyard.patio.modelo.CargaPatio;
 import br.com.cloudport.servicoyard.patio.modelo.EquipamentoPatio;
+import br.com.cloudport.servicoyard.patio.modelo.MovimentoPatio;
+import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
+import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.EquipamentoPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.repositorio.CargaPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.repositorio.MovimentoPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.repositorio.PosicaoPatioRepositorio;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -23,6 +31,7 @@ import java.util.stream.Collectors;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.HtmlUtils;
 
 @Service
 public class MapaPatioServico {
@@ -31,19 +40,31 @@ public class MapaPatioServico {
 
     private final ConteinerPatioRepositorio conteinerPatioRepositorio;
     private final EquipamentoPatioRepositorio equipamentoPatioRepositorio;
+    private final PosicaoPatioRepositorio posicaoPatioRepositorio;
+    private final CargaPatioRepositorio cargaPatioRepositorio;
+    private final MovimentoPatioRepositorio movimentoPatioRepositorio;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PublicadorEventoMovimentoPatio publicadorEventoMovimentoPatio;
 
     public MapaPatioServico(ConteinerPatioRepositorio conteinerPatioRepositorio,
                              EquipamentoPatioRepositorio equipamentoPatioRepositorio,
-                             SimpMessagingTemplate messagingTemplate) {
+                             PosicaoPatioRepositorio posicaoPatioRepositorio,
+                             CargaPatioRepositorio cargaPatioRepositorio,
+                             MovimentoPatioRepositorio movimentoPatioRepositorio,
+                             SimpMessagingTemplate messagingTemplate,
+                             PublicadorEventoMovimentoPatio publicadorEventoMovimentoPatio) {
         this.conteinerPatioRepositorio = conteinerPatioRepositorio;
         this.equipamentoPatioRepositorio = equipamentoPatioRepositorio;
+        this.posicaoPatioRepositorio = posicaoPatioRepositorio;
+        this.cargaPatioRepositorio = cargaPatioRepositorio;
+        this.movimentoPatioRepositorio = movimentoPatioRepositorio;
         this.messagingTemplate = messagingTemplate;
+        this.publicadorEventoMovimentoPatio = publicadorEventoMovimentoPatio;
     }
 
     @Transactional(readOnly = true)
     public MapaPatioRespostaDto consultarMapa(MapaPatioFiltro filtro) {
-        List<ConteinerPatio> conteineres = conteinerPatioRepositorio.findAllByOrderByLinhaAscColunaAsc();
+        List<ConteinerPatio> conteineres = conteinerPatioRepositorio.findAllByOrderByPosicaoLinhaAscPosicaoColunaAsc();
         List<EquipamentoPatio> equipamentos = equipamentoPatioRepositorio.findAllByOrderByTipoEquipamentoAscIdentificadorAsc();
 
         List<ConteinerMapaDto> conteineresFiltrados = conteineres.stream()
@@ -56,9 +77,13 @@ public class MapaPatioServico {
                 .map(this::converterEquipamento)
                 .collect(Collectors.toList());
 
-        int totalLinhas = conteineres.stream().map(ConteinerPatio::getLinha).max(Integer::compareTo)
+        int totalLinhas = conteineres.stream()
+                .map(conteiner -> conteiner.getPosicao().getLinha())
+                .max(Integer::compareTo)
                 .orElse(0);
-        int totalColunas = conteineres.stream().map(ConteinerPatio::getColuna).max(Integer::compareTo)
+        int totalColunas = conteineres.stream()
+                .map(conteiner -> conteiner.getPosicao().getColuna())
+                .max(Integer::compareTo)
                 .orElse(0);
         LocalDateTime ultimaAtualizacao = conteineres.stream()
                 .map(ConteinerPatio::getAtualizadoEm)
@@ -79,15 +104,15 @@ public class MapaPatioServico {
                 .collect(Collectors.toCollection(TreeSet::new));
 
         Set<String> tiposCarga = conteineres.stream()
-                .map(ConteinerPatio::getTipoCarga)
+                .map(conteiner -> escapar(conteiner.getCarga().getCodigo()))
                 .collect(Collectors.toCollection(TreeSet::new));
 
         Set<String> destinos = conteineres.stream()
-                .map(ConteinerPatio::getDestino)
+                .map(conteiner -> escapar(conteiner.getDestino()))
                 .collect(Collectors.toCollection(TreeSet::new));
 
         Set<String> camadas = conteineres.stream()
-                .map(ConteinerPatio::getCamadaOperacional)
+                .map(conteiner -> escapar(conteiner.getPosicao().getCamadaOperacional()))
                 .collect(Collectors.toCollection(TreeSet::new));
 
         Set<String> tiposEquipamento = equipamentos.stream()
@@ -106,16 +131,20 @@ public class MapaPatioServico {
     @Transactional
     public ConteinerMapaDto registrarOuAtualizarConteiner(ConteinerPatioRequisicaoDto requisicaoDto) {
         ConteinerPatio conteiner = localizarConteiner(requisicaoDto);
+        boolean novoConteiner = conteiner.getId() == null;
+
+        PosicaoPatio posicao = obterOuCriarPosicao(requisicaoDto);
+        CargaPatio carga = obterOuCriarCarga(requisicaoDto.getTipoCarga());
+
         conteiner.setCodigo(requisicaoDto.getCodigo());
-        conteiner.setLinha(requisicaoDto.getLinha());
-        conteiner.setColuna(requisicaoDto.getColuna());
+        conteiner.setPosicao(posicao);
         conteiner.setStatus(requisicaoDto.getStatus());
-        conteiner.setTipoCarga(requisicaoDto.getTipoCarga());
+        conteiner.setCarga(carga);
         conteiner.setDestino(requisicaoDto.getDestino());
-        conteiner.setCamadaOperacional(requisicaoDto.getCamadaOperacional());
         conteiner.setAtualizadoEm(requisicaoDto.gerarHorarioAtualizacao());
 
         ConteinerPatio salvo = conteinerPatioRepositorio.save(conteiner);
+        registrarMovimento(salvo, novoConteiner ? TipoMovimentoPatio.ALOCACAO : TipoMovimentoPatio.ATUALIZACAO);
         publicarAtualizacaoTempoReal();
         return converterConteiner(salvo);
     }
@@ -153,9 +182,9 @@ public class MapaPatioServico {
 
     private boolean filtrarConteiner(ConteinerPatio conteiner, MapaPatioFiltro filtro) {
         return verificarFiltro(filtro.getStatus(), conteiner.getStatus().name())
-                && verificarFiltro(filtro.getTiposCarga(), conteiner.getTipoCarga())
+                && verificarFiltro(filtro.getTiposCarga(), conteiner.getCarga().getCodigo())
                 && verificarFiltro(filtro.getDestinos(), conteiner.getDestino())
-                && verificarFiltro(filtro.getCamadasOperacionais(), conteiner.getCamadaOperacional());
+                && verificarFiltro(filtro.getCamadasOperacionais(), conteiner.getPosicao().getCamadaOperacional());
     }
 
     private boolean filtrarEquipamento(EquipamentoPatio equipamento, MapaPatioFiltro filtro) {
@@ -178,6 +207,65 @@ public class MapaPatioServico {
         return existente.orElseGet(ConteinerPatio::new);
     }
 
+    private PosicaoPatio obterOuCriarPosicao(ConteinerPatioRequisicaoDto requisicaoDto) {
+        return posicaoPatioRepositorio
+                .findByLinhaAndColunaAndCamadaOperacional(
+                        requisicaoDto.getLinha(),
+                        requisicaoDto.getColuna(),
+                        requisicaoDto.getCamadaOperacional())
+                .orElseGet(() -> {
+                    PosicaoPatio novaPosicao = new PosicaoPatio();
+                    novaPosicao.setLinha(requisicaoDto.getLinha());
+                    novaPosicao.setColuna(requisicaoDto.getColuna());
+                    novaPosicao.setCamadaOperacional(requisicaoDto.getCamadaOperacional());
+                    return posicaoPatioRepositorio.save(novaPosicao);
+                });
+    }
+
+    private CargaPatio obterOuCriarCarga(String codigoCarga) {
+        return cargaPatioRepositorio.findByCodigo(codigoCarga)
+                .orElseGet(() -> {
+                    CargaPatio novaCarga = new CargaPatio();
+                    novaCarga.setCodigo(codigoCarga);
+                    novaCarga.setDescricao(codigoCarga);
+                    return cargaPatioRepositorio.save(novaCarga);
+                });
+    }
+
+    private void registrarMovimento(ConteinerPatio conteiner, TipoMovimentoPatio tipoMovimento) {
+        MovimentoPatio movimento = new MovimentoPatio();
+        movimento.setConteiner(conteiner);
+        movimento.setTipoMovimento(tipoMovimento);
+        movimento.setDescricao(gerarDescricaoMovimento(conteiner, tipoMovimento));
+        movimento.setRegistradoEm(LocalDateTime.now());
+        MovimentoPatio registrado = movimentoPatioRepositorio.save(movimento);
+        publicadorEventoMovimentoPatio.publicar(criarEventoMovimento(conteiner, registrado));
+    }
+
+    private String gerarDescricaoMovimento(ConteinerPatio conteiner, TipoMovimentoPatio tipoMovimento) {
+        String base = tipoMovimento == TipoMovimentoPatio.ALOCACAO ? "Alocação" : "Atualização";
+        return String.format(Locale.ROOT,
+                "%s do contêiner %s para a posição (%d,%d) - camada %s",
+                base,
+                conteiner.getCodigo(),
+                conteiner.getPosicao().getLinha(),
+                conteiner.getPosicao().getColuna(),
+                conteiner.getPosicao().getCamadaOperacional());
+    }
+
+    private EventoMovimentoPatioDto criarEventoMovimento(ConteinerPatio conteiner, MovimentoPatio movimento) {
+        return new EventoMovimentoPatioDto(
+                escapar(conteiner.getCodigo()),
+                movimento.getTipoMovimento().name(),
+                escapar(movimento.getDescricao()),
+                escapar(conteiner.getDestino()),
+                conteiner.getPosicao().getLinha(),
+                conteiner.getPosicao().getColuna(),
+                escapar(conteiner.getPosicao().getCamadaOperacional()),
+                movimento.getRegistradoEm()
+        );
+    }
+
     private EquipamentoPatio localizarEquipamento(EquipamentoPatioRequisicaoDto requisicaoDto) {
         if (requisicaoDto.getId() != null) {
             return equipamentoPatioRepositorio.findById(requisicaoDto.getId())
@@ -190,20 +278,20 @@ public class MapaPatioServico {
     private ConteinerMapaDto converterConteiner(ConteinerPatio conteiner) {
         return new ConteinerMapaDto(
                 conteiner.getId(),
-                conteiner.getCodigo(),
-                conteiner.getLinha(),
-                conteiner.getColuna(),
+                escapar(conteiner.getCodigo()),
+                conteiner.getPosicao().getLinha(),
+                conteiner.getPosicao().getColuna(),
                 conteiner.getStatus(),
-                conteiner.getTipoCarga(),
-                conteiner.getDestino(),
-                conteiner.getCamadaOperacional()
+                escapar(conteiner.getCarga().getCodigo()),
+                escapar(conteiner.getDestino()),
+                escapar(conteiner.getPosicao().getCamadaOperacional())
         );
     }
 
     private EquipamentoMapaDto converterEquipamento(EquipamentoPatio equipamento) {
         return new EquipamentoMapaDto(
                 equipamento.getId(),
-                equipamento.getIdentificador(),
+                escapar(equipamento.getIdentificador()),
                 equipamento.getTipoEquipamento(),
                 equipamento.getLinha(),
                 equipamento.getColuna(),
@@ -215,5 +303,12 @@ public class MapaPatioServico {
         MapaPatioRespostaDto mapaAtual = consultarMapa(construirFiltro(List.of(), List.of(), List.of(), List.of(), List.of()));
         EventoMapaTempoRealDto evento = new EventoMapaTempoRealDto("ATUALIZACAO_MAPA", mapaAtual);
         messagingTemplate.convertAndSend(TOPICO_ATUALIZACOES, evento);
+    }
+
+    private String escapar(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        return HtmlUtils.htmlEscape(valor, "UTF-8");
     }
 }

@@ -2,6 +2,7 @@ package br.com.cloudport.servicoyard.container.controlador;
 
 import br.com.cloudport.servicoyard.container.entidade.TipoCargaConteiner;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import br.com.cloudport.servicoyard.testes.BaseIntegracaoPostgresTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -23,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class ConteinerControladorTest {
+class ConteinerControladorTest extends BaseIntegracaoPostgresTest {
 
     @Autowired
     private MockMvc mockMvc;

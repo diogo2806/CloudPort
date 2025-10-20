@@ -1,158 +1,225 @@
-.gate-agendamentos {
+.central-acao {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 24px;
-  background: linear-gradient(180deg, rgba(37, 99, 235, 0.05), transparent);
-  min-height: 100vh;
+  gap: 1.5rem;
+  padding: 1.5rem 1rem 2rem;
+  max-width: 960px;
+  margin: 0 auto;
 }
 
-.gate-agendamentos__cabecalho h2 {
+.central-acao__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.central-acao__cabecalho h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.central-acao__saudacao {
   margin: 0;
-  font-size: 2rem;
+  font-size: 0.95rem;
+  color: #274472;
+}
+
+.central-acao__patio {
+  background-color: rgba(39, 68, 114, 0.08);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   color: #1f2937;
 }
 
-.gate-agendamentos__cabecalho p {
-  margin: 6px 0 0;
-  color: #6b7280;
+.central-acao__mensagem {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
 }
 
-.gate-agendamentos__metricas {
+.central-acao__mensagem--erro {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: #991b1b;
+}
+
+.central-acao__mensagem--sucesso {
+  background-color: rgba(22, 163, 74, 0.1);
+  color: #047857;
+}
+
+.central-acao__cards {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.central-acao__card {
   background: #ffffff;
   border-radius: 16px;
-  padding: 20px 24px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  padding: 1.25rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
 }
 
-.metricas__cabecalho {
+.card-acao__cabecalho {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-acao__cabecalho-linha {
+  display: flex;
   justify-content: space-between;
-  gap: 12px;
+  align-items: baseline;
+  gap: 0.75rem;
 }
 
-.btn--terciario {
-  border: 1px solid rgba(37, 99, 235, 0.35);
-  background: rgba(37, 99, 235, 0.08);
-  color: #1d4ed8;
-  padding: 8px 18px;
-  border-radius: 999px;
+.card-acao__codigo {
   font-weight: 600;
-  transition: background 0.2s ease, transform 0.2s ease;
+  color: #1f2937;
 }
 
-.btn--terciario:hover:not(:disabled) {
-  background: rgba(37, 99, 235, 0.16);
-  transform: translateY(-1px);
+.card-acao__status {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background-color: rgba(148, 163, 184, 0.2);
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.btn--terciario:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.card-acao__status--ativo {
+  background-color: rgba(22, 163, 74, 0.12);
+  color: #047857;
 }
 
-.metricas__cabecalho h3 {
+.card-acao__status--inativo {
+  background-color: rgba(234, 179, 8, 0.18);
+  color: #92400e;
+}
+
+.card-acao__janela {
   margin: 0;
-  color: #111827;
-  font-size: 1.25rem;
-}
-
-.metricas__estado {
-  margin: 0;
+  font-size: 0.9rem;
   color: #2563eb;
   font-weight: 500;
 }
 
-.metricas__estado--erro {
-  color: #b91c1c;
-}
-
-.metricas__grid {
+.card-acao__informacoes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.metricas__card {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(16, 185, 129, 0.12));
-  border-radius: 14px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: #1f2937;
-}
-
-.metricas__card h4 {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
 }
 
-.metricas__card strong {
-  font-size: 1.8rem;
-  font-weight: 700;
+.card-acao__informacoes dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 0.15rem;
+}
+
+.card-acao__informacoes dd {
+  margin: 0;
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+.card-acao__documentos {
+  background-color: rgba(59, 130, 246, 0.08);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+
+.card-acao__documentos h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
   color: #1d4ed8;
 }
 
-.metricas__card span {
-  color: #374151;
-  font-size: 0.85rem;
-}
-
-.metricas__card--largura {
-  grid-column: span 2;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.08));
-}
-
-.metricas__card--largura p {
+.card-acao__documentos ul {
+  list-style: none;
   margin: 0;
-  font-size: 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.card-acao__documentos li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  color: #1f2937;
+}
+
+.card-acao__documentos small {
+  color: #1d4ed8;
+  font-size: 0.8rem;
+}
+
+.card-acao__orientacao {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #1f2937;
   line-height: 1.4;
 }
 
-.texto--positivo {
-  color: #047857;
+.card-acao__botao {
+  width: 100%;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
   font-weight: 600;
 }
 
-.texto--negativo {
-  color: #b91c1c;
-  font-weight: 600;
+.card-acao__descricao {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #4b5563;
 }
 
-.gate-agendamentos__conteudo {
-  display: grid;
-  grid-template-columns: minmax(360px, 1fr) 1fr;
-  gap: 24px;
-  align-items: start;
+.card-acao__spinner {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-top-color: rgba(255, 255, 255, 1);
+  animation: girar 0.8s linear infinite;
 }
 
-.gate-agendamentos__form {
-  animation: surgir 0.3s ease;
+.central-acao__vazio {
+  text-align: center;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background-color: rgba(148, 163, 184, 0.15);
+  color: #1f2937;
+  font-size: 0.95rem;
 }
 
-@keyframes surgir {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
+@keyframes girar {
   to {
-    opacity: 1;
-    transform: translateY(0);
+    transform: rotate(360deg);
   }
 }
 
-@media (max-width: 1100px) {
-  .gate-agendamentos__conteudo {
-    grid-template-columns: 1fr;
+@media (min-width: 768px) {
+  .central-acao {
+    padding: 2rem 1.5rem 3rem;
   }
 
-  .metricas__card--largura {
-    grid-column: span 1;
+  .central-acao__cards {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   }
 }

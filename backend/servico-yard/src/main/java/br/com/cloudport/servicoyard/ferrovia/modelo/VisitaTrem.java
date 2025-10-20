@@ -1,13 +1,18 @@
 package br.com.cloudport.servicoyard.ferrovia.modelo;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
@@ -41,6 +46,14 @@ public class VisitaTrem {
 
     @Column(name = "atualizado_em", nullable = false)
     private LocalDateTime atualizadoEm;
+
+    @ElementCollection
+    @CollectionTable(name = "visita_trem_descarga", joinColumns = @JoinColumn(name = "visita_trem_id"))
+    private List<OperacaoConteinerVisita> listaDescarga = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "visita_trem_carga", joinColumns = @JoinColumn(name = "visita_trem_id"))
+    private List<OperacaoConteinerVisita> listaCarga = new ArrayList<>();
 
     public VisitaTrem() {
     }
@@ -107,6 +120,28 @@ public class VisitaTrem {
 
     public void setAtualizadoEm(LocalDateTime atualizadoEm) {
         this.atualizadoEm = atualizadoEm;
+    }
+
+    public List<OperacaoConteinerVisita> getListaDescarga() {
+        return listaDescarga;
+    }
+
+    public void definirListaDescarga(List<OperacaoConteinerVisita> listaDescarga) {
+        this.listaDescarga.clear();
+        if (listaDescarga != null) {
+            this.listaDescarga.addAll(listaDescarga);
+        }
+    }
+
+    public List<OperacaoConteinerVisita> getListaCarga() {
+        return listaCarga;
+    }
+
+    public void definirListaCarga(List<OperacaoConteinerVisita> listaCarga) {
+        this.listaCarga.clear();
+        if (listaCarga != null) {
+            this.listaCarga.addAll(listaCarga);
+        }
     }
 
     @PrePersist

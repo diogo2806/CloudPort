@@ -4,6 +4,7 @@ import br.com.cloudport.servicoyard.ferrovia.modelo.StatusVisitaTrem;
 import br.com.cloudport.servicoyard.ferrovia.modelo.VisitaTrem;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,4 +21,10 @@ public interface VisitaTremRepositorio extends JpaRepository<VisitaTrem, Long> {
                                                      @Param("referenciaAtiva") LocalDateTime referenciaAtiva,
                                                      @Param("limite") LocalDateTime limite,
                                                      @Param("statusFinalizado") StatusVisitaTrem statusFinalizado);
+
+    @Query("SELECT DISTINCT v FROM VisitaTrem v "
+            + "LEFT JOIN FETCH v.listaDescarga "
+            + "LEFT JOIN FETCH v.listaCarga "
+            + "WHERE v.id = :id")
+    Optional<VisitaTrem> buscarPorIdComListas(@Param("id") Long id);
 }

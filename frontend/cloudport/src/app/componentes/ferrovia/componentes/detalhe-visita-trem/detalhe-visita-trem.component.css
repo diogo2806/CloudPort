@@ -79,3 +79,113 @@
   color: #555;
   font-style: italic;
 }
+
+.painel-operacoes {
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.painel-operacoes h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #1d1d1d;
+}
+
+.abas-operacoes {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.abas-operacoes button {
+  padding: 8px 16px;
+  border: 1px solid #d0d0d0;
+  border-radius: 20px;
+  background-color: #f5f5f5;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.abas-operacoes button.ativa {
+  background-color: #005f9e;
+  color: #fff;
+  border-color: #005f9e;
+}
+
+.abas-operacoes button:not(.ativa):hover,
+.abas-operacoes button:not(.ativa):focus {
+  background-color: #e0e0e0;
+}
+
+.lista-operacoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.linha-operacao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid #e3e3e3;
+  border-radius: 6px;
+  background-color: #fafafa;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.informacoes-conteiner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.informacoes-conteiner .identificador {
+  font-weight: 600;
+  color: #222;
+}
+
+.informacoes-conteiner .status {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #9c6b00;
+}
+
+.informacoes-conteiner .status.concluido {
+  color: #117a00;
+}
+
+.botao-status {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: #1e88e5;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.botao-status:disabled {
+  background-color: #9bbce0;
+  cursor: not-allowed;
+}
+
+.botao-status:not(:disabled):hover,
+.botao-status:not(:disabled):focus {
+  background-color: #1565c0;
+}
+
+.estado-sucesso {
+  padding: 12px;
+  background-color: #e7f8ed;
+  border-left: 4px solid #2e7d32;
+  color: #1b5e20;
+}

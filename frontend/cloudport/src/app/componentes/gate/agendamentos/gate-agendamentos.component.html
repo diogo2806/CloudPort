@@ -1,83 +1,96 @@
-<section class="gate-agendamentos">
-  <header class="gate-agendamentos__cabecalho">
+<section class="central-acao">
+  <header class="central-acao__cabecalho">
     <div>
       <h2>{{ titulo }}</h2>
-      <p>Gestão integrada de janelas, documentos e status em tempo real.</p>
+      <p class="central-acao__saudacao" *ngIf="resposta?.usuario?.nome">
+        Olá, {{ resposta?.usuario?.nome }}!
+      </p>
+      <p class="central-acao__saudacao" *ngIf="resposta?.usuario?.transportadoraNome">
+        {{ resposta?.usuario?.transportadoraNome }}
+      </p>
     </div>
+    <button type="button" class="btn btn--terciario" (click)="carregarVisao()" [disabled]="carregando">
+      {{ carregando ? 'Atualizando…' : 'Atualizar visão' }}
+    </button>
   </header>
 
-  <section class="gate-agendamentos__metricas" aria-live="polite">
-    <div class="metricas__cabecalho">
-      <h3>Métricas de adoção</h3>
-      <button type="button" class="btn btn--terciario" (click)="carregarResumoUso()" [disabled]="carregandoResumo">
-        {{ carregandoResumo ? 'Atualizando…' : 'Atualizar métricas' }}
+  <section class="central-acao__patio" *ngIf="resposta?.situacaoPatio as patio">
+    <strong>Situação do pátio:</strong>
+    <span>{{ patio.descricao || patio.status || 'Indisponível' }}</span>
+    <small *ngIf="patio.verificadoEm">Verificado em {{ patio.verificadoEm | date: 'dd/MM/yyyy HH:mm' }}</small>
+  </section>
+
+  <p class="central-acao__mensagem central-acao__mensagem--erro" *ngIf="erroCarregamento">{{ erroCarregamento }}</p>
+  <p class="central-acao__mensagem central-acao__mensagem--sucesso" *ngIf="mensagemSucesso">{{ mensagemSucesso }}</p>
+  <p class="central-acao__mensagem" *ngIf="carregando">Carregando visão consolidada do seu agendamento…</p>
+
+  <section *ngIf="!carregando && resposta?.agendamentos?.length" class="central-acao__cards">
+    <article
+      *ngFor="let card of resposta?.agendamentos; trackBy: trackPorId"
+      class="central-acao__card"
+      aria-label="Card de ação do agendamento"
+    >
+      <header class="card-acao__cabecalho">
+        <div class="card-acao__cabecalho-linha">
+          <span class="card-acao__codigo">Agendamento {{ card.codigo }}</span>
+          <span
+            class="card-acao__status"
+            [ngClass]="{
+              'card-acao__status--ativo': card.acaoPrincipal?.habilitada,
+              'card-acao__status--inativo': !card.acaoPrincipal?.habilitada
+            }"
+          >
+            {{ card.statusDescricao || card.status }}
+          </span>
+        </div>
+        <p class="card-acao__janela">{{ formatarJanela(card) }}</p>
+      </header>
+
+      <dl class="card-acao__informacoes">
+        <div>
+          <dt>Motorista</dt>
+          <dd>{{ card.motoristaNome || 'Não informado' }}</dd>
+        </div>
+        <div>
+          <dt>Transportadora</dt>
+          <dd>{{ card.transportadoraNome || 'Não informado' }}</dd>
+        </div>
+        <div>
+          <dt>Veículo</dt>
+          <dd>{{ card.placaVeiculo || '—' }}</dd>
+        </div>
+        <div>
+          <dt>Chegada prevista</dt>
+          <dd>{{ formatarHorario(card.horarioPrevistoChegada) }}</dd>
+        </div>
+      </dl>
+
+      <section class="card-acao__documentos" *ngIf="card.documentosPendentes?.length">
+        <h4>Documentos pendentes</h4>
+        <ul>
+          <li *ngFor="let documento of card.documentosPendentes">
+            <span>{{ documento.nomeArquivo }}</span>
+            <small>{{ documento.mensagem || 'Aguardando validação automática' }}</small>
+          </li>
+        </ul>
+      </section>
+
+      <p class="card-acao__orientacao" *ngIf="card.mensagemOrientacao">{{ card.mensagemOrientacao }}</p>
+
+      <button
+        type="button"
+        class="btn btn--primario card-acao__botao"
+        (click)="executarAcao(card)"
+        [disabled]="!card.acaoPrincipal?.habilitada || acaoEmExecucao === card.agendamentoId"
+      >
+        <span *ngIf="acaoEmExecucao === card.agendamentoId" class="card-acao__spinner" aria-hidden="true"></span>
+        {{ card.acaoPrincipal?.titulo || 'Sem ações disponíveis' }}
       </button>
-    </div>
-
-    <p class="metricas__estado" *ngIf="carregandoResumo">Carregando métricas consolidadas…</p>
-    <p class="metricas__estado metricas__estado--erro" *ngIf="!carregandoResumo && erroResumo">{{ erroResumo }}</p>
-
-    <div class="metricas__grid" *ngIf="!carregandoResumo && !erroResumo && resumoUso">
-      <article class="metricas__card" aria-label="Total de agendamentos no período">
-        <h4>Total no período</h4>
-        <strong>{{ resumoUso?.totalAgendamentos | number: '1.0-0' }}</strong>
-        <span>Agendamentos concluídos</span>
-      </article>
-
-      <article class="metricas__card" aria-label="Taxa de pontualidade">
-        <h4>Pontualidade</h4>
-        <strong>{{ resumoUso?.percentualPontualidade | number: '1.0-0' }}%</strong>
-        <span>Chegadas dentro da tolerância</span>
-      </article>
-
-      <article class="metricas__card" aria-label="Taxa de abandono do fluxo">
-        <h4>Abandono do fluxo</h4>
-        <strong>{{ resumoUso?.percentualAbandono | number: '1.0-0' }}%</strong>
-        <span>Período anterior: {{ resumoUso?.percentualAbandonoAnterior | number: '1.0-0' }}%</span>
-      </article>
-
-      <article class="metricas__card metricas__card--largura" aria-label="Mensagem de variação do abandono">
-        <h4>Confirmação de adoção</h4>
-        <p [ngClass]="{ 'texto--positivo': variacaoAbandonoEhPositiva(), 'texto--negativo': !variacaoAbandonoEhPositiva() }">
-          {{ obterMensagemVariacaoAbandono() }}
-        </p>
-      </article>
-    </div>
+      <p class="card-acao__descricao" *ngIf="card.acaoPrincipal?.descricao">{{ card.acaoPrincipal?.descricao }}</p>
+    </article>
   </section>
 
-  <div class="gate-agendamentos__conteudo">
-    <app-agendamentos-list
-      class="gate-agendamentos__lista"
-      [agendamentos]="agendamentos$ | async"
-      [loading]="carregandoLista"
-      [selectedId]="selecionadoId"
-      (selecionar)="selecionarAgendamento($event)"
-      (editar)="editarAgendamento($event)"
-      (cancelar)="cancelarAgendamento($event)"
-      (criar)="criarAgendamento()"
-      (atualizar)="atualizarLista()"
-    ></app-agendamentos-list>
-
-    <app-agendamento-detalhe
-      class="gate-agendamentos__detalhe"
-      [agendamento]="selecionado"
-      [uploadStatus]="uploadStatus"
-      (anexarDocumentos)="anexarDocumentos($event)"
-    ></app-agendamento-detalhe>
+  <div class="central-acao__vazio" *ngIf="!carregando && resposta && (!resposta.agendamentos || !resposta.agendamentos.length)">
+    Nenhuma ação pendente no momento. Revise sua documentação e acompanhe as notificações.
   </div>
-
-  <section class="gate-agendamentos__form" *ngIf="exibirFormulario">
-    <app-agendamento-form
-      [agendamento]="emEdicao"
-      [tiposOperacao$]="tiposOperacao$"
-      [status$]="status$"
-      [janelas$]="janelas$"
-      [documentosExistentes]="documentosExistentes"
-      [uploadStatus]="uploadStatus"
-      (salvar)="salvar($event)"
-      (cancelar)="cancelarFormulario()"
-    ></app-agendamento-form>
-  </section>
-
-  <app-modal></app-modal>
 </section>

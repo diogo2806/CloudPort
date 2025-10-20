@@ -111,3 +111,58 @@ export interface AgendamentoFormPayload {
   request: AgendamentoRequest;
   arquivos: File[];
 }
+
+export interface AcaoCentralAgendamento {
+  codigo: string;
+  titulo: string;
+  descricao: string;
+  metodoHttp: string;
+  rotaApiRelativa: string | null;
+  habilitada: boolean;
+}
+
+export interface DocumentoPendenteAgendamento {
+  id: number;
+  nomeArquivo: string;
+  tipoDocumento: string | null;
+  mensagem: string | null;
+}
+
+export interface SituacaoPatio {
+  status: string | null;
+  descricao: string | null;
+  verificadoEm: string | null;
+}
+
+export interface VisaoCompletaAgendamento {
+  agendamentoId: number;
+  codigo: string;
+  status: string;
+  statusDescricao: string | null;
+  tipoOperacaoDescricao: string | null;
+  horarioPrevistoChegada: string | null;
+  horarioPrevistoSaida: string | null;
+  placaVeiculo: string | null;
+  transportadoraNome: string | null;
+  motoristaNome: string | null;
+  janelaData: string | null;
+  janelaHoraInicio: string | null;
+  janelaHoraFim: string | null;
+  mensagemOrientacao: string | null;
+  acaoPrincipal: AcaoCentralAgendamento | null;
+  documentosPendentes: DocumentoPendenteAgendamento[];
+}
+
+export interface UsuarioCentralAcao {
+  login: string | null;
+  nome: string | null;
+  perfil: string | null;
+  transportadoraDocumento?: string | null;
+  transportadoraNome: string | null;
+}
+
+export interface CentralAcaoAgendamentoResposta {
+  usuario?: UsuarioCentralAcao | null;
+  situacaoPatio?: SituacaoPatio | null;
+  agendamentos: VisaoCompletaAgendamento[];
+}

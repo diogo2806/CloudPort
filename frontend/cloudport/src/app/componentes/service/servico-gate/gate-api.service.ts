@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 import {
   Agendamento,
@@ -8,7 +8,9 @@ import {
   AgendamentoRequest,
   DocumentoAgendamento,
   GateEnumOption,
-  Page
+  Page,
+  CentralAcaoAgendamentoResposta,
+  AcaoCentralAgendamento
 } from '../../model/gate/agendamento.model';
 import {
   JanelaAtendimento,
@@ -85,6 +87,38 @@ export class GateApiService {
 
   listarStatusAgendamento(): Observable<GateEnumOption[]> {
     return this.http.get<GateEnumOption[]>(`${this.construirUrlConfig()}/status-agendamento`);
+  }
+
+  obterCentralAcaoAgendamentos(): Observable<CentralAcaoAgendamentoResposta> {
+    return this.http.get<CentralAcaoAgendamentoResposta>(`${this.construirUrlAgendamentos()}/visao-completa`);
+  }
+
+  executarAcaoCentral(acao: AcaoCentralAgendamento): Observable<unknown> {
+    if (!acao || !acao.rotaApiRelativa || !acao.habilitada) {
+      return throwError(() => new Error('Ação inválida ou indisponível.'));
+    }
+    if (/^https?:/i.test(acao.rotaApiRelativa)) {
+      return throwError(() => new Error('Rota de ação inválida.'));
+    }
+
+    const metodo = (acao.metodoHttp || 'POST').toUpperCase();
+    const rotaNormalizada = acao.rotaApiRelativa.startsWith('/')
+      ? acao.rotaApiRelativa
+      : `/${acao.rotaApiRelativa}`;
+    const url = this.configuracaoAplicacao.construirUrlApi(rotaNormalizada);
+
+    switch (metodo) {
+      case 'POST':
+        return this.http.post<unknown>(url, {});
+      case 'PUT':
+        return this.http.put<unknown>(url, {});
+      case 'PATCH':
+        return this.http.patch<unknown>(url, {});
+      case 'DELETE':
+        return this.http.delete<unknown>(url);
+      default:
+        return this.http.get<unknown>(url);
+    }
   }
 
   listarStatusGate(): Observable<GateEnumOption[]> {

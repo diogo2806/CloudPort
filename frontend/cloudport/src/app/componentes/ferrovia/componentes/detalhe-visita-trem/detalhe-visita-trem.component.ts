@@ -2,7 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { SanitizadorConteudoService } from '../../../service/sanitizacao/sanitizador-conteudo.service';
-import { ServicoFerroviaService, VisitaTrem } from '../../../service/servico-ferrovia/servico-ferrovia.service';
+import {
+  OperacaoConteinerVisita,
+  ServicoFerroviaService,
+  StatusOperacaoConteinerVisita,
+  VisitaTrem
+} from '../../../service/servico-ferrovia/servico-ferrovia.service';
 
 @Component({
   selector: 'app-detalhe-visita-trem',
@@ -13,6 +18,10 @@ export class DetalheVisitaTremComponent implements OnInit {
   visita?: VisitaTrem;
   estaCarregando = false;
   erroCarregamento?: string;
+  abaAtiva: 'DESCARGA' | 'CARGA' = 'DESCARGA';
+  mensagemOperacao?: string;
+  erroOperacao?: string;
+  operacaoEmAndamento = false;
 
   constructor(
     private readonly rotaAtiva: ActivatedRoute,
@@ -33,6 +42,53 @@ export class DetalheVisitaTremComponent implements OnInit {
     return this.sanitizadorConteudo.sanitizar(valor);
   }
 
+  selecionarAba(aba: 'DESCARGA' | 'CARGA'): void {
+    this.abaAtiva = aba;
+    this.mensagemOperacao = undefined;
+    this.erroOperacao = undefined;
+  }
+
+  obterItensAba(aba: 'DESCARGA' | 'CARGA'): OperacaoConteinerVisita[] {
+    if (!this.visita) {
+      return [];
+    }
+    return aba === 'DESCARGA' ? this.visita.listaDescarga : this.visita.listaCarga;
+  }
+
+  descricaoStatus(status: StatusOperacaoConteinerVisita): string {
+    return status === 'CONCLUIDO' ? 'Concluído' : 'Pendente';
+  }
+
+  estaConcluido(status: StatusOperacaoConteinerVisita): boolean {
+    return status === 'CONCLUIDO';
+  }
+
+  marcarComoConcluido(aba: 'DESCARGA' | 'CARGA', idConteiner: number): void {
+    if (!this.visita || this.operacaoEmAndamento) {
+      return;
+    }
+
+    this.operacaoEmAndamento = true;
+    this.erroOperacao = undefined;
+    this.mensagemOperacao = undefined;
+
+    const comando = aba === 'DESCARGA'
+      ? this.servicoFerrovia.atualizarStatusDescarga(this.visita.id, idConteiner, { statusOperacao: 'CONCLUIDO' })
+      : this.servicoFerrovia.atualizarStatusCarga(this.visita.id, idConteiner, { statusOperacao: 'CONCLUIDO' });
+
+    comando
+      .pipe(finalize(() => this.operacaoEmAndamento = false))
+      .subscribe({
+        next: (visitaAtualizada) => {
+          this.visita = visitaAtualizada;
+          this.mensagemOperacao = 'Status atualizado com sucesso.';
+        },
+        error: () => {
+          this.erroOperacao = 'Não foi possível atualizar o status do contêiner.';
+        }
+      });
+  }
+
   private carregarVisita(): void {
     const parametroId = this.rotaAtiva.snapshot.paramMap.get('id');
     const id = parametroId ? Number(parametroId) : NaN;
@@ -44,6 +100,8 @@ export class DetalheVisitaTremComponent implements OnInit {
 
     this.estaCarregando = true;
     this.erroCarregamento = undefined;
+    this.mensagemOperacao = undefined;
+    this.erroOperacao = undefined;
 
     this.servicoFerrovia.obterVisita(id)
       .pipe(finalize(() => this.estaCarregando = false))

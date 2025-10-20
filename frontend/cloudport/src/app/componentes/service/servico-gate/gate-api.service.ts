@@ -46,10 +46,6 @@ export class GateApiService {
     return this.http.post<Agendamento>(`${this.baseUrl}/agendamentos/${id}/confirmar-chegada`, {});
   }
 
-  revalidarDocumentos(id: number): Observable<Agendamento> {
-    return this.http.post<Agendamento>(`${this.construirUrlAgendamentos()}/${id}/documentos/revalidar`, {});
-  }
-
   criarAgendamento(request: AgendamentoRequest): Observable<Agendamento> {
     return this.http.post<Agendamento>(this.construirUrlAgendamentos(), request);
   }
@@ -118,7 +114,7 @@ export class GateApiService {
       numero: null
     };
     formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    formData.append('arquivo', arquivo, arquivo.name);
+    formData.append('file', arquivo, arquivo.name);
     return this.http.post<DocumentoAgendamento>(`${this.construirUrlAgendamentos()}/${id}/documentos`, formData, {
       reportProgress: true,
       observe: 'events'

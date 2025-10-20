@@ -8,6 +8,7 @@ import br.com.cloudport.servicogate.app.cidadao.dto.DocumentoUploadRequest;
 import br.com.cloudport.servicogate.app.cidadao.dto.mapper.GateMapper;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.exception.NotFoundException;
+import br.com.cloudport.servicogate.integration.ocr.ProcessamentoOcrPublisher;
 import br.com.cloudport.servicogate.integration.tos.TosIntegrationService;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.DocumentoAgendamento;
@@ -16,6 +17,7 @@ import br.com.cloudport.servicogate.model.Motorista;
 import br.com.cloudport.servicogate.model.Transportadora;
 import br.com.cloudport.servicogate.model.Veiculo;
 import br.com.cloudport.servicogate.model.enums.StatusAgendamento;
+import br.com.cloudport.servicogate.model.enums.StatusValidacaoDocumento;
 import br.com.cloudport.servicogate.model.enums.TipoOperacao;
 import br.com.cloudport.servicogate.app.cidadao.AgendamentoRepository;
 import br.com.cloudport.servicogate.app.cidadao.DocumentoAgendamentoRepository;
@@ -27,9 +29,9 @@ import br.com.cloudport.servicogate.storage.DocumentoStorageService;
 import br.com.cloudport.servicogate.storage.StoredDocumento;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -42,6 +44,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.HtmlUtils;
 
 @Service
 @Transactional
@@ -58,6 +61,7 @@ public class AgendamentoService {
     private final TosIntegrationService tosIntegrationService;
     private final DashboardService dashboardService;
     private final AgendamentoRealtimeService agendamentoRealtimeService;
+    private final ProcessamentoOcrPublisher processamentoOcrPublisher;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AgendamentoService.class);
 
@@ -71,7 +75,8 @@ public class AgendamentoService {
                               AgendamentoRulesProperties rulesProperties,
                               TosIntegrationService tosIntegrationService,
                               DashboardService dashboardService,
-                              AgendamentoRealtimeService agendamentoRealtimeService) {
+                              AgendamentoRealtimeService agendamentoRealtimeService,
+                              ProcessamentoOcrPublisher processamentoOcrPublisher) {
         this.agendamentoRepository = agendamentoRepository;
         this.janelaAtendimentoRepository = janelaAtendimentoRepository;
         this.transportadoraRepository = transportadoraRepository;
@@ -83,6 +88,7 @@ public class AgendamentoService {
         this.tosIntegrationService = tosIntegrationService;
         this.dashboardService = dashboardService;
         this.agendamentoRealtimeService = agendamentoRealtimeService;
+        this.processamentoOcrPublisher = processamentoOcrPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -178,34 +184,29 @@ public class AgendamentoService {
 
         DocumentoAgendamento documento = new DocumentoAgendamento();
         documento.setAgendamento(agendamento);
-        documento.setTipoDocumento(resolverTipoDocumento(request, arquivo));
-        documento.setNumero(request != null ? request.getNumero() : null);
+        documento.setTipoDocumento(sanitizarTexto(resolverTipoDocumento(request, arquivo)));
+        documento.setNumero(sanitizarTexto(request != null ? request.getNumero() : null));
         documento.setUrlDocumento(storedDocumento.getStorageKey());
-        documento.setNomeArquivo(storedDocumento.getNomeOriginal());
+        documento.setNomeArquivo(sanitizarTexto(storedDocumento.getNomeOriginal()));
         documento.setContentType(storedDocumento.getContentType());
         documento.setTamanhoBytes(storedDocumento.getTamanho());
-        documento.setUltimaRevalidacao(LocalDateTime.now());
+        documento.setUltimaRevalidacao(null);
+        documento.setStatusValidacao(StatusValidacaoDocumento.PROCESSANDO);
+        documento.setMensagemValidacao("Documento enviado para validação automática via OCR.");
 
         DocumentoAgendamento salvo = documentoAgendamentoRepository.save(documento);
         agendamento.getDocumentos().add(salvo);
         agendamentoRealtimeService.notificarDocumentosAtualizados(agendamento);
-        return GateMapper.toDocumentoAgendamentoDTO(salvo);
-    }
-
-    public AgendamentoDTO revalidarDocumentos(Long agendamentoId) {
-        Agendamento agendamento = obterAgendamento(agendamentoId);
-        validarEdicaoPermitida(agendamento);
-        LocalDateTime agora = LocalDateTime.now();
-        List<DocumentoAgendamento> documentos = agendamento.getDocumentos() != null
-                ? agendamento.getDocumentos()
-                : Collections.emptyList();
-        if (documentos.isEmpty()) {
-            throw new BusinessException("Não há documentos cadastrados para revalidação");
+        try {
+            processamentoOcrPublisher.enfileirarProcessamento(salvo);
+        } catch (RuntimeException ex) {
+            LOGGER.error("Falha ao enfileirar documento para OCR", ex);
+            salvo.setStatusValidacao(StatusValidacaoDocumento.FALHA);
+            salvo.setMensagemValidacao("Não foi possível iniciar a validação automática. Tente novamente em instantes.");
+            documentoAgendamentoRepository.save(salvo);
+            agendamentoRealtimeService.notificarDocumentosAtualizados(agendamento);
         }
-        documentos.forEach(documento -> documento.setUltimaRevalidacao(agora));
-        documentoAgendamentoRepository.saveAll(documentos);
-        agendamentoRealtimeService.notificarDocumentosRevalidados(agendamento);
-        return GateMapper.toAgendamentoDTO(agendamento);
+        return GateMapper.toDocumentoAgendamentoDTO(salvo);
     }
 
     @Transactional(readOnly = true)
@@ -231,6 +232,15 @@ public class AgendamentoService {
         return documentoAgendamentoRepository.findByAgendamentoId(agendamento.getId()).stream()
                 .map(GateMapper::toDocumentoAgendamentoDTO)
                 .collect(Collectors.toList());
+    }
+
+    private String sanitizarTexto(String valor) {
+        if (!StringUtils.hasText(valor)) {
+            return null;
+        }
+        String normalizado = Normalizer.normalize(valor, Normalizer.Form.NFKC);
+        String semCaracteresPerigosos = normalizado.replaceAll("[<>\"'`]", "");
+        return semCaracteresPerigosos.replaceAll("[\\p{Cntrl}&&[^\n\t\r]]", "").trim();
     }
 
     private String resolverTipoDocumento(DocumentoUploadRequest request, MultipartFile arquivo) {

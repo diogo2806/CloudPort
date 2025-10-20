@@ -32,6 +32,7 @@
     <div class="alerta alerta--info" *ngIf="janelaMensagem">{{ janelaMensagem }}</div>
     <div class="alerta alerta--sucesso" *ngIf="statusMensagem">{{ statusMensagem }}</div>
     <div class="alerta alerta--aviso" *ngIf="notificacaoErro">{{ notificacaoErro }}</div>
+    <div class="alerta alerta--erro" *ngIf="validacaoErroMensagem">{{ validacaoErroMensagem }}</div>
   </div>
 
   <div class="agendamento-detalhe__grid">
@@ -68,9 +69,6 @@
     <button type="button" class="btn" (click)="confirmarChegadaAntecipada()" [disabled]="carregandoConfirmacao">
       {{ 'gate.agendamentoDetalhe.confirmarChegada' | translate }}
     </button>
-    <button type="button" class="btn" (click)="revalidarDocumentos()" [disabled]="carregandoRevalidacao">
-      {{ 'gate.agendamentoDetalhe.revalidarDocumentos' | translate }}
-    </button>
     <button type="button" class="btn" (click)="baixarComprovante()">
       {{ 'gate.agendamentoDetalhe.downloadComprovante' | translate }}
     </button>
@@ -98,9 +96,13 @@
         <div>
           <strong>{{ documento.nomeArquivo }}</strong>
           <span>{{ documento.tamanhoBytes / 1024 | number: '1.0-0' }} KB</span>
+          <span [ngClass]="obterClasseStatus(documento)">{{ descricaoStatus(documento) }}</span>
           <small *ngIf="documento.ultimaRevalidacao">
             {{ 'gate.agendamentoDetalhe.ultimaRevalidacao' | translate }}:
             {{ documento.ultimaRevalidacao | date: 'short' }}
+          </small>
+          <small *ngIf="documento.mensagemValidacao" class="documento__mensagem">
+            {{ documento.mensagemValidacao }}
           </small>
         </div>
         <a [href]="documento.urlDocumento" target="_blank" rel="noopener">

@@ -106,14 +106,7 @@ public class AgendamentoController {
                                                                    @Valid @RequestPart(value = "metadata", required = false) DocumentoUploadRequest metadata,
                                                                    @RequestPart("file") MultipartFile arquivo) {
         DocumentoAgendamentoDTO documento = agendamentoService.adicionarDocumento(id, metadata, arquivo);
-        return ResponseEntity.status(HttpStatus.CREATED).body(documento);
-    }
-
-    @PostMapping("/{id}/documentos/revalidar")
-    @Operation(summary = "Revalida os documentos anexados ao agendamento")
-    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
-    public AgendamentoDTO revalidarDocumentos(@PathVariable Long id) {
-        return agendamentoService.revalidarDocumentos(id);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(documento);
     }
 
     @GetMapping("/{id}/documentos")

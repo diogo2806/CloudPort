@@ -40,6 +40,12 @@ const homeChildRoutes: Routes = [
     loadChildren: () => import('./componentes/gate/gate.module').then(m => m.GateModule)
   },
   {
+    path: 'ferrovia',
+    canActivate: [AuthGuard],
+    canLoad: [AuthGuard],
+    loadChildren: () => import('./componentes/ferrovia/ferrovia.module').then(m => m.FerroviaModule)
+  },
+  {
     path: 'patio',
     canActivate: [AuthGuard],
     canLoad: [AuthGuard],

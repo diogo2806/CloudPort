@@ -1,0 +1,63 @@
+<section class="lista-visitas-trem">
+  <header class="cabecalho-visitas">
+    <div>
+      <h1>Visitas de Trem</h1>
+      <p class="descricao">Planeje o pátio acompanhando os trens previstos e em atendimento.</p>
+    </div>
+    <div class="acoes-cabecalho">
+      <label for="filtroDias" class="campo-dias">
+        Período (dias):
+        <input
+          id="filtroDias"
+          type="number"
+          min="1"
+          max="30"
+          [(ngModel)]="diasFiltro"
+          (ngModelChange)="aoAlterarDias()"
+        />
+      </label>
+      <button type="button" class="botao-ordenacao" (click)="alternarOrdenacao()">
+        Ordenar por ETA {{ ordenacaoAscendente ? '▲' : '▼' }}
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="estaCarregando" class="estado-informativo">Carregando visitas de trem...</div>
+
+  <div *ngIf="!estaCarregando && erroCarregamento" class="estado-erro">
+    {{ textoSeguro(erroCarregamento) }}
+  </div>
+
+  <table *ngIf="!estaCarregando && !erroCarregamento && visitas.length > 0" class="tabela-visitas" aria-label="Tabela de visitas de trem">
+    <thead>
+      <tr>
+        <th scope="col">Trem</th>
+        <th scope="col">Operadora</th>
+        <th scope="col" class="coluna-data">ETA</th>
+        <th scope="col" class="coluna-data">ETD</th>
+        <th scope="col">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        *ngFor="let visita of visitas"
+        (click)="verDetalhes(visita)"
+        tabindex="0"
+        (keyup.enter)="verDetalhes(visita)"
+        (keyup.space)="verDetalhes(visita)"
+        class="linha-visita"
+        aria-label="Selecionar visita de trem"
+      >
+        <td>{{ textoSeguro(visita.identificadorTrem) }}</td>
+        <td>{{ textoSeguro(visita.operadoraFerroviaria) }}</td>
+        <td>{{ visita.horaChegadaPrevista | date:'dd/MM/yyyy HH:mm' }}</td>
+        <td>{{ visita.horaPartidaPrevista | date:'dd/MM/yyyy HH:mm' }}</td>
+        <td>{{ textoSeguro(visita.statusVisita) }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!estaCarregando && !erroCarregamento && visitas.length === 0" class="estado-informativo">
+    Nenhuma visita de trem encontrada para o período selecionado.
+  </div>
+</section>

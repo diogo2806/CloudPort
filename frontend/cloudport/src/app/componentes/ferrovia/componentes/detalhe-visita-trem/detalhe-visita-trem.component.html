@@ -1,0 +1,38 @@
+<section class="detalhe-visita-trem">
+  <header>
+    <h1>Detalhes da Visita do Trem</h1>
+    <button type="button" class="botao-voltar" (click)="voltarParaLista()">Voltar para a lista</button>
+  </header>
+
+  <div *ngIf="estaCarregando" class="estado-informativo">Carregando informações do trem...</div>
+
+  <div *ngIf="!estaCarregando && erroCarregamento" class="estado-erro">
+    {{ textoSeguro(erroCarregamento) }}
+  </div>
+
+  <article *ngIf="!estaCarregando && !erroCarregamento && visita" class="cartao-detalhe">
+    <dl>
+      <div>
+        <dt>Trem</dt>
+        <dd>{{ textoSeguro(visita.identificadorTrem) }}</dd>
+      </div>
+      <div>
+        <dt>Operadora Ferroviária</dt>
+        <dd>{{ textoSeguro(visita.operadoraFerroviaria) }}</dd>
+      </div>
+      <div>
+        <dt>Previsão de Chegada (ETA)</dt>
+        <dd>{{ visita.horaChegadaPrevista | date:'dd/MM/yyyy HH:mm' }}</dd>
+      </div>
+      <div>
+        <dt>Previsão de Partida (ETD)</dt>
+        <dd>{{ visita.horaPartidaPrevista | date:'dd/MM/yyyy HH:mm' }}</dd>
+      </div>
+      <div>
+        <dt>Status Atual</dt>
+        <dd>{{ textoSeguro(visita.statusVisita) }}</dd>
+      </div>
+    </dl>
+    <p class="observacao">Essas informações são atualizadas diretamente pelo sistema operacional da ferrovia.</p>
+  </article>
+</section>

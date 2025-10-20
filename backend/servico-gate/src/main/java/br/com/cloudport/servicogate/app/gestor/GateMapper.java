@@ -94,7 +94,10 @@ public final class GateMapper {
                 entity.getNomeArquivo(),
                 entity.getContentType(),
                 entity.getTamanhoBytes(),
-                entity.getUltimaRevalidacao()
+                entity.getUltimaRevalidacao(),
+                entity.getStatusValidacao() != null ? entity.getStatusValidacao().name() : null,
+                entity.getStatusValidacao() != null ? entity.getStatusValidacao().getDescricao() : null,
+                entity.getMensagemValidacao()
         );
     }
 

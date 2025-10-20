@@ -12,13 +12,17 @@ public class DocumentoAgendamentoDTO {
     private String contentType;
     private Long tamanhoBytes;
     private LocalDateTime ultimaRevalidacao;
+    private String statusValidacao;
+    private String statusValidacaoDescricao;
+    private String mensagemValidacao;
 
     public DocumentoAgendamentoDTO() {
     }
 
     public DocumentoAgendamentoDTO(Long id, String tipoDocumento, String numero, String urlDocumento,
                                    String nomeArquivo, String contentType, Long tamanhoBytes,
-                                   LocalDateTime ultimaRevalidacao) {
+                                   LocalDateTime ultimaRevalidacao, String statusValidacao,
+                                   String statusValidacaoDescricao, String mensagemValidacao) {
         this.id = id;
         this.tipoDocumento = tipoDocumento;
         this.numero = numero;
@@ -27,6 +31,9 @@ public class DocumentoAgendamentoDTO {
         this.contentType = contentType;
         this.tamanhoBytes = tamanhoBytes;
         this.ultimaRevalidacao = ultimaRevalidacao;
+        this.statusValidacao = statusValidacao;
+        this.statusValidacaoDescricao = statusValidacaoDescricao;
+        this.mensagemValidacao = mensagemValidacao;
     }
 
     public Long getId() {
@@ -91,5 +98,29 @@ public class DocumentoAgendamentoDTO {
 
     public void setUltimaRevalidacao(LocalDateTime ultimaRevalidacao) {
         this.ultimaRevalidacao = ultimaRevalidacao;
+    }
+
+    public String getStatusValidacao() {
+        return statusValidacao;
+    }
+
+    public void setStatusValidacao(String statusValidacao) {
+        this.statusValidacao = statusValidacao;
+    }
+
+    public String getStatusValidacaoDescricao() {
+        return statusValidacaoDescricao;
+    }
+
+    public void setStatusValidacaoDescricao(String statusValidacaoDescricao) {
+        this.statusValidacaoDescricao = statusValidacaoDescricao;
+    }
+
+    public String getMensagemValidacao() {
+        return mensagemValidacao;
+    }
+
+    public void setMensagemValidacao(String mensagemValidacao) {
+        this.mensagemValidacao = mensagemValidacao;
     }
 }

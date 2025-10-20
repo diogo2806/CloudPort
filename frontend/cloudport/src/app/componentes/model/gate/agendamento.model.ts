@@ -12,6 +12,9 @@ export interface DocumentoAgendamento {
   contentType: string;
   tamanhoBytes: number;
   ultimaRevalidacao?: string | null;
+  statusValidacao: string;
+  statusValidacaoDescricao: string | null;
+  mensagemValidacao: string | null;
 }
 
 export interface GateEvent {

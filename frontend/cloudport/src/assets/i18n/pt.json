@@ -17,7 +17,6 @@
       "uploadConcluido": "Concluído",
       "uploadErro": "Erro",
       "confirmarChegada": "Confirmar chegada antecipada",
-      "revalidarDocumentos": "Revalidar documentação",
       "downloadComprovante": "Download do comprovante",
       "downloadInstrucoes": "Download das instruções",
       "imprimir": "Imprimir",
@@ -47,6 +46,9 @@
       },
       "comprovanteSemDocumentos": "Nenhum documento cadastrado.",
       "comprovanteSemRevalidacao": "Não revalidado",
+      "documentoProcessando": "Documento {{nome}} enviado para validação automática.",
+      "documentoValidado": "Documento {{nome}} validado automaticamente!",
+      "documentoFalhou": "Falha na validação do documento {{nome}}.{{motivo}}",
       "motoristaPass": {
         "titulo": "Passe do motorista",
         "subtitulo": "Mostre este QR Code para acessar o gate",

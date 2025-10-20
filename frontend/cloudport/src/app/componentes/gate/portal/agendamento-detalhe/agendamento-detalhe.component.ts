@@ -66,10 +66,10 @@ export class AgendamentoDetalheComponent implements OnDestroy {
   statusMensagem: string | null = null;
   notificacaoErro: string | null = null;
   carregandoConfirmacao = false;
-  carregandoRevalidacao = false;
   conexaoEstado: 'conectando' | 'conectado' | 'reconectando' | 'desconectado' = 'desconectado';
   reconexaoEmSegundos: number | null = null;
   reconexaoTentativa: number | null = null;
+  validacaoErroMensagem: string | null = null;
 
   private realtimeSub?: Subscription;
   private notificacaoSolicitada = false;
@@ -127,22 +127,6 @@ export class AgendamentoDetalheComponent implements OnDestroy {
     this.gateApiService
       .confirmarChegadaAntecipada(this.agendamento.id)
       .pipe(finalize(() => (this.carregandoConfirmacao = false)))
-      .subscribe((agendamento) => {
-        this._agendamento = agendamento;
-        this.statusMensagem = this.translate.instant('gate.agendamentoDetalhe.statusAtualizado', {
-          status: agendamento.statusDescricao ?? agendamento.status
-        });
-      });
-  }
-
-  revalidarDocumentos(): void {
-    if (!this.agendamento) {
-      return;
-    }
-    this.carregandoRevalidacao = true;
-    this.gateApiService
-      .revalidarDocumentos(this.agendamento.id)
-      .pipe(finalize(() => (this.carregandoRevalidacao = false)))
       .subscribe((agendamento) => {
         this._agendamento = agendamento;
         this.statusMensagem = this.translate.instant('gate.agendamentoDetalhe.statusAtualizado', {
@@ -228,6 +212,7 @@ export class AgendamentoDetalheComponent implements OnDestroy {
     this.janelaMensagem = null;
     this.statusMensagem = null;
     this.notificacaoErro = null;
+    this.validacaoErroMensagem = null;
     this.conexaoEstado = agendamento ? 'conectando' : 'desconectado';
     this.reconexaoEmSegundos = null;
     this.reconexaoTentativa = null;
@@ -281,14 +266,17 @@ export class AgendamentoDetalheComponent implements OnDestroy {
         this.exibirJanelaProxima(evento.data as JanelaProximaPayload);
         break;
       case 'documentos-atualizados':
-      case 'documentos-revalidados':
+      case 'documentos-revalidados': {
+        const documentos = evento.data as DocumentoAgendamento[];
+        this.gerenciarStatusDocumentos(documentos);
         if (this.agendamento) {
           this._agendamento = {
             ...this.agendamento,
-            documentos: evento.data as DocumentoAgendamento[]
+            documentos
           };
         }
         break;
+      }
       case 'gate-pass-atualizado':
         if (this.agendamento) {
           this._agendamento = {
@@ -342,5 +330,61 @@ export class AgendamentoDetalheComponent implements OnDestroy {
     const indice = Math.floor(Math.log(bytes) / Math.log(1024));
     const tamanho = bytes / Math.pow(1024, indice);
     return `${tamanho.toFixed(1)} ${unidades[indice]}`;
+  }
+
+  obterClasseStatus(documento: DocumentoAgendamento): string {
+    const base = 'documento__status';
+    switch (documento.statusValidacao) {
+      case 'VALIDADO':
+        return `${base} documento__status--sucesso`;
+      case 'FALHA':
+        return `${base} documento__status--erro`;
+      default:
+        return `${base} documento__status--processando`;
+    }
+  }
+
+  descricaoStatus(documento: DocumentoAgendamento): string {
+    return documento.statusValidacaoDescricao ?? documento.statusValidacao;
+  }
+
+  private gerenciarStatusDocumentos(documentos: DocumentoAgendamento[]): void {
+    if (!documentos) {
+      return;
+    }
+    const anteriores = new Map<number, string>();
+    (this.agendamento?.documentos ?? []).forEach((doc) => anteriores.set(doc.id, doc.statusValidacao));
+
+    let mensagemSucesso: string | null = null;
+    let mensagemErro: string | null = null;
+
+    documentos.forEach((doc) => {
+      const anterior = anteriores.get(doc.id);
+      const nomeDocumento = doc.nomeArquivo || doc.tipoDocumento;
+      if (doc.statusValidacao === 'PROCESSANDO' && anterior !== 'PROCESSANDO') {
+        this.statusMensagem = this.translate.instant('gate.agendamentoDetalhe.documentoProcessando', {
+          nome: nomeDocumento
+        });
+        this.validacaoErroMensagem = null;
+      } else if (doc.statusValidacao === 'VALIDADO' && anterior !== 'VALIDADO') {
+        mensagemSucesso = this.translate.instant('gate.agendamentoDetalhe.documentoValidado', {
+          nome: nomeDocumento
+        });
+      } else if (doc.statusValidacao === 'FALHA' && anterior !== 'FALHA') {
+        mensagemErro = this.translate.instant('gate.agendamentoDetalhe.documentoFalhou', {
+          nome: nomeDocumento,
+          motivo: doc.mensagemValidacao ? ` ${doc.mensagemValidacao}` : ''
+        });
+      }
+    });
+
+    if (mensagemSucesso) {
+      this.statusMensagem = mensagemSucesso;
+      this.validacaoErroMensagem = null;
+    }
+    if (mensagemErro) {
+      this.validacaoErroMensagem = mensagemErro;
+      this.statusMensagem = null;
+    }
   }
 }

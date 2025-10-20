@@ -1,8 +1,11 @@
 package br.com.cloudport.servicogate.model;
 
 import java.time.LocalDateTime;
+import br.com.cloudport.servicogate.model.enums.StatusValidacaoDocumento;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -39,6 +42,13 @@ public class DocumentoAgendamento extends AbstractAuditableEntity {
 
     @Column(name = "ultima_revalidacao")
     private LocalDateTime ultimaRevalidacao;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_validacao", nullable = false, length = 30)
+    private StatusValidacaoDocumento statusValidacao = StatusValidacaoDocumento.PROCESSANDO;
+
+    @Column(name = "mensagem_validacao", length = 500)
+    private String mensagemValidacao;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agendamento_id", nullable = false)
@@ -106,6 +116,22 @@ public class DocumentoAgendamento extends AbstractAuditableEntity {
 
     public void setUltimaRevalidacao(LocalDateTime ultimaRevalidacao) {
         this.ultimaRevalidacao = ultimaRevalidacao;
+    }
+
+    public StatusValidacaoDocumento getStatusValidacao() {
+        return statusValidacao;
+    }
+
+    public void setStatusValidacao(StatusValidacaoDocumento statusValidacao) {
+        this.statusValidacao = statusValidacao;
+    }
+
+    public String getMensagemValidacao() {
+        return mensagemValidacao;
+    }
+
+    public void setMensagemValidacao(String mensagemValidacao) {
+        this.mensagemValidacao = mensagemValidacao;
     }
 
     public Agendamento getAgendamento() {

@@ -134,6 +134,11 @@
   color: #b45309;
 }
 
+.alerta--erro {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .agendamento-detalhe__cabecalho h3 {
   margin: 0;
   font-size: 1.6rem;
@@ -212,6 +217,39 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.documento__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.documento__status--processando {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.documento__status--sucesso {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.documento__status--erro {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.documento__mensagem {
+  color: #4b5563;
+  font-size: 0.8rem;
 }
 
 .documento a {

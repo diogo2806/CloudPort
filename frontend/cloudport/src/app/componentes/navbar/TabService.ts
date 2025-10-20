@@ -67,6 +67,11 @@ export const TAB_REGISTRY: Readonly<Record<string, TabItem>> = {
     label: 'Eventos do Operador',
     route: ['gate', 'operador', 'eventos']
   },
+  'ferrovia/visitas': {
+    id: 'ferrovia/visitas',
+    label: 'Visitas de Trem',
+    route: ['ferrovia', 'visitas']
+  },
   'patio/mapa': {
     id: 'patio/mapa',
     label: 'Mapa do Pátio',

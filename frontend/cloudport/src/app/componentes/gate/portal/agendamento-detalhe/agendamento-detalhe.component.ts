@@ -12,7 +12,7 @@ import {
   UploadDocumentoStatus
 } from '../../../model/gate/agendamento.model';
 import { GateApiService } from '../../../service/servico-gate/gate-api.service';
-import { Subscription } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import {
   AgendamentoRealtimeEvent,
@@ -21,6 +21,12 @@ import {
 import { PushNotificationService } from '../../../service/servico-gate/push-notification.service';
 import { AgendamentoComprovanteService } from '../../../service/servico-gate/agendamento-comprovante.service';
 import { TranslateService } from '@ngx-translate/core';
+import {
+  DetalheConteiner,
+  HistoricoConteiner,
+  HistoricoConteinerService
+} from '../../../service/servico-gate/historico-conteiner.service';
+import { SanitizadorConteudoService } from '../../../service/sanitizacao/sanitizador-conteudo.service';
 
 interface DocumentoPreview {
   nome: string;
@@ -53,6 +59,7 @@ export class AgendamentoDetalheComponent implements OnDestroy {
     }
     this._agendamento = value;
     this.limparSelecao();
+    this.configurarMonitoramentoConteiner(value?.codigo ?? null);
   }
   get agendamento(): Agendamento | null {
     return this._agendamento;
@@ -70,16 +77,25 @@ export class AgendamentoDetalheComponent implements OnDestroy {
   reconexaoEmSegundos: number | null = null;
   reconexaoTentativa: number | null = null;
   validacaoErroMensagem: string | null = null;
+  historicoConteiner: HistoricoConteiner[] = [];
+  detalheConteiner: DetalheConteiner | null = null;
+  carregandoHistoricoConteiner = false;
+  erroHistoricoConteiner: string | null = null;
 
   private realtimeSub?: Subscription;
   private notificacaoSolicitada = false;
+  private historicoIntervalo?: ReturnType<typeof setInterval>;
+  private codigoConteinerMonitorado: string | null = null;
+  private readonly intervaloHistoricoMs = 15000;
 
   constructor(
     private readonly gateApiService: GateApiService,
     private readonly realtimeService: AgendamentoRealtimeService,
     private readonly pushNotificationService: PushNotificationService,
     private readonly comprovanteService: AgendamentoComprovanteService,
-    private readonly translate: TranslateService
+    private readonly translate: TranslateService,
+    private readonly historicoConteinerService: HistoricoConteinerService,
+    private readonly sanitizadorConteudo: SanitizadorConteudoService
   ) {}
 
   ngOnDestroy(): void {
@@ -88,6 +104,7 @@ export class AgendamentoDetalheComponent implements OnDestroy {
     this.conexaoEstado = 'desconectado';
     this.reconexaoEmSegundos = null;
     this.reconexaoTentativa = null;
+    this.limparMonitoramentoConteiner();
   }
 
   aoSelecionarArquivos(evento: Event): void {
@@ -246,6 +263,7 @@ export class AgendamentoDetalheComponent implements OnDestroy {
             status: this.agendamento.statusDescricao ?? this.agendamento.status
           });
         }
+        this.recarregarHistoricoSeNecessario();
         break;
       case 'conexao-estabelecida':
         this.conexaoEstado = 'conectado';
@@ -386,5 +404,108 @@ export class AgendamentoDetalheComponent implements OnDestroy {
       this.validacaoErroMensagem = mensagemErro;
       this.statusMensagem = null;
     }
+  }
+
+  private configurarMonitoramentoConteiner(codigoConteiner: string | null): void {
+    const codigoNormalizado = (codigoConteiner ?? '').trim();
+    if (this.codigoConteinerMonitorado === codigoNormalizado) {
+      return;
+    }
+    this.limparMonitoramentoConteiner();
+    if (!codigoNormalizado) {
+      return;
+    }
+    this.codigoConteinerMonitorado = codigoNormalizado;
+    this.carregarHistoricoConteiner(false);
+    if (typeof window !== 'undefined') {
+      this.historicoIntervalo = window.setInterval(() => this.carregarHistoricoConteiner(true), this.intervaloHistoricoMs);
+    }
+  }
+
+  private limparMonitoramentoConteiner(): void {
+    if (this.historicoIntervalo) {
+      clearInterval(this.historicoIntervalo);
+      this.historicoIntervalo = undefined;
+    }
+    this.codigoConteinerMonitorado = null;
+    this.historicoConteiner = [];
+    this.detalheConteiner = null;
+    this.erroHistoricoConteiner = null;
+    this.carregandoHistoricoConteiner = false;
+  }
+
+  private carregarHistoricoConteiner(silencioso: boolean): void {
+    const codigo = this.codigoConteinerMonitorado;
+    if (!codigo) {
+      return;
+    }
+    if (!silencioso) {
+      this.carregandoHistoricoConteiner = true;
+      this.erroHistoricoConteiner = null;
+    }
+    forkJoin({
+      detalhe: this.historicoConteinerService.obterDetalhePorCodigo(codigo),
+      historico: this.historicoConteinerService.obterHistoricoPorCodigo(codigo)
+    })
+      .pipe(finalize(() => {
+        if (!silencioso) {
+          this.carregandoHistoricoConteiner = false;
+        }
+      }))
+      .subscribe({
+        next: ({ detalhe, historico }) => {
+          this.detalheConteiner = detalhe;
+          this.historicoConteiner = historico;
+          this.erroHistoricoConteiner = null;
+        },
+        error: () => {
+          this.erroHistoricoConteiner = this.translate.instant(
+            'gate.agendamentoDetalhe.historicoConteiner.erroCarregamento'
+          );
+          if (!silencioso) {
+            this.carregandoHistoricoConteiner = false;
+          }
+        }
+      });
+  }
+
+  private recarregarHistoricoSeNecessario(): void {
+    if (this.codigoConteinerMonitorado) {
+      this.carregarHistoricoConteiner(true);
+    }
+  }
+
+  get codigoConteinerSelecionado(): string | null {
+    return this.codigoConteinerMonitorado;
+  }
+
+  trackPorHistorico(index: number, item: HistoricoConteiner): string {
+    return `${item.dataRegistro}-${item.tipoOperacao}-${index}`;
+  }
+
+  descricaoTipoOperacao(tipoOperacao: string): string {
+    const mapa: Record<string, string> = {
+      DESCARGA_TREM: this.translate.instant('gate.agendamentoDetalhe.historicoConteiner.descargaTrem'),
+      CARGA_TREM: this.translate.instant('gate.agendamentoDetalhe.historicoConteiner.cargaTrem'),
+      ALOCACAO: this.translate.instant('gate.agendamentoDetalhe.historicoConteiner.alocacao'),
+      TRANSFERENCIA: this.translate.instant('gate.agendamentoDetalhe.historicoConteiner.transferencia'),
+      INSPECAO: this.translate.instant('gate.agendamentoDetalhe.historicoConteiner.inspecao'),
+      LIBERACAO: this.translate.instant('gate.agendamentoDetalhe.historicoConteiner.liberacao'),
+      ATUALIZACAO_CADASTRAL: this.translate.instant('gate.agendamentoDetalhe.historicoConteiner.atualizacaoCadastral')
+    };
+    return mapa[tipoOperacao] ?? tipoOperacao;
+  }
+
+  formatarStatusConteiner(): string {
+    const status = this.detalheConteiner?.statusOperacional ?? '';
+    if (!status) {
+      return '';
+    }
+    const chave = status.toLowerCase().replace(/_/g, ' ');
+    return chave.charAt(0).toUpperCase() + chave.slice(1);
+  }
+
+  sanitizarTexto(valor: string | null | undefined): string {
+    return this.sanitizadorConteudo.sanitizar(valor ?? '');
   }
 }

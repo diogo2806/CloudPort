@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -41,6 +42,11 @@ public class ConteinerControlador {
     @GetMapping("/{identificador}")
     public ConteinerDetalheDTO detalhar(@PathVariable Long identificador) {
         return conteinerServico.buscarDetalhe(identificador);
+    }
+
+    @GetMapping("/por-codigo")
+    public ConteinerDetalheDTO detalharPorCodigo(@RequestParam("codigo") String codigo) {
+        return conteinerServico.buscarDetalhePorCodigo(codigo);
     }
 
     @PostMapping
@@ -76,5 +82,10 @@ public class ConteinerControlador {
     @GetMapping("/{identificador}/historico")
     public List<HistoricoOperacaoDTO> historico(@PathVariable Long identificador) {
         return conteinerServico.consultarHistorico(identificador);
+    }
+
+    @GetMapping("/por-codigo/historico")
+    public List<HistoricoOperacaoDTO> historicoPorCodigo(@RequestParam("codigo") String codigo) {
+        return conteinerServico.consultarHistoricoPorCodigo(codigo);
     }
 }

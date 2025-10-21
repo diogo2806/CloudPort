@@ -56,6 +56,24 @@
         "status": "Estado del pase",
         "atualizadoEm": "Actualizado el {{data}}"
       },
+      "historicoConteiner": {
+        "titulo": "Histórico del contenedor {{codigo}}",
+        "statusAtual": "Estado actual: {{status}}",
+        "posicaoAtual": "Ubicación en patio: {{posicao}}",
+        "ultimaAtualizacao": "Última actualización: {{data}}",
+        "carregando": "Cargando histórico del contenedor...",
+        "erroCarregamento": "No fue posible cargar el histórico del contenedor. Intente nuevamente.",
+        "vazio": "Aún no hay movimientos registrados para este contenedor.",
+        "responsavel": "Responsable: {{responsavel}}",
+        "posicaoMovimentacao": "Ubicación registrada: {{posicao}}",
+        "descargaTrem": "Descarga del tren concluida",
+        "cargaTrem": "Carga en el tren concluida",
+        "alocacao": "Asignación registrada",
+        "transferencia": "Transferencia registrada",
+        "inspecao": "Inspección registrada",
+        "liberacao": "Liberación registrada",
+        "atualizacaoCadastral": "Actualización de registro"
+      },
       "realtime": {
         "titulo": "Estado en tiempo real",
         "status": {

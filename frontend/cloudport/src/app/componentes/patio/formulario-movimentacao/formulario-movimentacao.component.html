@@ -1,105 +1,67 @@
-<section class="formulario-movimentacao">
+<section class="formulario-ordem">
   <header>
-    <h2>Registrar movimentações</h2>
-    <p>Atualize contêineres e equipamentos com segurança, garantindo dados consistentes.</p>
+    <h2>Planejar ordem de movimentação</h2>
+    <p>Cadastre ordens de trabalho para que os operadores executem as movimentações no pátio. A atualização do inventário ocorre somente após a confirmação da ordem.</p>
   </header>
 
-  <div class="estado" *ngIf="carregandoOpcoes">Carregando opções de cadastro...</div>
+  <div class="estado" *ngIf="carregandoOpcoes">Carregando dados de apoio...</div>
 
-  <div class="formularios">
-    <form [formGroup]="formularioConteiner" (ngSubmit)="submeterConteiner()" class="bloco">
-      <h3>Movimentar contêiner</h3>
+  <form [formGroup]="formularioOrdem" (ngSubmit)="submeterOrdem()" class="bloco">
+    <div class="duas-colunas">
       <div class="campo">
-        <label for="conteiner-id">Identificador interno</label>
-        <input id="conteiner-id" type="number" formControlName="id" placeholder="Informe para atualizar um registro existente" />
-      </div>
-      <div class="duas-colunas">
-        <div class="campo">
-          <label for="conteiner-codigo">Código do contêiner</label>
-          <input id="conteiner-codigo" type="text" formControlName="codigo" required />
-        </div>
-        <div class="campo">
-          <label for="conteiner-status">Status operacional</label>
-          <select id="conteiner-status" formControlName="status" required>
-            <option value="" disabled>Selecione</option>
-            <option *ngFor="let status of opcoes?.statusConteiner" [value]="status">{{ formatarRotulo(status) }}</option>
-          </select>
-        </div>
-      </div>
-      <div class="duas-colunas">
-        <div class="campo">
-          <label for="conteiner-linha">Linha</label>
-          <input id="conteiner-linha" type="number" formControlName="linha" min="0" required />
-        </div>
-        <div class="campo">
-          <label for="conteiner-coluna">Coluna</label>
-          <input id="conteiner-coluna" type="number" formControlName="coluna" min="0" required />
-        </div>
-      </div>
-      <div class="duas-colunas">
-        <div class="campo">
-          <label for="conteiner-tipo-carga">Tipo de carga</label>
-          <input id="conteiner-tipo-carga" type="text" formControlName="tipoCarga" required />
-        </div>
-        <div class="campo">
-          <label for="conteiner-destino">Destino</label>
-          <input id="conteiner-destino" type="text" formControlName="destino" required />
-        </div>
+        <label for="ordem-codigo">Código do contêiner</label>
+        <input id="ordem-codigo" type="text" formControlName="codigo" required />
       </div>
       <div class="campo">
-        <label for="conteiner-camada">Camada operacional</label>
-        <input id="conteiner-camada" type="text" formControlName="camadaOperacional" required />
-      </div>
-      <div class="acoes">
-        <button type="submit" [disabled]="salvandoConteiner">Salvar contêiner</button>
-        <button type="button" class="secundario" (click)="limparFormularioConteiner()">Limpar campos</button>
-      </div>
-      <p class="mensagem sucesso" *ngIf="sucessoConteiner">{{ sucessoConteiner }}</p>
-      <p class="mensagem erro" *ngIf="erroConteiner">{{ erroConteiner }}</p>
-    </form>
-
-    <form [formGroup]="formularioEquipamento" (ngSubmit)="submeterEquipamento()" class="bloco">
-      <h3>Atualizar equipamento</h3>
-      <div class="campo">
-        <label for="equipamento-id">Identificador interno</label>
-        <input id="equipamento-id" type="number" formControlName="id" placeholder="Informe para atualizar um registro existente" />
-      </div>
-      <div class="duas-colunas">
-        <div class="campo">
-          <label for="equipamento-identificador">Identificador</label>
-          <input id="equipamento-identificador" type="text" formControlName="identificador" required />
-        </div>
-        <div class="campo">
-          <label for="equipamento-tipo">Tipo</label>
-          <select id="equipamento-tipo" formControlName="tipoEquipamento" required>
-            <option value="" disabled>Selecione</option>
-            <option *ngFor="let tipo of opcoes?.tiposEquipamento" [value]="tipo">{{ formatarRotulo(tipo) }}</option>
-          </select>
-        </div>
-      </div>
-      <div class="duas-colunas">
-        <div class="campo">
-          <label for="equipamento-linha">Linha</label>
-          <input id="equipamento-linha" type="number" formControlName="linha" min="0" required />
-        </div>
-        <div class="campo">
-          <label for="equipamento-coluna">Coluna</label>
-          <input id="equipamento-coluna" type="number" formControlName="coluna" min="0" required />
-        </div>
-      </div>
-      <div class="campo">
-        <label for="equipamento-status">Status operacional</label>
-        <select id="equipamento-status" formControlName="statusOperacional" required>
+        <label for="ordem-tipo-movimento">Tipo de movimento</label>
+        <select id="ordem-tipo-movimento" formControlName="tipoMovimento" required>
           <option value="" disabled>Selecione</option>
-          <option *ngFor="let status of opcoes?.statusEquipamento" [value]="status">{{ formatarRotulo(status) }}</option>
+          <option *ngFor="let tipo of opcoes?.tiposMovimento" [value]="tipo">{{ formatarRotulo(tipo) }}</option>
         </select>
       </div>
-      <div class="acoes">
-        <button type="submit" [disabled]="salvandoEquipamento">Salvar equipamento</button>
-        <button type="button" class="secundario" (click)="limparFormularioEquipamento()">Limpar campos</button>
+    </div>
+
+    <div class="duas-colunas">
+      <div class="campo">
+        <label for="ordem-tipo-carga">Tipo de carga</label>
+        <input id="ordem-tipo-carga" type="text" formControlName="tipoCarga" required />
       </div>
-      <p class="mensagem sucesso" *ngIf="sucessoEquipamento">{{ sucessoEquipamento }}</p>
-      <p class="mensagem erro" *ngIf="erroEquipamento">{{ erroEquipamento }}</p>
-    </form>
-  </div>
+      <div class="campo">
+        <label for="ordem-status-destino">Status após conclusão</label>
+        <select id="ordem-status-destino" formControlName="statusConteinerDestino" required>
+          <option value="" disabled>Selecione</option>
+          <option *ngFor="let status of opcoes?.statusConteiner" [value]="status">{{ formatarRotulo(status) }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="duas-colunas">
+      <div class="campo">
+        <label for="ordem-destino">Destino</label>
+        <input id="ordem-destino" type="text" formControlName="destino" required />
+      </div>
+      <div class="campo">
+        <label for="ordem-camada">Camada operacional</label>
+        <input id="ordem-camada" type="text" formControlName="camadaDestino" required />
+      </div>
+    </div>
+
+    <div class="duas-colunas">
+      <div class="campo">
+        <label for="ordem-linha">Linha</label>
+        <input id="ordem-linha" type="number" formControlName="linhaDestino" min="0" required />
+      </div>
+      <div class="campo">
+        <label for="ordem-coluna">Coluna</label>
+        <input id="ordem-coluna" type="number" formControlName="colunaDestino" min="0" required />
+      </div>
+    </div>
+
+    <div class="acoes">
+      <button type="submit" [disabled]="salvandoOrdem">Registrar ordem</button>
+      <button type="button" class="secundario" (click)="limparFormularioOrdem()">Limpar campos</button>
+    </div>
+    <p class="mensagem sucesso" *ngIf="sucessoOrdem">{{ sucessoOrdem }}</p>
+    <p class="mensagem erro" *ngIf="erroOrdem">{{ erroOrdem }}</p>
+  </form>
 </section>

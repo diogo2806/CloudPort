@@ -181,7 +181,11 @@ public class MapaPatioServico {
         List<String> statusEquipamento = Arrays.stream(StatusEquipamento.values())
                 .map(Enum::name)
                 .collect(Collectors.toList());
-        return new OpcoesCadastroPatioDto(statusConteiner, tiposEquipamento, statusEquipamento);
+        List<String> tiposMovimento = Arrays.stream(TipoMovimentoPatio.values())
+                .filter(tipo -> tipo != TipoMovimentoPatio.REMOCAO)
+                .map(Enum::name)
+                .collect(Collectors.toList());
+        return new OpcoesCadastroPatioDto(statusConteiner, tiposEquipamento, statusEquipamento, tiposMovimento);
     }
 
     @Transactional
@@ -303,7 +307,7 @@ public class MapaPatioServico {
             return conteinerPatioRepositorio.findById(requisicaoDto.getId())
                     .orElseThrow(() -> new IllegalArgumentException("Contêiner não encontrado."));
         }
-        Optional<ConteinerPatio> existente = conteinerPatioRepositorio.findByCodigo(requisicaoDto.getCodigo());
+        Optional<ConteinerPatio> existente = conteinerPatioRepositorio.findByCodigoIgnoreCase(requisicaoDto.getCodigo());
         return existente.orElseGet(ConteinerPatio::new);
     }
 

@@ -50,6 +50,7 @@ export interface OpcoesCadastroPatio {
   statusConteiner: string[];
   tiposEquipamento: string[];
   statusEquipamento: string[];
+  tiposMovimento: string[];
 }
 
 export interface MapaPatioResposta {

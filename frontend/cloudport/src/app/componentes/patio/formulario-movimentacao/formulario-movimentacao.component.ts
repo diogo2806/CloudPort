@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
-import { ConteinerMapa, EquipamentoMapa, OpcoesCadastroPatio, ServicoPatioService } from '../../service/servico-patio/servico-patio.service';
+import { OpcoesCadastroPatio, ServicoPatioService } from '../../service/servico-patio/servico-patio.service';
+import { NovaOrdemTrabalhoPatio, ServicoListaTrabalhoPatioService, TipoMovimentoPatio } from '../../service/servico-lista-trabalho-patio/servico-lista-trabalho-patio.service';
 import { SanitizadorConteudoService } from '../../service/sanitizacao/sanitizador-conteudo.service';
 
 @Component({
@@ -10,40 +11,28 @@ import { SanitizadorConteudoService } from '../../service/sanitizacao/sanitizado
   styleUrls: ['./formulario-movimentacao.component.css']
 })
 export class FormularioMovimentacaoComponent implements OnInit {
-  formularioConteiner: FormGroup;
-  formularioEquipamento: FormGroup;
+  formularioOrdem: FormGroup;
   opcoes?: OpcoesCadastroPatio;
   carregandoOpcoes = false;
-  salvandoConteiner = false;
-  salvandoEquipamento = false;
-  sucessoConteiner?: string;
-  erroConteiner?: string;
-  sucessoEquipamento?: string;
-  erroEquipamento?: string;
+  salvandoOrdem = false;
+  sucessoOrdem?: string;
+  erroOrdem?: string;
 
   constructor(
     private readonly formBuilder: FormBuilder,
     private readonly servicoPatio: ServicoPatioService,
+    private readonly servicoListaTrabalho: ServicoListaTrabalhoPatioService,
     private readonly sanitizador: SanitizadorConteudoService
   ) {
-    this.formularioConteiner = this.formBuilder.group({
-      id: [null],
+    this.formularioOrdem = this.formBuilder.group({
       codigo: ['', [Validators.required, Validators.maxLength(30)]],
-      linha: [0, [Validators.required, Validators.min(0)]],
-      coluna: [0, [Validators.required, Validators.min(0)]],
-      status: ['', Validators.required],
       tipoCarga: ['', [Validators.required, Validators.maxLength(40)]],
       destino: ['', [Validators.required, Validators.maxLength(60)]],
-      camadaOperacional: ['', [Validators.required, Validators.maxLength(40)]]
-    });
-
-    this.formularioEquipamento = this.formBuilder.group({
-      id: [null],
-      identificador: ['', [Validators.required, Validators.maxLength(30)]],
-      tipoEquipamento: ['', Validators.required],
-      linha: [0, [Validators.required, Validators.min(0)]],
-      coluna: [0, [Validators.required, Validators.min(0)]],
-      statusOperacional: ['', Validators.required]
+      linhaDestino: [0, [Validators.required, Validators.min(0)]],
+      colunaDestino: [0, [Validators.required, Validators.min(0)]],
+      camadaDestino: ['', [Validators.required, Validators.maxLength(40)]],
+      tipoMovimento: ['', Validators.required],
+      statusConteinerDestino: ['', Validators.required]
     });
   }
 
@@ -65,80 +54,43 @@ export class FormularioMovimentacaoComponent implements OnInit {
       });
   }
 
-  submeterConteiner(): void {
-    if (this.formularioConteiner.invalid) {
-      this.formularioConteiner.markAllAsTouched();
+  submeterOrdem(): void {
+    if (this.formularioOrdem.invalid) {
+      this.formularioOrdem.markAllAsTouched();
       return;
     }
-    const valores = this.formularioConteiner.getRawValue();
-    const payload: ConteinerMapa = {
-      id: valores.id ?? undefined,
-      codigo: this.sanitizarTexto(valores.codigo),
-      linha: Number(valores.linha),
-      coluna: Number(valores.coluna),
-      status: valores.status,
+    const valores = this.formularioOrdem.getRawValue();
+    const payload: NovaOrdemTrabalhoPatio = {
+      codigoConteiner: this.sanitizarTexto(valores.codigo),
       tipoCarga: this.sanitizarTexto(valores.tipoCarga),
       destino: this.sanitizarTexto(valores.destino),
-      camadaOperacional: this.sanitizarTexto(valores.camadaOperacional)
+      linhaDestino: Number(valores.linhaDestino),
+      colunaDestino: Number(valores.colunaDestino),
+      camadaDestino: this.sanitizarTexto(valores.camadaDestino),
+      tipoMovimento: valores.tipoMovimento as TipoMovimentoPatio,
+      statusConteinerDestino: valores.statusConteinerDestino
     };
 
-    this.salvandoConteiner = true;
-    this.sucessoConteiner = undefined;
-    this.erroConteiner = undefined;
-    this.servicoPatio.salvarConteiner(payload)
-      .pipe(finalize(() => this.salvandoConteiner = false))
+    this.salvandoOrdem = true;
+    this.sucessoOrdem = undefined;
+    this.erroOrdem = undefined;
+    this.servicoListaTrabalho.registrarOrdem(payload)
+      .pipe(finalize(() => (this.salvandoOrdem = false)))
       .subscribe({
-        next: (resposta) => {
-          this.sucessoConteiner = 'Contêiner atualizado com sucesso.';
-          this.formularioConteiner.patchValue({ id: resposta.id ?? null });
+        next: () => {
+          this.sucessoOrdem = 'Ordem de trabalho criada com sucesso. Ela será exibida imediatamente para os operadores.';
+          this.formularioOrdem.reset({ linhaDestino: 0, colunaDestino: 0 });
         },
         error: () => {
-          this.erroConteiner = 'Não foi possível registrar a movimentação do contêiner. Verifique os dados informados.';
+          this.erroOrdem = 'Não foi possível registrar a ordem de trabalho. Verifique os dados informados.';
         }
       });
   }
 
-  submeterEquipamento(): void {
-    if (this.formularioEquipamento.invalid) {
-      this.formularioEquipamento.markAllAsTouched();
-      return;
-    }
-    const valores = this.formularioEquipamento.getRawValue();
-    const payload: EquipamentoMapa = {
-      id: valores.id ?? undefined,
-      identificador: this.sanitizarTexto(valores.identificador),
-      tipoEquipamento: valores.tipoEquipamento,
-      linha: Number(valores.linha),
-      coluna: Number(valores.coluna),
-      statusOperacional: valores.statusOperacional
-    };
-
-    this.salvandoEquipamento = true;
-    this.sucessoEquipamento = undefined;
-    this.erroEquipamento = undefined;
-    this.servicoPatio.salvarEquipamento(payload)
-      .pipe(finalize(() => this.salvandoEquipamento = false))
-      .subscribe({
-        next: (resposta) => {
-          this.sucessoEquipamento = 'Equipamento atualizado com sucesso.';
-          this.formularioEquipamento.patchValue({ id: resposta.id ?? null });
-        },
-        error: () => {
-          this.erroEquipamento = 'Não foi possível atualizar as informações do equipamento.';
-        }
-      });
-  }
-
-  limparFormularioConteiner(): void {
-    this.formularioConteiner.reset({ linha: 0, coluna: 0 });
-    this.sucessoConteiner = undefined;
-    this.erroConteiner = undefined;
-  }
-
-  limparFormularioEquipamento(): void {
-    this.formularioEquipamento.reset({ linha: 0, coluna: 0 });
-    this.sucessoEquipamento = undefined;
-    this.erroEquipamento = undefined;
+  limparFormularioOrdem(): void {
+    this.formularioOrdem.reset({ linhaDestino: 0, colunaDestino: 0 });
+    this.sucessoOrdem = undefined;
+    this.erroOrdem = undefined;
   }
 
   formatarRotulo(valor: string): string {

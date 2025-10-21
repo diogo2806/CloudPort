@@ -43,42 +43,64 @@
   </article>
 
   <section *ngIf="!estaCarregando && !erroCarregamento && visita" class="painel-operacoes">
-    <h2>Planejamento de Contêineres</h2>
-    <nav class="abas-operacoes" aria-label="Seleção de operações">
-      <button type="button"
-              [class.ativa]="abaAtiva === 'DESCARGA'"
-              (click)="selecionarAba('DESCARGA')">
-        Para Descarregar ({{ obterItensAba('DESCARGA').length }})
-      </button>
-      <button type="button"
-              [class.ativa]="abaAtiva === 'CARGA'"
-              (click)="selecionarAba('CARGA')">
-        Para Carregar ({{ obterItensAba('CARGA').length }})
-      </button>
-    </nav>
+    <h2>Planejamento de Contêineres por Vagão</h2>
 
     <div *ngIf="mensagemOperacao" class="estado-sucesso">{{ textoSeguro(mensagemOperacao) }}</div>
     <div *ngIf="erroOperacao" class="estado-erro">{{ textoSeguro(erroOperacao) }}</div>
 
-    <section class="lista-operacoes" *ngIf="obterItensAba(abaAtiva).length > 0; else semItens">
-      <article class="linha-operacao" *ngFor="let item of obterItensAba(abaAtiva)">
-        <div class="informacoes-conteiner">
-          <span class="identificador">Contêiner: {{ textoSeguro(item.codigoConteiner) }}</span>
-          <span class="status" [class.concluido]="estaConcluido(item.statusOperacao)">
-            {{ textoSeguro(descricaoStatus(item.statusOperacao)) }}
-          </span>
-        </div>
-        <button type="button"
-                class="botao-status"
-                [disabled]="estaConcluido(item.statusOperacao) || operacaoEmAndamento"
-                (click)="marcarComoConcluido(abaAtiva, item.codigoConteiner)">
-          Marcar como concluído
-        </button>
-      </article>
-    </section>
+    <div *ngIf="vagoesAgrupados.length === 0" class="estado-informativo">
+      Nenhum vagão cadastrado para esta visita.
+    </div>
 
-    <ng-template #semItens>
-      <p class="estado-informativo">Nenhum contêiner planejado para esta operação.</p>
-    </ng-template>
+    <ul class="arvore-vagoes" *ngIf="vagoesAgrupados.length > 0">
+      <li *ngFor="let vagao of vagoesAgrupados" class="nodo-vagao">
+        <div class="cabecalho-vagao">
+          <span class="titulo-vagao">Vagão {{ textoSeguro(vagao.identificadorVagao) }}</span>
+          <span class="posicao-vagao">Posição {{ vagao.posicaoNoTrem }}</span>
+          <span class="tipo-vagao" *ngIf="vagao.tipoVagao">Tipo {{ textoSeguro(vagao.tipoVagao) }}</span>
+        </div>
+        <ul class="lista-conteineres" *ngIf="vagao.conteineres.length > 0">
+          <li *ngFor="let conteiner of vagao.conteineres" class="nodo-conteiner">
+            <div class="linha-conteiner">
+              <span class="identificador">Contêiner {{ textoSeguro(conteiner.codigoConteiner) }}</span>
+              <span class="tipo-movimentacao">{{ descricaoTipo(conteiner.tipoMovimentacao) }}</span>
+              <span class="status" [class.concluido]="estaConcluido(conteiner.statusOperacao)">
+                {{ descricaoStatus(conteiner.statusOperacao) }}
+              </span>
+              <button type="button"
+                      class="botao-status"
+                      [disabled]="estaConcluido(conteiner.statusOperacao) || operacaoEmAndamento"
+                      (click)="marcarComoConcluido(conteiner)">
+                Marcar como concluído
+              </button>
+            </div>
+          </li>
+        </ul>
+        <p class="estado-informativo" *ngIf="vagao.conteineres.length === 0">
+          Nenhum contêiner associado a este vagão.
+        </p>
+      </li>
+    </ul>
+
+    <section *ngIf="conteineresNaoAlocados.length > 0" class="secao-nao-alocados">
+      <h3>Contêineres sem vagão associado</h3>
+      <ul class="lista-conteineres">
+        <li *ngFor="let conteiner of conteineresNaoAlocados" class="nodo-conteiner">
+          <div class="linha-conteiner">
+            <span class="identificador">Contêiner {{ textoSeguro(conteiner.codigoConteiner) }}</span>
+            <span class="tipo-movimentacao">{{ descricaoTipo(conteiner.tipoMovimentacao) }}</span>
+            <span class="status" [class.concluido]="estaConcluido(conteiner.statusOperacao)">
+              {{ descricaoStatus(conteiner.statusOperacao) }}
+            </span>
+            <button type="button"
+                    class="botao-status"
+                    [disabled]="estaConcluido(conteiner.statusOperacao) || operacaoEmAndamento"
+                    (click)="marcarComoConcluido(conteiner)">
+              Marcar como concluído
+            </button>
+          </div>
+        </li>
+      </ul>
+    </section>
   </section>
 </section>

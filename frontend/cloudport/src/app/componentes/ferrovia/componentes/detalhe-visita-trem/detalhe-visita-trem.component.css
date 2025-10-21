@@ -33,6 +33,21 @@
   background-color: #2f2f2f;
 }
 
+.botao-trabalho {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: #1976d2;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.botao-trabalho:hover,
+.botao-trabalho:focus {
+  background-color: #0d47a1;
+}
+
 .estado-informativo {
   padding: 12px;
   background-color: #eef5ff;

@@ -38,6 +38,13 @@ export class DetalheVisitaTremComponent implements OnInit {
     this.router.navigate(['/home', 'ferrovia', 'visitas']);
   }
 
+  irParaListaTrabalho(): void {
+    if (!this.visita || this.visita.id === undefined || this.visita.id === null) {
+      return;
+    }
+    this.router.navigate(['/home', 'ferrovia', 'visitas', this.visita.id, 'lista-trabalho']);
+  }
+
   textoSeguro(valor: string | null | undefined): string {
     return this.sanitizadorConteudo.sanitizar(valor);
   }

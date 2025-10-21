@@ -6,6 +6,8 @@ import br.com.cloudport.servicorail.ferrovia.dto.OperacaoConteinerVisitaRequisic
 import br.com.cloudport.servicorail.ferrovia.dto.VagaoVisitaRequisicaoDto;
 import br.com.cloudport.servicorail.ferrovia.dto.VisitaTremRequisicaoDto;
 import br.com.cloudport.servicorail.ferrovia.dto.VisitaTremRespostaDto;
+import br.com.cloudport.servicorail.ferrovia.listatrabalho.modelo.TipoMovimentacaoOrdem;
+import br.com.cloudport.servicorail.ferrovia.listatrabalho.servico.OrdemMovimentacaoServico;
 import br.com.cloudport.servicorail.ferrovia.modelo.OperacaoConteinerVisita;
 import br.com.cloudport.servicorail.ferrovia.modelo.StatusOperacaoConteinerVisita;
 import br.com.cloudport.servicorail.ferrovia.modelo.StatusVisitaTrem;
@@ -35,19 +37,25 @@ public class VisitaTremServico {
 
     private final VisitaTremRepositorio visitaTremRepositorio;
     private final SanitizadorEntrada sanitizadorEntrada;
+    private final OrdemMovimentacaoServico ordemMovimentacaoServico;
 
     public VisitaTremServico(VisitaTremRepositorio visitaTremRepositorio,
-                              SanitizadorEntrada sanitizadorEntrada) {
+                              SanitizadorEntrada sanitizadorEntrada,
+                              OrdemMovimentacaoServico ordemMovimentacaoServico) {
         this.visitaTremRepositorio = visitaTremRepositorio;
         this.sanitizadorEntrada = sanitizadorEntrada;
+        this.ordemMovimentacaoServico = ordemMovimentacaoServico;
     }
 
     @Transactional
     public VisitaTremRespostaDto registrarVisita(VisitaTremRequisicaoDto dto) {
         DadosVisitaSanitizados dados = sanitizarDadosBasicos(dto);
         VisitaTrem visita = new VisitaTrem();
-        aplicarDados(visita, dados, dto, true);
+        boolean statusAlteradoParaChegou = aplicarDados(visita, dados, dto, true);
         VisitaTrem salvo = visitaTremRepositorio.save(visita);
+        if (deveGerarOrdens(statusAlteradoParaChegou, true, salvo)) {
+            ordemMovimentacaoServico.gerarOrdensPendentesParaVisita(salvo);
+        }
         return VisitaTremRespostaDto.deEntidade(salvo);
     }
 
@@ -55,8 +63,11 @@ public class VisitaTremServico {
     public VisitaTremRespostaDto atualizarVisita(Long id, VisitaTremRequisicaoDto dto) {
         VisitaTrem existente = buscarVisitaComListas(id);
         DadosVisitaSanitizados dados = sanitizarDadosBasicos(dto);
-        aplicarDados(existente, dados, dto, true);
+        boolean statusAlteradoParaChegou = aplicarDados(existente, dados, dto, true);
         VisitaTrem atualizado = visitaTremRepositorio.save(existente);
+        if (deveGerarOrdens(statusAlteradoParaChegou, true, atualizado)) {
+            ordemMovimentacaoServico.gerarOrdensPendentesParaVisita(atualizado);
+        }
         return VisitaTremRespostaDto.deEntidade(atualizado);
     }
 
@@ -69,8 +80,11 @@ public class VisitaTremServico {
         VisitaTrem visita = existente
                 .map(valor -> buscarVisitaComListas(valor.getId()))
                 .orElseGet(VisitaTrem::new);
-        aplicarDados(visita, dados, dto, substituirListas);
+        boolean statusAlteradoParaChegou = aplicarDados(visita, dados, dto, substituirListas);
         VisitaTrem salvo = visitaTremRepositorio.save(visita);
+        if (deveGerarOrdens(statusAlteradoParaChegou, substituirListas, salvo)) {
+            ordemMovimentacaoServico.gerarOrdensPendentesParaVisita(salvo);
+        }
         return VisitaTremRespostaDto.deEntidade(salvo);
     }
 
@@ -154,10 +168,11 @@ public class VisitaTremServico {
         return new DadosVisitaSanitizados(identificadorLimpo, operadoraLimpa, horaChegada, horaPartida, status);
     }
 
-    private void aplicarDados(VisitaTrem visita,
-                              DadosVisitaSanitizados dados,
-                              VisitaTremRequisicaoDto dto,
-                              boolean substituirListas) {
+    private boolean aplicarDados(VisitaTrem visita,
+                                 DadosVisitaSanitizados dados,
+                                 VisitaTremRequisicaoDto dto,
+                                 boolean substituirListas) {
+        StatusVisitaTrem statusAnterior = visita.getStatusVisita();
         visita.setIdentificadorTrem(dados.identificadorTrem);
         visita.setOperadoraFerroviaria(dados.operadoraFerroviaria);
         visita.setHoraChegadaPrevista(dados.horaChegadaPrevista);
@@ -173,6 +188,15 @@ public class VisitaTremServico {
             List<VagaoVisita> listaVagoes = converterListaVagoes(dto.getListaVagoes());
             visita.definirListaVagoes(listaVagoes);
         }
+        return statusAnterior != StatusVisitaTrem.CHEGOU && dados.statusVisita == StatusVisitaTrem.CHEGOU;
+    }
+
+    private boolean deveGerarOrdens(boolean statusAlteradoParaChegou,
+                                    boolean substituirListas,
+                                    VisitaTrem visita) {
+        return visita != null
+                && visita.getStatusVisita() == StatusVisitaTrem.CHEGOU
+                && (statusAlteradoParaChegou || substituirListas);
     }
 
     private String sanitizarObrigatorio(String valor, String campo, int tamanhoMaximo) {
@@ -317,8 +341,11 @@ public class VisitaTremServico {
         }
 
         listaAlvo.add(novaOperacao);
-        visitaTremRepositorio.save(visita);
-        return VisitaTremRespostaDto.deEntidade(visita);
+        VisitaTrem atualizado = visitaTremRepositorio.save(visita);
+        ordemMovimentacaoServico.registrarOrdemParaOperacaoSeNecessario(atualizado,
+                novaOperacao.getCodigoConteiner(),
+                converterTipoMovimentacao(tipoLista));
+        return VisitaTremRespostaDto.deEntidade(atualizado);
     }
 
     private VisitaTremRespostaDto removerOperacaoConteiner(Long idVisita,
@@ -332,8 +359,11 @@ public class VisitaTremServico {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "O contêiner informado não está relacionado a esta visita.");
         }
-        visitaTremRepositorio.save(visita);
-        return VisitaTremRespostaDto.deEntidade(visita);
+        VisitaTrem atualizado = visitaTremRepositorio.save(visita);
+        ordemMovimentacaoServico.removerOrdemSeExistir(atualizado.getId(),
+                codigoValidado,
+                converterTipoMovimentacao(tipoLista));
+        return VisitaTremRespostaDto.deEntidade(atualizado);
     }
 
     private VisitaTremRespostaDto atualizarStatusOperacaoConteiner(Long idVisita,
@@ -361,6 +391,12 @@ public class VisitaTremServico {
             return visita.getListaDescarga();
         }
         return visita.getListaCarga();
+    }
+
+    private TipoMovimentacaoOrdem converterTipoMovimentacao(TipoListaOperacaoVisita tipoLista) {
+        return tipoLista == TipoListaOperacaoVisita.DESCARGA
+                ? TipoMovimentacaoOrdem.DESCARGA_TREM
+                : TipoMovimentacaoOrdem.CARGA_TREM;
     }
 
     private OperacaoConteinerVisita converterParaOperacao(OperacaoConteinerVisitaRequisicaoDto dto) {

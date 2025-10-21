@@ -1,0 +1,67 @@
+<section class="lista-trabalho-trem" aria-live="polite">
+  <header class="cabecalho">
+    <h1>Lista de Trabalho do Trem</h1>
+    <div class="acoes-cabecalho">
+      <button type="button"
+              class="botao-acao botao-secundario"
+              (click)="voltarParaDetalhes()">
+        Voltar para detalhes
+      </button>
+      <button type="button"
+              class="botao-acao botao-primario"
+              (click)="carregarOrdens()"
+              [disabled]="estaCarregando">
+        Atualizar lista
+      </button>
+    </div>
+  </header>
+
+  <p class="instrucoes">Selecione uma ordem para assumi-la e finalize-a quando o contêiner estiver movimentado.</p>
+
+  <div *ngIf="estaCarregando" class="estado estado-informativo">
+    Carregando ordens de movimentação do trem...
+  </div>
+
+  <div *ngIf="mensagemErro" class="estado estado-erro">
+    {{ textoSeguro(mensagemErro) }}
+  </div>
+
+  <div *ngIf="mensagemSucesso" class="estado estado-sucesso">
+    {{ textoSeguro(mensagemSucesso) }}
+  </div>
+
+  <section *ngIf="!estaCarregando && ordensVisiveis().length > 0" class="lista-ordens">
+    <article *ngFor="let ordem of ordensVisiveis()" class="cartao-ordem">
+      <header class="cartao-cabecalho">
+        <span class="conteiner">Contêiner {{ textoSeguro(ordem.codigoConteiner) }}</span>
+        <span class="status" [ngClass]="{
+            'status-pendente': ordem.statusMovimentacao === 'PENDENTE',
+            'status-execucao': ordem.statusMovimentacao === 'EM_EXECUCAO'
+          }">
+          {{ textoSeguro(descricaoStatus(ordem.statusMovimentacao)) }}
+        </span>
+      </header>
+      <p class="detalhe">{{ textoSeguro(descricaoTipo(ordem.tipoMovimentacao)) }}</p>
+      <p class="detalhe">Criada em {{ ordem.criadoEm | date:'dd/MM/yyyy HH:mm' }}</p>
+      <div class="acoes-ordem">
+        <button type="button"
+                class="botao-acao botao-primario"
+                (click)="assumirOrdem(ordem)"
+                [disabled]="!podeAssumir(ordem) || estaEmAtualizacao(ordem)">
+          Assumir tarefa
+        </button>
+        <button type="button"
+                class="botao-acao botao-sucesso"
+                (click)="concluirOrdem(ordem)"
+                [disabled]="!podeConcluir(ordem) || estaEmAtualizacao(ordem)">
+          Marcar como concluída
+        </button>
+      </div>
+      <p *ngIf="estaEmAtualizacao(ordem)" class="estado estado-informativo pequeno">Atualizando ordem...</p>
+    </article>
+  </section>
+
+  <p *ngIf="!estaCarregando && ordensVisiveis().length === 0 && !mensagemErro" class="estado estado-informativo">
+    Nenhuma ordem pendente ou em execução para este trem.
+  </p>
+</section>

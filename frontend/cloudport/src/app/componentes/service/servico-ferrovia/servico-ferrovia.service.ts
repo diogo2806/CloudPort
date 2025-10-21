@@ -6,12 +6,12 @@ import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao
 export type StatusOperacaoConteinerVisita = 'PENDENTE' | 'CONCLUIDO';
 
 export interface OperacaoConteinerVisita {
-  idConteiner: number;
+  codigoConteiner: string;
   statusOperacao: StatusOperacaoConteinerVisita;
 }
 
 export interface OperacaoConteinerVisitaEnvio {
-  idConteiner: number;
+  codigoConteiner: string;
   statusOperacao?: StatusOperacaoConteinerVisita;
 }
 
@@ -42,7 +42,7 @@ export interface VisitaTremRequisicao {
   providedIn: 'root'
 })
 export class ServicoFerroviaService {
-  private static readonly CAMINHO_BASE = '/yard/ferrovia/visitas';
+  private static readonly CAMINHO_BASE = '/rail/ferrovia/visitas';
 
   constructor(
     private readonly http: HttpClient,
@@ -75,24 +75,30 @@ export class ServicoFerroviaService {
     return this.http.post<VisitaTrem>(this.construirUrl(`/${idVisita}/carga`), payload);
   }
 
-  removerConteinerDescarga(idVisita: number, idConteiner: number): Observable<VisitaTrem> {
-    return this.http.delete<VisitaTrem>(this.construirUrl(`/${idVisita}/descarga/${idConteiner}`));
+  removerConteinerDescarga(idVisita: number, codigoConteiner: string): Observable<VisitaTrem> {
+    return this.http.delete<VisitaTrem>(this.construirUrl(`/${idVisita}/descarga/${encodeURIComponent(codigoConteiner)}`));
   }
 
-  removerConteinerCarga(idVisita: number, idConteiner: number): Observable<VisitaTrem> {
-    return this.http.delete<VisitaTrem>(this.construirUrl(`/${idVisita}/carga/${idConteiner}`));
+  removerConteinerCarga(idVisita: number, codigoConteiner: string): Observable<VisitaTrem> {
+    return this.http.delete<VisitaTrem>(this.construirUrl(`/${idVisita}/carga/${encodeURIComponent(codigoConteiner)}`));
   }
 
   atualizarStatusDescarga(idVisita: number,
-                          idConteiner: number,
+                          codigoConteiner: string,
                           payload: AtualizacaoStatusOperacaoConteiner): Observable<VisitaTrem> {
-    return this.http.patch<VisitaTrem>(this.construirUrl(`/${idVisita}/descarga/${idConteiner}/status`), payload);
+    return this.http.patch<VisitaTrem>(
+      this.construirUrl(`/${idVisita}/descarga/${encodeURIComponent(codigoConteiner)}/status`),
+      payload
+    );
   }
 
   atualizarStatusCarga(idVisita: number,
-                       idConteiner: number,
+                       codigoConteiner: string,
                        payload: AtualizacaoStatusOperacaoConteiner): Observable<VisitaTrem> {
-    return this.http.patch<VisitaTrem>(this.construirUrl(`/${idVisita}/carga/${idConteiner}/status`), payload);
+    return this.http.patch<VisitaTrem>(
+      this.construirUrl(`/${idVisita}/carga/${encodeURIComponent(codigoConteiner)}/status`),
+      payload
+    );
   }
 
   private construirUrl(caminho: string): string {

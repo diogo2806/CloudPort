@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoyard.ferrovia.modelo;
+package br.com.cloudport.servicorail.ferrovia.modelo;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -13,6 +13,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.OrderColumn;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
@@ -49,11 +50,18 @@ public class VisitaTrem {
 
     @ElementCollection
     @CollectionTable(name = "visita_trem_descarga", joinColumns = @JoinColumn(name = "visita_trem_id"))
+    @OrderColumn(name = "ordem_manifesto_descarga")
     private List<OperacaoConteinerVisita> listaDescarga = new ArrayList<>();
 
     @ElementCollection
     @CollectionTable(name = "visita_trem_carga", joinColumns = @JoinColumn(name = "visita_trem_id"))
+    @OrderColumn(name = "ordem_manifesto_carga")
     private List<OperacaoConteinerVisita> listaCarga = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "visita_trem_vagao", joinColumns = @JoinColumn(name = "visita_trem_id"))
+    @OrderColumn(name = "ordem_vagao")
+    private List<VagaoVisita> listaVagoes = new ArrayList<>();
 
     public VisitaTrem() {
     }
@@ -141,6 +149,17 @@ public class VisitaTrem {
         this.listaCarga.clear();
         if (listaCarga != null) {
             this.listaCarga.addAll(listaCarga);
+        }
+    }
+
+    public List<VagaoVisita> getListaVagoes() {
+        return listaVagoes;
+    }
+
+    public void definirListaVagoes(List<VagaoVisita> listaVagoes) {
+        this.listaVagoes.clear();
+        if (listaVagoes != null) {
+            this.listaVagoes.addAll(listaVagoes);
         }
     }
 

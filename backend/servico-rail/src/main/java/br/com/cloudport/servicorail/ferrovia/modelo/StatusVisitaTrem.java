@@ -1,8 +1,8 @@
-package br.com.cloudport.servicoyard.ferrovia.modelo;
+package br.com.cloudport.servicorail.ferrovia.modelo;
 
 public enum StatusVisitaTrem {
     PLANEJADO,
-    ANUNCIADO,
     CHEGOU,
+    PROCESSANDO,
     PARTIU
 }

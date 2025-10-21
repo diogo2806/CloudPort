@@ -6,80 +6,87 @@ Este documento aprofunda a arquitetura lógica, física e operacional do microse
 
 ```mermaid
 flowchart TD
-    subgraph API Layer
-        Controller[GateController]
+    subgraph Camada_API
+        GateFlowController[GateFlowController]
+        GateWebhookController[GateWebhookController]
+        GateOperadorController[GateOperadorController]
     end
 
-    subgraph Application Layer
-        GateInUseCase
-        GateOutUseCase
-        DocumentService
-        AuditService
+    subgraph Camada_Aplicacao
+        GateFlowService[GateFlowService]
+        AgendamentoService[AgendamentoService]
+        ContingenciaService[ContingenciaService]
+        DashboardService[DashboardService]
     end
 
-    subgraph Integration Layer
-        YardClient
-        AuthClient
-        TosClient
-        RabbitPublisher
-        StorageClient
+    subgraph Camada_Integracao
+        YardClient[Servico Yard]
+        AutenticacaoClient[Servico Autenticacao]
+        TosIntegration[TosIntegrationService]
+        OcrDispatcher[Processamento OCR]
+        StorageClient[DocumentoStorageService]
     end
 
-    subgraph Infrastructure Layer
-        GateRepository[(gate_event)]
-        QueueConfig[(RabbitMQ)]
-        StorageBucket[(S3/MinIO)]
-        MetricsExporter[(Prometheus)]
+    subgraph Infraestrutura
+        BancoGate[(PostgreSQL - esquema cloudport)]
+        FilaOcr[(RabbitMQ - fila de OCR)]
+        ArmazenamentoDocumentos[(S3/MinIO/Filesystem)]
+        Observabilidade[(Prometheus / OpenTelemetry)]
     end
 
-    Controller --> GateInUseCase
-    Controller --> GateOutUseCase
-    GateInUseCase --> DocumentService
-    GateInUseCase --> YardClient
-    GateOutUseCase --> AuthClient
-    GateOutUseCase --> TosClient
-    GateInUseCase --> RabbitPublisher
-    GateOutUseCase --> RabbitPublisher
-    DocumentService --> StorageClient
-    GateInUseCase --> GateRepository
-    GateOutUseCase --> GateRepository
-    GateRepository --> QueueConfig
+    GateFlowController --> GateFlowService
+    GateWebhookController --> GateFlowService
+    GateOperadorController --> GateFlowService
+    GateFlowService --> TosIntegration
+    GateFlowService --> YardClient
+    GateFlowService --> BancoGate
+    GateFlowService --> Observabilidade
+    AgendamentoService --> OcrDispatcher
+    AgendamentoService --> StorageClient
+    AgendamentoService --> BancoGate
+    OcrDispatcher --> FilaOcr
 ```
 
 ### Componentes chave
 
-- **GateController**: expõe endpoints REST (`/gate/in/**`, `/gate/out/**`) e realiza validações iniciais.
-- **GateInUseCase / GateOutUseCase**: coordenam regras de negócio (verificações de documentos, liberação de cancelas, auditoria).
-- **RabbitPublisher**: publica eventos `gate.in.confirmed` e `gate.out.confirmed` nas filas configuradas.
-- **StorageClient**: abstrai operações de upload/download em MinIO, S3 ou storage local.
-- **TosClient / YardClient / AuthClient**: clientes declarativos para integrar com outros microsserviços do TOS.
+- **GateFlowController**: expõe endpoints REST (`/gate/entrada`, `/gate/saida`) utilizados por operadores autenticados na aplicação.
+- **GateWebhookController**: recebe eventos do middleware local do terminal (`/webhooks/gate/entrada`, `/webhooks/gate/saida`) e reutiliza o mesmo fluxo de negócio.
+- **GateFlowService**: concentra as regras de negócio, consulta o TOS, valida documentos e registra eventos do gate.
+- **AgendamentoService / DocumentoStorageService**: gerenciam agendamentos e documentação enviada pelos transportadores, incluindo disparo de OCR assíncrono.
+- **Processamento OCR**: continua utilizando RabbitMQ apenas para orquestrar a fila de validação automática de documentos, sem qualquer interação direta com hardware de gate.
+- **Clientes externos (TOS, Yard, Autenticação)**: abstrações REST que conectam o serviço às demais camadas da plataforma CloudPort.
 
-## Gate-in e Gate-out (gate-in/out)
+## Fluxos de entrada e saída
 
-### Gate-in (entrada)
+### Evento de entrada enviado pelo middleware
 
-1. O transportador envia `POST /gate/in/check-in` com dados do contêiner e manifestos.
-2. O `GateInUseCase` consulta o `servico-yard` para validar a presença do contêiner.
-3. Documentos são armazenados no provedor configurado (`DOCUMENT_STORAGE_PROVIDER`).
-4. Um evento `gate.in.confirmed` é publicado em `GATE_EVENT_EXCHANGE` e a mensagem entra na fila `GATE_INBOUND_QUEUE`.
-5. A resposta síncrona devolve o protocolo de entrada e o SLA estimado para liberação de pátio.
+1. O middleware instalado no terminal captura OCR/placa e envia `POST /webhooks/gate/entrada` com `GateFlowRequest`.
+2. O `GateWebhookController` sanitiza os campos recebidos e encaminha para o `GateFlowService`.
+3. O serviço valida o agendamento, consulta o TOS e registra o evento no banco.
+4. A resposta retorna um `GateDecisionDTO` indicando se a cancela deve ser liberada ou mantida retida.
 
-### Gate-out (saída)
+### Evento de saída enviado pelo middleware
 
-1. O transportador envia `POST /gate/out/validate` com o protocolo de saída.
-2. O `GateOutUseCase` consulta permissões com o `servico-autenticacao` e verifica restrições pendentes via TOS.
-3. Caso aprovado, um evento `gate.out.confirmed` é publicado em `GATE_EVENT_EXCHANGE`, roteando para `GATE_OUTBOUND_QUEUE`.
-4. A mensagem aciona a liberação da cancela e dispara auditoria para o data lake.
+1. O middleware local envia `POST /webhooks/gate/saida` com os mesmos campos do request de entrada.
+2. O `GateFlowService` valida se houve entrada registrada, verifica a tolerância de horário e conclui o gate.
+3. A resposta informa a decisão final e atualiza o status do agendamento.
+
+### Ações realizadas pelo operador
+
+1. Operadores autenticados podem acionar `POST /gate/entrada` ou `POST /gate/saida` através da interface web oficial.
+2. Os endpoints reutilizam o mesmo `GateFlowService`, garantindo consistência com o fluxo vindo do middleware.
+3. A aplicação registra eventos em tempo real para painéis operacionais e auditoria.
 
 ## Contratos de API
 
 | Endpoint | Método | Descrição | Autenticação |
 |----------|--------|-----------|--------------|
-| `/gate/in/check-in` | POST | Registra chegada do veículo e anexa documentos | Bearer Token (JWT) |
-| `/gate/in/{id}/status` | GET | Consulta status de processamento do protocolo de entrada | Bearer Token |
-| `/gate/out/validate` | POST | Valida autorização para saída do contêiner | Bearer Token |
-| `/gate/out/{id}/confirm` | POST | Confirma conclusão do gate-out | Bearer Token |
-| `/health` | GET | Endpoint de health-check para orquestradores | Público |
+| `/gate/entrada` | POST | Processa evento de entrada informado por operador | Bearer Token (JWT) |
+| `/gate/saida` | POST | Processa evento de saída informado por operador | Bearer Token (JWT) |
+| `/gate/agendamentos/{id}/liberacao-manual` | POST | Registra bloqueio/liberação manual | Bearer Token |
+| `/webhooks/gate/entrada` | POST | Recebe evento automático do middleware local do gate | Bearer Token (escopo `gate.middleware`) |
+| `/webhooks/gate/saida` | POST | Recebe evento automático de saída do middleware local do gate | Bearer Token (escopo `gate.middleware`) |
+| `/actuator/health` | GET | Health-check para orquestradores | Público |
 
 Swagger UI: [http://localhost:8082/swagger-ui.html](http://localhost:8082/swagger-ui.html)
 
@@ -87,17 +94,19 @@ Swagger UI: [http://localhost:8082/swagger-ui.html](http://localhost:8082/swagge
 
 | Integração | Protocolo | Descrição | Variáveis |
 |------------|-----------|-----------|-----------|
-| RabbitMQ | AMQP 0-9-1 | Publicação de eventos gate-in/out e notificações de auditoria | `GATE_RABBIT_*`, `GATE_EVENT_EXCHANGE`, `GATE_INBOUND_QUEUE`, `GATE_OUTBOUND_QUEUE` |
-| PostgreSQL | JDBC | Persistência de protocolos, auditorias e logs operacionais | `GATE_DB_*` |
+| Middleware local do gate | REST/Webhook | Sistema no terminal envia eventos de OCR/placa para os endpoints `/webhooks/gate/**` | `GATE_SECURITY_JWT_SECRET`, `GATE_SECURITY_CORS_ALLOWED_ORIGINS` |
+| RabbitMQ (OCR) | AMQP 0-9-1 | Processamento assíncrono de validação de documentos via OCR | `GATE_RABBIT_*`, `cloudport.gate.ocr.*` |
+| PostgreSQL | JDBC | Persistência de agendamentos, passes e eventos do gate | `GATE_DB_*` |
 | TOS API | REST | Consulta de restrições, reservas de pátio e atualizações de manifestos | `TOS_API_*` |
 | Storage de documentos | REST/S3 | Armazenamento de manifestos e fotos | `DOCUMENT_STORAGE_*` |
-| Observabilidade | HTTP/OTLP | Exposição de métricas e traces | `GATE_METRICS_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT` |
+| Observabilidade | HTTP/OTLP | Exposição de métricas e traces | `OTEL_EXPORTER_OTLP_ENDPOINT` |
 
 ## Requisitos de implantação
 
 - Configurar readiness/liveness probes no Kubernetes apontando para `/actuator/health`.
-- Garantir políticas de retry e DLQ configuradas na broker para filas `gate.in.dead-letter` e `gate.out.dead-letter` (vide manifesto K8s).
-- Habilitar autoscaling baseado em consumo de CPU (>60%) e backlog de mensagens.
+- Provisionar credenciais de serviço específicas para o middleware do gate, com escopo `gate.middleware` no provedor de identidade.
+- Garantir HTTPS/TLS entre o middleware local e o `servico-gate`, utilizando autenticação mútua quando aplicável.
+- Manter o broker RabbitMQ disponível apenas para o fluxo de OCR (fila `cloudport.gate.ocr.solicitacao-queue`).
 
 ## Gate de entrada/saída em modo contingência
 

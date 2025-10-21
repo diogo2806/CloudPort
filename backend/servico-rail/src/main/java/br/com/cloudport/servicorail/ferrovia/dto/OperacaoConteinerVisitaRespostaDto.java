@@ -8,17 +8,21 @@ public class OperacaoConteinerVisitaRespostaDto {
 
     private final String codigoConteiner;
     private final StatusOperacaoConteinerVisita statusOperacao;
+    private final String identificadorVagao;
 
     public OperacaoConteinerVisitaRespostaDto(String codigoConteiner,
-                                              StatusOperacaoConteinerVisita statusOperacao) {
+                                              StatusOperacaoConteinerVisita statusOperacao,
+                                              String identificadorVagao) {
         this.codigoConteiner = codigoConteiner;
         this.statusOperacao = statusOperacao;
+        this.identificadorVagao = identificadorVagao;
     }
 
     public static OperacaoConteinerVisitaRespostaDto deEmbeddable(OperacaoConteinerVisita operacao) {
         return new OperacaoConteinerVisitaRespostaDto(
                 HtmlUtils.htmlEscape(operacao.getCodigoConteiner()),
-                operacao.getStatusOperacao()
+                operacao.getStatusOperacao(),
+                HtmlUtils.htmlEscape(operacao.getIdentificadorVagao())
         );
     }
 
@@ -28,5 +32,9 @@ public class OperacaoConteinerVisitaRespostaDto {
 
     public StatusOperacaoConteinerVisita getStatusOperacao() {
         return statusOperacao;
+    }
+
+    public String getIdentificadorVagao() {
+        return identificadorVagao;
     }
 }

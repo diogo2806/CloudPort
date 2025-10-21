@@ -1,7 +1,7 @@
-package br.com.cloudport.servicoyard.ferrovia.repositorio;
+package br.com.cloudport.servicorail.ferrovia.repositorio;
 
-import br.com.cloudport.servicoyard.ferrovia.modelo.StatusVisitaTrem;
-import br.com.cloudport.servicoyard.ferrovia.modelo.VisitaTrem;
+import br.com.cloudport.servicorail.ferrovia.modelo.StatusVisitaTrem;
+import br.com.cloudport.servicorail.ferrovia.modelo.VisitaTrem;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +25,9 @@ public interface VisitaTremRepositorio extends JpaRepository<VisitaTrem, Long> {
     @Query("SELECT DISTINCT v FROM VisitaTrem v "
             + "LEFT JOIN FETCH v.listaDescarga "
             + "LEFT JOIN FETCH v.listaCarga "
+            + "LEFT JOIN FETCH v.listaVagoes "
             + "WHERE v.id = :id")
     Optional<VisitaTrem> buscarPorIdComListas(@Param("id") Long id);
+
+    Optional<VisitaTrem> findByIdentificadorTremIgnoreCase(String identificadorTrem);
 }

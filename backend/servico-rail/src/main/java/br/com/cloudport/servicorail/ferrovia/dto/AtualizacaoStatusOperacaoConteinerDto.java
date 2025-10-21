@@ -1,6 +1,6 @@
-package br.com.cloudport.servicoyard.ferrovia.dto;
+package br.com.cloudport.servicorail.ferrovia.dto;
 
-import br.com.cloudport.servicoyard.ferrovia.modelo.StatusOperacaoConteinerVisita;
+import br.com.cloudport.servicorail.ferrovia.modelo.StatusOperacaoConteinerVisita;
 import javax.validation.constraints.NotNull;
 
 public class AtualizacaoStatusOperacaoConteinerDto {

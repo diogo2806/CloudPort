@@ -1,7 +1,7 @@
-package br.com.cloudport.servicoyard.ferrovia.dto;
+package br.com.cloudport.servicorail.ferrovia.dto;
 
-import br.com.cloudport.servicoyard.ferrovia.modelo.StatusVisitaTrem;
-import br.com.cloudport.servicoyard.ferrovia.modelo.VisitaTrem;
+import br.com.cloudport.servicorail.ferrovia.modelo.StatusVisitaTrem;
+import br.com.cloudport.servicorail.ferrovia.modelo.VisitaTrem;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -18,6 +18,7 @@ public class VisitaTremRespostaDto {
     private final StatusVisitaTrem statusVisita;
     private final List<OperacaoConteinerVisitaRespostaDto> listaDescarga;
     private final List<OperacaoConteinerVisitaRespostaDto> listaCarga;
+    private final List<VagaoVisitaRespostaDto> listaVagoes;
 
     public VisitaTremRespostaDto(Long id,
                                  String identificadorTrem,
@@ -26,7 +27,8 @@ public class VisitaTremRespostaDto {
                                  LocalDateTime horaPartidaPrevista,
                                  StatusVisitaTrem statusVisita,
                                  List<OperacaoConteinerVisitaRespostaDto> listaDescarga,
-                                 List<OperacaoConteinerVisitaRespostaDto> listaCarga) {
+                                 List<OperacaoConteinerVisitaRespostaDto> listaCarga,
+                                 List<VagaoVisitaRespostaDto> listaVagoes) {
         this.id = id;
         this.identificadorTrem = identificadorTrem;
         this.operadoraFerroviaria = operadoraFerroviaria;
@@ -35,6 +37,7 @@ public class VisitaTremRespostaDto {
         this.statusVisita = statusVisita;
         this.listaDescarga = listaDescarga;
         this.listaCarga = listaCarga;
+        this.listaVagoes = listaVagoes;
     }
 
     public static VisitaTremRespostaDto deEntidade(VisitaTrem entidade) {
@@ -52,6 +55,10 @@ public class VisitaTremRespostaDto {
                 entidade.getListaCarga()
                         .stream()
                         .map(OperacaoConteinerVisitaRespostaDto::deEmbeddable)
+                        .collect(Collectors.toList()),
+                entidade.getListaVagoes()
+                        .stream()
+                        .map(VagaoVisitaRespostaDto::deEmbeddable)
                         .collect(Collectors.toList())
         );
     }
@@ -64,6 +71,7 @@ public class VisitaTremRespostaDto {
                 entidade.getHoraChegadaPrevista(),
                 entidade.getHoraPartidaPrevista(),
                 entidade.getStatusVisita(),
+                Collections.emptyList(),
                 Collections.emptyList(),
                 Collections.emptyList()
         );
@@ -99,5 +107,9 @@ public class VisitaTremRespostaDto {
 
     public List<OperacaoConteinerVisitaRespostaDto> getListaCarga() {
         return listaCarga;
+    }
+
+    public List<VagaoVisitaRespostaDto> getListaVagoes() {
+        return listaVagoes;
     }
 }

@@ -63,7 +63,7 @@ export class DetalheVisitaTremComponent implements OnInit {
     return status === 'CONCLUIDO';
   }
 
-  marcarComoConcluido(aba: 'DESCARGA' | 'CARGA', idConteiner: number): void {
+  marcarComoConcluido(aba: 'DESCARGA' | 'CARGA', codigoConteiner: string): void {
     if (!this.visita || this.operacaoEmAndamento) {
       return;
     }
@@ -73,8 +73,8 @@ export class DetalheVisitaTremComponent implements OnInit {
     this.mensagemOperacao = undefined;
 
     const comando = aba === 'DESCARGA'
-      ? this.servicoFerrovia.atualizarStatusDescarga(this.visita.id, idConteiner, { statusOperacao: 'CONCLUIDO' })
-      : this.servicoFerrovia.atualizarStatusCarga(this.visita.id, idConteiner, { statusOperacao: 'CONCLUIDO' });
+      ? this.servicoFerrovia.atualizarStatusDescarga(this.visita.id, codigoConteiner, { statusOperacao: 'CONCLUIDO' })
+      : this.servicoFerrovia.atualizarStatusCarga(this.visita.id, codigoConteiner, { statusOperacao: 'CONCLUIDO' });
 
     comando
       .pipe(finalize(() => this.operacaoEmAndamento = false))

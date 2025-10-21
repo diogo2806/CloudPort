@@ -57,7 +57,7 @@
     <section class="lista-operacoes" *ngIf="obterItensAba(abaAtiva).length > 0; else semItens">
       <article class="linha-operacao" *ngFor="let item of obterItensAba(abaAtiva)">
         <div class="informacoes-conteiner">
-          <span class="identificador">Contêiner ID: {{ textoSeguro(item.idConteiner.toString()) }}</span>
+          <span class="identificador">Contêiner: {{ textoSeguro(item.codigoConteiner) }}</span>
           <span class="status" [class.concluido]="estaConcluido(item.statusOperacao)">
             {{ textoSeguro(descricaoStatus(item.statusOperacao)) }}
           </span>
@@ -65,7 +65,7 @@
         <button type="button"
                 class="botao-status"
                 [disabled]="estaConcluido(item.statusOperacao) || operacaoEmAndamento"
-                (click)="marcarComoConcluido(abaAtiva, item.idConteiner)">
+                (click)="marcarComoConcluido(abaAtiva, item.codigoConteiner)">
           Marcar como concluído
         </button>
       </article>

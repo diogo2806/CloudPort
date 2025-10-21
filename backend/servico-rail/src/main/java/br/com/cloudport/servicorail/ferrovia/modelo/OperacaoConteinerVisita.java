@@ -1,4 +1,4 @@
-package br.com.cloudport.servicoyard.ferrovia.modelo;
+package br.com.cloudport.servicorail.ferrovia.modelo;
 
 import java.util.Objects;
 import javax.persistence.Column;
@@ -9,8 +9,8 @@ import javax.persistence.Enumerated;
 @Embeddable
 public class OperacaoConteinerVisita {
 
-    @Column(name = "id_conteiner", nullable = false)
-    private Long idConteiner;
+    @Column(name = "codigo_conteiner", nullable = false, length = 20)
+    private String codigoConteiner;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status_operacao", nullable = false, length = 20)
@@ -19,17 +19,17 @@ public class OperacaoConteinerVisita {
     public OperacaoConteinerVisita() {
     }
 
-    public OperacaoConteinerVisita(Long idConteiner, StatusOperacaoConteinerVisita statusOperacao) {
-        this.idConteiner = idConteiner;
+    public OperacaoConteinerVisita(String codigoConteiner, StatusOperacaoConteinerVisita statusOperacao) {
+        this.codigoConteiner = codigoConteiner;
         this.statusOperacao = statusOperacao;
     }
 
-    public Long getIdConteiner() {
-        return idConteiner;
+    public String getCodigoConteiner() {
+        return codigoConteiner;
     }
 
-    public void setIdConteiner(Long idConteiner) {
-        this.idConteiner = idConteiner;
+    public void setCodigoConteiner(String codigoConteiner) {
+        this.codigoConteiner = codigoConteiner;
     }
 
     public StatusOperacaoConteinerVisita getStatusOperacao() {
@@ -49,12 +49,12 @@ public class OperacaoConteinerVisita {
             return false;
         }
         OperacaoConteinerVisita that = (OperacaoConteinerVisita) o;
-        return Objects.equals(idConteiner, that.idConteiner)
+        return Objects.equals(codigoConteiner, that.codigoConteiner)
                 && statusOperacao == that.statusOperacao;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(idConteiner, statusOperacao);
+        return Objects.hash(codigoConteiner, statusOperacao);
     }
 }

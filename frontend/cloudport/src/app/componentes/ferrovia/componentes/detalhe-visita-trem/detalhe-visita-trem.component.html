@@ -2,6 +2,12 @@
   <header>
     <h1>Detalhes da Visita do Trem</h1>
     <button type="button" class="botao-voltar" (click)="voltarParaLista()">Voltar para a lista</button>
+    <button type="button"
+            class="botao-trabalho"
+            *ngIf="visita?.statusVisita === 'CHEGOU'"
+            (click)="irParaListaTrabalho()">
+      Abrir lista de trabalho
+    </button>
   </header>
 
   <div *ngIf="estaCarregando" class="estado-informativo">Carregando informações do trem...</div>

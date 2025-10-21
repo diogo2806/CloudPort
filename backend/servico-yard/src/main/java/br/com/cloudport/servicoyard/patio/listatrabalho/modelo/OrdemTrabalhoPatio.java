@@ -31,7 +31,7 @@ public class OrdemTrabalhoPatio {
     @Column(name = "codigo_conteiner", nullable = false, length = 30)
     private String codigoConteiner;
 
-    @Column(name = "tipo_carga", nullable = false, length = 40)
+    @Column(name = "tipo_carga", length = 40)
     private String tipoCarga;
 
     @Column(name = "destino", nullable = false, length = 60)

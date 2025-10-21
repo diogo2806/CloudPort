@@ -9,7 +9,7 @@ export type TipoMovimentoPatio = 'ALOCACAO' | 'ATUALIZACAO' | 'REMOCAO';
 export interface OrdemTrabalhoPatio {
   id: number;
   codigoConteiner: string;
-  tipoCarga: string;
+  tipoCarga: string | null;
   destino: string;
   linhaDestino: number;
   colunaDestino: number;
@@ -24,7 +24,7 @@ export interface OrdemTrabalhoPatio {
 
 export interface NovaOrdemTrabalhoPatio {
   codigoConteiner: string;
-  tipoCarga: string;
+  tipoCarga?: string | null;
   destino: string;
   linhaDestino: number;
   colunaDestino: number;

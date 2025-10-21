@@ -26,7 +26,7 @@ export class FormularioMovimentacaoComponent implements OnInit {
   ) {
     this.formularioOrdem = this.formBuilder.group({
       codigo: ['', [Validators.required, Validators.maxLength(30)]],
-      tipoCarga: ['', [Validators.required, Validators.maxLength(40)]],
+      tipoCarga: ['', [Validators.maxLength(40)]],
       destino: ['', [Validators.required, Validators.maxLength(60)]],
       linhaDestino: [0, [Validators.required, Validators.min(0)]],
       colunaDestino: [0, [Validators.required, Validators.min(0)]],
@@ -60,9 +60,9 @@ export class FormularioMovimentacaoComponent implements OnInit {
       return;
     }
     const valores = this.formularioOrdem.getRawValue();
+    const tipoCargaSanitizada = this.sanitizarTexto(valores.tipoCarga);
     const payload: NovaOrdemTrabalhoPatio = {
       codigoConteiner: this.sanitizarTexto(valores.codigo),
-      tipoCarga: this.sanitizarTexto(valores.tipoCarga),
       destino: this.sanitizarTexto(valores.destino),
       linhaDestino: Number(valores.linhaDestino),
       colunaDestino: Number(valores.colunaDestino),
@@ -70,6 +70,10 @@ export class FormularioMovimentacaoComponent implements OnInit {
       tipoMovimento: valores.tipoMovimento as TipoMovimentoPatio,
       statusConteinerDestino: valores.statusConteinerDestino
     };
+
+    if (tipoCargaSanitizada.length > 0) {
+      payload.tipoCarga = tipoCargaSanitizada;
+    }
 
     this.salvandoOrdem = true;
     this.sucessoOrdem = undefined;

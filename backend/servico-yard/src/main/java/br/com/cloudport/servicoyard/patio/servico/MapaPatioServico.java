@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -41,6 +42,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.HtmlUtils;
 
 @Service
@@ -114,7 +116,11 @@ public class MapaPatioServico {
                 .collect(Collectors.toCollection(TreeSet::new));
 
         Set<String> tiposCarga = conteineres.stream()
-                .map(conteiner -> escapar(conteiner.getCarga().getCodigo()))
+                .map(ConteinerPatio::getCarga)
+                .filter(Objects::nonNull)
+                .map(CargaPatio::getCodigo)
+                .filter(StringUtils::hasText)
+                .map(this::escapar)
                 .collect(Collectors.toCollection(TreeSet::new));
 
         Set<String> destinos = conteineres.stream()
@@ -285,8 +291,9 @@ public class MapaPatioServico {
     }
 
     private boolean filtrarConteiner(ConteinerPatio conteiner, MapaPatioFiltro filtro) {
+        String codigoCarga = conteiner.getCarga() != null ? conteiner.getCarga().getCodigo() : null;
         return verificarFiltro(filtro.getStatus(), conteiner.getStatus().name())
-                && verificarFiltro(filtro.getTiposCarga(), conteiner.getCarga().getCodigo())
+                && verificarFiltro(filtro.getTiposCarga(), codigoCarga)
                 && verificarFiltro(filtro.getDestinos(), conteiner.getDestino())
                 && verificarFiltro(filtro.getCamadasOperacionais(), conteiner.getPosicao().getCamadaOperacional());
     }
@@ -298,6 +305,9 @@ public class MapaPatioServico {
     private boolean verificarFiltro(List<String> filtros, String valor) {
         if (filtros == null || filtros.isEmpty()) {
             return true;
+        }
+        if (!StringUtils.hasText(valor)) {
+            return false;
         }
         return filtros.contains(valor.toUpperCase(Locale.ROOT));
     }
@@ -327,6 +337,9 @@ public class MapaPatioServico {
     }
 
     private CargaPatio obterOuCriarCarga(String codigoCarga) {
+        if (!StringUtils.hasText(codigoCarga)) {
+            return null;
+        }
         return cargaPatioRepositorio.findByCodigo(codigoCarga)
                 .orElseGet(() -> {
                     CargaPatio novaCarga = new CargaPatio();
@@ -380,13 +393,14 @@ public class MapaPatioServico {
     }
 
     private ConteinerMapaDto converterConteiner(ConteinerPatio conteiner) {
+        String codigoCarga = conteiner.getCarga() != null ? conteiner.getCarga().getCodigo() : null;
         return new ConteinerMapaDto(
                 conteiner.getId(),
                 escapar(conteiner.getCodigo()),
                 conteiner.getPosicao().getLinha(),
                 conteiner.getPosicao().getColuna(),
                 conteiner.getStatus(),
-                escapar(conteiner.getCarga().getCodigo()),
+                escapar(codigoCarga),
                 escapar(conteiner.getDestino()),
                 escapar(conteiner.getPosicao().getCamadaOperacional())
         );

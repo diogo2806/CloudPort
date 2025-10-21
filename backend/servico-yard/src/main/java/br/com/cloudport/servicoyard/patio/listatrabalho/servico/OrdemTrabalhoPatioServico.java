@@ -61,10 +61,14 @@ public class OrdemTrabalhoPatioServico {
         }
         ConteinerPatio conteinerExistente = conteinerRepositorio.findByCodigoIgnoreCase(codigoNormalizado).orElse(null);
         LocalDateTime agora = LocalDateTime.now();
+        String tipoCargaNormalizada = Optional.ofNullable(dto.getTipoCarga())
+                .map(valor -> valor.toUpperCase(Locale.ROOT))
+                .orElse(null);
+
         OrdemTrabalhoPatio ordem = new OrdemTrabalhoPatio(
                 conteinerExistente,
                 codigoNormalizado,
-                dto.getTipoCarga().toUpperCase(Locale.ROOT),
+                tipoCargaNormalizada,
                 dto.getDestino(),
                 dto.getLinhaDestino(),
                 dto.getColunaDestino(),
@@ -128,10 +132,6 @@ public class OrdemTrabalhoPatioServico {
         if (!StringUtils.hasText(dto.getDestino())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "O destino da carga é obrigatório.");
-        }
-        if (!StringUtils.hasText(dto.getTipoCarga())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "O tipo de carga é obrigatório.");
         }
         if (!StringUtils.hasText(dto.getCamadaDestino())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,

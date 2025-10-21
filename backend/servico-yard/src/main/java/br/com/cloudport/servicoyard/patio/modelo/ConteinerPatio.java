@@ -28,8 +28,8 @@ public class ConteinerPatio {
     @Column(name = "status_conteiner", nullable = false, length = 30)
     private StatusConteiner status;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "carga_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "carga_id")
     private CargaPatio carga;
 
     @Column(name = "destino", nullable = false, length = 60)

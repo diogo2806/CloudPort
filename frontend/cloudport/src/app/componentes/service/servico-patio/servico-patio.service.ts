@@ -10,7 +10,7 @@ export interface ConteinerMapa {
   linha: number;
   coluna: number;
   status: string;
-  tipoCarga: string;
+  tipoCarga?: string | null;
   destino: string;
   camadaOperacional: string;
 }

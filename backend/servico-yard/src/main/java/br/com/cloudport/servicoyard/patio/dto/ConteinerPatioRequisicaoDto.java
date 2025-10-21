@@ -7,6 +7,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import org.springframework.util.StringUtils;
 
 public class ConteinerPatioRequisicaoDto {
 
@@ -27,7 +28,6 @@ public class ConteinerPatioRequisicaoDto {
     @NotNull
     private StatusConteiner status;
 
-    @NotBlank
     @Size(max = 40)
     private String tipoCarga;
 
@@ -87,7 +87,8 @@ public class ConteinerPatioRequisicaoDto {
     }
 
     public void setTipoCarga(String tipoCarga) {
-        this.tipoCarga = ValidacaoEntradaUtil.limparTexto(tipoCarga);
+        String valorLimpo = ValidacaoEntradaUtil.limparTexto(tipoCarga);
+        this.tipoCarga = StringUtils.hasText(valorLimpo) ? valorLimpo : null;
     }
 
     public String getDestino() {

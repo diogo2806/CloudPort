@@ -56,6 +56,24 @@
         "status": "Pass status",
         "atualizadoEm": "Updated on {{data}}"
       },
+      "historicoConteiner": {
+        "titulo": "Histórico do contêiner {{codigo}}",
+        "statusAtual": "Status atual: {{status}}",
+        "posicaoAtual": "Posição no pátio: {{posicao}}",
+        "ultimaAtualizacao": "Última atualização: {{data}}",
+        "carregando": "Carregando histórico do contêiner...",
+        "erroCarregamento": "Não foi possível carregar o histórico do contêiner. Tente novamente em instantes.",
+        "vazio": "Nenhuma movimentação registrada para este contêiner ainda.",
+        "responsavel": "Responsável: {{responsavel}}",
+        "posicaoMovimentacao": "Posição registrada: {{posicao}}",
+        "descargaTrem": "Descarga do trem concluída",
+        "cargaTrem": "Carga no trem concluída",
+        "alocacao": "Alocação registrada",
+        "transferencia": "Transferência realizada",
+        "inspecao": "Inspeção registrada",
+        "liberacao": "Liberação registrada",
+        "atualizacaoCadastral": "Atualização cadastral"
+      },
       "realtime": {
         "titulo": "Real-time status",
         "status": {

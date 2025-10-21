@@ -16,10 +16,12 @@ import br.com.cloudport.servicoyard.container.entidade.TipoOperacaoConteiner;
 import br.com.cloudport.servicoyard.container.repositorio.ConteinerRepositorio;
 import br.com.cloudport.servicoyard.container.repositorio.HistoricoOperacaoConteinerRepositorio;
 import br.com.cloudport.servicoyard.container.validacao.SanitizadorEntrada;
+import java.util.Locale;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -56,6 +58,12 @@ public class ConteinerServico {
     @Transactional(readOnly = true)
     public ConteinerDetalheDTO buscarDetalhe(Long identificador) {
         Conteiner conteiner = localizarConteiner(identificador);
+        return mapearDetalhe(conteiner);
+    }
+
+    @Transactional(readOnly = true)
+    public ConteinerDetalheDTO buscarDetalhePorCodigo(String codigo) {
+        Conteiner conteiner = localizarConteinerPorCodigo(codigo);
         return mapearDetalhe(conteiner);
     }
 
@@ -163,8 +171,33 @@ public class ConteinerServico {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<HistoricoOperacaoDTO> consultarHistoricoPorCodigo(String codigo) {
+        Conteiner conteiner = localizarConteinerPorCodigo(codigo);
+        return historicoRepositorio.findByConteinerIdOrderByDataRegistroDesc(conteiner.getId()).stream()
+                .map(registro -> new HistoricoOperacaoDTO(
+                        registro.getTipoOperacao(),
+                        registro.getDescricao(),
+                        registro.getPosicaoAnterior(),
+                        registro.getPosicaoAtual(),
+                        registro.getResponsavel(),
+                        registro.getDataRegistro()))
+                .collect(Collectors.toList());
+    }
+
     private Conteiner localizarConteiner(Long identificador) {
         return conteinerRepositorio.findById(identificador)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Contêiner não encontrado"));
+    }
+
+    private Conteiner localizarConteinerPorCodigo(String codigo) {
+        String codigoSanitizado = sanitizadorEntrada.limparTexto(codigo);
+        if (!StringUtils.hasText(codigoSanitizado)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Código do contêiner inválido");
+        }
+        String codigoNormalizado = codigoSanitizado.toUpperCase(Locale.ROOT);
+        return conteinerRepositorio.findByIdentificacaoIgnoreCase(codigoNormalizado)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Contêiner não encontrado"));
     }

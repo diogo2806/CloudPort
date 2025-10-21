@@ -85,6 +85,52 @@
     [agendamentoCodigo]="agendamento?.codigo"
   ></app-motorista-pass>
 
+  <section class="agendamento-detalhe__historico-conteiner" *ngIf="codigoConteinerSelecionado">
+    <header class="historico-conteiner__cabecalho">
+      <div>
+        <h4>{{ 'gate.agendamentoDetalhe.historicoConteiner.titulo' | translate:{ codigo: codigoConteinerSelecionado } }}</h4>
+        <span *ngIf="detalheConteiner">
+          {{ 'gate.agendamentoDetalhe.historicoConteiner.statusAtual' | translate:{ status: formatarStatusConteiner() || detalheConteiner?.statusOperacional } }}
+        </span>
+        <span *ngIf="detalheConteiner?.posicaoPatio">
+          {{ 'gate.agendamentoDetalhe.historicoConteiner.posicaoAtual' | translate:{ posicao: detalheConteiner?.posicaoPatio } }}
+        </span>
+      </div>
+      <span class="historico-conteiner__atualizacao" *ngIf="detalheConteiner?.ultimaAtualizacao">
+        {{ 'gate.agendamentoDetalhe.historicoConteiner.ultimaAtualizacao' | translate:{ data: (detalheConteiner?.ultimaAtualizacao | date: 'dd/MM/yyyy HH:mm') } }}
+      </span>
+    </header>
+    <p class="historico-conteiner__mensagem" *ngIf="carregandoHistoricoConteiner">
+      {{ 'gate.agendamentoDetalhe.historicoConteiner.carregando' | translate }}
+    </p>
+    <p class="historico-conteiner__mensagem historico-conteiner__mensagem--erro"
+      *ngIf="!carregandoHistoricoConteiner && erroHistoricoConteiner">
+      {{ erroHistoricoConteiner }}
+    </p>
+    <ul class="historico-conteiner__lista"
+      *ngIf="!carregandoHistoricoConteiner && !erroHistoricoConteiner && historicoConteiner.length; else historicoConteinerVazio"
+      [attr.aria-live]="'polite'">
+      <li class="historico-conteiner__item" *ngFor="let evento of historicoConteiner; trackBy: trackPorHistorico">
+        <div class="historico-conteiner__item-cabecalho">
+          <strong>{{ descricaoTipoOperacao(evento.tipoOperacao) }}</strong>
+          <span>{{ evento.dataRegistro | date: 'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+        <p>{{ sanitizarTexto(evento.descricao) }}</p>
+        <small *ngIf="evento.responsavel">
+          {{ 'gate.agendamentoDetalhe.historicoConteiner.responsavel' | translate:{ responsavel: sanitizarTexto(evento.responsavel) } }}
+        </small>
+        <small *ngIf="evento.posicaoAtual">
+          {{ 'gate.agendamentoDetalhe.historicoConteiner.posicaoMovimentacao' | translate:{ posicao: sanitizarTexto(evento.posicaoAtual || '') } }}
+        </small>
+      </li>
+    </ul>
+    <ng-template #historicoConteinerVazio>
+      <p class="historico-conteiner__mensagem historico-conteiner__mensagem--vazio">
+        {{ 'gate.agendamentoDetalhe.historicoConteiner.vazio' | translate }}
+      </p>
+    </ng-template>
+  </section>
+
   <section class="agendamento-detalhe__documentos">
     <header>
       <h4>{{ 'gate.agendamentoDetalhe.documentosAnexados' | translate }}</h4>

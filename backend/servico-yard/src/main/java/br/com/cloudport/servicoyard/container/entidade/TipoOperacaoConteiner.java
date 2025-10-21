@@ -5,5 +5,7 @@ public enum TipoOperacaoConteiner {
     TRANSFERENCIA,
     INSPECAO,
     LIBERACAO,
-    ATUALIZACAO_CADASTRAL
+    ATUALIZACAO_CADASTRAL,
+    DESCARGA_TREM,
+    CARGA_TREM
 }

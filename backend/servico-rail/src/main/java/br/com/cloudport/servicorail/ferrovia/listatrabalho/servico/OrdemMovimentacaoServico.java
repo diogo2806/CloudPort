@@ -1,5 +1,7 @@
 package br.com.cloudport.servicorail.ferrovia.listatrabalho.servico;
 
+import br.com.cloudport.servicorail.ferrovia.dto.EventoMovimentacaoTremConcluidaDto;
+import br.com.cloudport.servicorail.ferrovia.evento.PublicadorEventoMovimentacaoTrem;
 import br.com.cloudport.servicorail.ferrovia.listatrabalho.dto.OrdemMovimentacaoRespostaDto;
 import br.com.cloudport.servicorail.ferrovia.listatrabalho.modelo.OrdemMovimentacao;
 import br.com.cloudport.servicorail.ferrovia.listatrabalho.modelo.StatusOrdemMovimentacao;
@@ -8,6 +10,8 @@ import br.com.cloudport.servicorail.ferrovia.listatrabalho.repositorio.OrdemMovi
 import br.com.cloudport.servicorail.ferrovia.modelo.OperacaoConteinerVisita;
 import br.com.cloudport.servicorail.ferrovia.modelo.StatusVisitaTrem;
 import br.com.cloudport.servicorail.ferrovia.modelo.VisitaTrem;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -28,9 +32,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class OrdemMovimentacaoServico {
 
     private final OrdemMovimentacaoRepositorio ordemMovimentacaoRepositorio;
+    private final PublicadorEventoMovimentacaoTrem publicadorEventoMovimentacaoTrem;
 
-    public OrdemMovimentacaoServico(OrdemMovimentacaoRepositorio ordemMovimentacaoRepositorio) {
+    public OrdemMovimentacaoServico(OrdemMovimentacaoRepositorio ordemMovimentacaoRepositorio,
+                                    PublicadorEventoMovimentacaoTrem publicadorEventoMovimentacaoTrem) {
         this.ordemMovimentacaoRepositorio = ordemMovimentacaoRepositorio;
+        this.publicadorEventoMovimentacaoTrem = publicadorEventoMovimentacaoTrem;
     }
 
     @Transactional(readOnly = true)
@@ -62,9 +69,14 @@ public class OrdemMovimentacaoServico {
         OrdemMovimentacao ordem = ordemMovimentacaoRepositorio.findByIdAndVisitaTremId(idOrdem, idVisita)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Ordem de movimentação não encontrada para a visita informada."));
+        StatusOrdemMovimentacao statusAnterior = ordem.getStatusMovimentacao();
         validarTransicaoStatus(ordem.getStatusMovimentacao(), statusValidado);
         ordem.setStatusMovimentacao(statusValidado);
         OrdemMovimentacao atualizada = ordemMovimentacaoRepositorio.save(ordem);
+        if (statusValidado == StatusOrdemMovimentacao.CONCLUIDA
+                && statusAnterior != StatusOrdemMovimentacao.CONCLUIDA) {
+            publicarEventoConclusao(atualizada);
+        }
         return OrdemMovimentacaoRespostaDto.deEntidade(atualizada);
     }
 
@@ -175,6 +187,20 @@ public class OrdemMovimentacaoServico {
                 String.format(Locale.ROOT,
                         "A transição de status de %s para %s não é permitida.",
                         statusAtual, novoStatus));
+    }
+
+    private void publicarEventoConclusao(OrdemMovimentacao ordem) {
+        if (ordem == null) {
+            return;
+        }
+        EventoMovimentacaoTremConcluidaDto evento = new EventoMovimentacaoTremConcluidaDto(
+                ordem.getVisitaTrem() != null ? ordem.getVisitaTrem().getId() : null,
+                ordem.getId(),
+                ordem.getCodigoConteiner(),
+                ordem.getTipoMovimentacao() != null ? ordem.getTipoMovimentacao().name() : null,
+                OffsetDateTime.now(ZoneOffset.UTC),
+                "MovimentacaoTremConcluidaEvent");
+        publicadorEventoMovimentacaoTrem.publicar(evento);
     }
 
     private static final class ChaveOrdem {

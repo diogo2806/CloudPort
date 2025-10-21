@@ -17,6 +17,7 @@ import javax.persistence.OrderColumn;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 
 @Entity
 @Table(name = "visita_trem")
@@ -49,17 +50,30 @@ public class VisitaTrem {
     private LocalDateTime atualizadoEm;
 
     @ElementCollection
-    @CollectionTable(name = "visita_trem_descarga", joinColumns = @JoinColumn(name = "visita_trem_id"))
+    @CollectionTable(name = "visita_trem_descarga",
+            joinColumns = @JoinColumn(name = "visita_trem_id"),
+            uniqueConstraints = @UniqueConstraint(name = "uk_visita_trem_descarga_conteiner",
+                    columnNames = {"visita_trem_id", "codigo_conteiner"}))
     @OrderColumn(name = "ordem_manifesto_descarga")
     private List<OperacaoConteinerVisita> listaDescarga = new ArrayList<>();
 
     @ElementCollection
-    @CollectionTable(name = "visita_trem_carga", joinColumns = @JoinColumn(name = "visita_trem_id"))
+    @CollectionTable(name = "visita_trem_carga",
+            joinColumns = @JoinColumn(name = "visita_trem_id"),
+            uniqueConstraints = @UniqueConstraint(name = "uk_visita_trem_carga_conteiner",
+                    columnNames = {"visita_trem_id", "codigo_conteiner"}))
     @OrderColumn(name = "ordem_manifesto_carga")
     private List<OperacaoConteinerVisita> listaCarga = new ArrayList<>();
 
     @ElementCollection
-    @CollectionTable(name = "visita_trem_vagao", joinColumns = @JoinColumn(name = "visita_trem_id"))
+    @CollectionTable(name = "visita_trem_vagao",
+            joinColumns = @JoinColumn(name = "visita_trem_id"),
+            uniqueConstraints = {
+                    @UniqueConstraint(name = "uk_visita_trem_vagao_posicao",
+                            columnNames = {"visita_trem_id", "posicao_no_trem"}),
+                    @UniqueConstraint(name = "uk_visita_trem_vagao_identificador",
+                            columnNames = {"visita_trem_id", "identificador_vagao"})
+            })
     @OrderColumn(name = "ordem_vagao")
     private List<VagaoVisita> listaVagoes = new ArrayList<>();
 

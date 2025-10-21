@@ -20,9 +20,9 @@ public class GateMetrics {
         timer.record(duracao);
     }
 
-    public void registrarConsumoFila(String fila, boolean sucesso) {
-        Counter counter = meterRegistry.counter("gate.hardware.mensagens.processadas",
-                "fila", fila,
+    public void registrarEventoMiddleware(String tipoEvento, boolean sucesso) {
+        Counter counter = meterRegistry.counter("gate.middleware.eventos.processados",
+                "evento", tipoEvento,
                 "resultado", sucesso ? "sucesso" : "falha");
         counter.increment();
     }

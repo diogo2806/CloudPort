@@ -5,6 +5,7 @@ import { MapaPatioComponent } from './mapa-patio/mapa-patio.component';
 import { ListaPosicoesComponent } from './lista-posicoes/lista-posicoes.component';
 import { ListaMovimentacoesComponent } from './lista-movimentacoes/lista-movimentacoes.component';
 import { FormularioMovimentacaoComponent } from './formulario-movimentacao/formulario-movimentacao.component';
+import { ListaTrabalhoPatioComponent } from './lista-trabalho-patio/lista-trabalho-patio.component';
 import { PatioRoutingModule } from './patio-routing.module';
 
 @NgModule({
@@ -12,7 +13,8 @@ import { PatioRoutingModule } from './patio-routing.module';
     MapaPatioComponent,
     ListaPosicoesComponent,
     ListaMovimentacoesComponent,
-    FormularioMovimentacaoComponent
+    FormularioMovimentacaoComponent,
+    ListaTrabalhoPatioComponent
   ],
   imports: [CommonModule, ReactiveFormsModule, PatioRoutingModule]
 })

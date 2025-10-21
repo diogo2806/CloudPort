@@ -7,15 +7,17 @@ public class OpcoesCadastroPatioDto {
     private List<String> statusConteiner;
     private List<String> tiposEquipamento;
     private List<String> statusEquipamento;
+    private List<String> tiposMovimento;
 
     public OpcoesCadastroPatioDto() {
     }
 
     public OpcoesCadastroPatioDto(List<String> statusConteiner, List<String> tiposEquipamento,
-                                  List<String> statusEquipamento) {
+                                  List<String> statusEquipamento, List<String> tiposMovimento) {
         this.statusConteiner = statusConteiner;
         this.tiposEquipamento = tiposEquipamento;
         this.statusEquipamento = statusEquipamento;
+        this.tiposMovimento = tiposMovimento;
     }
 
     public List<String> getStatusConteiner() {
@@ -40,5 +42,13 @@ public class OpcoesCadastroPatioDto {
 
     public void setStatusEquipamento(List<String> statusEquipamento) {
         this.statusEquipamento = statusEquipamento;
+    }
+
+    public List<String> getTiposMovimento() {
+        return tiposMovimento;
+    }
+
+    public void setTiposMovimento(List<String> tiposMovimento) {
+        this.tiposMovimento = tiposMovimento;
     }
 }

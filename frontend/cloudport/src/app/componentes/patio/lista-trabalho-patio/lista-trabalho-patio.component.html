@@ -1,0 +1,72 @@
+<section class="lista-trabalho-patio" aria-live="polite">
+  <header class="cabecalho">
+    <div>
+      <h1>Lista de Trabalho do Pátio</h1>
+      <p>O operador consulta as tarefas pendentes e confirma as movimentações assim que concluir a execução física.</p>
+    </div>
+    <div class="acoes">
+      <label for="filtro-status" class="rotulo-filtro">Filtrar por status</label>
+      <select id="filtro-status" [value]="filtroStatus ?? ''" (change)="alterarFiltro($event)">
+        <option value="">Todos</option>
+        <option value="PENDENTE">Pendentes</option>
+        <option value="EM_EXECUCAO">Em execução</option>
+        <option value="CONCLUIDA">Concluídas</option>
+      </select>
+      <button type="button" (click)="carregarOrdens(filtroStatus)" [disabled]="carregando">Atualizar lista</button>
+    </div>
+  </header>
+
+  <p class="estado" *ngIf="carregando">Carregando ordens do pátio...</p>
+  <p class="estado erro" *ngIf="mensagemErro">{{ sanitizar(mensagemErro) }}</p>
+  <p class="estado sucesso" *ngIf="mensagemSucesso">{{ sanitizar(mensagemSucesso) }}</p>
+
+  <section class="cartoes" *ngIf="!carregando && ordens.length">
+    <article class="cartao" *ngFor="let ordem of ordens">
+      <header class="cartao-cabecalho">
+        <h2>Contêiner {{ sanitizar(ordem.codigoConteiner) }}</h2>
+        <span class="status" [ngClass]="{
+            'pendente': ordem.statusOrdem === 'PENDENTE',
+            'execucao': ordem.statusOrdem === 'EM_EXECUCAO',
+            'concluida': ordem.statusOrdem === 'CONCLUIDA'
+          }">{{ descricaoStatus(ordem.statusOrdem) }}</span>
+      </header>
+      <dl class="detalhes">
+        <div>
+          <dt>Movimento</dt>
+          <dd>{{ descricaoMovimento(ordem.tipoMovimento) }}</dd>
+        </div>
+        <div>
+          <dt>Destino operacional</dt>
+          <dd>Linha {{ ordem.linhaDestino }}, Coluna {{ ordem.colunaDestino }}, Camada {{ sanitizar(ordem.camadaDestino) }}</dd>
+        </div>
+        <div>
+          <dt>Status após conclusão</dt>
+          <dd>{{ sanitizar(ordem.statusConteinerDestino) }}</dd>
+        </div>
+        <div>
+          <dt>Última atualização</dt>
+          <dd>{{ ordem.atualizadoEm | date:'dd/MM/yyyy HH:mm' }}</dd>
+        </div>
+      </dl>
+      <footer class="acoes-cartao">
+        <button type="button"
+                class="botao botao-primario"
+                (click)="iniciarOrdem(ordem)"
+                [disabled]="!podeIniciar(ordem) || estaAtualizando(ordem)">
+          Assumir tarefa
+        </button>
+        <button type="button"
+                class="botao botao-sucesso"
+                (click)="concluirOrdem(ordem)"
+                [disabled]="!podeConcluir(ordem) || estaAtualizando(ordem)">
+          Marcar como concluída
+        </button>
+      </footer>
+      <p class="estado pequeno" *ngIf="estaAtualizando(ordem)">Atualizando ordem...</p>
+    </article>
+  </section>
+
+  <p class="estado" *ngIf="!carregando && !ordens.length && !mensagemErro">
+    Nenhuma ordem foi encontrada para os filtros selecionados.
+  </p>
+</section>

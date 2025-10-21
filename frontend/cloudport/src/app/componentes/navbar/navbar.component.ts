@@ -24,7 +24,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     'gate/operador/eventos'
   ];
   private readonly ferroviaTabIds = ['ferrovia/visitas'];
-  private readonly yardTabIds = ['patio/mapa', 'patio/posicoes', 'patio/movimentacoes', 'patio/movimentacao'];
+  private readonly yardTabIds = ['patio/lista-trabalho', 'patio/mapa', 'patio/posicoes', 'patio/movimentacoes'];
 
   private readonly tabRoles: Record<string, string[]> = {
     role: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
@@ -39,10 +39,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     'gate/operador/console': ['ROLE_ADMIN_PORTO', 'ROLE_OPERADOR_GATE', 'ROLE_PLANEJADOR'],
     'gate/operador/eventos': ['ROLE_ADMIN_PORTO', 'ROLE_OPERADOR_GATE', 'ROLE_PLANEJADOR'],
     'ferrovia/visitas': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
+    'patio/lista-trabalho': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_PATIO'],
     'patio/mapa': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
     'patio/posicoes': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
-    'patio/movimentacoes': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
-    'patio/movimentacao': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR']
+    'patio/movimentacoes': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR']
   };
 
   constructor(

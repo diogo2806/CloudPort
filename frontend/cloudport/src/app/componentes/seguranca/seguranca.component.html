@@ -1,7 +1,20 @@
 <section class="seguranca">
-  <h2>Configurações de Segurança</h2>
+  <h2>Políticas de Segurança</h2>
   <p>Revise as diretrizes abaixo para manter sua conta protegida:</p>
-  <ul>
-    <li *ngFor="let dica of dicas">{{ dica }}</li>
+
+  <div *ngIf="carregando" class="mensagem-status">Carregando políticas de segurança...</div>
+
+  <div *ngIf="!carregando && mensagemErro" class="mensagem-erro">{{ mensagemErro }}</div>
+
+  <ul *ngIf="!carregando && !mensagemErro && diretrizes.length > 0" class="lista-diretrizes">
+    <li *ngFor="let diretriz of diretrizes" class="diretriz">
+      <h3>{{ diretriz.titulo | textoSeguro }}</h3>
+      <p>{{ diretriz.descricao | textoSeguro }}</p>
+      <small class="versao">Versão: {{ diretriz.versao | textoSeguro }}</small>
+    </li>
   </ul>
+
+  <div *ngIf="!carregando && !mensagemErro && diretrizes.length === 0" class="mensagem-status">
+    Nenhuma política de segurança foi cadastrada ainda.
+  </div>
 </section>

@@ -4,10 +4,54 @@
 
 .seguranca h2 {
   font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.seguranca p {
   margin-bottom: 1rem;
 }
 
-.seguranca ul {
-  list-style: disc;
-  padding-left: 1.5rem;
+.lista-diretrizes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.diretriz {
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background-color: #fafafa;
+}
+
+.diretriz h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.diretriz p {
+  margin: 0 0 0.5rem 0;
+}
+
+.diretriz .versao {
+  color: #4a4a4a;
+  font-size: 0.85rem;
+}
+
+.mensagem-status {
+  padding: 0.75rem;
+  border-radius: 6px;
+  background-color: #eef3ff;
+  color: #2b3a67;
+  margin-bottom: 1rem;
+}
+
+.mensagem-erro {
+  padding: 0.75rem;
+  border-radius: 6px;
+  background-color: #fdecea;
+  color: #a12c2c;
+  margin-bottom: 1rem;
+  border: 1px solid #f5c2c0;
 }

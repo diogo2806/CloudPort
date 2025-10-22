@@ -5,12 +5,75 @@
 .notificacoes table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 1rem;
 }
 
 .notificacoes th,
 .notificacoes td {
   border-bottom: 1px solid #e0e0e0;
   padding: 0.75rem 0;
+  text-align: left;
+}
+
+.mensagem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+}
+
+.mensagem.erro {
+  background-color: #fdecea;
+  color: #b83229;
+}
+
+.mensagem.sucesso {
+  background-color: #e6fffa;
+  color: #2f855a;
+}
+
+.botao-link {
+  background: none;
+  border: none;
+  color: #1a73e8;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-size: 0.95rem;
+}
+
+.botao-link:disabled {
+  cursor: not-allowed;
+  color: #9aa0a6;
+  text-decoration: none;
+}
+
+.estado-carregando,
+.estado-vazio {
+  margin-top: 1.5rem;
+  color: #5f6368;
+}
+
+.botao-acao {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #1a73e8;
+  border-radius: 4px;
+  background-color: #1a73e8;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.botao-acao:hover:not(:disabled) {
+  background-color: #1558b0;
+}
+
+.botao-acao:disabled {
+  background-color: #9aa0a6;
+  border-color: #9aa0a6;
+  cursor: not-allowed;
 }
 
 .habilitado {

@@ -1,22 +1,49 @@
 <section class="notificacoes">
   <h2>Preferências de Notificações</h2>
-  <p>Selecione os canais pelos quais deseja receber alertas.</p>
-  <table>
+  <p>Gerencie os canais pelos quais deseja receber avisos do CloudPort.</p>
+
+  <div *ngIf="mensagemErro" class="mensagem erro" role="alert">
+    <span>{{ mensagemErro }}</span>
+    <button type="button" class="botao-link" (click)="carregarCanais()">Tentar novamente</button>
+  </div>
+
+  <div *ngIf="mensagemSucesso" class="mensagem sucesso" role="status">
+    {{ mensagemSucesso }}
+  </div>
+
+  <div *ngIf="carregando" class="estado-carregando">Carregando canais de notificações...</div>
+
+  <table *ngIf="!carregando && canais.length > 0">
     <thead>
       <tr>
         <th>Canal</th>
         <th>Status</th>
+        <th>Ações</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let canal of canais">
-        <td>{{ canal.canal }}</td>
+        <td>{{ canal.nomeCanal }}</td>
         <td>
           <span [class.habilitado]="canal.habilitado" [class.desabilitado]="!canal.habilitado">
             {{ canal.habilitado ? 'Ativado' : 'Desativado' }}
           </span>
         </td>
+        <td>
+          <button
+            type="button"
+            class="botao-acao"
+            [disabled]="salvandoId !== null"
+            (click)="alternarStatus(canal)"
+          >
+            {{ canal.habilitado ? 'Desativar' : 'Ativar' }}
+          </button>
+        </td>
       </tr>
     </tbody>
   </table>
+
+  <p *ngIf="!carregando && canais.length === 0" class="estado-vazio">
+    Nenhum canal de notificação disponível no momento.
+  </p>
 </section>

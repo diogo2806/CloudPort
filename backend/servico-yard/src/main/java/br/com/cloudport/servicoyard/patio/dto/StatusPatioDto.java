@@ -1,43 +1,26 @@
 package br.com.cloudport.servicoyard.patio.dto;
 
+import br.com.cloudport.servicoyard.patio.enumeracao.StatusServicoPatioEnum;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class StatusPatioDto {
 
-    private String status;
+    @Schema(description = "Status atual do serviço de pátio", required = true, example = "DISPONIVEL")
+    private StatusServicoPatioEnum status;
+
+    @Schema(description = "Descrição amigável do status do serviço", required = true,
+            example = "Serviço de pátio operacional.")
     private String descricao;
+
+    @Schema(description = "Instante da última verificação", required = true, type = "string", format = "date-time")
     private LocalDateTime verificadoEm;
-
-    public StatusPatioDto() {
-    }
-
-    public StatusPatioDto(String status, String descricao, LocalDateTime verificadoEm) {
-        this.status = status;
-        this.descricao = descricao;
-        this.verificadoEm = verificadoEm;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getDescricao() {
-        return descricao;
-    }
-
-    public void setDescricao(String descricao) {
-        this.descricao = descricao;
-    }
-
-    public LocalDateTime getVerificadoEm() {
-        return verificadoEm;
-    }
-
-    public void setVerificadoEm(LocalDateTime verificadoEm) {
-        this.verificadoEm = verificadoEm;
-    }
 }

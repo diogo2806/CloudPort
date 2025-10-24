@@ -1,5 +1,8 @@
 package br.com.cloudport.servicoyard.container.entidade;
 
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -11,15 +14,20 @@ import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import javax.persistence.Version;
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "conteiner")
 public class Conteiner {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    @Setter(AccessLevel.NONE)
     private Long id;
 
     @Column(name = "identificacao", nullable = false, length = 20, unique = true)
@@ -43,78 +51,17 @@ public class Conteiner {
     private StatusOperacionalConteiner statusOperacional;
 
     @Column(name = "ultima_atualizacao", nullable = false)
+    @Setter(AccessLevel.NONE)
     private OffsetDateTime ultimaAtualizacao;
 
     @Version
+    @Column(name = "versao")
+    @Setter(AccessLevel.NONE)
     private Long versao;
 
     @PrePersist
     @PreUpdate
     public void atualizarUltimaAtualizacao() {
         ultimaAtualizacao = OffsetDateTime.now(ZoneOffset.UTC);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getIdentificacao() {
-        return identificacao;
-    }
-
-    public void setIdentificacao(String identificacao) {
-        this.identificacao = identificacao;
-    }
-
-    public String getPosicaoPatio() {
-        return posicaoPatio;
-    }
-
-    public void setPosicaoPatio(String posicaoPatio) {
-        this.posicaoPatio = posicaoPatio;
-    }
-
-    public TipoCargaConteiner getTipoCarga() {
-        return tipoCarga;
-    }
-
-    public void setTipoCarga(TipoCargaConteiner tipoCarga) {
-        this.tipoCarga = tipoCarga;
-    }
-
-    public BigDecimal getPesoToneladas() {
-        return pesoToneladas;
-    }
-
-    public void setPesoToneladas(BigDecimal pesoToneladas) {
-        this.pesoToneladas = pesoToneladas;
-    }
-
-    public String getRestricoes() {
-        return restricoes;
-    }
-
-    public void setRestricoes(String restricoes) {
-        this.restricoes = restricoes;
-    }
-
-    public StatusOperacionalConteiner getStatusOperacional() {
-        return statusOperacional;
-    }
-
-    public void setStatusOperacional(StatusOperacionalConteiner statusOperacional) {
-        this.statusOperacional = statusOperacional;
-    }
-
-    public OffsetDateTime getUltimaAtualizacao() {
-        return ultimaAtualizacao;
-    }
-
-    public Long getVersao() {
-        return versao;
     }
 }

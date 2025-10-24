@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.patio.servico;
 
 import br.com.cloudport.servicoyard.patio.dto.StatusPatioDto;
+import br.com.cloudport.servicoyard.patio.enumeracao.StatusServicoPatioEnum;
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.MovimentoPatioRepositorio;
 import java.time.LocalDateTime;
@@ -31,13 +32,13 @@ public class StatusPatioServico {
             movimentoPatioRepositorio.count();
             rabbitTemplate.execute(channel -> Boolean.TRUE);
             return new StatusPatioDto(
-                    "DISPONIVEL",
+                    StatusServicoPatioEnum.DISPONIVEL,
                     "Serviço de pátio operacional.",
                     verificadoEm
             );
         } catch (Exception ex) {
             return new StatusPatioDto(
-                    "INDISPONIVEL",
+                    StatusServicoPatioEnum.INDISPONIVEL,
                     "Falha ao acessar dependências do serviço de pátio.",
                     verificadoEm
             );

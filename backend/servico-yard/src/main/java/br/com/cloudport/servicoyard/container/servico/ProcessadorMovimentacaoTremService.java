@@ -5,6 +5,7 @@ import br.com.cloudport.servicoyard.container.entidade.Conteiner;
 import br.com.cloudport.servicoyard.container.entidade.HistoricoOperacaoConteiner;
 import br.com.cloudport.servicoyard.container.entidade.StatusOperacionalConteiner;
 import br.com.cloudport.servicoyard.container.entidade.TipoOperacaoConteiner;
+import br.com.cloudport.servicoyard.container.enumeracao.TipoMovimentacaoFerroviaEnum;
 import br.com.cloudport.servicoyard.container.repositorio.ConteinerRepositorio;
 import br.com.cloudport.servicoyard.container.repositorio.HistoricoOperacaoConteinerRepositorio;
 import br.com.cloudport.servicoyard.container.validacao.SanitizadorEntrada;
@@ -51,12 +52,25 @@ public class ProcessadorMovimentacaoTremService {
                     evento.getIdOrdemMovimentacao(), evento.getIdVisitaTrem());
             return;
         }
-        TipoOperacaoConteiner tipoOperacao = mapearTipoOperacao(evento.getTipoMovimentacao());
-        if (tipoOperacao == null) {
+        if (!StringUtils.hasText(evento.getTipoMovimentacao())) {
+            LOGGER.warn("event=movimentacao_trem.tipo_ausente ordem={} visita={}",
+                    evento.getIdOrdemMovimentacao(), evento.getIdVisitaTrem());
+            return;
+        }
+        TipoMovimentacaoFerroviaEnum tipoMovimentacao;
+        try {
+            tipoMovimentacao = TipoMovimentacaoFerroviaEnum.fromString(evento.getTipoMovimentacao());
+        } catch (IllegalArgumentException ex) {
+            LOGGER.warn("event=movimentacao_trem.tipo_invalido tipo={} ordem={} visita={}",
+                    evento.getTipoMovimentacao(), evento.getIdOrdemMovimentacao(), evento.getIdVisitaTrem(), ex);
+            return;
+        }
+        if (tipoMovimentacao == null) {
             LOGGER.warn("event=movimentacao_trem.tipo_desconhecido tipo={} ordem={} visita={}",
                     evento.getTipoMovimentacao(), evento.getIdOrdemMovimentacao(), evento.getIdVisitaTrem());
             return;
         }
+        TipoOperacaoConteiner tipoOperacao = tipoMovimentacao.getTipoOperacaoConteiner();
         Conteiner conteiner = conteinerRepositorio.findByIdentificacaoIgnoreCase(codigoConteiner)
                 .orElse(null);
         if (conteiner == null) {
@@ -65,15 +79,16 @@ public class ProcessadorMovimentacaoTremService {
             return;
         }
         StatusOperacionalConteiner statusAnterior = conteiner.getStatusOperacional();
-        StatusOperacionalConteiner novoStatus = definirStatusPosMovimentacao(tipoOperacao, statusAnterior);
+        StatusOperacionalConteiner novoStatus = definirStatusPosMovimentacao(tipoMovimentacao, statusAnterior);
         if (novoStatus != null && novoStatus != statusAnterior) {
             conteiner.setStatusOperacional(novoStatus);
             conteinerRepositorio.save(conteiner);
         }
-        registrarHistorico(conteiner, tipoOperacao, evento, statusAnterior, novoStatus);
+        registrarHistorico(conteiner, tipoMovimentacao, tipoOperacao, evento, statusAnterior, novoStatus);
     }
 
     private void registrarHistorico(Conteiner conteiner,
+                                    TipoMovimentacaoFerroviaEnum tipoMovimentacao,
                                     TipoOperacaoConteiner tipoOperacao,
                                     MovimentacaoTremConcluidaEventoDto evento,
                                     StatusOperacionalConteiner statusAnterior,
@@ -81,7 +96,7 @@ public class ProcessadorMovimentacaoTremService {
         HistoricoOperacaoConteiner historico = new HistoricoOperacaoConteiner();
         historico.setConteiner(conteiner);
         historico.setTipoOperacao(tipoOperacao);
-        historico.setDescricao(montarDescricao(tipoOperacao, statusAnterior, novoStatus));
+        historico.setDescricao(montarDescricao(tipoMovimentacao, statusAnterior, novoStatus));
         historico.setPosicaoAnterior(null);
         historico.setPosicaoAtual(conteiner.getPosicaoPatio());
         historico.setResponsavel(sanitizadorEntrada.limparTexto(RESPONSAVEL_INTEGRACAO));
@@ -91,39 +106,23 @@ public class ProcessadorMovimentacaoTremService {
         historicoRepositorio.save(historico);
     }
 
-    private TipoOperacaoConteiner mapearTipoOperacao(String tipoMovimentacao) {
-        if (!StringUtils.hasText(tipoMovimentacao)) {
-            return null;
-        }
-        String tipoNormalizado = tipoMovimentacao.trim().toUpperCase(Locale.ROOT);
-        if ("DESCARGA_TREM".equals(tipoNormalizado)) {
-            return TipoOperacaoConteiner.DESCARGA_TREM;
-        }
-        if ("CARGA_TREM".equals(tipoNormalizado)) {
-            return TipoOperacaoConteiner.CARGA_TREM;
-        }
-        return null;
-    }
-
-    private StatusOperacionalConteiner definirStatusPosMovimentacao(TipoOperacaoConteiner tipoOperacao,
+    private StatusOperacionalConteiner definirStatusPosMovimentacao(TipoMovimentacaoFerroviaEnum tipoMovimentacao,
                                                                     StatusOperacionalConteiner statusAtual) {
-        if (tipoOperacao == TipoOperacaoConteiner.DESCARGA_TREM) {
-            return StatusOperacionalConteiner.ALOCADO;
+        if (tipoMovimentacao == null) {
+            return statusAtual;
         }
-        if (tipoOperacao == TipoOperacaoConteiner.CARGA_TREM) {
-            return StatusOperacionalConteiner.EM_TRANSFERENCIA;
+        StatusOperacionalConteiner novoStatus = tipoMovimentacao.getNovoStatus();
+        if (novoStatus != null) {
+            return novoStatus;
         }
         return statusAtual;
     }
 
-    private String montarDescricao(TipoOperacaoConteiner tipoOperacao,
+    private String montarDescricao(TipoMovimentacaoFerroviaEnum tipoMovimentacao,
                                    StatusOperacionalConteiner statusAnterior,
                                    StatusOperacionalConteiner novoStatus) {
-        if (tipoOperacao == TipoOperacaoConteiner.DESCARGA_TREM) {
-            return "Descarga do trem concluída e contêiner disponível no pátio.";
-        }
-        if (tipoOperacao == TipoOperacaoConteiner.CARGA_TREM) {
-            return "Carga no trem concluída e contêiner encaminhado para o modal ferroviário.";
+        if (tipoMovimentacao != null) {
+            return tipoMovimentacao.getDescricaoHistorico();
         }
         return String.format(Locale.ROOT,
                 "Movimentação atualizada de %s para %s.",

@@ -74,6 +74,10 @@ CREATE TABLE documento_agendamento (
     tipo_documento VARCHAR(80) NOT NULL,
     numero VARCHAR(80),
     url_documento VARCHAR(255),
+    nome_arquivo VARCHAR(255),
+    content_type VARCHAR(120),
+    tamanho_bytes BIGINT,
+    ultima_revalidacao TIMESTAMP WITHOUT TIME ZONE,
     agendamento_id BIGINT NOT NULL REFERENCES agendamento (id) ON DELETE CASCADE,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
@@ -85,6 +89,7 @@ CREATE TABLE gate_pass (
     id BIGSERIAL PRIMARY KEY,
     codigo VARCHAR(40) NOT NULL UNIQUE,
     status VARCHAR(40) NOT NULL,
+    token VARCHAR(120) NOT NULL,
     data_entrada TIMESTAMP WITHOUT TIME ZONE,
     data_saida TIMESTAMP WITHOUT TIME ZONE,
     agendamento_id BIGINT NOT NULL UNIQUE REFERENCES agendamento (id),
@@ -108,3 +113,19 @@ CREATE TABLE gate_event (
 
 CREATE INDEX idx_gate_event_gate_pass ON gate_event (gate_pass_id);
 CREATE INDEX idx_gate_event_status ON gate_event (status);
+
+CREATE TABLE gate_ocorrencia (
+    id BIGSERIAL PRIMARY KEY,
+    tipo VARCHAR(60) NOT NULL,
+    nivel VARCHAR(40) NOT NULL,
+    descricao VARCHAR(500) NOT NULL,
+    registrado_em TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    veiculo_id BIGINT REFERENCES veiculo (id),
+    transportadora_id BIGINT REFERENCES transportadora (id),
+    usuario_responsavel VARCHAR(80),
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_gate_ocorrencia_veiculo ON gate_ocorrencia (veiculo_id);
+CREATE INDEX idx_gate_ocorrencia_transportadora ON gate_ocorrencia (transportadora_id);

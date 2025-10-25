@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL,
     role_id BIGINT NOT NULL,
-    status_enum VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'ATIVO',
     CONSTRAINT fk_user_roles_user FOREIGN KEY (user_id) REFERENCES users (id),
     CONSTRAINT fk_user_roles_role FOREIGN KEY (role_id) REFERENCES roles (id)
 );

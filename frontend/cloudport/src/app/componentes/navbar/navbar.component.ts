@@ -23,7 +23,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     'gate/operador/console',
     'gate/operador/eventos'
   ];
-  private readonly ferroviaTabIds = ['ferrovia/visitas'];
+  private readonly ferroviaTabIds = ['ferrovia/visitas', 'ferrovia/visitas/importar'];
   private readonly yardTabIds = ['patio/lista-trabalho', 'patio/mapa', 'patio/posicoes', 'patio/movimentacoes'];
 
   private readonly tabRoles: Record<string, string[]> = {
@@ -39,6 +39,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     'gate/operador/console': ['ROLE_ADMIN_PORTO', 'ROLE_OPERADOR_GATE', 'ROLE_PLANEJADOR'],
     'gate/operador/eventos': ['ROLE_ADMIN_PORTO', 'ROLE_OPERADOR_GATE', 'ROLE_PLANEJADOR'],
     'ferrovia/visitas': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
+    'ferrovia/visitas/importar': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
     'patio/lista-trabalho': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_PATIO'],
     'patio/mapa': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
     'patio/posicoes': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],

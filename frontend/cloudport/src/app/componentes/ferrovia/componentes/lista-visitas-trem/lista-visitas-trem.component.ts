@@ -53,6 +53,10 @@ export class ListaVisitasTremComponent implements OnInit {
     this.carregarVisitas();
   }
 
+  abrirImportacao(): void {
+    this.router.navigate(['/home', 'ferrovia', 'visitas', 'importar']);
+  }
+
   verDetalhes(visita: VisitaTrem): void {
     if (!visita || visita.id === undefined || visita.id === null) {
       return;

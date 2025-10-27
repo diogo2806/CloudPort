@@ -59,6 +59,22 @@
   background-color: #004b7a;
 }
 
+.botao-importacao {
+  padding: 8px 12px;
+  border: 1px solid #005f9e;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #005f9e;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.botao-importacao:hover,
+.botao-importacao:focus {
+  background-color: #005f9e;
+  color: #ffffff;
+}
+
 .estado-informativo {
   padding: 12px;
   background-color: #eef5ff;

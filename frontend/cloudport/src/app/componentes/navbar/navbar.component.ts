@@ -13,7 +13,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
   mostrarMenu = false;
   private menuStatusSubscription?: Subscription;
 
-  private readonly configurationTabIds = ['role', 'seguranca', 'notificacoes', 'privacidade'];
+  private readonly configurationTabIds = [
+    'role',
+    'seguranca',
+    'notificacoes',
+    'privacidade',
+    'catalogo-de-exames',
+    'medicos'
+  ];
   private readonly userTabIds = ['lista-de-usuarios'];
   private readonly gateTabIds = [
     'gate/dashboard',
@@ -31,6 +38,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     seguranca: ['ROLE_ADMIN_PORTO'],
     notificacoes: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
     privacidade: ['ROLE_ADMIN_PORTO'],
+    'catalogo-de-exames': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
+    medicos: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
     'lista-de-usuarios': ['ROLE_ADMIN_PORTO'],
     'gate/dashboard': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
     'gate/agendamentos': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],

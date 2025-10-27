@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao-aplicacao.service';
 
 export type StatusOperacaoConteinerVisita = 'PENDENTE' | 'CONCLUIDO';
@@ -101,6 +101,22 @@ export class ServicoFerroviaService {
     );
   }
 
+  importarManifestoVisita(arquivo: File): Observable<VisitaTrem> {
+    if (!(arquivo instanceof File) || arquivo.size === 0) {
+      return throwError(() => new Error('Selecione um arquivo válido para importação.'));
+    }
+
+    const nomeSanitizado = this.sanitizarNomeArquivo(arquivo.name);
+    if (!nomeSanitizado) {
+      return throwError(() => new Error('O nome do arquivo selecionado é inválido.'));
+    }
+
+    const formData = new FormData();
+    formData.append('arquivo', arquivo, nomeSanitizado);
+
+    return this.http.post<VisitaTrem>(this.construirUrl('/importacoes'), formData);
+  }
+
   private construirUrl(caminho: string): string {
     return this.configuracaoAplicacao.construirUrlApi(`${ServicoFerroviaService.CAMINHO_BASE}${caminho}`);
   }
@@ -117,5 +133,15 @@ export class ServicoFerroviaService {
       return 30;
     }
     return inteiro;
+  }
+
+  private sanitizarNomeArquivo(nomeArquivo: string | undefined): string {
+    if (!nomeArquivo) {
+      return '';
+    }
+    const normalizado = nomeArquivo.normalize('NFKC').trim();
+    const semCaracteresInvalidos = normalizado.replace(/[^\w\-. ]+/g, '');
+    const truncado = semCaracteresInvalidos.substring(0, 120).trim();
+    return truncado;
   }
 }

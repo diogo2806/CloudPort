@@ -1,0 +1,79 @@
+<section class="importacao-manifesto">
+  <header class="cabecalho">
+    <h1>Importar Manifesto de Visita</h1>
+    <p class="descricao">
+      Envie o arquivo de manifesto fornecido pela operadora ferroviária para criar ou atualizar a visita correspondente.
+    </p>
+  </header>
+
+  <div class="painel-upload">
+    <label class="rotulo-arquivo" for="inputArquivo">
+      <span>Arquivo do manifesto</span>
+      <input
+        id="inputArquivo"
+        type="file"
+        #campoArquivo
+        (change)="aoSelecionarArquivo($event)"
+        aria-describedby="ajudaArquivo"
+      />
+    </label>
+    <small id="ajudaArquivo" class="ajuda">Aceitamos arquivos fornecidos pelo sistema ferroviário em formato original.</small>
+
+    <div *ngIf="nomeArquivoSeguro" class="arquivo-selecionado" aria-live="polite">
+      <strong>Selecionado:</strong>
+      <span>{{ textoSeguro(nomeArquivoSeguro) }}</span>
+      <button type="button" class="botao-link" (click)="cancelarSelecao()">Remover</button>
+    </div>
+  </div>
+
+  <div class="acoes">
+    <button type="button" class="botao-primario" (click)="importarManifesto()" [disabled]="carregando">
+      {{ carregando ? 'Importando...' : 'Importar Manifesto' }}
+    </button>
+    <button type="button" class="botao-secundario" (click)="voltarParaLista()" [disabled]="carregando">
+      Voltar para a lista de visitas
+    </button>
+  </div>
+
+  <div *ngIf="mensagemErro" class="mensagem mensagem-erro" role="alert">
+    {{ textoSeguro(mensagemErro) }}
+  </div>
+
+  <div *ngIf="mensagemSucesso" class="mensagem mensagem-sucesso" role="status">
+    {{ textoSeguro(mensagemSucesso) }}
+  </div>
+
+  <section *ngIf="visitaImportada" class="resumo-visita" aria-live="polite">
+    <h2>Resumo da visita importada</h2>
+    <dl>
+      <div>
+        <dt>Trem</dt>
+        <dd>{{ textoSeguro(visitaImportada?.identificadorTrem) }}</dd>
+      </div>
+      <div>
+        <dt>Operadora ferroviária</dt>
+        <dd>{{ textoSeguro(visitaImportada?.operadoraFerroviaria) }}</dd>
+      </div>
+      <div>
+        <dt>Chegada prevista</dt>
+        <dd>{{ visitaImportada?.horaChegadaPrevista | date: 'dd/MM/yyyy HH:mm' }}</dd>
+      </div>
+      <div>
+        <dt>Partida prevista</dt>
+        <dd>{{ visitaImportada?.horaPartidaPrevista | date: 'dd/MM/yyyy HH:mm' }}</dd>
+      </div>
+      <div>
+        <dt>Status</dt>
+        <dd>{{ textoSeguro(visitaImportada?.statusVisita) }}</dd>
+      </div>
+      <div>
+        <dt>Contêineres para descarga</dt>
+        <dd>{{ visitaImportada?.listaDescarga?.length || 0 }}</dd>
+      </div>
+      <div>
+        <dt>Contêineres para carga</dt>
+        <dd>{{ visitaImportada?.listaCarga?.length || 0 }}</dd>
+      </div>
+    </dl>
+  </section>
+</section>

@@ -32,6 +32,18 @@ export const TAB_REGISTRY: Readonly<Record<string, TabItem>> = {
     label: 'Preferências de Privacidade',
     route: ['privacidade']
   },
+  'catalogo-de-exames': {
+    id: 'catalogo-de-exames',
+    label: 'Catálogo de Exames',
+    disabled: true,
+    comingSoonMessage: 'Em breve'
+  },
+  medicos: {
+    id: 'medicos',
+    label: 'Médicos',
+    disabled: true,
+    comingSoonMessage: 'Em breve'
+  },
   'lista-de-usuarios': {
     id: 'lista-de-usuarios',
     label: 'Lista de Usuários',

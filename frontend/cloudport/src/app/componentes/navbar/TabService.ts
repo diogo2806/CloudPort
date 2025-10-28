@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs';
+import { NavegacaoAbasService, AbaNavegacaoResposta } from '../service/navegacao/navegacao-abas.service';
+import { SanitizadorConteudoService } from '../service/sanitizacao/sanitizador-conteudo.service';
 
 export interface TabItem {
   id: string;
@@ -9,149 +11,101 @@ export interface TabItem {
   comingSoonMessage?: string;
 }
 
-export const DEFAULT_TAB_ID = 'role';
+export interface RegistroAba extends TabItem {
+  grupo: string;
+  papeisPermitidos: string[];
+  padrao: boolean;
+}
 
-export const TAB_REGISTRY: Readonly<Record<string, TabItem>> = {
-  role: {
-    id: 'role',
-    label: 'Perfis de Acesso',
-    route: ['role']
-  },
-  seguranca: {
-    id: 'seguranca',
-    label: 'Políticas de Segurança',
-    route: ['seguranca']
-  },
-  notificacoes: {
-    id: 'notificacoes',
-    label: 'Centro de Notificações',
-    route: ['notificacoes']
-  },
-  privacidade: {
-    id: 'privacidade',
-    label: 'Preferências de Privacidade',
-    route: ['privacidade']
-  },
-  'catalogo-de-exames': {
-    id: 'catalogo-de-exames',
-    label: 'Catálogo de Exames',
-    disabled: true,
-    comingSoonMessage: 'Em breve'
-  },
-  medicos: {
-    id: 'medicos',
-    label: 'Médicos',
-    disabled: true,
-    comingSoonMessage: 'Em breve'
-  },
-  'lista-de-usuarios': {
-    id: 'lista-de-usuarios',
-    label: 'Lista de Usuários',
-    route: ['lista-de-usuarios']
-  },
-  'gate/dashboard': {
-    id: 'gate/dashboard',
-    label: 'Painel do Gate',
-    route: ['gate', 'dashboard']
-  },
-  'gate/agendamentos': {
-    id: 'gate/agendamentos',
-    label: 'Agendamentos do Gate',
-    route: ['gate', 'agendamentos']
-  },
-  'gate/janelas': {
-    id: 'gate/janelas',
-    label: 'Janelas de Atendimento',
-    route: ['gate', 'janelas']
-  },
-  'gate/relatorios': {
-    id: 'gate/relatorios',
-    label: 'Relatórios do Gate',
-    route: ['gate', 'relatorios']
-  },
-  'gate/operador/console': {
-    id: 'gate/operador/console',
-    label: 'Console do Operador',
-    route: ['gate', 'operador', 'console']
-  },
-  'gate/operador/eventos': {
-    id: 'gate/operador/eventos',
-    label: 'Eventos do Operador',
-    route: ['gate', 'operador', 'eventos']
-  },
-  'ferrovia/visitas': {
-    id: 'ferrovia/visitas',
-    label: 'Visitas de Trem',
-    route: ['ferrovia', 'visitas']
-  },
-  'ferrovia/visitas/importar': {
-    id: 'ferrovia/visitas/importar',
-    label: 'Importar Manifesto de Visita',
-    route: ['ferrovia', 'visitas', 'importar']
-  },
-  'patio/mapa': {
-    id: 'patio/mapa',
-    label: 'Mapa do Pátio',
-    route: ['patio', 'mapa']
-  },
-  'patio/lista-trabalho': {
-    id: 'patio/lista-trabalho',
-    label: 'Lista de Trabalho do Pátio',
-    route: ['patio', 'lista-trabalho']
-  },
-  'patio/posicoes': {
-    id: 'patio/posicoes',
-    label: 'Posições do Pátio',
-    route: ['patio', 'posicoes']
-  },
-  'patio/movimentacoes': {
-    id: 'patio/movimentacoes',
-    label: 'Movimentações do Pátio',
-    route: ['patio', 'movimentacoes']
-  }
-};
-
-export const VALID_TAB_IDS = new Set<string>(Object.keys(TAB_REGISTRY));
+let registroAbasAtual: Map<string, RegistroAba> = new Map();
+let idAbaPadraoAtual = '';
 
 export function normalizeTabId(tabId: string): string {
-  const normalized = tabId?.trim().toLowerCase() ?? '';
-  return VALID_TAB_IDS.has(normalized) ? normalized : DEFAULT_TAB_ID;
+  const normalizado = (tabId ?? '').toString().trim().toLowerCase();
+  if (registroAbasAtual.has(normalizado)) {
+    return normalizado;
+  }
+  return idAbaPadraoAtual || normalizado;
 }
 
 export function resolveRouteSegments(tabId: string): string[] {
-  const normalized = normalizeTabId(tabId);
-  const canonical = TAB_REGISTRY[normalized];
-  if (canonical?.route && canonical.route.length > 0) {
-    return canonical.route;
+  const normalizado = normalizeTabId(tabId);
+  const registro = registroAbasAtual.get(normalizado);
+  if (registro?.route && registro.route.length > 0) {
+    return [...registro.route];
   }
-  return normalized.split('/');
+  return normalizado.split('/').filter((segmento) => segmento.length > 0);
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class TabService {
-  private tabsSubject = new BehaviorSubject<TabItem[]>([]);
-  tabs$ = this.tabsSubject.asObservable();
-  private contentSubject = new BehaviorSubject<any>(null);
-  content$ = this.contentSubject.asObservable();
+  private readonly tabsSubject = new BehaviorSubject<TabItem[]>([]);
+  readonly tabs$ = this.tabsSubject.asObservable();
+  private readonly contentSubject = new BehaviorSubject<any>(null);
+  readonly content$ = this.contentSubject.asObservable();
 
-  private tabContents: { [tabId: string]: any } = {};
+  private readonly registroAbasSubject = new BehaviorSubject<Map<string, RegistroAba>>(new Map());
+  readonly registroAbas$ = this.registroAbasSubject.asObservable();
 
-  openTab(tab: TabItem | string, content?: any): void {
-    const tabToRegister = this.resolveTab(tab);
-    if (tabToRegister.disabled) {
+  private tabContents: Record<string, any> = {};
+  private carregamentoAbas?: Subscription;
+
+  constructor(
+    private readonly navegacaoAbasService: NavegacaoAbasService,
+    private readonly sanitizadorConteudo: SanitizadorConteudoService
+  ) {
+    this.recarregarAbas();
+  }
+
+  recarregarAbas(): void {
+    this.carregamentoAbas?.unsubscribe();
+    let requisicao: Observable<AbaNavegacaoResposta[]>;
+    try {
+      requisicao = this.navegacaoAbasService.listarAbas();
+    } catch (erro) {
+      this.processarErroCarregamento();
       return;
     }
-    const normalizedId = normalizeTabId(tabToRegister.id);
-    const registeredTab = TAB_REGISTRY[normalizedId] ?? {
+
+    this.carregamentoAbas = requisicao.subscribe({
+      next: (abas) => this.processarRegistroAbas(abas),
+      error: () => this.processarErroCarregamento()
+    });
+  }
+
+  obterRegistro(tabId: string): RegistroAba | undefined {
+    return registroAbasAtual.get(normalizeTabId(tabId));
+  }
+
+  obterAbasPorGrupo(grupo: string): RegistroAba[] {
+    const grupoNormalizado = this.normalizarGrupo(grupo);
+    return Array.from(registroAbasAtual.values())
+      .filter((aba) => aba.grupo === grupoNormalizado)
+      .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }));
+  }
+
+  obterIdPadrao(): string {
+    return idAbaPadraoAtual;
+  }
+
+  openTab(tab: TabItem | string, content?: any): void {
+    const registro = this.resolverRegistro(tab);
+    if (registro.disabled) {
+      return;
+    }
+    const normalizedId = normalizeTabId(registro.id);
+    const tabParaAbrir: TabItem = {
       id: normalizedId,
-      label: tabToRegister.label ?? normalizedId
+      label: registro.label,
+      route: [...(registro.route ?? [])],
+      disabled: registro.disabled,
+      comingSoonMessage: registro.comingSoonMessage
     };
-    const tabToOpen: TabItem = { ...registeredTab };
     const tabs = this.tabsSubject.value;
-    if (!tabs.find(existingTab => existingTab.id === normalizedId)) {
-      this.tabsSubject.next([...tabs, tabToOpen]);
+    if (!tabs.find((existingTab) => existingTab.id === normalizedId)) {
+      this.tabsSubject.next([...tabs, tabParaAbrir]);
     }
     if (content !== undefined) {
       this.tabContents[normalizedId] = content;
@@ -165,7 +119,7 @@ export class TabService {
   closeTab(tabId: string): void {
     const normalizedId = normalizeTabId(tabId);
     const tabs = this.tabsSubject.value;
-    this.tabsSubject.next(tabs.filter(t => t.id !== normalizedId));
+    this.tabsSubject.next(tabs.filter((t) => t.id !== normalizedId));
     delete this.tabContents[normalizedId];
   }
 
@@ -177,27 +131,160 @@ export class TabService {
     this.tabContents[normalizeTabId(tabId)] = content;
   }
 
-  private resolveTab(tab: TabItem | string): TabItem {
-    if (typeof tab !== 'string') {
-      return tab;
+  private processarRegistroAbas(abas: AbaNavegacaoResposta[]): void {
+    const novoRegistro = new Map<string, RegistroAba>();
+    let idPadraoLocal = '';
+
+    (abas ?? []).forEach((aba) => {
+      const registro = this.criarRegistro(aba);
+      if (!registro.id) {
+        return;
+      }
+      novoRegistro.set(registro.id, registro);
+      if (registro.padrao && !idPadraoLocal) {
+        idPadraoLocal = registro.id;
+      }
+    });
+
+    if (!idPadraoLocal && novoRegistro.size > 0) {
+      const primeiro = novoRegistro.keys().next();
+      idPadraoLocal = primeiro.value ?? '';
     }
 
-    const normalizedId = normalizeTabId(tab);
-    const registryById = TAB_REGISTRY[normalizedId];
-    if (registryById) {
-      return registryById;
+    registroAbasAtual = novoRegistro;
+    idAbaPadraoAtual = idPadraoLocal;
+    this.registroAbasSubject.next(new Map(registroAbasAtual));
+  }
+
+  private processarErroCarregamento(): void {
+    if (registroAbasAtual.size === 0) {
+      registroAbasAtual = new Map();
+      idAbaPadraoAtual = '';
+      this.registroAbasSubject.next(new Map());
+    }
+  }
+
+  private resolverRegistro(tab: TabItem | string): RegistroAba {
+    if (typeof tab === 'string') {
+      const idNormalizado = normalizeTabId(tab);
+      return registroAbasAtual.get(idNormalizado) ?? this.criarRegistroPlaceholder(idNormalizado);
     }
 
-    const registryByLabel = Object.values(TAB_REGISTRY).find(
-      registeredTab => registeredTab.label.toLowerCase() === tab.toLowerCase()
-    );
-    if (registryByLabel) {
-      return registryByLabel;
-    }
+    const idNormalizado = normalizeTabId(tab.id);
+    return registroAbasAtual.get(idNormalizado) ?? {
+      ...this.criarRegistroPlaceholder(idNormalizado),
+      label: this.normalizarRotulo(tab.label, idNormalizado),
+      route: this.normalizarSegmentos(tab.route ?? []),
+      disabled: tab.disabled ?? false,
+      comingSoonMessage: tab.comingSoonMessage
+        ? this.sanitizadorConteudo.sanitizar(tab.comingSoonMessage)
+        : undefined
+    };
+  }
+
+  private criarRegistro(aba: AbaNavegacaoResposta): RegistroAba {
+    const idNormalizado = this.normalizarId(aba.identificador || aba.id);
+    const rotuloNormalizado = this.normalizarRotulo(aba.rotulo, idNormalizado);
+    const rotaNormalizada = this.normalizarSegmentos(aba.rota);
+    const rotaFinal = rotaNormalizada.length > 0 ? rotaNormalizada : this.normalizarSegmentos(idNormalizado);
+    const mensagemNormalizada = aba.mensagemEmBreve
+      ? this.sanitizadorConteudo.sanitizar(aba.mensagemEmBreve)
+      : '';
 
     return {
-      id: normalizedId,
-      label: tab
+      id: idNormalizado,
+      label: rotuloNormalizado,
+      route: rotaFinal,
+      disabled: !!aba.desabilitado,
+      comingSoonMessage: mensagemNormalizada ? mensagemNormalizada : undefined,
+      grupo: this.normalizarGrupo(aba.grupo),
+      papeisPermitidos: this.normalizarPapeis(aba.rolesPermitidos),
+      padrao: !!aba.padrao
     };
+  }
+
+  private criarRegistroPlaceholder(id: string): RegistroAba {
+    const rota = this.normalizarSegmentos(id);
+    return {
+      id,
+      label: this.criarRotuloPlaceholder(id),
+      route: rota.length > 0 ? rota : [id],
+      disabled: true,
+      comingSoonMessage: 'Em breve',
+      grupo: 'OUTROS',
+      papeisPermitidos: [],
+      padrao: false
+    };
+  }
+
+  private normalizarId(valor: string | undefined | null): string {
+    const texto = this.sanitizadorConteudo.sanitizar(valor ?? '');
+    if (!texto) {
+      return '';
+    }
+    return texto
+      .normalize('NFKC')
+      .toLowerCase()
+      .replace(/[^a-z0-9/\-]+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  private normalizarRotulo(rotulo: string | undefined | null, fallbackId: string): string {
+    const rotuloSanitizado = this.sanitizadorConteudo.sanitizar(rotulo ?? '');
+    if (rotuloSanitizado) {
+      return rotuloSanitizado;
+    }
+    return this.criarRotuloPlaceholder(fallbackId);
+  }
+
+  private normalizarSegmentos(rota: string[] | string | undefined | null): string[] {
+    const origem = Array.isArray(rota)
+      ? rota
+      : typeof rota === 'string'
+        ? rota.split('/')
+        : [];
+    return origem
+      .map((segmento) => this.normalizarId(segmento).replace(/\//g, ''))
+      .filter((segmento) => segmento.length > 0);
+  }
+
+  private normalizarGrupo(grupo: string | undefined | null): string {
+    const texto = this.sanitizadorConteudo.sanitizar(grupo ?? '');
+    if (!texto) {
+      return 'OUTROS';
+    }
+    return texto
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Z0-9]/gi, '')
+      .toUpperCase();
+  }
+
+  private normalizarPapeis(papeis: string[] | undefined | null): string[] {
+    if (!Array.isArray(papeis)) {
+      return [];
+    }
+    return papeis
+      .map((papel) => this.sanitizadorConteudo.sanitizar(papel ?? ''))
+      .map((papel) => papel
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Z0-9_]/gi, '')
+        .toUpperCase())
+      .filter((papel) => papel.length > 0);
+  }
+
+  private criarRotuloPlaceholder(valor: string): string {
+    const texto = this.sanitizadorConteudo.sanitizar(valor);
+    const partes = texto
+      .split(/[\\/\-]/)
+      .map((parte) => parte.trim())
+      .filter((parte) => parte.length > 0)
+      .map((parte) => parte.charAt(0).toUpperCase() + parte.slice(1));
+    if (partes.length === 0) {
+      return 'Recurso';
+    }
+    return partes.join(' ');
   }
 }

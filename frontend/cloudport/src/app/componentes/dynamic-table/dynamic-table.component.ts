@@ -284,10 +284,12 @@ onBtExport() {
       link.download = 'data.xlsx';
       link.click();
       window.URL.revokeObjectURL(url);
+      console.log("DynamicTableComponent onBtExport: Exportação bem-sucedida");
+    }).catch((error) => {
+      console.error("DynamicTableComponent onBtExport: Erro ao gerar arquivo Excel", error);
     });
-    console.log("DynamicTableComponent onBtExport: Exportação bem-sucedida");
   } catch (error) {
-    // Tratar err
+    console.error("DynamicTableComponent onBtExport: Erro ao preparar dados para exportação", error);
   }
 }
 

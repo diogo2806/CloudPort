@@ -2,7 +2,7 @@
 import { ViewChild, ElementRef } from '@angular/core';
 import { Component, Input, OnInit, Output, EventEmitter, OnChanges, SimpleChanges, OnDestroy } from '@angular/core';
 import { AfterViewInit } from '@angular/core';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import { ColDef, GridApi, GridOptions, GridReadyEvent, IDateFilterParams, IMultiFilterParams, ISetFilterParams } from 'ag-grid-community';
 import { TabStateService } from './tab-state.service';
 import { PopupService } from '../service/popupService';
@@ -261,11 +261,30 @@ onBtExport() {
       ? jsonData
       : [this.columns.reduce((acc, column) => ({ ...acc, [column]: '' }), {})];
 
-    // Usar a biblioteca XLSX para exportar os dados
-    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet(exportData);
-    const wb: XLSX.WorkBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-    XLSX.writeFile(wb, 'data.xlsx');
+    // Usar a biblioteca ExcelJS para exportar os dados
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+
+    // Adicionar cabeçalhos
+    if (this.columns.length > 0) {
+      worksheet.columns = this.columns.map(col => ({ header: col, key: col }));
+    }
+
+    // Adicionar dados
+    exportData.forEach(row => {
+      worksheet.addRow(row);
+    });
+
+    // Exportar para arquivo
+    workbook.xlsx.writeBuffer().then((buffer) => {
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'data.xlsx';
+      link.click();
+      window.URL.revokeObjectURL(url);
+    });
     console.log("DynamicTableComponent onBtExport: Exportação bem-sucedida");
   } catch (error) {
     // Tratar err

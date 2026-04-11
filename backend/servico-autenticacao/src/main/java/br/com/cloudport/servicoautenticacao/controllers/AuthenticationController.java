@@ -2,7 +2,6 @@ package br.com.cloudport.servicoautenticacao.controllers;
 
 import br.com.cloudport.servicoautenticacao.app.configuracoes.dto.AuthenticationDTO;
 import br.com.cloudport.servicoautenticacao.app.configuracoes.dto.LoginResponseDTO;
-import br.com.cloudport.servicoautenticacao.app.configuracoes.dto.RegisterDTO;
 import br.com.cloudport.servicoautenticacao.app.configuracoes.validacao.SanitizadorEntrada;
 import br.com.cloudport.servicoautenticacao.app.administracao.dto.UsuarioInfoDTO;
 import br.com.cloudport.servicoautenticacao.app.usuarioslista.UsuarioRepositorio;
@@ -12,19 +11,15 @@ import br.com.cloudport.servicoautenticacao.model.Usuario;
 import br.com.cloudport.servicoautenticacao.model.UsuarioPapel;
 import br.com.cloudport.servicoautenticacao.repositories.PapelRepositorio;
 import br.com.cloudport.servicoautenticacao.repositories.UsuarioPapelRepositorio;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.Valid;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,8 +38,6 @@ public class AuthenticationController {
     private final TokenService tokenService;
     private final UsuarioPapelRepositorio usuarioPapelRepositorio;
 
-    @Value("${api.security.self-registration.allowed-roles:USER}")
-    private String papeisPermitidosAutoCadastro;
 
     public AuthenticationController(AuthenticationManager authenticationManager,
                                      UsuarioRepositorio usuarioRepositorio,
@@ -98,61 +91,8 @@ public class AuthenticationController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Void> registrar(@RequestBody @Valid RegisterDTO dados){
-        String loginSanitizado;
-        String senhaSanitizada;
-        try {
-            loginSanitizado = SanitizadorEntrada.sanitizarLogin(dados.getLogin());
-            senhaSanitizada = SanitizadorEntrada.sanitizarSenha(dados.getPassword());
-        } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
-        }
-
-        if (this.usuarioRepositorio.findByLogin(loginSanitizado).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Login informado já está em uso.");
-        }
-
-        String senhaCriptografada = new BCryptPasswordEncoder().encode(senhaSanitizada);
-
-        Set<String> papeisPermitidosNormalizados = Arrays.stream(papeisPermitidosAutoCadastro.split(","))
-                .map(String::trim)
-                .filter(papel -> !papel.isEmpty())
-                .collect(Collectors.collectingAndThen(Collectors.toSet(), conjunto -> conjunto.isEmpty() ? Collections.singleton("USER") : conjunto));
-
-        Set<String> papeisSolicitados = dados.getRoles().stream()
-                .map(String::trim)
-                .filter(papel -> !papel.isEmpty())
-                .collect(Collectors.toSet());
-
-        if (!papeisPermitidosNormalizados.containsAll(papeisSolicitados)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Papéis informados não são permitidos para auto-registro.");
-        }
-
-        Set<UsuarioPapel> papeis = papeisSolicitados.stream()
-                              .map(nomePapel -> {
-                                  Papel papel = papelRepositorio.findByNome(nomePapel)
-                                          .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Papel '" + nomePapel + "' não encontrado."));
-                                  return new UsuarioPapel(null, papel);
-                              })
-                              .collect(Collectors.toSet());
-
-        if (papeis.isEmpty()) {
-            papeis = papeisPermitidosNormalizados.stream()
-                    .map(nomePapel -> papelRepositorio.findByNome(nomePapel)
-                            .map(papel -> new UsuarioPapel(null, papel))
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Papel '" + nomePapel + "' não encontrado.")))
-                    .collect(Collectors.toSet());
-        }
-
-        Usuario novoUsuario = new Usuario(loginSanitizado, senhaCriptografada, dados.getNome(),
-                dados.getTransportadoraDocumento(), dados.getTransportadoraNome(), papeis);
-
-        papeis.forEach(papel -> papel.setUsuario(novoUsuario));
-
-        this.usuarioRepositorio.save(novoUsuario);
-        this.usuarioPapelRepositorio.saveAll(papeis);
-
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Void> registrar() {
+        return ResponseEntity.status(HttpStatus.GONE).build();
     }
 
     @GetMapping("/usuarios/{login}")

@@ -46,7 +46,6 @@ public class SecurityConfigurations {
                     .antMatchers("/auth/**").permitAll()
                     .antMatchers(HttpMethod.POST, "/auth").permitAll()
                     .antMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                    .antMatchers(HttpMethod.POST, "/auth/register").permitAll()
                     .antMatchers(HttpMethod.POST, "/product").hasRole("ADMIN_PORTO")
                     .anyRequest().authenticated()
                 .and()

@@ -35,11 +35,17 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -93,15 +99,27 @@ public class AgendamentoService {
 
     @Transactional(readOnly = true)
     public Page<AgendamentoDTO> buscar(LocalDate dataInicio, LocalDate dataFim, Pageable pageable) {
+        Optional<Long> transportadoraLogadaId = obterTransportadoraLogadaId();
         Page<Agendamento> page;
         if (dataInicio != null && dataFim != null) {
-            page = agendamentoRepository.findByJanelaAtendimentoDataBetween(dataInicio, dataFim, pageable);
+            page = transportadoraLogadaId
+                    .map(transportadoraId -> agendamentoRepository.findByTransportadoraIdAndJanelaAtendimentoDataBetween(
+                            transportadoraId, dataInicio, dataFim, pageable))
+                    .orElseGet(() -> agendamentoRepository.findByJanelaAtendimentoDataBetween(dataInicio, dataFim, pageable));
         } else if (dataInicio != null) {
-            page = agendamentoRepository.findByJanelaAtendimentoDataGreaterThanEqual(dataInicio, pageable);
+            page = transportadoraLogadaId
+                    .map(transportadoraId -> agendamentoRepository.findByTransportadoraIdAndJanelaAtendimentoDataGreaterThanEqual(
+                            transportadoraId, dataInicio, pageable))
+                    .orElseGet(() -> agendamentoRepository.findByJanelaAtendimentoDataGreaterThanEqual(dataInicio, pageable));
         } else if (dataFim != null) {
-            page = agendamentoRepository.findByJanelaAtendimentoDataLessThanEqual(dataFim, pageable);
+            page = transportadoraLogadaId
+                    .map(transportadoraId -> agendamentoRepository.findByTransportadoraIdAndJanelaAtendimentoDataLessThanEqual(
+                            transportadoraId, dataFim, pageable))
+                    .orElseGet(() -> agendamentoRepository.findByJanelaAtendimentoDataLessThanEqual(dataFim, pageable));
         } else {
-            page = agendamentoRepository.findAll(pageable);
+            page = transportadoraLogadaId
+                    .map(transportadoraId -> agendamentoRepository.findByTransportadoraId(transportadoraId, pageable))
+                    .orElseGet(() -> agendamentoRepository.findAll(pageable));
         }
         return page.map(GateMapper::toAgendamentoDTO);
     }
@@ -346,8 +364,38 @@ public class AgendamentoService {
     }
 
     private Agendamento obterAgendamento(Long id) {
-        return agendamentoRepository.findById(id)
+        Optional<Long> transportadoraLogadaId = obterTransportadoraLogadaId();
+        return transportadoraLogadaId
+                .map(transportadoraId -> agendamentoRepository.findByIdAndTransportadoraId(id, transportadoraId))
+                .orElseGet(() -> agendamentoRepository.findById(id))
                 .orElseThrow(() -> new NotFoundException("Agendamento não encontrado"));
+    }
+
+    private Optional<Long> obterTransportadoraLogadaId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!(authentication instanceof JwtAuthenticationToken) || !possuiRoleTransportadora(authentication)) {
+            return Optional.empty();
+        }
+
+        JwtAuthenticationToken jwtAuthenticationToken = (JwtAuthenticationToken) authentication;
+        Jwt token = jwtAuthenticationToken.getToken();
+        String documento = token.getClaimAsString("transportadoraDocumento");
+        if (!StringUtils.hasText(documento)) {
+            documento = token.getClaimAsString("transportadoraCnpj");
+        }
+        if (!StringUtils.hasText(documento)) {
+            return Optional.empty();
+        }
+
+        String normalizedDocumento = documento.replaceAll("[^0-9A-Za-z]", "").toUpperCase(Locale.ROOT);
+        return transportadoraRepository.findByDocumento(normalizedDocumento)
+                .map(Transportadora::getId);
+    }
+
+    private boolean possuiRoleTransportadora(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_TRANSPORTADORA"::equals);
     }
 
     private JanelaAtendimento buscarJanela(Long id) {

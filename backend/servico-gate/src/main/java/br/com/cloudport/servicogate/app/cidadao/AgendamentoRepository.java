@@ -36,9 +36,26 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
 
     Page<Agendamento> findByJanelaAtendimentoDataBetween(LocalDate inicio, LocalDate fim, Pageable pageable);
 
+    Page<Agendamento> findByTransportadoraIdAndJanelaAtendimentoDataBetween(Long transportadoraId,
+                                                                             LocalDate inicio,
+                                                                             LocalDate fim,
+                                                                             Pageable pageable);
+
     Page<Agendamento> findByJanelaAtendimentoDataGreaterThanEqual(LocalDate inicio, Pageable pageable);
 
+    Page<Agendamento> findByTransportadoraIdAndJanelaAtendimentoDataGreaterThanEqual(Long transportadoraId,
+                                                                                      LocalDate inicio,
+                                                                                      Pageable pageable);
+
     Page<Agendamento> findByJanelaAtendimentoDataLessThanEqual(LocalDate fim, Pageable pageable);
+
+    Page<Agendamento> findByTransportadoraIdAndJanelaAtendimentoDataLessThanEqual(Long transportadoraId,
+                                                                                   LocalDate fim,
+                                                                                   Pageable pageable);
+
+    Page<Agendamento> findByTransportadoraId(Long transportadoraId, Pageable pageable);
+
+    Optional<Agendamento> findByIdAndTransportadoraId(Long id, Long transportadoraId);
 
     long countByJanelaAtendimentoIdAndStatusNot(Long janelaAtendimentoId, StatusAgendamento status);
 

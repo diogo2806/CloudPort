@@ -43,6 +43,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -100,6 +101,7 @@ public class AgendamentoService {
     @Transactional(readOnly = true)
     public Page<AgendamentoDTO> buscar(LocalDate dataInicio, LocalDate dataFim, Pageable pageable) {
         Optional<Long> transportadoraLogadaId = obterTransportadoraLogadaId();
+        validarTransportadoraSemVinculo(transportadoraLogadaId);
         Page<Agendamento> page;
         if (dataInicio != null && dataFim != null) {
             page = transportadoraLogadaId
@@ -365,6 +367,7 @@ public class AgendamentoService {
 
     private Agendamento obterAgendamento(Long id) {
         Optional<Long> transportadoraLogadaId = obterTransportadoraLogadaId();
+        validarTransportadoraSemVinculo(transportadoraLogadaId);
         return transportadoraLogadaId
                 .map(transportadoraId -> agendamentoRepository.findByIdAndTransportadoraId(id, transportadoraId))
                 .orElseGet(() -> agendamentoRepository.findById(id))
@@ -390,6 +393,13 @@ public class AgendamentoService {
         String normalizedDocumento = documento.replaceAll("[^0-9A-Za-z]", "").toUpperCase(Locale.ROOT);
         return transportadoraRepository.findByDocumento(normalizedDocumento)
                 .map(Transportadora::getId);
+    }
+
+    private void validarTransportadoraSemVinculo(Optional<Long> transportadoraLogadaId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (transportadoraLogadaId.isEmpty() && authentication != null && possuiRoleTransportadora(authentication)) {
+            throw new AccessDeniedException("Transportadora autenticada sem vínculo válido");
+        }
     }
 
     private boolean possuiRoleTransportadora(Authentication authentication) {

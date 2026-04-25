@@ -180,12 +180,15 @@ public class VisitaTremServico {
         visita.setStatusVisita(dados.statusVisita);
 
         if (substituirListas) {
-            List<OperacaoConteinerVisita> listaDescarga = converterListaOperacoes(dto.getListaDescarga());
-            List<OperacaoConteinerVisita> listaCarga = converterListaOperacoes(dto.getListaCarga());
+            List<VagaoVisita> listaVagoes = converterListaVagoes(dto.getListaVagoes());
+            Set<String> identificadoresVagoes = listaVagoes.stream()
+                    .map(VagaoVisita::getIdentificadorVagao)
+                    .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+            List<OperacaoConteinerVisita> listaDescarga = converterListaOperacoes(dto.getListaDescarga(), identificadoresVagoes);
+            List<OperacaoConteinerVisita> listaCarga = converterListaOperacoes(dto.getListaCarga(), identificadoresVagoes);
             validarListasOperacoes(listaDescarga, listaCarga);
             visita.definirListaDescarga(listaDescarga);
             visita.definirListaCarga(listaCarga);
-            List<VagaoVisita> listaVagoes = converterListaVagoes(dto.getListaVagoes());
             visita.definirListaVagoes(listaVagoes);
         }
         return statusAnterior != StatusVisitaTrem.CHEGOU && dados.statusVisita == StatusVisitaTrem.CHEGOU;
@@ -243,13 +246,14 @@ public class VisitaTremServico {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Visita de trem não encontrada."));
     }
 
-    private List<OperacaoConteinerVisita> converterListaOperacoes(List<OperacaoConteinerVisitaRequisicaoDto> dtos) {
+    private List<OperacaoConteinerVisita> converterListaOperacoes(List<OperacaoConteinerVisitaRequisicaoDto> dtos,
+                                                                  Set<String> identificadoresVagoes) {
         if (dtos == null || dtos.isEmpty()) {
             return new ArrayList<>();
         }
         return dtos.stream()
                 .filter(Objects::nonNull)
-                .map(this::converterParaOperacao)
+                .map(dto -> converterParaOperacao(dto, identificadoresVagoes))
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
@@ -322,7 +326,8 @@ public class VisitaTremServico {
                                                              OperacaoConteinerVisitaRequisicaoDto dto,
                                                              TipoListaOperacaoVisita tipoLista) {
         VisitaTrem visita = buscarVisitaComListas(idVisita);
-        OperacaoConteinerVisita novaOperacao = converterParaOperacao(dto);
+        Set<String> identificadoresVagoes = obterIdentificadoresVagoes(visita);
+        OperacaoConteinerVisita novaOperacao = converterParaOperacao(dto, identificadoresVagoes);
 
         List<OperacaoConteinerVisita> listaAlvo = obterListaPorTipo(visita, tipoLista);
         boolean jaExiste = listaAlvo.stream()
@@ -399,11 +404,51 @@ public class VisitaTremServico {
                 : TipoMovimentacaoOrdem.CARGA_TREM;
     }
 
-    private OperacaoConteinerVisita converterParaOperacao(OperacaoConteinerVisitaRequisicaoDto dto) {
+    private OperacaoConteinerVisita converterParaOperacao(OperacaoConteinerVisitaRequisicaoDto dto,
+                                                         Set<String> identificadoresVagoes) {
         String codigo = sanitizarCodigoConteiner(dto.getCodigoConteiner());
         StatusOperacaoConteinerVisita status = Optional.ofNullable(dto.getStatusOperacao())
                 .orElse(StatusOperacaoConteinerVisita.PENDENTE);
-        return new OperacaoConteinerVisita(codigo, status);
+        String identificadorVagao = sanitizarIdentificadorVagao(dto.getIdentificadorVagao(), identificadoresVagoes);
+        return new OperacaoConteinerVisita(codigo, status, identificadorVagao);
+    }
+
+    private Set<String> obterIdentificadoresVagoes(VisitaTrem visita) {
+        return visita.getListaVagoes()
+                .stream()
+                .map(VagaoVisita::getIdentificadorVagao)
+                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+    }
+
+    private String sanitizarIdentificadorVagao(String identificadorVagao,
+                                               Set<String> identificadoresVagoes) {
+        String limpo = sanitizadorEntrada.limparTexto(identificadorVagao);
+        try {
+            limpo = ValidacaoEntradaUtil.limparTexto(limpo);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "O identificador do vagão contém caracteres inválidos.");
+        }
+        if (!StringUtils.hasText(limpo)) {
+            if (identificadoresVagoes == null || identificadoresVagoes.isEmpty()) {
+                return null;
+            }
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "É necessário informar o vagão associado ao contêiner.");
+        }
+        String normalizado = limpo.trim().toUpperCase(Locale.ROOT);
+        if (normalizado.length() > 35) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "O identificador do vagão deve ter no máximo 35 caracteres.");
+        }
+        if (identificadoresVagoes == null || identificadoresVagoes.isEmpty()) {
+            return normalizado;
+        }
+        if (!identificadoresVagoes.contains(normalizado)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "O vagão informado para o contêiner não está cadastrado na visita do trem.");
+        }
+        return normalizado;
     }
 
     private String sanitizarCodigoConteiner(String codigoConteiner) {

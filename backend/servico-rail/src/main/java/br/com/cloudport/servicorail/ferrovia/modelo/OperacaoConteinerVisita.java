@@ -16,12 +16,18 @@ public class OperacaoConteinerVisita {
     @Column(name = "status_operacao", nullable = false, length = 20)
     private StatusOperacaoConteinerVisita statusOperacao = StatusOperacaoConteinerVisita.PENDENTE;
 
+    @Column(name = "identificador_vagao", nullable = true, length = 35)
+    private String identificadorVagao;
+
     public OperacaoConteinerVisita() {
     }
 
-    public OperacaoConteinerVisita(String codigoConteiner, StatusOperacaoConteinerVisita statusOperacao) {
+    public OperacaoConteinerVisita(String codigoConteiner,
+                                  StatusOperacaoConteinerVisita statusOperacao,
+                                  String identificadorVagao) {
         this.codigoConteiner = codigoConteiner;
         this.statusOperacao = statusOperacao;
+        this.identificadorVagao = identificadorVagao;
     }
 
     public String getCodigoConteiner() {
@@ -40,6 +46,14 @@ public class OperacaoConteinerVisita {
         this.statusOperacao = statusOperacao;
     }
 
+    public String getIdentificadorVagao() {
+        return identificadorVagao;
+    }
+
+    public void setIdentificadorVagao(String identificadorVagao) {
+        this.identificadorVagao = identificadorVagao;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -50,11 +64,12 @@ public class OperacaoConteinerVisita {
         }
         OperacaoConteinerVisita that = (OperacaoConteinerVisita) o;
         return Objects.equals(codigoConteiner, that.codigoConteiner)
-                && statusOperacao == that.statusOperacao;
+                && statusOperacao == that.statusOperacao
+                && Objects.equals(identificadorVagao, that.identificadorVagao);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(codigoConteiner, statusOperacao);
+        return Objects.hash(codigoConteiner, statusOperacao, identificadorVagao);
     }
 }

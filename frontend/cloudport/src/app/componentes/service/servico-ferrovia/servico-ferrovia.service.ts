@@ -8,11 +8,19 @@ export type StatusOperacaoConteinerVisita = 'PENDENTE' | 'CONCLUIDO';
 export interface OperacaoConteinerVisita {
   codigoConteiner: string;
   statusOperacao: StatusOperacaoConteinerVisita;
+  identificadorVagao?: string | null;
 }
 
 export interface OperacaoConteinerVisitaEnvio {
   codigoConteiner: string;
   statusOperacao?: StatusOperacaoConteinerVisita;
+  identificadorVagao?: string | null;
+}
+
+export interface VagaoVisita {
+  posicaoNoTrem: number;
+  identificadorVagao: string;
+  tipoVagao?: string | null;
 }
 
 export interface AtualizacaoStatusOperacaoConteiner {
@@ -28,6 +36,7 @@ export interface VisitaTrem {
   statusVisita: string;
   listaDescarga: OperacaoConteinerVisita[];
   listaCarga: OperacaoConteinerVisita[];
+  listaVagoes: VagaoVisita[];
 }
 
 export interface VisitaTremRequisicao {

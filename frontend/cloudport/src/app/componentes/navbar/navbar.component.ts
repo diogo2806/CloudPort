@@ -2,7 +2,7 @@ import { Component, ElementRef, HostListener, OnDestroy, OnInit } from '@angular
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ServicoAutenticacao } from '../service/servico-autenticacao/servico-autenticacao.service';
-import { TabItem, TAB_REGISTRY, normalizeTabId, resolveRouteSegments, TabService } from './TabService';
+import { RegistroAba, normalizeTabId, resolveRouteSegments, TabService } from './TabService';
 
 @Component({
   selector: 'app-navbar',
@@ -13,47 +13,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   mostrarMenu = false;
   private menuStatusSubscription?: Subscription;
 
-  private readonly configurationTabIds = [
-    'role',
-    'seguranca',
-    'notificacoes',
-    'privacidade',
-    'catalogo-de-exames',
-    'medicos'
-  ];
-  private readonly userTabIds = ['lista-de-usuarios'];
-  private readonly gateTabIds = [
-    'gate/dashboard',
-    'gate/agendamentos',
-    'gate/janelas',
-    'gate/relatorios',
-    'gate/operador/console',
-    'gate/operador/eventos'
-  ];
-  private readonly ferroviaTabIds = ['ferrovia/visitas', 'ferrovia/visitas/importar'];
-  private readonly yardTabIds = ['patio/lista-trabalho', 'patio/mapa', 'patio/posicoes', 'patio/movimentacoes'];
-
-  private readonly tabRoles: Record<string, string[]> = {
-    role: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
-    seguranca: ['ROLE_ADMIN_PORTO'],
-    notificacoes: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
-    privacidade: ['ROLE_ADMIN_PORTO'],
-    'catalogo-de-exames': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
-    medicos: ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
-    'lista-de-usuarios': ['ROLE_ADMIN_PORTO'],
-    'gate/dashboard': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
-    'gate/agendamentos': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
-    'gate/janelas': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
-    'gate/relatorios': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_GATE'],
-    'gate/operador/console': ['ROLE_ADMIN_PORTO', 'ROLE_OPERADOR_GATE', 'ROLE_PLANEJADOR'],
-    'gate/operador/eventos': ['ROLE_ADMIN_PORTO', 'ROLE_OPERADOR_GATE', 'ROLE_PLANEJADOR'],
-    'ferrovia/visitas': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
-    'ferrovia/visitas/importar': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
-    'patio/lista-trabalho': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR', 'ROLE_OPERADOR_PATIO'],
-    'patio/mapa': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
-    'patio/posicoes': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR'],
-    'patio/movimentacoes': ['ROLE_ADMIN_PORTO', 'ROLE_PLANEJADOR']
-  };
+  private readonly grupoConfiguracoes = 'CONFIGURACOES';
+  private readonly grupoUsuarios = 'USUARIOS';
+  private readonly grupoGate = 'GATE';
+  private readonly grupoFerrovia = 'FERROVIA';
+  private readonly grupoPatio = 'PATIO';
 
   constructor(
     private readonly servicoAutenticacao: ServicoAutenticacao,
@@ -66,7 +30,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.menuStatusSubscription = this.servicoAutenticacao.statusMenuObservavel.subscribe(
-      mostrar => this.mostrarMenu = mostrar
+      (mostrar) => this.mostrarMenu = mostrar
     );
   }
 
@@ -74,44 +38,41 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.menuStatusSubscription?.unsubscribe();
   }
 
-  get configurationTabs(): TabItem[] {
-    return this.resolveTabs(this.configurationTabIds);
+  get configurationTabs(): RegistroAba[] {
+    return this.obterAbasPorGrupo(this.grupoConfiguracoes);
   }
 
-  get userTabs(): TabItem[] {
-    return this.resolveTabs(this.userTabIds);
+  get userTabs(): RegistroAba[] {
+    return this.obterAbasPorGrupo(this.grupoUsuarios);
   }
 
-  get gateTabs(): TabItem[] {
-    return this.resolveTabs(this.gateTabIds);
+  get gateTabs(): RegistroAba[] {
+    return this.obterAbasPorGrupo(this.grupoGate);
   }
 
-  get ferroviaTabs(): TabItem[] {
-    return this.resolveTabs(this.ferroviaTabIds);
+  get ferroviaTabs(): RegistroAba[] {
+    return this.obterAbasPorGrupo(this.grupoFerrovia);
   }
 
-  get yardTabs(): TabItem[] {
-    return this.resolveTabs(this.yardTabIds);
+  get yardTabs(): RegistroAba[] {
+    return this.obterAbasPorGrupo(this.grupoPatio);
   }
 
-  openTab(tab: TabItem): void {
-    if (tab.disabled) {
+  openTab(tab: RegistroAba): void {
+    if (tab.disabled || !this.canAccess(tab)) {
       return;
     }
     const normalizedId = normalizeTabId(tab.id);
-    if (!this.canAccess(normalizedId)) {
-      return;
-    }
-    const canonicalTab = TAB_REGISTRY[normalizedId] ?? tab;
-    const content = this.tabService.getTabContent(normalizedId) ?? {
-      message: `Conteúdo padrão para a aba ${canonicalTab.label}`
+    const registro = this.tabService.obterRegistro(tab.id) ?? tab;
+    const conteudo = this.tabService.getTabContent(normalizedId) ?? {
+      message: `Conteúdo padrão para a aba ${registro.label}`
     };
-    this.tabService.openTab(canonicalTab, content);
+    this.tabService.openTab(registro, conteudo);
     const routeCommands = ['/home', ...resolveRouteSegments(normalizedId)];
     this.router.navigate(routeCommands);
   }
 
-  handleTabSelection(event: Event, tab: TabItem): void {
+  handleTabSelection(event: Event, tab: RegistroAba): void {
     event.preventDefault();
     event.stopPropagation();
     if (tab.disabled) {
@@ -141,40 +102,17 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
-  private resolveTabs(ids: string[]): TabItem[] {
-    return ids
-      .map(id => this.resolveTabById(id))
-      .filter((tab): tab is TabItem => !!tab)
-      .filter(tab => tab.disabled || this.canAccess(tab.id));
+  private obterAbasPorGrupo(grupo: string): RegistroAba[] {
+    return this.tabService
+      .obterAbasPorGrupo(grupo)
+      .filter((aba) => aba.disabled || this.canAccess(aba));
   }
 
-  private resolveTabById(id: string): TabItem | undefined {
-    const registered = TAB_REGISTRY[id];
-    if (registered) {
-      return registered;
-    }
-    return {
-      id,
-      label: this.formatPlaceholderLabel(id),
-      disabled: true,
-      comingSoonMessage: 'Em breve'
-    };
-  }
-
-  private formatPlaceholderLabel(value: string): string {
-    return value
-      .split(/[\\/\-]/)
-      .filter(segment => segment.trim().length > 0)
-      .map(segment => segment.charAt(0).toUpperCase() + segment.slice(1))
-      .join(' ');
-  }
-
-  private canAccess(tabId: string): boolean {
-    const normalized = normalizeTabId(tabId);
-    const roles = this.tabRoles[normalized];
-    if (!roles || roles.length === 0) {
+  private canAccess(tab: RegistroAba): boolean {
+    const papeis = tab.papeisPermitidos ?? [];
+    if (papeis.length === 0) {
       return true;
     }
-    return this.servicoAutenticacao.possuiAlgumPapel(...roles);
+    return this.servicoAutenticacao.possuiAlgumPapel(...papeis);
   }
 }

@@ -73,6 +73,7 @@ public class AgendamentoController {
     @Operation(summary = "Acompanha atualizações em tempo real do agendamento")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','TRANSPORTADORA')")
     public SseEmitter acompanhar(@PathVariable Long id) {
+        agendamentoService.buscarPorId(id);
         return agendamentoRealtimeService.registrar(id);
     }
 

@@ -80,16 +80,18 @@ public class PlanoEstivaServico {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         String.format(Locale.ROOT, "O contêiner %s já está atribuído neste plano.", codigo));
             }
-            if (existente.getBaia() == dto.getBaia()
+            if (existente.getTipoOperacao() == dto.getTipoOperacao()
+                    && existente.getBaia() == dto.getBaia()
                     && existente.getFileira() == dto.getFileira()
                     && existente.getCamada() == dto.getCamada()) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        String.format(Locale.ROOT, "A célula %d-%d-%d já está ocupada.",
-                                dto.getBaia(), dto.getFileira(), dto.getCamada()));
+                        String.format(Locale.ROOT, "A célula %d-%d-%d já está ocupada para %s.",
+                                dto.getBaia(), dto.getFileira(), dto.getCamada(), dto.getTipoOperacao()));
             }
         }
 
         AtribuicaoEstiva atribuicao = new AtribuicaoEstiva();
+        atribuicao.setTipoOperacao(dto.getTipoOperacao());
         atribuicao.setCodigoConteiner(codigo);
         atribuicao.setTipoCarga(dto.getTipoCarga());
         atribuicao.setPesoToneladas(dto.getPesoToneladas());
@@ -97,6 +99,7 @@ public class PlanoEstivaServico {
         atribuicao.setFileira(dto.getFileira());
         atribuicao.setCamada(dto.getCamada());
         atribuicao.setPosicaoPatioOrigem(tratarTextoOpcional(dto.getPosicaoPatioOrigem()));
+        atribuicao.setPosicaoPatioDestino(tratarTextoOpcional(dto.getPosicaoPatioDestino()));
         atribuicao.setSequenciaEmbarque(dto.getSequenciaEmbarque());
         atribuicao.setEmbarcado(false);
 
@@ -105,14 +108,14 @@ public class PlanoEstivaServico {
     }
 
     @Transactional
-    public PlanoEstivaDetalheDTO embarcar(Long atribuicaoId) {
+    public PlanoEstivaDetalheDTO registrarOperacao(Long atribuicaoId) {
         AtribuicaoEstiva atribuicao = obterAtribuicao(atribuicaoId);
         PlanoEstiva plano = atribuicao.getPlano();
 
         if (!atribuicao.isEmbarcado()) {
             atribuicao.setEmbarcado(true);
             atribuicao.setEmbarcadoEm(LocalDateTime.now());
-            atualizarStatusAposEmbarque(plano);
+            atualizarStatusAposOperacao(plano);
         }
 
         return PlanoEstivaDetalheDTO.deEntidade(plano);
@@ -123,7 +126,7 @@ public class PlanoEstivaServico {
         AtribuicaoEstiva atribuicao = obterAtribuicao(atribuicaoId);
         if (atribuicao.isEmbarcado()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Não é possível remover um contêiner que já foi embarcado.");
+                    "Não é possível remover um contêiner que já foi embarcado ou descarregado.");
         }
         PlanoEstiva plano = atribuicao.getPlano();
         plano.removerAtribuicao(atribuicao);
@@ -131,7 +134,7 @@ public class PlanoEstivaServico {
         return PlanoEstivaDetalheDTO.deEntidade(planoEstivaRepositorio.save(plano));
     }
 
-    private void atualizarStatusAposEmbarque(PlanoEstiva plano) {
+    private void atualizarStatusAposOperacao(PlanoEstiva plano) {
         boolean todosEmbarcados = !plano.getAtribuicoes().isEmpty()
                 && plano.getAtribuicoes().stream().allMatch(AtribuicaoEstiva::isEmbarcado);
         if (todosEmbarcados) {

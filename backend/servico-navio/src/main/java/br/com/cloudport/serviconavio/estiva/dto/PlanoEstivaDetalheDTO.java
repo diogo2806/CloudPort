@@ -3,6 +3,7 @@ package br.com.cloudport.serviconavio.estiva.dto;
 import br.com.cloudport.serviconavio.escala.entidade.Escala;
 import br.com.cloudport.serviconavio.estiva.entidade.PlanoEstiva;
 import br.com.cloudport.serviconavio.estiva.entidade.StatusPlanoEstiva;
+import br.com.cloudport.serviconavio.estiva.entidade.TipoOperacaoEstiva;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,10 +18,12 @@ public class PlanoEstivaDetalheDTO {
     private final int fileiras;
     private final int camadas;
     private final int capacidadeCelulas;
-    private final int totalPlanejado;
-    private final int totalEmbarcado;
-    private final int totalPendente;
-    private final double ocupacaoPercentual;
+    private final int embarquePlanejado;
+    private final int embarqueExecutado;
+    private final int embarquePendente;
+    private final int descargaPlanejada;
+    private final int descargaExecutada;
+    private final int descargaPendente;
     private final List<AtribuicaoEstivaDTO> atribuicoes;
 
     public PlanoEstivaDetalheDTO(Long id,
@@ -32,10 +35,12 @@ public class PlanoEstivaDetalheDTO {
                                  int fileiras,
                                  int camadas,
                                  int capacidadeCelulas,
-                                 int totalPlanejado,
-                                 int totalEmbarcado,
-                                 int totalPendente,
-                                 double ocupacaoPercentual,
+                                 int embarquePlanejado,
+                                 int embarqueExecutado,
+                                 int embarquePendente,
+                                 int descargaPlanejada,
+                                 int descargaExecutada,
+                                 int descargaPendente,
                                  List<AtribuicaoEstivaDTO> atribuicoes) {
         this.id = id;
         this.escalaId = escalaId;
@@ -46,10 +51,12 @@ public class PlanoEstivaDetalheDTO {
         this.fileiras = fileiras;
         this.camadas = camadas;
         this.capacidadeCelulas = capacidadeCelulas;
-        this.totalPlanejado = totalPlanejado;
-        this.totalEmbarcado = totalEmbarcado;
-        this.totalPendente = totalPendente;
-        this.ocupacaoPercentual = ocupacaoPercentual;
+        this.embarquePlanejado = embarquePlanejado;
+        this.embarqueExecutado = embarqueExecutado;
+        this.embarquePendente = embarquePendente;
+        this.descargaPlanejada = descargaPlanejada;
+        this.descargaExecutada = descargaExecutada;
+        this.descargaPendente = descargaPendente;
         this.atribuicoes = atribuicoes;
     }
 
@@ -57,11 +64,16 @@ public class PlanoEstivaDetalheDTO {
         List<AtribuicaoEstivaDTO> atribuicoes = plano.getAtribuicoes().stream()
                 .map(AtribuicaoEstivaDTO::deEntidade)
                 .collect(Collectors.toList());
-        int totalPlanejado = atribuicoes.size();
-        int totalEmbarcado = (int) atribuicoes.stream().filter(AtribuicaoEstivaDTO::isEmbarcado).count();
-        int capacidade = plano.capacidadeCelulas();
-        double ocupacao = capacidade == 0 ? 0d
-                : Math.round((totalPlanejado * 10000d) / capacidade) / 100d;
+
+        int embarquePlanejado = (int) atribuicoes.stream()
+                .filter(a -> a.getTipoOperacao() == TipoOperacaoEstiva.EMBARQUE).count();
+        int embarqueExecutado = (int) atribuicoes.stream()
+                .filter(a -> a.getTipoOperacao() == TipoOperacaoEstiva.EMBARQUE && a.isEmbarcado()).count();
+        int descargaPlanejada = (int) atribuicoes.stream()
+                .filter(a -> a.getTipoOperacao() == TipoOperacaoEstiva.DESCARGA).count();
+        int descargaExecutada = (int) atribuicoes.stream()
+                .filter(a -> a.getTipoOperacao() == TipoOperacaoEstiva.DESCARGA && a.isEmbarcado()).count();
+
         Escala escala = plano.getEscala();
         return new PlanoEstivaDetalheDTO(
                 plano.getId(),
@@ -72,11 +84,13 @@ public class PlanoEstivaDetalheDTO {
                 plano.getBaias(),
                 plano.getFileiras(),
                 plano.getCamadas(),
-                capacidade,
-                totalPlanejado,
-                totalEmbarcado,
-                totalPlanejado - totalEmbarcado,
-                ocupacao,
+                plano.capacidadeCelulas(),
+                embarquePlanejado,
+                embarqueExecutado,
+                embarquePlanejado - embarqueExecutado,
+                descargaPlanejada,
+                descargaExecutada,
+                descargaPlanejada - descargaExecutada,
                 atribuicoes
         );
     }
@@ -117,20 +131,28 @@ public class PlanoEstivaDetalheDTO {
         return capacidadeCelulas;
     }
 
-    public int getTotalPlanejado() {
-        return totalPlanejado;
+    public int getEmbarquePlanejado() {
+        return embarquePlanejado;
     }
 
-    public int getTotalEmbarcado() {
-        return totalEmbarcado;
+    public int getEmbarqueExecutado() {
+        return embarqueExecutado;
     }
 
-    public int getTotalPendente() {
-        return totalPendente;
+    public int getEmbarquePendente() {
+        return embarquePendente;
     }
 
-    public double getOcupacaoPercentual() {
-        return ocupacaoPercentual;
+    public int getDescargaPlanejada() {
+        return descargaPlanejada;
+    }
+
+    public int getDescargaExecutada() {
+        return descargaExecutada;
+    }
+
+    public int getDescargaPendente() {
+        return descargaPendente;
     }
 
     public List<AtribuicaoEstivaDTO> getAtribuicoes() {

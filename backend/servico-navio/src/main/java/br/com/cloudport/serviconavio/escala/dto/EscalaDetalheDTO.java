@@ -5,6 +5,9 @@ import br.com.cloudport.serviconavio.escala.entidade.FaseEscala;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class EscalaDetalheDTO {
 
@@ -30,6 +33,8 @@ public class EscalaDetalheDTO {
     private final String bercoPrevisto;
     private final String bercoAtual;
     private final String observacoes;
+    private final List<OperacaoConteinerEscalaResumoDTO> listaDescarga;
+    private final List<OperacaoConteinerEscalaResumoDTO> listaCarga;
 
     public EscalaDetalheDTO(Long id,
                             Long navioId,
@@ -46,7 +51,9 @@ public class EscalaDetalheDTO {
                             LocalDateTime partidaEfetiva,
                             String bercoPrevisto,
                             String bercoAtual,
-                            String observacoes) {
+                            String observacoes,
+                            List<OperacaoConteinerEscalaResumoDTO> listaDescarga,
+                            List<OperacaoConteinerEscalaResumoDTO> listaCarga) {
         this.id = id;
         this.navioId = navioId;
         this.nomeNavio = nomeNavio;
@@ -63,6 +70,8 @@ public class EscalaDetalheDTO {
         this.bercoPrevisto = bercoPrevisto;
         this.bercoAtual = bercoAtual;
         this.observacoes = observacoes;
+        this.listaDescarga = listaDescarga;
+        this.listaCarga = listaCarga;
     }
 
     public static EscalaDetalheDTO deEntidade(Escala escala) {
@@ -82,8 +91,17 @@ public class EscalaDetalheDTO {
                 escala.getPartidaEfetiva(),
                 escala.getBercoPrevisto(),
                 escala.getBercoAtual(),
-                escala.getObservacoes()
+                escala.getObservacoes(),
+                mapearLista(escala.getListaDescarga()),
+                mapearLista(escala.getListaCarga())
         );
+    }
+
+    private static List<OperacaoConteinerEscalaResumoDTO> mapearLista(
+            List<br.com.cloudport.serviconavio.escala.entidade.OperacaoConteinerEscala> lista) {
+        return Optional.ofNullable(lista).orElseGet(List::of).stream()
+                .map(OperacaoConteinerEscalaResumoDTO::deEntidade)
+                .collect(Collectors.toList());
     }
 
     public Long getId() {
@@ -148,5 +166,13 @@ public class EscalaDetalheDTO {
 
     public String getObservacoes() {
         return observacoes;
+    }
+
+    public List<OperacaoConteinerEscalaResumoDTO> getListaDescarga() {
+        return listaDescarga;
+    }
+
+    public List<OperacaoConteinerEscalaResumoDTO> getListaCarga() {
+        return listaCarga;
     }
 }

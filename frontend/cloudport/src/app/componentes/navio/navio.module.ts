@@ -6,13 +6,15 @@ import { ListaEscalasComponent } from './componentes/lista-escalas/lista-escalas
 import { FormularioEscalaComponent } from './componentes/formulario-escala/formulario-escala.component';
 import { DetalheEscalaComponent } from './componentes/detalhe-escala/detalhe-escala.component';
 import { ListaNaviosComponent } from './componentes/lista-navios/lista-navios.component';
+import { ListaTrabalhoEscalaComponent } from './componentes/lista-trabalho-escala/lista-trabalho-escala.component';
 
 @NgModule({
   declarations: [
     ListaEscalasComponent,
     FormularioEscalaComponent,
     DetalheEscalaComponent,
-    ListaNaviosComponent
+    ListaNaviosComponent,
+    ListaTrabalhoEscalaComponent
   ],
   imports: [
     CommonModule,

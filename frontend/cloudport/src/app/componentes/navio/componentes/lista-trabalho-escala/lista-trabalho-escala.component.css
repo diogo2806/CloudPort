@@ -1,0 +1,108 @@
+.lista-trabalho {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  max-width: 880px;
+}
+
+.link-voltar {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  color: #005f9e;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0;
+}
+
+.link-voltar:hover {
+  text-decoration: underline;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.descricao {
+  margin: 4px 0 0;
+  color: #555;
+}
+
+.tabela-ordens {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  border: 1px solid #dcdcdc;
+}
+
+.tabela-ordens th,
+.tabela-ordens td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e6e6e6;
+  text-align: left;
+}
+
+.tabela-ordens thead {
+  background-color: #f5f7fa;
+}
+
+.tabela-ordens .codigo {
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.coluna-acoes {
+  width: 160px;
+  text-align: right;
+}
+
+.botao-primario {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 4px;
+  background-color: #1b6b3a;
+  color: #fff;
+  cursor: pointer;
+}
+
+.botao-primario:hover:not(:disabled),
+.botao-primario:focus:not(:disabled) {
+  background-color: #14512c;
+}
+
+.botao-primario:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.finalizada {
+  color: #97a0ab;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.status-pendente { background-color: #e3eefc; color: #1d4e89; }
+.status-em_execucao { background-color: #fff4d6; color: #8a6100; }
+.status-concluida { background-color: #d8f3e0; color: #1b6b3a; }
+
+.estado-informativo {
+  padding: 12px;
+  background-color: #eef5ff;
+  border-left: 4px solid #005f9e;
+  color: #003b63;
+}
+
+.estado-erro {
+  padding: 12px;
+  background-color: #ffecec;
+  border-left: 4px solid #c62828;
+  color: #7f1d1d;
+}

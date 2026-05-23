@@ -11,6 +11,7 @@ import {
   ServicoNavioService,
   TRANSICOES_FASE
 } from '../../../service/servico-navio/servico-navio.service';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-detalhe-escala',
@@ -25,6 +26,8 @@ export class DetalheEscalaComponent implements OnInit {
   erro?: string;
   mensagem?: string;
   modoEdicao = false;
+  novoConteinerDescarga = '';
+  novoConteinerCarga = '';
 
   edicao: {
     viagemEntrada: string;
@@ -179,6 +182,84 @@ export class DetalheEscalaComponent implements OnInit {
 
   voltar(): void {
     this.router.navigate(['/home', 'navio', 'escalas']);
+  }
+
+  irParaListaTrabalho(): void {
+    if (this.escala) {
+      this.router.navigate(['/home', 'navio', 'escalas', this.escala.id, 'lista-trabalho']);
+    }
+  }
+
+  get listasEditaveis(): boolean {
+    return !!this.escala && this.escala.fase !== 'ENCERRADA' && this.escala.fase !== 'CANCELADA';
+  }
+
+  adicionarDescarga(): void {
+    this.adicionarConteiner(this.novoConteinerDescarga,
+      (id, codigo) => this.servicoNavio.adicionarConteinerDescarga(id, codigo),
+      () => this.novoConteinerDescarga = '');
+  }
+
+  adicionarCarga(): void {
+    this.adicionarConteiner(this.novoConteinerCarga,
+      (id, codigo) => this.servicoNavio.adicionarConteinerCarga(id, codigo),
+      () => this.novoConteinerCarga = '');
+  }
+
+  removerDescarga(codigoConteiner: string): void {
+    this.executarOperacaoLista(
+      (id) => this.servicoNavio.removerConteinerDescarga(id, codigoConteiner));
+  }
+
+  removerCarga(codigoConteiner: string): void {
+    this.executarOperacaoLista(
+      (id) => this.servicoNavio.removerConteinerCarga(id, codigoConteiner));
+  }
+
+  private adicionarConteiner(codigo: string,
+                             acao: (id: number, codigo: string) => Observable<EscalaDetalhe>,
+                             aoConcluir: () => void): void {
+    if (!this.escala || this.processando) {
+      return;
+    }
+    const codigoLimpo = (codigo ?? '').trim();
+    if (!codigoLimpo) {
+      this.erro = 'Informe o código do contêiner.';
+      return;
+    }
+    this.processando = true;
+    this.erro = undefined;
+    this.mensagem = undefined;
+    acao(this.escala.id, codigoLimpo)
+      .pipe(finalize(() => this.processando = false))
+      .subscribe({
+        next: (escala) => {
+          this.escala = escala;
+          aoConcluir();
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.erro = this.extrairMensagemErro(erro, 'Não foi possível adicionar o contêiner.');
+        }
+      });
+  }
+
+  private executarOperacaoLista(acao: (id: number) => Observable<EscalaDetalhe>): void {
+    if (!this.escala || this.processando) {
+      return;
+    }
+    this.processando = true;
+    this.erro = undefined;
+    this.mensagem = undefined;
+    acao(this.escala.id)
+      .pipe(finalize(() => this.processando = false))
+      .subscribe({
+        next: (escala) => {
+          this.escala = escala;
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.erro = this.extrairMensagemErro(erro, 'Não foi possível atualizar a lista.');
+        }
+      });
   }
 
   rotuloFase(fase: FaseEscala): string {

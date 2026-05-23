@@ -4,8 +4,11 @@ import br.com.cloudport.serviconavio.comum.validacao.SanitizadorEntrada;
 import br.com.cloudport.serviconavio.escala.dto.AtualizacaoEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.CadastroEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaDetalheDTO;
+import br.com.cloudport.serviconavio.escala.dto.OperacaoConteinerEscalaDTO;
 import br.com.cloudport.serviconavio.escala.entidade.Escala;
 import br.com.cloudport.serviconavio.escala.entidade.FaseEscala;
+import br.com.cloudport.serviconavio.escala.listatrabalho.modelo.TipoMovimentacaoOrdemNavio;
+import br.com.cloudport.serviconavio.escala.listatrabalho.servico.OrdemMovimentacaoNavioServico;
 import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
 import br.com.cloudport.serviconavio.navio.entidade.Navio;
 import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
@@ -30,6 +33,7 @@ class EscalaServicoTest {
     private EscalaRepositorio escalaRepositorio;
     private NavioRepositorio navioRepositorio;
     private SanitizadorEntrada sanitizadorEntrada;
+    private OrdemMovimentacaoNavioServico ordemMovimentacaoServico;
     private EscalaServico escalaServico;
 
     @BeforeEach
@@ -37,12 +41,14 @@ class EscalaServicoTest {
         escalaRepositorio = mock(EscalaRepositorio.class);
         navioRepositorio = mock(NavioRepositorio.class);
         sanitizadorEntrada = mock(SanitizadorEntrada.class);
+        ordemMovimentacaoServico = mock(OrdemMovimentacaoNavioServico.class);
         when(sanitizadorEntrada.limparTextoObrigatorio(anyString(), anyString()))
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
         when(sanitizadorEntrada.limparTexto(anyString()))
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
         when(escalaRepositorio.save(any(Escala.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
-        escalaServico = new EscalaServico(escalaRepositorio, navioRepositorio, sanitizadorEntrada);
+        escalaServico = new EscalaServico(escalaRepositorio, navioRepositorio, sanitizadorEntrada,
+                ordemMovimentacaoServico);
     }
 
     private Navio navio() {
@@ -139,6 +145,40 @@ class EscalaServicoTest {
         when(escalaRepositorio.findById(1L)).thenReturn(Optional.of(escalaComFase(FaseEscala.ENCERRADA)));
 
         assertThatThrownBy(() -> escalaServico.atualizar(1L, new AtualizacaoEscalaDTO()))
+                .isInstanceOf(ResponseStatusException.class);
+
+        verify(escalaRepositorio, never()).save(any());
+    }
+
+    @Test
+    void avancarFaseParaAtracadoGeraOrdensDeMovimentacao() {
+        when(escalaRepositorio.findById(1L)).thenReturn(Optional.of(escalaComFase(FaseEscala.PREVISTA)));
+
+        escalaServico.avancarFase(1L, FaseEscala.ATRACADO);
+
+        verify(ordemMovimentacaoServico).gerarOrdensPendentesParaEscala(any(Escala.class));
+    }
+
+    @Test
+    void adicionarConteinerDescargaRegistraOrdemQuandoEmOperacao() {
+        when(escalaRepositorio.findById(1L)).thenReturn(Optional.of(escalaComFase(FaseEscala.OPERANDO)));
+        OperacaoConteinerEscalaDTO dto = new OperacaoConteinerEscalaDTO();
+        dto.setCodigoConteiner("msku1234567");
+
+        escalaServico.adicionarConteinerDescarga(1L, dto);
+
+        verify(ordemMovimentacaoServico)
+                .registrarOrdemSeNecessario(any(Escala.class), org.mockito.ArgumentMatchers.eq("MSKU1234567"),
+                        org.mockito.ArgumentMatchers.eq(TipoMovimentacaoOrdemNavio.DESCARGA_NAVIO));
+    }
+
+    @Test
+    void adicionarConteinerRejeitaEscalaTerminal() {
+        when(escalaRepositorio.findById(1L)).thenReturn(Optional.of(escalaComFase(FaseEscala.ENCERRADA)));
+        OperacaoConteinerEscalaDTO dto = new OperacaoConteinerEscalaDTO();
+        dto.setCodigoConteiner("MSKU1234567");
+
+        assertThatThrownBy(() -> escalaServico.adicionarConteinerDescarga(1L, dto))
                 .isInstanceOf(ResponseStatusException.class);
 
         verify(escalaRepositorio, never()).save(any());

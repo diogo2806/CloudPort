@@ -49,6 +49,26 @@ export interface EscalaResumo {
   bercoPrevisto?: string | null;
 }
 
+export type StatusOperacaoConteinerEscala = 'PENDENTE' | 'CONCLUIDO';
+
+export interface OperacaoConteinerEscala {
+  codigoConteiner: string;
+  statusOperacao: StatusOperacaoConteinerEscala;
+}
+
+export type TipoMovimentacaoOrdemNavio = 'DESCARGA_NAVIO' | 'CARGA_NAVIO';
+export type StatusOrdemMovimentacaoNavio = 'PENDENTE' | 'EM_EXECUCAO' | 'CONCLUIDA';
+
+export interface OrdemMovimentacaoNavio {
+  id: number;
+  idEscala: number;
+  codigoConteiner: string;
+  tipoMovimentacao: TipoMovimentacaoOrdemNavio;
+  statusMovimentacao: StatusOrdemMovimentacaoNavio;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
 export interface EscalaDetalhe {
   id: number;
   navioId: number;
@@ -66,6 +86,8 @@ export interface EscalaDetalhe {
   bercoPrevisto?: string | null;
   bercoAtual?: string | null;
   observacoes?: string | null;
+  listaDescarga: OperacaoConteinerEscala[];
+  listaCarga: OperacaoConteinerEscala[];
 }
 
 export interface CadastroEscala {
@@ -111,6 +133,17 @@ export const ROTULOS_FASE: Record<FaseEscala, string> = {
   PARTIU: 'Partiu',
   ENCERRADA: 'Encerrada',
   CANCELADA: 'Cancelada'
+};
+
+export const ROTULOS_TIPO_MOVIMENTACAO: Record<TipoMovimentacaoOrdemNavio, string> = {
+  DESCARGA_NAVIO: 'Descarga',
+  CARGA_NAVIO: 'Carga'
+};
+
+export const ROTULOS_STATUS_ORDEM: Record<StatusOrdemMovimentacaoNavio, string> = {
+  PENDENTE: 'Pendente',
+  EM_EXECUCAO: 'Em execução',
+  CONCLUIDA: 'Concluída'
 };
 
 @Injectable({
@@ -168,6 +201,39 @@ export class ServicoNavioService {
 
   removerEscala(id: number): Observable<void> {
     return this.http.delete<void>(this.urlEscalas(`/${id}`));
+  }
+
+  adicionarConteinerDescarga(idEscala: number, codigoConteiner: string): Observable<EscalaDetalhe> {
+    return this.http.post<EscalaDetalhe>(this.urlEscalas(`/${idEscala}/descarga`), { codigoConteiner });
+  }
+
+  adicionarConteinerCarga(idEscala: number, codigoConteiner: string): Observable<EscalaDetalhe> {
+    return this.http.post<EscalaDetalhe>(this.urlEscalas(`/${idEscala}/carga`), { codigoConteiner });
+  }
+
+  removerConteinerDescarga(idEscala: number, codigoConteiner: string): Observable<EscalaDetalhe> {
+    return this.http.delete<EscalaDetalhe>(
+      this.urlEscalas(`/${idEscala}/descarga/${encodeURIComponent(codigoConteiner)}`));
+  }
+
+  removerConteinerCarga(idEscala: number, codigoConteiner: string): Observable<EscalaDetalhe> {
+    return this.http.delete<EscalaDetalhe>(
+      this.urlEscalas(`/${idEscala}/carga/${encodeURIComponent(codigoConteiner)}`));
+  }
+
+  listarOrdens(idEscala: number, status?: StatusOrdemMovimentacaoNavio): Observable<OrdemMovimentacaoNavio[]> {
+    let params = new HttpParams();
+    if (status) {
+      params = params.set('status', status);
+    }
+    return this.http.get<OrdemMovimentacaoNavio[]>(this.urlEscalas(`/${idEscala}/ordens`), { params });
+  }
+
+  atualizarStatusOrdem(idEscala: number,
+                       idOrdem: number,
+                       statusMovimentacao: StatusOrdemMovimentacaoNavio): Observable<OrdemMovimentacaoNavio> {
+    return this.http.patch<OrdemMovimentacaoNavio>(
+      this.urlEscalas(`/${idEscala}/ordens/${idOrdem}/status`), { statusMovimentacao });
   }
 
   private urlNavios(caminho: string): string {

@@ -5,8 +5,13 @@ import br.com.cloudport.serviconavio.escala.dto.AtualizacaoEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.CadastroEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaDetalheDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaResumoDTO;
+import br.com.cloudport.serviconavio.escala.dto.OperacaoConteinerEscalaDTO;
 import br.com.cloudport.serviconavio.escala.entidade.Escala;
 import br.com.cloudport.serviconavio.escala.entidade.FaseEscala;
+import br.com.cloudport.serviconavio.escala.entidade.OperacaoConteinerEscala;
+import br.com.cloudport.serviconavio.escala.entidade.StatusOperacaoConteinerEscala;
+import br.com.cloudport.serviconavio.escala.listatrabalho.modelo.TipoMovimentacaoOrdemNavio;
+import br.com.cloudport.serviconavio.escala.listatrabalho.servico.OrdemMovimentacaoNavioServico;
 import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
 import br.com.cloudport.serviconavio.navio.entidade.Navio;
 import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
@@ -19,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,13 +37,31 @@ public class EscalaServico {
     private final EscalaRepositorio escalaRepositorio;
     private final NavioRepositorio navioRepositorio;
     private final SanitizadorEntrada sanitizadorEntrada;
+    private final OrdemMovimentacaoNavioServico ordemMovimentacaoServico;
 
     public EscalaServico(EscalaRepositorio escalaRepositorio,
                          NavioRepositorio navioRepositorio,
-                         SanitizadorEntrada sanitizadorEntrada) {
+                         SanitizadorEntrada sanitizadorEntrada,
+                         OrdemMovimentacaoNavioServico ordemMovimentacaoServico) {
         this.escalaRepositorio = escalaRepositorio;
         this.navioRepositorio = navioRepositorio;
         this.sanitizadorEntrada = sanitizadorEntrada;
+        this.ordemMovimentacaoServico = ordemMovimentacaoServico;
+    }
+
+    private enum TipoLista {
+        DESCARGA,
+        CARGA;
+
+        TipoLista inverso() {
+            return this == DESCARGA ? CARGA : DESCARGA;
+        }
+
+        TipoMovimentacaoOrdemNavio tipoMovimentacao() {
+            return this == DESCARGA
+                    ? TipoMovimentacaoOrdemNavio.DESCARGA_NAVIO
+                    : TipoMovimentacaoOrdemNavio.CARGA_NAVIO;
+        }
     }
 
     @Transactional(readOnly = true)
@@ -145,7 +169,122 @@ public class EscalaServico {
         LocalDateTime agora = LocalDateTime.now();
         carimbarTemposEfetivos(escala, destino, agora);
         escala.setFase(destino);
-        return EscalaDetalheDTO.deEntidade(escalaRepositorio.save(escala));
+        Escala salvo = escalaRepositorio.save(escala);
+        if (destino.permiteOperacaoConteiner()) {
+            ordemMovimentacaoServico.gerarOrdensPendentesParaEscala(salvo);
+        }
+        return EscalaDetalheDTO.deEntidade(salvo);
+    }
+
+    @Transactional
+    public EscalaDetalheDTO adicionarConteinerDescarga(Long idEscala, OperacaoConteinerEscalaDTO dto) {
+        return adicionarConteiner(idEscala, dto, TipoLista.DESCARGA);
+    }
+
+    @Transactional
+    public EscalaDetalheDTO adicionarConteinerCarga(Long idEscala, OperacaoConteinerEscalaDTO dto) {
+        return adicionarConteiner(idEscala, dto, TipoLista.CARGA);
+    }
+
+    @Transactional
+    public EscalaDetalheDTO removerConteinerDescarga(Long idEscala, String codigoConteiner) {
+        return removerConteiner(idEscala, codigoConteiner, TipoLista.DESCARGA);
+    }
+
+    @Transactional
+    public EscalaDetalheDTO removerConteinerCarga(Long idEscala, String codigoConteiner) {
+        return removerConteiner(idEscala, codigoConteiner, TipoLista.CARGA);
+    }
+
+    @Transactional
+    public EscalaDetalheDTO atualizarStatusConteinerDescarga(Long idEscala,
+                                                             String codigoConteiner,
+                                                             StatusOperacaoConteinerEscala status) {
+        return atualizarStatusConteiner(idEscala, codigoConteiner, status, TipoLista.DESCARGA);
+    }
+
+    @Transactional
+    public EscalaDetalheDTO atualizarStatusConteinerCarga(Long idEscala,
+                                                          String codigoConteiner,
+                                                          StatusOperacaoConteinerEscala status) {
+        return atualizarStatusConteiner(idEscala, codigoConteiner, status, TipoLista.CARGA);
+    }
+
+    private EscalaDetalheDTO adicionarConteiner(Long idEscala, OperacaoConteinerEscalaDTO dto, TipoLista tipoLista) {
+        Escala escala = obterEscala(idEscala);
+        if (escala.getFase().isTerminal()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Não é possível alterar as listas de uma escala encerrada ou cancelada.");
+        }
+        String codigo = sanitizarCodigoConteiner(dto != null ? dto.getCodigoConteiner() : null);
+        StatusOperacaoConteinerEscala status = Optional.ofNullable(dto != null ? dto.getStatusOperacao() : null)
+                .orElse(StatusOperacaoConteinerEscala.PENDENTE);
+
+        List<OperacaoConteinerEscala> listaAlvo = obterLista(escala, tipoLista);
+        if (listaAlvo.stream().anyMatch(item -> codigo.equals(item.getCodigoConteiner()))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "O contêiner informado já está planejado nesta lista da escala.");
+        }
+        List<OperacaoConteinerEscala> listaOposta = obterLista(escala, tipoLista.inverso());
+        if (listaOposta.stream().anyMatch(item -> codigo.equals(item.getCodigoConteiner()))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "O contêiner informado já está associado à outra lista desta escala.");
+        }
+
+        listaAlvo.add(new OperacaoConteinerEscala(codigo, status));
+        Escala salvo = escalaRepositorio.save(escala);
+        ordemMovimentacaoServico.registrarOrdemSeNecessario(salvo, codigo, tipoLista.tipoMovimentacao());
+        return EscalaDetalheDTO.deEntidade(salvo);
+    }
+
+    private EscalaDetalheDTO removerConteiner(Long idEscala, String codigoConteiner, TipoLista tipoLista) {
+        Escala escala = obterEscala(idEscala);
+        String codigo = sanitizarCodigoConteiner(codigoConteiner);
+        List<OperacaoConteinerEscala> listaAlvo = obterLista(escala, tipoLista);
+        boolean removido = listaAlvo.removeIf(item -> codigo.equals(item.getCodigoConteiner()));
+        if (!removido) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "O contêiner informado não está relacionado a esta lista da escala.");
+        }
+        Escala salvo = escalaRepositorio.save(escala);
+        ordemMovimentacaoServico.removerOrdemSeExistir(salvo.getId(), codigo, tipoLista.tipoMovimentacao());
+        return EscalaDetalheDTO.deEntidade(salvo);
+    }
+
+    private EscalaDetalheDTO atualizarStatusConteiner(Long idEscala,
+                                                      String codigoConteiner,
+                                                      StatusOperacaoConteinerEscala status,
+                                                      TipoLista tipoLista) {
+        Escala escala = obterEscala(idEscala);
+        String codigo = sanitizarCodigoConteiner(codigoConteiner);
+        StatusOperacaoConteinerEscala statusValidado = Optional.ofNullable(status)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "O status da operação deve ser informado."));
+        OperacaoConteinerEscala operacao = obterLista(escala, tipoLista).stream()
+                .filter(item -> codigo.equals(item.getCodigoConteiner()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "O contêiner informado não está relacionado a esta lista da escala."));
+        operacao.setStatusOperacao(statusValidado);
+        Escala salvo = escalaRepositorio.save(escala);
+        return EscalaDetalheDTO.deEntidade(salvo);
+    }
+
+    private List<OperacaoConteinerEscala> obterLista(Escala escala, TipoLista tipoLista) {
+        return tipoLista == TipoLista.DESCARGA ? escala.getListaDescarga() : escala.getListaCarga();
+    }
+
+    private String sanitizarCodigoConteiner(String codigoConteiner) {
+        String limpo = sanitizadorEntrada.limparTexto(codigoConteiner);
+        if (!StringUtils.hasText(limpo)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O código do contêiner deve ser informado.");
+        }
+        String normalizado = limpo.trim().toUpperCase(Locale.ROOT);
+        if (normalizado.length() > 20) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "O código do contêiner deve ter no máximo 20 caracteres.");
+        }
+        return normalizado;
     }
 
     @Transactional

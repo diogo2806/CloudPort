@@ -251,6 +251,85 @@
   white-space: nowrap;
 }
 
+.ajuda {
+  margin: 0 0 14px;
+  color: #6a7480;
+  font-size: 0.9rem;
+}
+
+.listas-conteiner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.lista-bloco h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.adicionar-conteiner {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.adicionar-conteiner input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid #c5c5c5;
+  border-radius: 4px;
+}
+
+.conteineres {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conteineres li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background-color: #f7f9fb;
+  border: 1px solid #e6e6e6;
+  border-radius: 4px;
+}
+
+.conteineres .codigo {
+  font-family: monospace;
+  font-weight: 600;
+  flex: 1;
+}
+
+.conteineres .status-conteiner {
+  font-size: 0.78rem;
+  color: #6a7480;
+  text-transform: uppercase;
+}
+
+.conteineres .remover {
+  border: none;
+  background: none;
+  color: #c62828;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.conteineres .remover:hover:not(:disabled) {
+  color: #7f1d1d;
+}
+
+.vazio {
+  color: #97a0ab;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 .fase-prevista { background-color: #e3eefc; color: #1d4e89; }
 .fase-inbound { background-color: #e7f0ff; color: #0b5cad; }
 .fase-atracado { background-color: #fff4d6; color: #8a6100; }

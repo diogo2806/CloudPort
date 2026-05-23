@@ -5,9 +5,10 @@ import { SanitizadorConteudoService } from '../../../service/sanitizacao/sanitiz
 import { ServicoFerroviaService, VisitaTrem } from '../../../service/servico-ferrovia/servico-ferrovia.service';
 
 @Component({
-  selector: 'app-importacao-manifesto-visita',
-  templateUrl: './importacao-manifesto-visita.component.html',
-  styleUrls: ['./importacao-manifesto-visita.component.css']
+    selector: 'app-importacao-manifesto-visita',
+    templateUrl: './importacao-manifesto-visita.component.html',
+    styleUrls: ['./importacao-manifesto-visita.component.css'],
+    standalone: false
 })
 export class ImportacaoManifestoVisitaComponent {
   arquivoSelecionado?: File;

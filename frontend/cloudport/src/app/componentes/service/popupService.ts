@@ -4,17 +4,6 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 
 
-function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
-  const originalMethod = descriptor.value;
-  descriptor.value = function (...args: any[]) {
-    console.log(`Classe ${target.constructor.name}: Método ${key} chamado.`);
-    return originalMethod.apply(this, args);
-  };
-  return descriptor;
-}
-
-
-
 export interface PopupState<T = any> {
   type: string;
   show: boolean;
@@ -37,26 +26,21 @@ export interface ConfirmacaoModalData {
     private confirmacaoSubject: Subject<boolean> | null = null;
 
 
-    @logMethod
   openPopup(type: string, data?: any) {
     const newValue: PopupState = {type, show: true, data};
-    console.log('Atualizando showPopupSource com:', newValue); // Adicione este log
     this.showPopupSource.next(newValue);
   }
 
 /*
-    @logMethod
     openPopup(type: string) {
       this.showPopupSource.next({type, show: true});
     }
     */
-  
-    @logMethod
+
     closePopup() {
       this.showPopupSource.next({type: '', show: false});
     }
 
-    @logMethod
     openConfirmacao(data: ConfirmacaoModalData): Observable<boolean> {
       if (this.confirmacaoSubject) {
         this.confirmacaoSubject.complete();
@@ -67,7 +51,6 @@ export interface ConfirmacaoModalData {
       return this.confirmacaoSubject.asObservable();
     }
 
-    @logMethod
     resolveConfirmacao(confirmado: boolean) {
       if (this.confirmacaoSubject) {
         this.confirmacaoSubject.next(confirmado);

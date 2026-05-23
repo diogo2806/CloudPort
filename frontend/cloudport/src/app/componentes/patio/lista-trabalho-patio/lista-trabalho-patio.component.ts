@@ -9,9 +9,10 @@ import {
 import { SanitizadorConteudoService } from '../../service/sanitizacao/sanitizador-conteudo.service';
 
 @Component({
-  selector: 'app-lista-trabalho-patio',
-  templateUrl: './lista-trabalho-patio.component.html',
-  styleUrls: ['./lista-trabalho-patio.component.css']
+    selector: 'app-lista-trabalho-patio',
+    templateUrl: './lista-trabalho-patio.component.html',
+    styleUrls: ['./lista-trabalho-patio.component.css'],
+    standalone: false
 })
 export class ListaTrabalhoPatioComponent implements OnInit, OnDestroy {
   ordens: OrdemTrabalhoPatio[] = [];

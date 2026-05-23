@@ -9,7 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.flyway.enabled=false"
+        "spring.flyway.enabled=false",
+        "JWT_SECRET=segredo-de-teste-com-pelo-menos-256-bits-1234567890"
 })
 class ServicoNavioApplicationTests {
 

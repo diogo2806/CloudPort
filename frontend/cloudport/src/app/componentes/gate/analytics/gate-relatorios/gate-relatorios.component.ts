@@ -14,12 +14,14 @@ import {
 } from '../analytics-preferences';
 
 @Component({
-  selector: 'app-gate-relatorios',
-  templateUrl: './gate-relatorios.component.html',
-  styleUrls: ['./gate-relatorios.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-gate-relatorios',
+    templateUrl: './gate-relatorios.component.html',
+    styleUrls: ['./gate-relatorios.component.css'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class GateRelatoriosComponent implements OnInit, OnDestroy {
+  protected readonly isNaN = Number.isNaN;
   private readonly destroy$ = new Subject<void>();
 
   readonly filtrosForm = this.fb.nonNullable.group({
@@ -244,7 +246,7 @@ export class GateRelatoriosComponent implements OnInit, OnDestroy {
           display: true,
           text: titulo,
           color: corTexto,
-          font: { size: 16, weight: '600' }
+          font: { size: 16, weight: 600 }
         }
       }
     };

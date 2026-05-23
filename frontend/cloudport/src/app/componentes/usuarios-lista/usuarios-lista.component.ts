@@ -4,9 +4,10 @@ import { finalize } from 'rxjs/operators';
 import { UsuariosService, UsuarioResumo } from '../service/servico-autenticacao/usuarios.service';
 
 @Component({
-  selector: 'app-usuarios-lista',
-  templateUrl: './usuarios-lista.component.html',
-  styleUrls: ['./usuarios-lista.component.css']
+    selector: 'app-usuarios-lista',
+    templateUrl: './usuarios-lista.component.html',
+    styleUrls: ['./usuarios-lista.component.css'],
+    standalone: false
 })
 export class UsuariosListaComponent implements OnInit {
   usuarios: UsuarioResumo[] = [];

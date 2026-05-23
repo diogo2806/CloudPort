@@ -54,7 +54,7 @@
            [style.gridRow]="(conteiner.linha + 1)"
            [style.gridColumn]="(conteiner.coluna + 1)"
            [ngClass]="obterClasseStatus(conteiner.status)"
-           aria-label="Contêiner {{ conteiner.codigo }}"
+           [attr.aria-label]="'Contêiner ' + conteiner.codigo"
            role="button">
         <span class="conteiner-codigo">{{ sanitizarTexto(conteiner.codigo) }}</span>
         <span class="conteiner-detalhe">{{ sanitizarTexto(conteiner.tipoCarga) }}</span>
@@ -63,7 +63,7 @@
       <div class="mapa-equipamento" *ngFor="let equipamento of mapaFiltrado.equipamentos"
            [style.gridRow]="(equipamento.linha + 1)"
            [style.gridColumn]="(equipamento.coluna + 1)"
-           aria-label="Equipamento {{ equipamento.identificador }}"
+           [attr.aria-label]="'Equipamento ' + equipamento.identificador"
            role="button">
         <span class="equipamento-identificador">{{ sanitizarTexto(equipamento.identificador) }}</span>
         <span class="equipamento-tipo">{{ sanitizarTexto(equipamento.tipoEquipamento) }}</span>

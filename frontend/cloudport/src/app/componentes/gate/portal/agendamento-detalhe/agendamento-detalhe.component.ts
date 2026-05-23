@@ -46,9 +46,10 @@ interface RealtimeReconexaoPayload {
 }
 
 @Component({
-  selector: 'app-agendamento-detalhe',
-  templateUrl: './agendamento-detalhe.component.html',
-  styleUrls: ['./agendamento-detalhe.component.css']
+    selector: 'app-agendamento-detalhe',
+    templateUrl: './agendamento-detalhe.component.html',
+    styleUrls: ['./agendamento-detalhe.component.css'],
+    standalone: false
 })
 export class AgendamentoDetalheComponent implements OnDestroy {
   private _agendamento: Agendamento | null = null;
@@ -318,7 +319,7 @@ export class AgendamentoDetalheComponent implements OnDestroy {
       await this.pushNotificationService.showNotification(
         this.translate.instant('gate.agendamentoDetalhe.notificacaoJanelaTitulo'),
         {
-          body: this.janelaMensagem,
+          body: this.janelaMensagem ?? undefined,
           icon: 'assets/icons/bell.svg'
         }
       );

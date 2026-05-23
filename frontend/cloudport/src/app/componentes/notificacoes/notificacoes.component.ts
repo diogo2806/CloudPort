@@ -3,9 +3,10 @@ import { finalize } from 'rxjs';
 import { CanalNotificacao, NotificacoesService } from '../service/notificacoes/notificacoes.service';
 
 @Component({
-  selector: 'app-notificacoes',
-  templateUrl: './notificacoes.component.html',
-  styleUrls: ['./notificacoes.component.css']
+    selector: 'app-notificacoes',
+    templateUrl: './notificacoes.component.html',
+    styleUrls: ['./notificacoes.component.css'],
+    standalone: false
 })
 export class NotificacoesComponent implements OnInit {
   canais: CanalNotificacao[] = [];

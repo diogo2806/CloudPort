@@ -38,7 +38,7 @@ public class TratadorExcecoes {
         Map<String, Object> corpo = new LinkedHashMap<>();
         corpo.put("mensagem", "Há erros de validação nos parâmetros informados.");
         Map<String, String> erros = ex.getConstraintViolations().stream()
-                .collect(Collectors.toMap(ConstraintViolation::getPropertyPath, ConstraintViolation::getMessage, (primeiro, segundo) -> primeiro, LinkedHashMap::new));
+                .collect(Collectors.toMap(violacao -> violacao.getPropertyPath().toString(), ConstraintViolation::getMessage, (primeiro, segundo) -> primeiro, LinkedHashMap::new));
         corpo.put("erros", erros);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(corpo);
     }

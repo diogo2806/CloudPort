@@ -6,9 +6,10 @@ import { NovaOrdemTrabalhoPatio, ServicoListaTrabalhoPatioService, TipoMovimento
 import { SanitizadorConteudoService } from '../../service/sanitizacao/sanitizador-conteudo.service';
 
 @Component({
-  selector: 'app-formulario-movimentacao',
-  templateUrl: './formulario-movimentacao.component.html',
-  styleUrls: ['./formulario-movimentacao.component.css']
+    selector: 'app-formulario-movimentacao',
+    templateUrl: './formulario-movimentacao.component.html',
+    styleUrls: ['./formulario-movimentacao.component.css'],
+    standalone: false
 })
 export class FormularioMovimentacaoComponent implements OnInit {
   formularioOrdem: FormGroup;

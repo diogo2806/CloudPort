@@ -2,9 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { DiretrizSeguranca, PoliticaSegurancaService } from '../service/seguranca/politica-seguranca.service';
 
 @Component({
-  selector: 'app-seguranca',
-  templateUrl: './seguranca.component.html',
-  styleUrls: ['./seguranca.component.css']
+    selector: 'app-seguranca',
+    templateUrl: './seguranca.component.html',
+    styleUrls: ['./seguranca.component.css'],
+    standalone: false
 })
 export class SegurancaComponent implements OnInit {
   diretrizes: DiretrizSeguranca[] = [];

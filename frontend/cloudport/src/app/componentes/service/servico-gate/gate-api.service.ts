@@ -166,7 +166,7 @@ export class GateApiService {
     return 'ARQUIVO';
   }
 
-  private buildParams(filters?: Record<string, string | number | boolean | undefined | null>): HttpParams {
+  private buildParams(filters?: object): HttpParams {
     let params = new HttpParams();
     if (!filters) {
       return params;

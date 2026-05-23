@@ -8,6 +8,39 @@ All security vulnerabilities identified in the Dependabot security alert digest 
 
 ---
 
+## 🔐 Endurecimento de segurança (iteração atual)
+
+Trabalho concluído nesta rodada de hardening (back-end e front-end):
+
+- ✅ **Autenticação JWT** adicionada aos serviços `servico-yard`, `servico-rail` e
+  `servico-navio`, que antes expunham as APIs sem qualquer validação de token.
+  Todos validam o mesmo token HS256 emitido pelo `servico-autenticacao`
+  (OAuth2 Resource Server + claim `roles`).
+- ✅ **Segredo JWT do gate** deixou de ter o valor padrão fraco `change-me`;
+  agora falha caso não seja configurado e reaproveita o `JWT_SECRET` comum.
+- ✅ **Rota `gate` do front-end** passou a exigir `AuthGuard` (canActivate/canLoad),
+  como `ferrovia` e `patio`.
+- ✅ **Content-Security-Policy** base adicionado ao `index.html` (mitigação de XSS).
+- ✅ **CORS** padronizado para a origem do dev server do Angular (`http://localhost:4200`)
+  em `gate` e `autenticacao`, e configurável por variável de ambiente nos demais.
+- ✅ **xlsx → ExcelJS**: migração concluída (o front-end não depende mais de `xlsx`).
+- ✅ **Flyway** passou a ser a fonte única do schema no `servico-autenticacao`
+  (`ddl-auto=none`), eliminando o risco de divergência com as migrações.
+
+- ✅ **Upgrade do Angular 16 → 19 concluído.** O front-end (que não compilava)
+  passou a compilar e foi migrado via `ng update` para **Angular 19.2** (TypeScript 5.8,
+  zone.js 0.15). Isso elimina a exposição aos CVEs de XSS/XSRF que **não tinham
+  correção na série 16.x** (corrigidos a partir de 19.2.16/19.2.17).
+
+⚠️ **Acompanhamento recomendado:** algumas libs de UI (ag-grid 31, ng2-charts 5,
+ngx-mask 13, angularx-qrcode 16, ngx-translate 15) ainda declaram peer deps de
+Angular mais antigo. O build conclui (compatível via Angular linker) e foi adicionado
+`legacy-peer-deps=true` no `.npmrc` para tornar o `npm install` reproduzível, mas
+recomenda-se atualizá-las para as versões nativas de Angular 19 com validação em
+navegador (mudam APIs: módulos → componentes standalone / provider functions).
+
+---
+
 ## ✅ RESOLVED: Dependabot Security Alerts (15/15)
 
 ### Critical Severity (1)
@@ -59,7 +92,11 @@ All security vulnerabilities identified in the Dependabot security alert digest 
 
 The following vulnerabilities **CANNOT be fixed** within the current Angular 16 architecture without breaking changes:
 
-### 1. Angular Framework Vulnerabilities (HIGH SEVERITY)
+### 1. Angular Framework Vulnerabilities (HIGH SEVERITY) — ✅ RESOLVIDO
+
+> **Atualização:** o projeto foi migrado para **Angular 19.2**, que inclui as
+> correções de XSRF (19.2.16+) e XSS (19.2.17+). As vulnerabilidades abaixo
+> referem-se à antiga versão 16.x e são mantidas apenas como histórico.
 
 **Affected Packages:**
 - `@angular/common@16.2.12`
@@ -119,7 +156,11 @@ The following vulnerabilities **CANNOT be fixed** within the current Angular 16 
 
 ---
 
-### 2. xlsx Package Vulnerabilities (HIGH SEVERITY)
+### 2. xlsx Package Vulnerabilities (HIGH SEVERITY) — ✅ RESOLVIDO
+
+> **Atualização:** a dependência `xlsx` foi **substituída por ExcelJS** (`exceljs@^4.4.0`).
+> O `package.json` não contém mais `xlsx`; as vulnerabilidades abaixo deixaram de se aplicar.
+> A seção é mantida apenas como histórico.
 
 **Affected Package:** `xlsx@0.18.5`
 
@@ -261,13 +302,15 @@ The following vulnerabilities **CANNOT be fixed** within the current Angular 16 
 - [x] Document remaining vulnerabilities
 
 ### Short-term (Next Sprint)
-- [ ] Migrate xlsx → ExcelJS (2-4 hours)
-- [ ] Implement XSRF/XSS mitigations for Angular
-- [ ] Add CSP headers to application
-- [ ] Restrict xlsx export to authenticated users
+- [x] Migrate xlsx → ExcelJS
+- [x] Add CSP headers to application (meta base no index.html)
+- [x] Proteger serviços de back-end (yard/rail/navio) com JWT
+- [x] Remover segredo JWT padrão fraco do gate
+- [ ] Implement XSRF/XSS mitigations for Angular (mitigação parcial via CSP; resta o upgrade)
 
 ### Long-term (Q1/Q2 2026)
-- [ ] Plan Angular 16 → 19 upgrade
+- [x] Angular 16 → 19 upgrade concluído (build via ng update, Angular 19.2)
+- [ ] Atualizar libs de UI (ag-grid, ng2-charts, ngx-mask, angularx-qrcode, ngx-translate) para versões nativas de Angular 19
 - [ ] Update all Angular ecosystem packages
 - [ ] Comprehensive testing post-upgrade
 - [ ] Update developer documentation

@@ -3,9 +3,10 @@ import { MovimentoPatio, ServicoPatioService } from '../../service/servico-patio
 import { SanitizadorConteudoService } from '../../service/sanitizacao/sanitizador-conteudo.service';
 
 @Component({
-  selector: 'app-lista-movimentacoes',
-  templateUrl: './lista-movimentacoes.component.html',
-  styleUrls: ['./lista-movimentacoes.component.css']
+    selector: 'app-lista-movimentacoes',
+    templateUrl: './lista-movimentacoes.component.html',
+    styleUrls: ['./lista-movimentacoes.component.css'],
+    standalone: false
 })
 export class ListaMovimentacoesComponent implements OnInit {
   movimentacoes: MovimentoPatio[] = [];

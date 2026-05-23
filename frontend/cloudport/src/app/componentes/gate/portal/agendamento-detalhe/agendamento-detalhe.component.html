@@ -81,8 +81,8 @@
   </div>
 
   <app-motorista-pass class="agendamento-detalhe__pass"
-    [gatePass]="agendamento?.gatePass"
-    [agendamentoCodigo]="agendamento?.codigo"
+    [gatePass]="agendamento?.gatePass ?? null"
+    [agendamentoCodigo]="agendamento?.codigo ?? null"
   ></app-motorista-pass>
 
   <section class="agendamento-detalhe__historico-conteiner" *ngIf="codigoConteinerSelecionado">

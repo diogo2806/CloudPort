@@ -4,6 +4,7 @@ import br.com.cloudport.servicogate.security.TransportadoraSynchronizationFilter
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -20,6 +21,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -46,7 +48,7 @@ public class SecurityConfig {
 
     public SecurityConfig(TransportadoraSynchronizationFilter transportadoraSynchronizationFilter,
                           @Value("${cloudport.security.jwt.secret}") String jwtSecret,
-                          @Value("${cloudport.security.cors.allowed-origins:http://localhost:3000}") String allowedOrigins) {
+                          @Value("${cloudport.security.cors.allowed-origins:http://localhost:4200}") String allowedOrigins) {
         this.transportadoraSynchronizationFilter = transportadoraSynchronizationFilter;
         this.jwtSecret = jwtSecret;
         this.allowedOrigins = allowedOrigins;
@@ -84,7 +86,7 @@ public class SecurityConfig {
         return converter;
     }
 
-    private Converter<Jwt, List<SimpleGrantedAuthority>> jwtGrantedAuthoritiesConverter() {
+    private Converter<Jwt, Collection<GrantedAuthority>> jwtGrantedAuthoritiesConverter() {
         return jwt -> {
             List<String> roles = Optional.ofNullable(jwt.getClaimAsStringList("roles"))
                     .orElseGet(() -> {
@@ -96,7 +98,7 @@ public class SecurityConfig {
                     .filter(StringUtils::hasText)
                     .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase(Locale.ROOT))
                     .distinct()
-                    .map(SimpleGrantedAuthority::new)
+                    .<GrantedAuthority>map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
         };
     }
@@ -109,7 +111,7 @@ public class SecurityConfig {
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toList());
         if (origins.isEmpty()) {
-            origins = Collections.singletonList("http://localhost:3000");
+            origins = Collections.singletonList("http://localhost:4200");
         }
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

@@ -8,6 +8,8 @@ import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
 // Importações para animações
 import { trigger, state, style, animate, transition } from '@angular/animations';
 
+const ROTA_PROTEGIDA_PADRAO = '/home/role';
+
 @Component({
     selector: 'app-login',
     templateUrl: './login.component.html',
@@ -20,9 +22,9 @@ import { trigger, state, style, animate, transition } from '@angular/animations'
             transition('void => *', animate('0.5s ease-in')),
             transition('* => void', animate('0.5s ease-out'))
         ])
-    ]
+    ],
+    standalone: false
 })
-const ROTA_PROTEGIDA_PADRAO = '/home/role';
 
 export class LoginComponent implements OnInit {
     formularioLogin: FormGroup = this.formBuilder.group({});

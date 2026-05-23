@@ -15,22 +15,14 @@ import { PopupService } from '../../service/popupService';
 import { ModalComponent } from '../../modal/modal.component';
 import { GridReadyEvent } from 'ag-grid-community';
 
-function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
-  const originalMethod = descriptor.value;
-  descriptor.value = function (...args: any[]) {
-    console.log(`Classe ${target.constructor.name}: Método ${key} chamado.`);
-    return originalMethod.apply(this, args);
-  };
-  return descriptor;
-}
-
 
 
 
 @Component({
-  selector: 'app-role-tabela',
-  templateUrl: './role-tabela.component.html',
-  styleUrls: ['./role-tabela.component.css']
+    selector: 'app-role-tabela',
+    templateUrl: './role-tabela.component.html',
+    styleUrls: ['./role-tabela.component.css'],
+    standalone: false
 })
 export class RoleTabelaComponent  implements OnInit, AfterViewInit {
 
@@ -77,15 +69,13 @@ export class RoleTabelaComponent  implements OnInit, AfterViewInit {
   // Método executado quando o componente é inicializado
 
   ngOnInit() {
-    console.log('Classe RoleComponent: Método ngOnInit chamado.');
-   
+
     this.loadRoles();
 
     
 }
 
 onGridTableReady(event: GridReadyEvent) {
-  console.log('Classe RoleComponent: Método onGridTableReady chamado.', event);
   const tableElement = this.gridTable.nativeElement; // Referência direta ao elemento da tabela ag-Grid
   this.renderer.listen(tableElement, 'contextmenu', (event) => {
     event.preventDefault(); // Previne o menu de contexto padrão
@@ -103,8 +93,7 @@ onGridTableReady(event: GridReadyEvent) {
 
 
 ngAfterViewInit() {
-  console.log('Classe RoleComponent: Método ngAfterViewInit chamado.');
-   
+
   if (this.gridTable && this.gridTable.nativeElement) {
     const tableElement = this.gridTable.nativeElement; // Referência direta ao elemento da tabela ag-Grid
     this.renderer.listen(tableElement, 'contextmenu', (event) => {
@@ -134,7 +123,6 @@ handleRoleContextMenu(event: any): void {
 
 
 handleRoleRightClick(event: any, contextMenu: ContextMenuComponent) {
-  //console.log("Evento recebido:", event);
 
   if (event === null || event.event === undefined) {
     this.contextMenu.isOpen = false; // Feche o menu se o evento for nulo
@@ -152,18 +140,15 @@ handleRoleRightClick(event: any, contextMenu: ContextMenuComponent) {
   // Evite o menu de contexto padrão do navegador e exiba o menu personalizado
   event.event.preventDefault();
 
-  console.log("RoleComponent handleRoleRightClick: Manipulando clique com o botão direito do mouse", event); // Depuração
   this.contextMenu.menuOptions = ['Editar', 'Deletar'];
   this.contextMenu.position = { x: event.event.clientX, y: event.event.clientY };
   this.contextMenu.isOpen = true;
 }
 
-@logMethod
 closeContextMenu(event: MouseEvent) {
   if (this.contextMenu && !this.contextMenu.elementRef.nativeElement.contains(event.target)) {
     this.contextMenu.isOpen = false;
     event.preventDefault();
-    console.log(this.contextMenu.isOpen);
     // Deixe o evento de clique com o botão direito do mouse ser processado normalmente
   }
 }
@@ -173,20 +158,17 @@ closeContextMenu(event: MouseEvent) {
   dragging: boolean = false;
 
   
-  @logMethod
   mouseDown(event: MouseEvent, role: any) {
     event.preventDefault();
     this.dragging = true;
     this.toggleSelection(role);
   }
 
-  @logMethod
   mouseUp(event: MouseEvent) {
     this.dragging = false;
   }
 
 
-  @logMethod
   mouseover(event: MouseEvent, role: any) {
     if (this.dragging) {
       this.toggleSelection(role);
@@ -194,7 +176,6 @@ closeContextMenu(event: MouseEvent) {
   }
 
 
-  @logMethod
   toggleSelection(role: any) {
     const roleId = role && role['Role ID'] !== undefined ? role['Role ID'] : null;
     if (roleId === null) {
@@ -218,7 +199,6 @@ closeContextMenu(event: MouseEvent) {
   }
 
   // Carrega os papeis do servidor
-  @logMethod
   loadRoles() {
     const storedRolesData = this.tabService.getTabContent(this.selectedTab);
     if (storedRolesData) {
@@ -256,7 +236,6 @@ closeContextMenu(event: MouseEvent) {
 
 
   // Cria um novo papel
-  @logMethod
   createRole() {
     const token = this.servicoAutenticacao.obterUsuarioAtual()?.token;
 
@@ -277,13 +256,11 @@ closeContextMenu(event: MouseEvent) {
             return throwError(error);
         }))
         .subscribe(response => {
-            console.log('Papel criado:', response);
             this.loadRoles();
         });
   }
 
   // Edita um papel existente
-  @logMethod
   editRole(roleId: number) {
     const token = this.servicoAutenticacao.obterUsuarioAtual()?.token;
 
@@ -304,13 +281,11 @@ closeContextMenu(event: MouseEvent) {
             return throwError(error);
         }))
         .subscribe(response => {
-            console.log('Papel atualizado:', response);
             this.loadRoles();
         });
   }
 
   // Desativa um papel
-  @logMethod
   deactivateRole(roleId: number) {
     const token = this.servicoAutenticacao.obterUsuarioAtual()?.token;
 
@@ -332,7 +307,6 @@ closeContextMenu(event: MouseEvent) {
           return throwError(error);
       }))
       .subscribe(response => {
-          console.log('Role deletado:', response);
           this.loadRoles();
       });
     }
@@ -342,9 +316,7 @@ closeContextMenu(event: MouseEvent) {
     selectedRoleIds: number[] = [];
     @ViewChild('contextMenu') contextMenu!: ContextMenuComponent;
 
-    @logMethod
     rightClick(event: MouseEvent, role: any) {
-      console.log("RoleComponent rightClick")
       event.preventDefault();
       
       this.contextMenu.menuOptions = ['Editar', 'Deletar']; // Define as opções aqui
@@ -379,7 +351,6 @@ closeContextMenu(event: MouseEvent) {
     }
 
     */
-    @logMethod
     contextMenuOptionSelected(option: string) {
       if (this.selectedRoleIds.length === 0) {
         console.error('Nenhum role foi selecionado');
@@ -405,7 +376,6 @@ closeContextMenu(event: MouseEvent) {
     }
 
     
-    @logMethod
     ngOnDestroy() {
       document.removeEventListener('click', this.closeContextMenu.bind(this));
       document.removeEventListener('contextmenu', this.boundHandleTableContextMenu);

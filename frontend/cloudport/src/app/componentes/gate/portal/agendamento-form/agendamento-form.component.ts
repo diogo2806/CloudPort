@@ -14,9 +14,10 @@ interface DocumentoPreview {
 }
 
 @Component({
-  selector: 'app-agendamento-form',
-  templateUrl: './agendamento-form.component.html',
-  styleUrls: ['./agendamento-form.component.css']
+    selector: 'app-agendamento-form',
+    templateUrl: './agendamento-form.component.html',
+    styleUrls: ['./agendamento-form.component.css'],
+    standalone: false
 })
 export class AgendamentoFormComponent implements OnInit, OnChanges, OnDestroy {
   @Input() agendamento: Agendamento | null = null;

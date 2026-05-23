@@ -14,9 +14,10 @@ interface OrdemVisivel extends OrdemMovimentacao {
 }
 
 @Component({
-  selector: 'app-lista-trabalho-trem',
-  templateUrl: './lista-trabalho-trem.component.html',
-  styleUrls: ['./lista-trabalho-trem.component.css']
+    selector: 'app-lista-trabalho-trem',
+    templateUrl: './lista-trabalho-trem.component.html',
+    styleUrls: ['./lista-trabalho-trem.component.css'],
+    standalone: false
 })
 export class ListaTrabalhoTremComponent implements OnInit {
   visitaId?: number;

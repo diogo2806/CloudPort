@@ -73,6 +73,12 @@ export class DetalheVisitaComponent implements OnInit {
     this.executar(this.servico.planejarAtracacao(this.visita.identificador, payload), 'Atracação planejada.');
   }
 
+  confirmarChegada(): void {
+    if (this.visita) {
+      this.executar(this.servico.registrarChegada(this.visita.identificador), 'Chegada confirmada.');
+    }
+  }
+
   atracar(): void {
     if (this.visita) {
       this.executar(this.servico.atracar(this.visita.identificador), 'Navio atracado.');
@@ -152,8 +158,12 @@ export class DetalheVisitaComponent implements OnInit {
     return this.ehStatus(['PLANEJADA', 'PROGRAMADA']);
   }
 
-  get podeAtracar(): boolean {
+  get podeConfirmarChegada(): boolean {
     return this.ehStatus(['PROGRAMADA']);
+  }
+
+  get podeAtracar(): boolean {
+    return this.ehStatus(['PROGRAMADA', 'CHEGADA_CONFIRMADA']);
   }
 
   get podeIniciar(): boolean {

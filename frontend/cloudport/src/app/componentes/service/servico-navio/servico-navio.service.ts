@@ -7,6 +7,7 @@ export type StatusBerco = 'DISPONIVEL' | 'OCUPADO' | 'INATIVO';
 export type StatusVisitaNavio =
   | 'PLANEJADA'
   | 'PROGRAMADA'
+  | 'CHEGADA_CONFIRMADA'
   | 'ATRACADA'
   | 'EM_OPERACAO'
   | 'OPERACAO_CONCLUIDA'
@@ -59,6 +60,28 @@ export interface OperacaoRequest {
   pesoToneladas?: number | null;
 }
 
+export interface PortoRotacao {
+  identificador?: number;
+  sequencia: number;
+  portoUnloc: string;
+  nomePorto?: string | null;
+}
+
+export interface ServicoLinha {
+  identificador: number;
+  codigo: string;
+  nome: string;
+  armador?: string | null;
+  rotacao: PortoRotacao[];
+}
+
+export interface ServicoLinhaRequest {
+  codigo: string;
+  nome: string;
+  armador?: string;
+  rotacao: PortoRotacao[];
+}
+
 export interface VisitaNavioResumo {
   identificador: number;
   navioNome: string;
@@ -68,6 +91,7 @@ export interface VisitaNavioResumo {
   atracacaoPrevista: string;
   desatracacaoPrevista: string;
   status: StatusVisitaNavio;
+  servicoCodigo?: string | null;
 }
 
 export interface VisitaNavioDetalhe {
@@ -84,6 +108,10 @@ export interface VisitaNavioDetalhe {
   desatracacaoEfetiva?: string | null;
   status: StatusVisitaNavio;
   observacoes?: string | null;
+  servicoId?: number | null;
+  servicoCodigo?: string | null;
+  chegadaPrevista?: string | null;
+  chegadaEfetiva?: string | null;
   operacoes: OperacaoNavioConteiner[];
 }
 
@@ -93,6 +121,8 @@ export interface CadastroVisitaNavio {
   atracacaoPrevista: string;
   desatracacaoPrevista: string;
   observacoes?: string;
+  servicoId?: number | null;
+  chegadaPrevista?: string | null;
 }
 
 export interface PlanejamentoAtracacao {
@@ -130,6 +160,22 @@ export class ServicoNavioService {
     return this.http.delete<void>(this.url(`/bercos/${id}`));
   }
 
+  listarServicos(): Observable<ServicoLinha[]> {
+    return this.http.get<ServicoLinha[]>(this.url('/servicos-linha'));
+  }
+
+  criarServico(payload: ServicoLinhaRequest): Observable<ServicoLinha> {
+    return this.http.post<ServicoLinha>(this.url('/servicos-linha'), payload);
+  }
+
+  atualizarServico(id: number, payload: ServicoLinhaRequest): Observable<ServicoLinha> {
+    return this.http.put<ServicoLinha>(this.url(`/servicos-linha/${id}`), payload);
+  }
+
+  removerServico(id: number): Observable<void> {
+    return this.http.delete<void>(this.url(`/servicos-linha/${id}`));
+  }
+
   listarVisitas(): Observable<VisitaNavioResumo[]> {
     return this.http.get<VisitaNavioResumo[]>(this.url('/visitas'));
   }
@@ -148,6 +194,10 @@ export class ServicoNavioService {
 
   planejarAtracacao(id: number, payload: PlanejamentoAtracacao): Observable<VisitaNavioDetalhe> {
     return this.http.put<VisitaNavioDetalhe>(this.url(`/visitas/${id}/atracacao`), payload);
+  }
+
+  registrarChegada(id: number): Observable<VisitaNavioDetalhe> {
+    return this.http.post<VisitaNavioDetalhe>(this.url(`/visitas/${id}/chegada`), {});
   }
 
   atracar(id: number): Observable<VisitaNavioDetalhe> {

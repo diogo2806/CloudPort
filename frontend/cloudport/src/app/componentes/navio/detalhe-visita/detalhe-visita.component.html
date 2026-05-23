@@ -10,7 +10,10 @@
 
   <dl class="navio-detalhe__dados">
     <div><dt>IMO</dt><dd>{{ v.codigoImo }}</dd></div>
+    <div><dt>Serviço de linha</dt><dd>{{ v.servicoCodigo || '—' }}</dd></div>
     <div><dt>Berço</dt><dd>{{ v.bercoNome || '—' }}</dd></div>
+    <div><dt>Chegada prevista (ETA)</dt><dd>{{ (v.chegadaPrevista | date: 'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
+    <div><dt>Chegada efetiva</dt><dd>{{ (v.chegadaEfetiva | date: 'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
     <div><dt>Atracação prevista</dt><dd>{{ v.atracacaoPrevista | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
     <div><dt>Desatracação prevista</dt><dd>{{ v.desatracacaoPrevista | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
     <div><dt>Atracação efetiva</dt><dd>{{ (v.atracacaoEfetiva | date: 'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
@@ -18,6 +21,7 @@
   </dl>
 
   <div class="navio-detalhe__acoes">
+    <button type="button" *ngIf="podeConfirmarChegada" (click)="confirmarChegada()">Confirmar chegada</button>
     <button type="button" *ngIf="podeAtracar" (click)="atracar()">Registrar atracação</button>
     <button type="button" *ngIf="podeIniciar" (click)="iniciarOperacaoVisita()">Iniciar operação</button>
     <button type="button" *ngIf="podeConcluir" (click)="concluirOperacaoVisita()">Concluir operação</button>

@@ -1,0 +1,67 @@
+<section class="navio-servicos">
+  <header class="navio-servicos__cabecalho">
+    <h2>Serviços de Linha</h2>
+    <a routerLink="/home/navio/visitas">Visitas</a>
+  </header>
+
+  <p *ngIf="erro" class="alerta alerta--erro">{{ erro }}</p>
+
+  <form class="navio-servicos__form" (ngSubmit)="salvar()">
+    <div class="navio-servicos__campos">
+      <input type="text" name="codigo" placeholder="Código" [(ngModel)]="formulario.codigo" maxlength="20" required />
+      <input type="text" name="nome" placeholder="Nome do serviço" [(ngModel)]="formulario.nome" maxlength="120" required />
+      <input type="text" name="armador" placeholder="Armador" [(ngModel)]="formulario.armador" maxlength="80" />
+    </div>
+
+    <div class="navio-servicos__rotacao">
+      <h4>Rotação de portos</h4>
+      <ol>
+        <li *ngFor="let porto of formulario.rotacao; let i = index">
+          {{ porto.sequencia }}. {{ porto.portoUnloc }} {{ porto.nomePorto ? '(' + porto.nomePorto + ')' : '' }}
+          <button type="button" (click)="removerPorto(i)">remover</button>
+        </li>
+        <li *ngIf="formulario.rotacao.length === 0" class="navio-servicos__vazio">Nenhum porto na rotação.</li>
+      </ol>
+      <div class="navio-servicos__novo-porto">
+        <input type="number" name="seqPorto" placeholder="Seq." [(ngModel)]="novoPorto.sequencia" />
+        <input type="text" name="unloc" placeholder="UN/LOCODE" [(ngModel)]="novoPorto.portoUnloc" maxlength="10" />
+        <input type="text" name="nomePorto" placeholder="Nome do porto" [(ngModel)]="novoPorto.nomePorto" maxlength="80" />
+        <button type="button" (click)="adicionarPorto()">Adicionar porto</button>
+      </div>
+    </div>
+
+    <div class="navio-servicos__acoes-form">
+      <button type="submit">{{ edicaoId == null ? 'Adicionar serviço' : 'Salvar' }}</button>
+      <button type="button" *ngIf="edicaoId != null" (click)="cancelarEdicao()">Cancelar</button>
+    </div>
+  </form>
+
+  <p *ngIf="carregando">Carregando serviços...</p>
+
+  <table *ngIf="!carregando" class="navio-servicos__tabela">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Nome</th>
+        <th>Armador</th>
+        <th>Rotação</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let servico of servicos">
+        <td>{{ servico.codigo }}</td>
+        <td>{{ servico.nome }}</td>
+        <td>{{ servico.armador || '—' }}</td>
+        <td>{{ rotacaoResumo(servico) }}</td>
+        <td class="navio-servicos__acoes">
+          <button type="button" (click)="editar(servico)">Editar</button>
+          <button type="button" (click)="remover(servico)">Remover</button>
+        </td>
+      </tr>
+      <tr *ngIf="servicos.length === 0">
+        <td colspan="5">Nenhum serviço de linha cadastrado.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

@@ -3,6 +3,7 @@
     <h2>Visitas de Navio</h2>
     <div class="navio-visitas__acoes">
       <a routerLink="/home/navio/painel">Painel de atracação</a>
+      <a routerLink="/home/navio/servicos">Serviços de linha</a>
       <a routerLink="/home/navio/bercos">Berços</a>
       <button type="button" (click)="alternarFormulario()">
         {{ exibirFormulario ? 'Cancelar' : 'Nova visita' }}
@@ -26,6 +27,19 @@
     <label>
       Número da viagem
       <input type="text" name="numeroViagem" [(ngModel)]="nova.numeroViagem" maxlength="40" required />
+    </label>
+    <label>
+      Serviço de linha
+      <select name="servicoId" [(ngModel)]="nova.servicoId">
+        <option [ngValue]="null">— sem serviço —</option>
+        <option *ngFor="let servico of servicos" [ngValue]="servico.identificador">
+          {{ servico.codigo }} — {{ servico.nome }}
+        </option>
+      </select>
+    </label>
+    <label>
+      Chegada prevista (ETA)
+      <input type="datetime-local" name="chegadaPrevista" [(ngModel)]="nova.chegadaPrevista" />
     </label>
     <label>
       Atracação prevista

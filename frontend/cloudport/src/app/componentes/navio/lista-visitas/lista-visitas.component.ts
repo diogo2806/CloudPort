@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import {
   CadastroVisitaNavio,
   NavioResumo,
+  ServicoLinha,
   ServicoNavioService,
   VisitaNavioResumo
 } from '../../service/servico-navio/servico-navio.service';
@@ -15,6 +16,7 @@ import {
 export class ListaVisitasComponent implements OnInit {
   visitas: VisitaNavioResumo[] = [];
   navios: NavioResumo[] = [];
+  servicos: ServicoLinha[] = [];
   carregando = false;
   erro: string | null = null;
   mensagem: string | null = null;
@@ -30,6 +32,10 @@ export class ListaVisitasComponent implements OnInit {
     this.carregar();
     this.servico.listarNavios().subscribe({
       next: (dados) => (this.navios = dados),
+      error: () => undefined
+    });
+    this.servico.listarServicos().subscribe({
+      next: (dados) => (this.servicos = dados),
       error: () => undefined
     });
   }
@@ -64,6 +70,8 @@ export class ListaVisitasComponent implements OnInit {
       navioId: this.nova.navioId,
       numeroViagem: this.nova.numeroViagem,
       observacoes: this.nova.observacoes,
+      servicoId: this.nova.servicoId ? this.nova.servicoId : null,
+      chegadaPrevista: this.nova.chegadaPrevista ? this.comSegundos(this.nova.chegadaPrevista) : null,
       atracacaoPrevista: this.comSegundos(this.nova.atracacaoPrevista),
       desatracacaoPrevista: this.comSegundos(this.nova.desatracacaoPrevista)
     };
@@ -86,6 +94,14 @@ export class ListaVisitasComponent implements OnInit {
   }
 
   private formularioVazio(): CadastroVisitaNavio {
-    return { navioId: 0, numeroViagem: '', atracacaoPrevista: '', desatracacaoPrevista: '', observacoes: '' };
+    return {
+      navioId: 0,
+      numeroViagem: '',
+      atracacaoPrevista: '',
+      desatracacaoPrevista: '',
+      observacoes: '',
+      servicoId: null,
+      chegadaPrevista: null
+    };
   }
 }

@@ -6,13 +6,15 @@ import { ListaVisitasComponent } from './lista-visitas/lista-visitas.component';
 import { DetalheVisitaComponent } from './detalhe-visita/detalhe-visita.component';
 import { PainelAtracacaoComponent } from './painel-atracacao/painel-atracacao.component';
 import { ListaBercosComponent } from './lista-bercos/lista-bercos.component';
+import { ServicosLinhaComponent } from './servicos-linha/servicos-linha.component';
 
 @NgModule({
   declarations: [
     ListaVisitasComponent,
     DetalheVisitaComponent,
     PainelAtracacaoComponent,
-    ListaBercosComponent
+    ListaBercosComponent,
+    ServicosLinhaComponent
   ],
   imports: [
     CommonModule,

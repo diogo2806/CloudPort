@@ -1,0 +1,92 @@
+<section class="lista-navios">
+  <header class="cabecalho">
+    <div>
+      <h1>Navios Cadastrados</h1>
+      <p class="descricao">Cadastro mestre das embarcações usadas no planejamento de escalas.</p>
+    </div>
+    <div class="acoes-cabecalho">
+      <button type="button" class="botao-secundario" (click)="voltarCronograma()">Ir ao cronograma</button>
+      <button type="button" class="botao-primario" (click)="alternarFormulario()">
+        {{ mostrarFormulario ? 'Fechar' : 'Novo navio' }}
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="erro" class="estado-erro">{{ textoSeguro(erro) }}</div>
+  <div *ngIf="mensagem" class="estado-sucesso">{{ textoSeguro(mensagem) }}</div>
+
+  <form class="formulario" *ngIf="mostrarFormulario" (ngSubmit)="salvar()">
+    <div class="linha">
+      <div class="campo">
+        <label for="nome">Nome *</label>
+        <input id="nome" name="nome" type="text" maxlength="120" [(ngModel)]="novo.nome" required />
+      </div>
+      <div class="campo">
+        <label for="codigoImo">Código IMO *</label>
+        <input id="codigoImo" name="codigoImo" type="text" maxlength="10" placeholder="IMO9999999" [(ngModel)]="novo.codigoImo" required />
+      </div>
+    </div>
+    <div class="linha">
+      <div class="campo">
+        <label for="paisBandeira">País da bandeira *</label>
+        <input id="paisBandeira" name="paisBandeira" type="text" maxlength="60" [(ngModel)]="novo.paisBandeira" required />
+      </div>
+      <div class="campo">
+        <label for="empresaArmadora">Empresa armadora *</label>
+        <input id="empresaArmadora" name="empresaArmadora" type="text" maxlength="80" [(ngModel)]="novo.empresaArmadora" required />
+      </div>
+      <div class="campo">
+        <label for="capacidadeTeu">Capacidade (TEU) *</label>
+        <input id="capacidadeTeu" name="capacidadeTeu" type="number" min="1" [(ngModel)]="novo.capacidadeTeu" required />
+      </div>
+    </div>
+    <div class="linha">
+      <div class="campo">
+        <label for="loaMetros">Comprimento LOA (m)</label>
+        <input id="loaMetros" name="loaMetros" type="number" min="0" step="0.01" [(ngModel)]="novo.loaMetros" />
+      </div>
+      <div class="campo">
+        <label for="caladoMaximoMetros">Calado máximo (m)</label>
+        <input id="caladoMaximoMetros" name="caladoMaximoMetros" type="number" min="0" step="0.01" [(ngModel)]="novo.caladoMaximoMetros" />
+      </div>
+      <div class="campo">
+        <label for="callSign">Call sign</label>
+        <input id="callSign" name="callSign" type="text" maxlength="15" [(ngModel)]="novo.callSign" />
+      </div>
+    </div>
+    <div class="acoes">
+      <button type="submit" class="botao-primario" [disabled]="salvando">
+        {{ salvando ? 'Salvando...' : 'Cadastrar navio' }}
+      </button>
+    </div>
+  </form>
+
+  <div *ngIf="estaCarregando" class="estado-informativo">Carregando navios...</div>
+
+  <table *ngIf="!estaCarregando && navios.length > 0" class="tabela-navios" aria-label="Navios cadastrados">
+    <thead>
+      <tr>
+        <th scope="col">Nome</th>
+        <th scope="col">IMO</th>
+        <th scope="col">Armador</th>
+        <th scope="col">Capacidade (TEU)</th>
+        <th scope="col" class="coluna-acoes">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let navio of navios">
+        <td>{{ textoSeguro(navio.nome) }}</td>
+        <td>{{ textoSeguro(navio.codigoImo) }}</td>
+        <td>{{ textoSeguro(navio.empresaArmadora) }}</td>
+        <td>{{ navio.capacidadeTeu }}</td>
+        <td class="coluna-acoes">
+          <button type="button" class="botao-perigo-pequeno" (click)="remover(navio)">Remover</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!estaCarregando && navios.length === 0" class="estado-informativo">
+    Nenhum navio cadastrado. Use "Novo navio" para começar.
+  </div>
+</section>

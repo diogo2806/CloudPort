@@ -52,6 +52,12 @@ const homeChildRoutes: Routes = [
     canActivate: [AuthGuard],
     canLoad: [AuthGuard],
     loadChildren: () => import('./componentes/patio/patio.module').then(m => m.PatioModule)
+  },
+  {
+    path: 'navio',
+    canActivate: [AuthGuard],
+    canLoad: [AuthGuard],
+    loadChildren: () => import('./componentes/navio/navio.module').then(m => m.NavioModule)
   }
 ];
 

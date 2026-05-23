@@ -1,0 +1,70 @@
+<section class="lista-escalas">
+  <header class="cabecalho-escalas">
+    <div>
+      <h1>Cronograma de Escalas</h1>
+      <p class="descricao">Planeje a operação dos navios acompanhando as escalas previstas e em atendimento.</p>
+    </div>
+    <div class="acoes-cabecalho">
+      <label for="filtroDias" class="campo-dias">
+        Período (dias):
+        <input
+          id="filtroDias"
+          type="number"
+          min="1"
+          max="60"
+          [(ngModel)]="diasFiltro"
+          (ngModelChange)="aoAlterarDias()"
+        />
+      </label>
+      <button type="button" class="botao-secundario" (click)="alternarOrdenacao()">
+        Ordenar por ETA {{ ordenacaoAscendente ? '▲' : '▼' }}
+      </button>
+      <button type="button" class="botao-secundario" (click)="abrirNavios()">
+        Navios cadastrados
+      </button>
+      <button type="button" class="botao-primario" (click)="novaEscala()">
+        Nova escala
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="estaCarregando" class="estado-informativo">Carregando cronograma de escalas...</div>
+
+  <div *ngIf="!estaCarregando && erroCarregamento" class="estado-erro">
+    {{ textoSeguro(erroCarregamento) }}
+  </div>
+
+  <table *ngIf="!estaCarregando && !erroCarregamento && escalas.length > 0" class="tabela-escalas" aria-label="Cronograma de escalas de navio">
+    <thead>
+      <tr>
+        <th scope="col">Navio</th>
+        <th scope="col">IMO</th>
+        <th scope="col">Viagem</th>
+        <th scope="col" class="coluna-data">ETA</th>
+        <th scope="col">Berço</th>
+        <th scope="col">Fase</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        *ngFor="let escala of escalas"
+        (click)="verDetalhes(escala)"
+        tabindex="0"
+        (keyup.enter)="verDetalhes(escala)"
+        class="linha-escala"
+        aria-label="Selecionar escala"
+      >
+        <td>{{ textoSeguro(escala.nomeNavio) }}</td>
+        <td>{{ textoSeguro(escala.codigoImo) }}</td>
+        <td>{{ textoSeguro(escala.viagemEntrada) }}</td>
+        <td>{{ escala.chegadaPrevista | date:'dd/MM/yyyy HH:mm' }}</td>
+        <td>{{ textoSeguro(escala.bercoPrevisto) || '—' }}</td>
+        <td><span [class]="classeFase(escala.fase)">{{ rotuloFase(escala.fase) }}</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!estaCarregando && !erroCarregamento && escalas.length === 0" class="estado-informativo">
+    Nenhuma escala encontrada para o período selecionado.
+  </div>
+</section>

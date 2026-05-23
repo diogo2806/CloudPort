@@ -68,6 +68,23 @@
         </li>
       </ul>
     </li>
+    <li *ngIf="navioTabs.length" (click)="toggleSubmenu($event)">
+      <button type="button" class="submenu-trigger">Navio</button>
+      <ul>
+        <li *ngFor="let tab of navioTabs">
+          <button
+            type="button"
+            class="submenu-item"
+            [class.coming-soon]="tab.disabled"
+            [disabled]="tab.disabled"
+            (click)="handleTabSelection($event, tab)"
+          >
+            <span>{{ tab.label }}</span>
+            <span *ngIf="tab.disabled" class="submenu-badge">{{ tab.comingSoonMessage || 'Em breve' }}</span>
+          </button>
+        </li>
+      </ul>
+    </li>
     <li *ngIf="userTabs.length" (click)="toggleSubmenu($event)">
       <button type="button" class="submenu-trigger">Usuários</button>
       <ul>

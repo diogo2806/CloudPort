@@ -1,0 +1,74 @@
+<section class="formulario-escala">
+  <header>
+    <h1>Nova Escala</h1>
+    <p class="descricao">Programe a chamada de um navio ao terminal.</p>
+  </header>
+
+  <div *ngIf="erro" class="estado-erro">{{ textoSeguro(erro) }}</div>
+
+  <div *ngIf="!carregandoNavios && navios.length === 0" class="estado-informativo">
+    Nenhum navio cadastrado. Cadastre um navio antes de criar uma escala.
+  </div>
+
+  <form class="formulario" (ngSubmit)="salvar()" #form="ngForm">
+    <div class="campo">
+      <label for="navio">Navio *</label>
+      <select id="navio" name="navio" [(ngModel)]="navioId" [disabled]="carregandoNavios" required>
+        <option [ngValue]="null" disabled>Selecione o navio</option>
+        <option *ngFor="let navio of navios" [ngValue]="navio.identificador">
+          {{ textoSeguro(navio.nome) }} — {{ textoSeguro(navio.codigoImo) }}
+        </option>
+      </select>
+    </div>
+
+    <div class="linha">
+      <div class="campo">
+        <label for="viagemEntrada">Viagem de entrada *</label>
+        <input id="viagemEntrada" name="viagemEntrada" type="text" maxlength="20"
+               [(ngModel)]="viagemEntrada" required />
+      </div>
+      <div class="campo">
+        <label for="viagemSaida">Viagem de saída</label>
+        <input id="viagemSaida" name="viagemSaida" type="text" maxlength="20"
+               [(ngModel)]="viagemSaida" />
+      </div>
+    </div>
+
+    <div class="linha">
+      <div class="campo">
+        <label for="chegadaPrevista">Chegada prevista (ETA) *</label>
+        <input id="chegadaPrevista" name="chegadaPrevista" type="datetime-local"
+               [(ngModel)]="chegadaPrevista" required />
+      </div>
+      <div class="campo">
+        <label for="atracacaoPrevista">Atracação prevista (ETB)</label>
+        <input id="atracacaoPrevista" name="atracacaoPrevista" type="datetime-local"
+               [(ngModel)]="atracacaoPrevista" />
+      </div>
+      <div class="campo">
+        <label for="partidaPrevista">Partida prevista (ETD)</label>
+        <input id="partidaPrevista" name="partidaPrevista" type="datetime-local"
+               [(ngModel)]="partidaPrevista" />
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="bercoPrevisto">Berço previsto</label>
+      <input id="bercoPrevisto" name="bercoPrevisto" type="text" maxlength="20"
+             [(ngModel)]="bercoPrevisto" />
+    </div>
+
+    <div class="campo">
+      <label for="observacoes">Observações</label>
+      <textarea id="observacoes" name="observacoes" maxlength="500" rows="3"
+                [(ngModel)]="observacoes"></textarea>
+    </div>
+
+    <div class="acoes">
+      <button type="button" class="botao-secundario" (click)="cancelar()" [disabled]="salvando">Cancelar</button>
+      <button type="submit" class="botao-primario" [disabled]="salvando || navios.length === 0">
+        {{ salvando ? 'Salvando...' : 'Criar escala' }}
+      </button>
+    </div>
+  </form>
+</section>

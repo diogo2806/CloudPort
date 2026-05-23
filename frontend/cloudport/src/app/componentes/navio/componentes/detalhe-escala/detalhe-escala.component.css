@@ -1,0 +1,260 @@
+.detalhe-escala {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  max-width: 960px;
+}
+
+.link-voltar {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  color: #005f9e;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0;
+}
+
+.link-voltar:hover {
+  text-decoration: underline;
+}
+
+.cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cabecalho h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.subtitulo {
+  margin: 4px 0 0;
+  color: #555;
+}
+
+.painel {
+  background-color: #fff;
+  border: 1px solid #dcdcdc;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.painel h2 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+
+.cabecalho-painel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.botoes-fase {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.botao-fase {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: #1b6b3a;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.botao-fase:hover:not(:disabled),
+.botao-fase:focus:not(:disabled) {
+  background-color: #14512c;
+}
+
+.grade-dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 24px;
+  margin: 0;
+}
+
+.grade-dados dt {
+  font-size: 0.82rem;
+  color: #6a7480;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.grade-dados dd {
+  margin: 2px 0 0;
+  font-size: 1rem;
+  color: #1f2933;
+}
+
+.observacoes {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.observacoes dt {
+  font-size: 0.82rem;
+  color: #6a7480;
+  text-transform: uppercase;
+}
+
+.observacoes dd {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.linha {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.linha .campo {
+  flex: 1 1 200px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.campo label {
+  font-size: 0.9rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.campo input,
+.campo textarea {
+  padding: 8px 10px;
+  border: 1px solid #c5c5c5;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.campo input:focus,
+.campo textarea:focus {
+  outline: 2px solid #005f9e;
+  outline-offset: -1px;
+  border-color: #005f9e;
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.botao-primario {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: #005f9e;
+  color: #fff;
+  cursor: pointer;
+}
+
+.botao-primario:hover:not(:disabled),
+.botao-primario:focus:not(:disabled) {
+  background-color: #004b7a;
+}
+
+.botao-secundario {
+  padding: 9px 16px;
+  border: 1px solid #9aa5b1;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #44515f;
+  cursor: pointer;
+}
+
+.botao-secundario:hover:not(:disabled),
+.botao-secundario:focus:not(:disabled) {
+  background-color: #eef1f4;
+}
+
+.zona-perigo {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.botao-perigo {
+  padding: 9px 16px;
+  border: 1px solid #c62828;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #c62828;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.botao-perigo:hover:not(:disabled),
+.botao-perigo:focus:not(:disabled) {
+  background-color: #c62828;
+  color: #fff;
+}
+
+.botao-primario:disabled,
+.botao-secundario:disabled,
+.botao-fase:disabled,
+.botao-perigo:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.estado-informativo {
+  padding: 12px;
+  background-color: #eef5ff;
+  border-left: 4px solid #005f9e;
+  color: #003b63;
+}
+
+.estado-erro {
+  padding: 12px;
+  background-color: #ffecec;
+  border-left: 4px solid #c62828;
+  color: #7f1d1d;
+}
+
+.estado-sucesso {
+  padding: 12px;
+  background-color: #e6f6ec;
+  border-left: 4px solid #1b6b3a;
+  color: #14512c;
+}
+
+.fase-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fase-prevista { background-color: #e3eefc; color: #1d4e89; }
+.fase-inbound { background-color: #e7f0ff; color: #0b5cad; }
+.fase-atracado { background-color: #fff4d6; color: #8a6100; }
+.fase-operando { background-color: #d8f3e0; color: #1b6b3a; }
+.fase-partiu { background-color: #e6e6e6; color: #444; }
+.fase-encerrada { background-color: #dfe3e8; color: #2c3338; }
+.fase-cancelada { background-color: #ffe0e0; color: #a02020; }

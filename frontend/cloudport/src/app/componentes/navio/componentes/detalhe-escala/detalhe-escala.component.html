@@ -1,0 +1,114 @@
+<section class="detalhe-escala">
+  <button type="button" class="link-voltar" (click)="voltar()">← Voltar ao cronograma</button>
+
+  <div *ngIf="estaCarregando" class="estado-informativo">Carregando escala...</div>
+  <div *ngIf="erro" class="estado-erro">{{ textoSeguro(erro) }}</div>
+  <div *ngIf="mensagem" class="estado-sucesso">{{ textoSeguro(mensagem) }}</div>
+
+  <ng-container *ngIf="escala && !estaCarregando">
+    <header class="cabecalho">
+      <div>
+        <h1>{{ textoSeguro(escala.nomeNavio) }}</h1>
+        <p class="subtitulo">
+          IMO {{ textoSeguro(escala.codigoImo) }} · Viagem {{ textoSeguro(escala.viagemEntrada) }}
+          <span *ngIf="escala.viagemSaida"> / {{ textoSeguro(escala.viagemSaida) }}</span>
+        </p>
+      </div>
+      <span [class]="classeFase(escala.fase)">{{ rotuloFase(escala.fase) }}</span>
+    </header>
+
+    <div class="painel" *ngIf="transicoesDisponiveis.length > 0">
+      <h2>Avançar operação</h2>
+      <div class="botoes-fase">
+        <button
+          *ngFor="let destino of transicoesDisponiveis"
+          type="button"
+          class="botao-fase"
+          [disabled]="processando"
+          (click)="avancarFase(destino)"
+        >
+          {{ rotuloFase(destino) }}
+        </button>
+      </div>
+    </div>
+
+    <div class="painel" *ngIf="transicoesDisponiveis.length === 0">
+      <p class="estado-informativo">Esta escala está em uma fase final e não admite novas transições.</p>
+    </div>
+
+    <!-- Modo leitura -->
+    <div class="painel" *ngIf="!modoEdicao">
+      <div class="cabecalho-painel">
+        <h2>Tempos e berços</h2>
+        <button type="button" class="botao-secundario" (click)="iniciarEdicao()" [disabled]="processando">Editar</button>
+      </div>
+      <dl class="grade-dados">
+        <div><dt>Chegada prevista (ETA)</dt><dd>{{ (escala.chegadaPrevista | date:'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
+        <div><dt>Atracação prevista (ETB)</dt><dd>{{ (escala.atracacaoPrevista | date:'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
+        <div><dt>Partida prevista (ETD)</dt><dd>{{ (escala.partidaPrevista | date:'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
+        <div><dt>Chegada efetiva (ATA)</dt><dd>{{ (escala.chegadaEfetiva | date:'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
+        <div><dt>Atracação efetiva (ATB)</dt><dd>{{ (escala.atracacaoEfetiva | date:'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
+        <div><dt>Partida efetiva (ATD)</dt><dd>{{ (escala.partidaEfetiva | date:'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
+        <div><dt>Berço previsto</dt><dd>{{ textoSeguro(escala.bercoPrevisto) || '—' }}</dd></div>
+        <div><dt>Berço atual</dt><dd>{{ textoSeguro(escala.bercoAtual) || '—' }}</dd></div>
+      </dl>
+      <div class="observacoes" *ngIf="escala.observacoes">
+        <dt>Observações</dt>
+        <dd>{{ textoSeguro(escala.observacoes) }}</dd>
+      </div>
+    </div>
+
+    <!-- Modo edição -->
+    <form class="painel formulario" *ngIf="modoEdicao" (ngSubmit)="salvarEdicao()">
+      <h2>Editar escala</h2>
+      <div class="linha">
+        <div class="campo">
+          <label for="ed-viagemEntrada">Viagem de entrada</label>
+          <input id="ed-viagemEntrada" name="ed-viagemEntrada" type="text" maxlength="20" [(ngModel)]="edicao.viagemEntrada" />
+        </div>
+        <div class="campo">
+          <label for="ed-viagemSaida">Viagem de saída</label>
+          <input id="ed-viagemSaida" name="ed-viagemSaida" type="text" maxlength="20" [(ngModel)]="edicao.viagemSaida" />
+        </div>
+      </div>
+      <div class="linha">
+        <div class="campo">
+          <label for="ed-chegadaPrevista">Chegada prevista (ETA)</label>
+          <input id="ed-chegadaPrevista" name="ed-chegadaPrevista" type="datetime-local" [(ngModel)]="edicao.chegadaPrevista" />
+        </div>
+        <div class="campo">
+          <label for="ed-atracacaoPrevista">Atracação prevista (ETB)</label>
+          <input id="ed-atracacaoPrevista" name="ed-atracacaoPrevista" type="datetime-local" [(ngModel)]="edicao.atracacaoPrevista" />
+        </div>
+        <div class="campo">
+          <label for="ed-partidaPrevista">Partida prevista (ETD)</label>
+          <input id="ed-partidaPrevista" name="ed-partidaPrevista" type="datetime-local" [(ngModel)]="edicao.partidaPrevista" />
+        </div>
+      </div>
+      <div class="linha">
+        <div class="campo">
+          <label for="ed-bercoPrevisto">Berço previsto</label>
+          <input id="ed-bercoPrevisto" name="ed-bercoPrevisto" type="text" maxlength="20" [(ngModel)]="edicao.bercoPrevisto" />
+        </div>
+        <div class="campo">
+          <label for="ed-bercoAtual">Berço atual</label>
+          <input id="ed-bercoAtual" name="ed-bercoAtual" type="text" maxlength="20" [(ngModel)]="edicao.bercoAtual" />
+        </div>
+      </div>
+      <div class="campo">
+        <label for="ed-observacoes">Observações</label>
+        <textarea id="ed-observacoes" name="ed-observacoes" maxlength="500" rows="3" [(ngModel)]="edicao.observacoes"></textarea>
+      </div>
+      <div class="acoes">
+        <button type="button" class="botao-secundario" (click)="cancelarEdicao()" [disabled]="processando">Cancelar</button>
+        <button type="submit" class="botao-primario" [disabled]="processando">
+          {{ processando ? 'Salvando...' : 'Salvar alterações' }}
+        </button>
+      </div>
+    </form>
+
+    <div class="painel zona-perigo" *ngIf="!modoEdicao">
+      <button type="button" class="botao-perigo" (click)="remover()" [disabled]="processando">Remover escala</button>
+    </div>
+  </ng-container>
+</section>

@@ -30,7 +30,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     private tabService: TabService,
     private reuseStrategy: RouteReuseStrategy
   ) {
-    console.log('Classe HomeComponent: Método construtor chamado.');
     const usuarioAtual: any = this.servicoAutenticacao.obterUsuarioAtual();
     if (usuarioAtual && usuarioAtual.token) {
       this.userToken = usuarioAtual.token;
@@ -38,7 +37,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    console.log('Classe HomeComponent: Método ngOnInit iniciado.');
     this.registroSubscription = this.tabService.registroAbas$.subscribe(() => {
       const idPadrao = this.tabService.obterIdPadrao();
       if (idPadrao) {
@@ -84,22 +82,18 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   logout() {
-    console.log('Classe HomeComponent: Método logout chamado.');
     this.servicoAutenticacao.encerrarSessao();
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
     this.router.navigate(['login']);
   }
 
   Alert() {
-    console.log('Classe HomeComponent: Método Alert chamado.');
     alert(this.servicoAutenticacao.obterUsuarioAtual()?.token);
   }
 
   closeTab(tabId: string) {
-    console.log(`Classe HomeComponent: Método closeTab chamado com o parâmetro clearHandlers=${tabId}.`);
     const route = this.resolveChildRoute(tabId);
     (this.reuseStrategy as CustomReuseStrategy).markForDestruction(route);
-    console.log(`Classe HomeComponent: Método closeTab chamado com o parâmetro tab=${tabId}.`);
     this.tabService.closeTab(route);
     delete this.tabContent[route];
   }

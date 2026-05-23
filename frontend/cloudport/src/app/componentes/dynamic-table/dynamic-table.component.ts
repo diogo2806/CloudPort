@@ -8,16 +8,6 @@ import { TabStateService } from './tab-state.service';
 import { PopupService } from '../service/popupService';
 
 
-function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
-  const originalMethod = descriptor.value;
-  descriptor.value = function (...args: any[]) {
-    console.log(`Classe ${target.constructor.name}: Método ${key} chamado.`);
-    return originalMethod.apply(this, args);
-  };
-  return descriptor;
-}
-
-
 
 @Component({
   selector: 'app-dynamic-table',
@@ -70,14 +60,12 @@ export class DynamicTableComponent implements OnInit, AfterViewInit, OnChanges, 
 
 
   ngOnInit(): void {
-    console.log('Classe DynamicTableComponent: : Método ngOnInit iniciado.');
 
     this.updateColumnDefinitions();
     this.filteredData = [...this.data];
-  
+
    // this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
 
-    console.log('Classe DynamicTableComponent: : Método ngOnInit finalizado.');
    // document.addEventListener('click', this.closeContextMenu.bind(this));
    //this.gridTable.nativeElement.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
    //this.boundHandleTableContextMenu = this.handleTableContextMenu.bind(this);
@@ -92,10 +80,8 @@ export class DynamicTableComponent implements OnInit, AfterViewInit, OnChanges, 
   
 
   ngAfterViewInit(): void {
-    console.log('Classe DynamicTableComponent: : Método ngAfterViewInit iniciado.');
     // Adicione o manipulador de eventos para o evento 'contextmenu'
    // this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
-    console.log('Classe DynamicTableComponent: : Método ngAfterViewInit finalizado.');
   }
 
 
@@ -104,31 +90,22 @@ export class DynamicTableComponent implements OnInit, AfterViewInit, OnChanges, 
     //document.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
     //document.removeEventListener('contextmenu', this.handleTableContextMenu.bind(this));
     event.preventDefault();
-    //console.log("DynamicTableComponent handleTableContextMenu event: ",event);
     const row = 0; // Acessa os dados da linha clicada
-    console.log('DynamicTableComponent handleTableContextMenu event row: Emitindo evento de clique com o botão direito do mouse', { event: event, row }); // Depuração
 
 /*
 
-      console.log(event)
 
-    
     if(event==null){
-      console.log("handleTableContextMenu: event.row==null")
 
     }
    if (this.gridTable && this.gridTable.nativeElement) {
-     console.log("handleTableContextMenu: oi")
   }
 
   if (this.gridTable) {
-    console.log("handleTableContextMenu: this.gridTable")
  }
- 
+
  if (this.gridTable==null) {
-  console.log("handleTableContextMenu: this.gridTable==null")
 }
-console.log("handleTableContextMenu: ", event)
       event.preventDefault(); // Previne o menu de contexto padrão dentro da tabela
 
       */
@@ -136,7 +113,6 @@ console.log("handleTableContextMenu: ", event)
 
 
 
- // @logMethod
  // ngAfterViewInit(): void {
    // if (this.gridTable && this.gridTable.nativeElement) {
    //   this.gridTable.nativeElement.addEventListener('contextmenu', this.handleTableContextMenu.bind(this));
@@ -166,7 +142,6 @@ console.log("handleTableContextMenu: ", event)
     mouseEvent.stopPropagation();
 
     const row = event.data; // Acessa os dados da linha clicada
-    console.log('DynamicTableComponent onCellContextMenu: Emitindo evento de clique com o botão direito do mouse', { event: mouseEvent, row }); // Depuração
     this.rightClick.emit({ event: mouseEvent, row });
   }
 
@@ -180,16 +155,12 @@ console.log("handleTableContextMenu: ", event)
   }
   
 
- // @logMethod
 //preventRightClickDefault(event: MouseEvent): void {
-  //console.log("preventRightClickDefault: "+event.target?.dispatchEvent)
   /*
   if (this.gridTable && this.gridTable.nativeElement.contains(event.target as Node)) {
-    console.log('CLIQUE DENTRO DA TABELA');
     event.preventDefault();
     //this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
   } else {
-    console.log('CLIQUE FORA DA TABELA');
     //event.preventDefault();
     //this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
   }
@@ -284,7 +255,6 @@ onBtExport() {
       link.download = 'data.xlsx';
       link.click();
       window.URL.revokeObjectURL(url);
-      console.log("DynamicTableComponent onBtExport: Exportação bem-sucedida");
     }).catch((error) => {
       console.error("DynamicTableComponent onBtExport: Erro ao gerar arquivo Excel", error);
     });
@@ -304,20 +274,16 @@ onBtExport() {
     } else {
       //event.node.setSelected(false);
     }
-   // console.log('Célula clicada:', event);
    this.rightClick.emit(null); // Emita um evento nulo para fechar o menu
-  // console.log('Célula clicada:', event);
   }
 
    /*
-     @logMethod
   onCellClicked(event: any) {
     if (!event.node.isSelected()) {
       event.node.setSelected(true);
     } else {
       event.node.setSelected(false);
     }
-   // console.log('Célula clicada:', event);
   }
 
     leftClick(event: MouseEvent, role: any) {
@@ -338,22 +304,18 @@ onBtExport() {
 
 
   onCellDoubleClicked(event: any) {
-    console.log('DynamicTableComponent onCellDoubleClicked: Célula clicada com o botão direito:', event);
     this.rowDoubleClicked.emit(event);
   }
 /*
-  @logMethod
   onCellRightClicked(event: any) {
-    console.log('onCellRightClicked: ', event);
     const mouseEvent = event.event as MouseEvent;
     const row = event.data; // Acessa os dados da linha clicada
     this.rightClick.emit({ event: mouseEvent, row });
 
   }
 */
-  
+
   onRowClicked(event: any) {
-    console.log('onRowClicked: ', event);
     this.rowClicked.emit(event);
     //this.rightClick.emit({event});
   }
@@ -391,7 +353,6 @@ onBtExport() {
     this.dragging = true;
     this.toggleSelection(row);
     this.mouseDown.emit({ event, row });
-    console.log('onRowMouseDown: ', event);
   }
 
 
@@ -401,14 +362,12 @@ onBtExport() {
     this.mouseUp.emit(event);
   }
 
-  @logMethod
   onRowMouseOver(event: MouseEvent, row: any) {
     if (!this.dragging) return;
     this.toggleSelection(row);
     this.mouseOver.emit({ event, row });
   }
 
-  @logMethod
   onRowRightClick(event: MouseEvent, row: any) {
     event.preventDefault();
     this.rightClick.emit({ event, row });
@@ -416,12 +375,10 @@ onBtExport() {
 
 
 
-  @logMethod
   isRowSelected(row: any): boolean {
     return this.selectedRoleIds.includes(row['Role ID']);
   }
 
-  @logMethod
   toggleSelection(row: any): void {
     const index = this.selectedRoleIds.indexOf(row['Role ID']);
     if (index > -1) {
@@ -434,14 +391,12 @@ onBtExport() {
   
   showModal = false;
 
-  @logMethod
   createEntity(entityType: string) {
     if (entityType === 'role') {
       this.popupService.openPopup('role'); // Abre o modal
     }
   }
 
-  @logMethod
   closePopup() {
     this.showModal = false; // Fecha o modal
   }

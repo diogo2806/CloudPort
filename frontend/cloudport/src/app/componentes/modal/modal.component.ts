@@ -4,16 +4,6 @@ import { RoleCadastroComponent } from '../role/role-cadastro/role-cadastro.compo
 import { ConfirmacaoModalComponent } from './confirmacao-modal/confirmacao-modal.component';
 
 
-function logMethod(target: any, key: string, descriptor: PropertyDescriptor) {
-  const originalMethod = descriptor.value;
-  descriptor.value = function (...args: any[]) {
-    console.log(`Classe ${target.constructor.name}: Método ${key} chamado.`);
-    return originalMethod.apply(this, args);
-  };
-  return descriptor;
-}
-
-
 const componentMapping: Record<string, Type<any>> = {
   'role': RoleCadastroComponent,
   'confirmacao': ConfirmacaoModalComponent,
@@ -42,10 +32,8 @@ export class ModalComponent implements AfterViewInit {
     // Removido a subscrição aqui
   }
 
-  @logMethod
   ngAfterViewInit() {
     this.popupService.showPopup$.subscribe((popup) => {
-      console.log('Recebido:', popup);
       this.entityType = popup.type;
       this.showPopup = popup.show;
       if (popup.show) {
@@ -57,7 +45,6 @@ export class ModalComponent implements AfterViewInit {
     });
   }
 
-  @logMethod
   loadComponent(popup: PopupState) {
     if (this.componentRef) {
       this.componentRef.destroy();
@@ -71,8 +58,6 @@ export class ModalComponent implements AfterViewInit {
       return;
     }
 
-
-    console.log('componentTypeString: ' + popup.type);
 
     const injector = Injector.create({ providers: [], parent: this.viewContainerRef.injector });
 
@@ -90,7 +75,6 @@ export class ModalComponent implements AfterViewInit {
 
 
 
-  @logMethod
   closePopup() {
     this.popupService.closePopup();
   }

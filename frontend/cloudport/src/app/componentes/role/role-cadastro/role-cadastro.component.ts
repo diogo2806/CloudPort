@@ -19,7 +19,6 @@ export class RoleCadastroComponent implements OnInit {
     private formBuilder: FormBuilder,
     private popupService: PopupService) {
     this.popupService.showPopup$.subscribe(popup => {
-      console.log('Recebido:', popup); // Adicione este log
       this.entityType = popup.type;
       this.showPopup = popup.show;
     });
@@ -34,7 +33,6 @@ export class RoleCadastroComponent implements OnInit {
 
   saveRole() {
     // Lógica para salvar o Role com o nome fornecido
-    console.log('Salvando Role com os dados:', this.form.value);
   }
 
   closePopup() {

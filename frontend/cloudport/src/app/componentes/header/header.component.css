@@ -40,3 +40,8 @@
 .d-flex {
     width: 100%;
 }
+
+.header-actions {
+    width: auto;
+    gap: 1rem;
+}

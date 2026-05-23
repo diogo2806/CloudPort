@@ -13,6 +13,7 @@ import { HomeComponent } from './componentes/home/home.component';
 import { HeaderComponent } from './componentes/header/header.component';
 import { FooterComponent } from './componentes/footer/footer.component';
 import { NavbarComponent } from './componentes/navbar/navbar.component';
+import { ControleTamanhoTextoComponent } from './componentes/controle-tamanho-texto/controle-tamanho-texto.component';
 import { RoleTabelaComponent } from './componentes/role/role-tabela/role-tabela.component';
 import { ContextMenuComponent } from './componentes/context-menu/context-menu.component';
 import { AgGridModule } from 'ag-grid-angular';
@@ -33,6 +34,7 @@ import { TextoSeguroPipe } from './componentes/pipes/texto-seguro.pipe';
         HeaderComponent,
         FooterComponent,
         NavbarComponent,
+        ControleTamanhoTextoComponent,
         RoleTabelaComponent,
         ContextMenuComponent,
         SegurancaComponent,

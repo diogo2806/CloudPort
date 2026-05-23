@@ -64,10 +64,10 @@
           },
           "configurations": {
             "production": {
-              "browserTarget": "cloudport:build:production"
+              "buildTarget": "cloudport:build:production"
             },
             "development": {
-              "browserTarget": "cloudport:build:development"
+              "buildTarget": "cloudport:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -75,7 +75,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "cloudport:build"
+            "buildTarget": "cloudport:build"
           }
         },
         "test": {

@@ -107,6 +107,56 @@
       </div>
     </form>
 
+    <!-- Planejamento de pátio: listas de descarga e carga -->
+    <div class="painel" *ngIf="!modoEdicao">
+      <div class="cabecalho-painel">
+        <h2>Planejamento de pátio</h2>
+        <button type="button" class="botao-secundario" (click)="irParaListaTrabalho()">Lista de trabalho</button>
+      </div>
+      <p class="ajuda">
+        Os contêineres planejados geram ordens de movimentação quando a escala está atracada/em operação.
+        Ao concluir as ordens, o pátio é atualizado automaticamente.
+      </p>
+
+      <div class="listas-conteiner">
+        <div class="lista-bloco">
+          <h3>Descarga ({{ escala.listaDescarga.length }})</h3>
+          <div class="adicionar-conteiner" *ngIf="listasEditaveis">
+            <input type="text" maxlength="20" placeholder="Código do contêiner"
+                   [(ngModel)]="novoConteinerDescarga" (keyup.enter)="adicionarDescarga()" />
+            <button type="button" class="botao-primario" (click)="adicionarDescarga()" [disabled]="processando">Adicionar</button>
+          </div>
+          <ul class="conteineres" *ngIf="escala.listaDescarga.length > 0">
+            <li *ngFor="let op of escala.listaDescarga">
+              <span class="codigo">{{ textoSeguro(op.codigoConteiner) }}</span>
+              <span class="status-conteiner">{{ op.statusOperacao }}</span>
+              <button type="button" class="remover" *ngIf="listasEditaveis"
+                      (click)="removerDescarga(op.codigoConteiner)" [disabled]="processando" aria-label="Remover">✕</button>
+            </li>
+          </ul>
+          <p class="vazio" *ngIf="escala.listaDescarga.length === 0">Nenhum contêiner para descarga.</p>
+        </div>
+
+        <div class="lista-bloco">
+          <h3>Carga ({{ escala.listaCarga.length }})</h3>
+          <div class="adicionar-conteiner" *ngIf="listasEditaveis">
+            <input type="text" maxlength="20" placeholder="Código do contêiner"
+                   [(ngModel)]="novoConteinerCarga" (keyup.enter)="adicionarCarga()" />
+            <button type="button" class="botao-primario" (click)="adicionarCarga()" [disabled]="processando">Adicionar</button>
+          </div>
+          <ul class="conteineres" *ngIf="escala.listaCarga.length > 0">
+            <li *ngFor="let op of escala.listaCarga">
+              <span class="codigo">{{ textoSeguro(op.codigoConteiner) }}</span>
+              <span class="status-conteiner">{{ op.statusOperacao }}</span>
+              <button type="button" class="remover" *ngIf="listasEditaveis"
+                      (click)="removerCarga(op.codigoConteiner)" [disabled]="processando" aria-label="Remover">✕</button>
+            </li>
+          </ul>
+          <p class="vazio" *ngIf="escala.listaCarga.length === 0">Nenhum contêiner para carga.</p>
+        </div>
+      </div>
+    </div>
+
     <div class="painel zona-perigo" *ngIf="!modoEdicao">
       <button type="button" class="botao-perigo" (click)="remover()" [disabled]="processando">Remover escala</button>
     </div>

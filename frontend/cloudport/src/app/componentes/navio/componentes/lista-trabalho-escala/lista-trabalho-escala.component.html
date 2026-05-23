@@ -1,0 +1,42 @@
+<section class="lista-trabalho">
+  <button type="button" class="link-voltar" (click)="voltar()">← Voltar à escala</button>
+
+  <header>
+    <h1>Lista de Trabalho</h1>
+    <p class="descricao">Ordens de movimentação geradas para a operação do navio. Concluí-las atualiza o pátio.</p>
+  </header>
+
+  <div *ngIf="estaCarregando" class="estado-informativo">Carregando ordens...</div>
+  <div *ngIf="erro" class="estado-erro">{{ textoSeguro(erro) }}</div>
+
+  <table *ngIf="!estaCarregando && ordens.length > 0" class="tabela-ordens" aria-label="Ordens de movimentação">
+    <thead>
+      <tr>
+        <th scope="col">Contêiner</th>
+        <th scope="col">Tipo</th>
+        <th scope="col">Status</th>
+        <th scope="col" class="coluna-acoes">Ação</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let ordem of ordens">
+        <td class="codigo">{{ textoSeguro(ordem.codigoConteiner) }}</td>
+        <td>{{ rotuloTipo(ordem.tipoMovimentacao) }}</td>
+        <td><span [class]="classeStatus(ordem.statusMovimentacao)">{{ rotuloStatus(ordem.statusMovimentacao) }}</span></td>
+        <td class="coluna-acoes">
+          <button type="button" class="botao-primario"
+                  *ngIf="proximoStatus(ordem)"
+                  [disabled]="processando"
+                  (click)="avancar(ordem)">
+            {{ rotuloProximo(ordem) }}
+          </button>
+          <span *ngIf="!proximoStatus(ordem)" class="finalizada">—</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!estaCarregando && !erro && ordens.length === 0" class="estado-informativo">
+    Nenhuma ordem pendente. As ordens são geradas quando a escala está atracada/em operação e há contêineres planejados.
+  </div>
+</section>

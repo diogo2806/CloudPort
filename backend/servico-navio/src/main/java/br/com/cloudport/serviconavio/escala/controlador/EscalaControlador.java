@@ -1,10 +1,12 @@
 package br.com.cloudport.serviconavio.escala.controlador;
 
 import br.com.cloudport.serviconavio.escala.dto.AtualizacaoEscalaDTO;
+import br.com.cloudport.serviconavio.escala.dto.AtualizacaoStatusConteinerEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.AvancarFaseEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.CadastroEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaDetalheDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaResumoDTO;
+import br.com.cloudport.serviconavio.escala.dto.OperacaoConteinerEscalaDTO;
 import br.com.cloudport.serviconavio.escala.servico.EscalaServico;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
@@ -70,5 +72,43 @@ public class EscalaControlador {
     public EscalaDetalheDTO registrar(@PathVariable Long navioId,
                                       @Valid @RequestBody CadastroEscalaDTO dto) {
         return escalaServico.registrar(navioId, dto);
+    }
+
+    @PostMapping("/escalas/{id}/descarga")
+    public EscalaDetalheDTO adicionarDescarga(@PathVariable Long id,
+                                              @Valid @RequestBody OperacaoConteinerEscalaDTO dto) {
+        return escalaServico.adicionarConteinerDescarga(id, dto);
+    }
+
+    @PostMapping("/escalas/{id}/carga")
+    public EscalaDetalheDTO adicionarCarga(@PathVariable Long id,
+                                           @Valid @RequestBody OperacaoConteinerEscalaDTO dto) {
+        return escalaServico.adicionarConteinerCarga(id, dto);
+    }
+
+    @DeleteMapping("/escalas/{id}/descarga/{codigoConteiner}")
+    public EscalaDetalheDTO removerDescarga(@PathVariable Long id,
+                                            @PathVariable String codigoConteiner) {
+        return escalaServico.removerConteinerDescarga(id, codigoConteiner);
+    }
+
+    @DeleteMapping("/escalas/{id}/carga/{codigoConteiner}")
+    public EscalaDetalheDTO removerCarga(@PathVariable Long id,
+                                         @PathVariable String codigoConteiner) {
+        return escalaServico.removerConteinerCarga(id, codigoConteiner);
+    }
+
+    @PatchMapping("/escalas/{id}/descarga/{codigoConteiner}/status")
+    public EscalaDetalheDTO atualizarStatusDescarga(@PathVariable Long id,
+                                                    @PathVariable String codigoConteiner,
+                                                    @Valid @RequestBody AtualizacaoStatusConteinerEscalaDTO dto) {
+        return escalaServico.atualizarStatusConteinerDescarga(id, codigoConteiner, dto.getStatusOperacao());
+    }
+
+    @PatchMapping("/escalas/{id}/carga/{codigoConteiner}/status")
+    public EscalaDetalheDTO atualizarStatusCarga(@PathVariable Long id,
+                                                 @PathVariable String codigoConteiner,
+                                                 @Valid @RequestBody AtualizacaoStatusConteinerEscalaDTO dto) {
+        return escalaServico.atualizarStatusConteinerCarga(id, codigoConteiner, dto.getStatusOperacao());
     }
 }

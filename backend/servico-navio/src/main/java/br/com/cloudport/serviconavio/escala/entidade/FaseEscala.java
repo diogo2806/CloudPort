@@ -41,4 +41,12 @@ public enum FaseEscala {
     public boolean isTerminal() {
         return this == ENCERRADA || this == CANCELADA;
     }
+
+    /**
+     * Fases em que o navio está disponível no berço para gerar ordens de movimentação
+     * (descarga/carga) — análogo ao estado "Working" do Navis N4.
+     */
+    public boolean permiteOperacaoConteiner() {
+        return this == ATRACADO || this == OPERANDO;
+    }
 }

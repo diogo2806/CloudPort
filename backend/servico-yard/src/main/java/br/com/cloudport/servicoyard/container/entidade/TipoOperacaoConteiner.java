@@ -7,5 +7,7 @@ public enum TipoOperacaoConteiner {
     LIBERACAO,
     ATUALIZACAO_CADASTRAL,
     DESCARGA_TREM,
-    CARGA_TREM
+    CARGA_TREM,
+    DESCARGA_NAVIO,
+    CARGA_NAVIO
 }

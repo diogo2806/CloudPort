@@ -1,7 +1,9 @@
 package br.com.cloudport.serviconavio.escala.entidade;
 
 import br.com.cloudport.serviconavio.navio.entidade.Navio;
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -11,10 +13,14 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OrderColumn;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "escala")
@@ -70,6 +76,22 @@ public class Escala {
 
     @Column(name = "atualizado_em", nullable = false)
     private LocalDateTime atualizadoEm;
+
+    @ElementCollection
+    @CollectionTable(name = "escala_descarga",
+            joinColumns = @JoinColumn(name = "escala_id"),
+            uniqueConstraints = @UniqueConstraint(name = "uk_escala_descarga_conteiner",
+                    columnNames = {"escala_id", "codigo_conteiner"}))
+    @OrderColumn(name = "ordem_descarga")
+    private List<OperacaoConteinerEscala> listaDescarga = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "escala_carga",
+            joinColumns = @JoinColumn(name = "escala_id"),
+            uniqueConstraints = @UniqueConstraint(name = "uk_escala_carga_conteiner",
+                    columnNames = {"escala_id", "codigo_conteiner"}))
+    @OrderColumn(name = "ordem_carga")
+    private List<OperacaoConteinerEscala> listaCarga = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -197,6 +219,28 @@ public class Escala {
 
     public void setAtualizadoEm(LocalDateTime atualizadoEm) {
         this.atualizadoEm = atualizadoEm;
+    }
+
+    public List<OperacaoConteinerEscala> getListaDescarga() {
+        return listaDescarga;
+    }
+
+    public void definirListaDescarga(List<OperacaoConteinerEscala> listaDescarga) {
+        this.listaDescarga.clear();
+        if (listaDescarga != null) {
+            this.listaDescarga.addAll(listaDescarga);
+        }
+    }
+
+    public List<OperacaoConteinerEscala> getListaCarga() {
+        return listaCarga;
+    }
+
+    public void definirListaCarga(List<OperacaoConteinerEscala> listaCarga) {
+        this.listaCarga.clear();
+        if (listaCarga != null) {
+            this.listaCarga.addAll(listaCarga);
+        }
     }
 
     @PrePersist

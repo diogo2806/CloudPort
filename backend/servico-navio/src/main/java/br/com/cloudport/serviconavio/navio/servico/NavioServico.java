@@ -6,7 +6,6 @@ import br.com.cloudport.serviconavio.navio.dto.CadastroNavioDTO;
 import br.com.cloudport.serviconavio.navio.dto.NavioDetalheDTO;
 import br.com.cloudport.serviconavio.navio.dto.NavioResumoDTO;
 import br.com.cloudport.serviconavio.navio.entidade.Navio;
-import br.com.cloudport.serviconavio.navio.entidade.StatusOperacaoNavio;
 import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +32,7 @@ public class NavioServico {
 
     @Transactional(readOnly = true)
     public List<NavioResumoDTO> listarResumo() {
-        return navioRepositorio.findAll(Sort.by(Sort.Direction.ASC, "dataPrevistaAtracacao")).stream()
+        return navioRepositorio.findAll(Sort.by(Sort.Direction.ASC, "nome")).stream()
                 .map(this::mapearResumo)
                 .collect(Collectors.toList());
     }
@@ -48,9 +47,9 @@ public class NavioServico {
     public NavioDetalheDTO registrar(CadastroNavioDTO dto) {
         Navio navio = new Navio();
         preencherDadosObrigatorios(dto, navio);
-        navio.setStatusOperacao(StatusOperacaoNavio.AGENDADO);
-        navio.setObservacoes(tratarTextoOpcional(dto.getObservacoes()));
-        navio.setBercoPrevisto(tratarTextoOpcional(dto.getBercoPrevisto()));
+        navio.setLoaMetros(dto.getLoaMetros());
+        navio.setCaladoMaximoMetros(dto.getCaladoMaximoMetros());
+        navio.setCallSign(tratarTextoOpcional(dto.getCallSign()));
         validarCodigoImoDisponivel(navio.getCodigoImo(), null);
         Navio salvo = navioRepositorio.save(navio);
         return mapearDetalhe(salvo);
@@ -77,26 +76,14 @@ public class NavioServico {
         if (dto.getCapacidadeTeu() != null) {
             navio.setCapacidadeTeu(dto.getCapacidadeTeu());
         }
-        if (dto.getDataPrevistaAtracacao() != null) {
-            navio.setDataPrevistaAtracacao(dto.getDataPrevistaAtracacao());
+        if (dto.getLoaMetros() != null) {
+            navio.setLoaMetros(dto.getLoaMetros());
         }
-        if (dto.getDataEfetivaAtracacao() != null) {
-            navio.setDataEfetivaAtracacao(dto.getDataEfetivaAtracacao());
+        if (dto.getCaladoMaximoMetros() != null) {
+            navio.setCaladoMaximoMetros(dto.getCaladoMaximoMetros());
         }
-        if (dto.getDataEfetivaDesatracacao() != null) {
-            navio.setDataEfetivaDesatracacao(dto.getDataEfetivaDesatracacao());
-        }
-        if (dto.getBercoPrevisto() != null) {
-            navio.setBercoPrevisto(tratarTextoOpcional(dto.getBercoPrevisto()));
-        }
-        if (dto.getBercoAtual() != null) {
-            navio.setBercoAtual(tratarTextoOpcional(dto.getBercoAtual()));
-        }
-        if (dto.getObservacoes() != null) {
-            navio.setObservacoes(tratarTextoOpcional(dto.getObservacoes()));
-        }
-        if (dto.getStatusOperacao() != null) {
-            navio.setStatusOperacao(dto.getStatusOperacao());
+        if (dto.getCallSign() != null) {
+            navio.setCallSign(tratarTextoOpcional(dto.getCallSign()));
         }
         Navio salvo = navioRepositorio.save(navio);
         return mapearDetalhe(salvo);
@@ -120,7 +107,6 @@ public class NavioServico {
         navio.setPaisBandeira(sanitizadorEntrada.limparTextoObrigatorio(dto.getPaisBandeira(), "país da bandeira"));
         navio.setEmpresaArmadora(sanitizadorEntrada.limparTextoObrigatorio(dto.getEmpresaArmadora(), "empresa armadora"));
         navio.setCapacidadeTeu(dto.getCapacidadeTeu());
-        navio.setDataPrevistaAtracacao(dto.getDataPrevistaAtracacao());
     }
 
     private void validarCodigoImoDisponivel(String codigoImo, Long identificadorAtual) {
@@ -143,9 +129,8 @@ public class NavioServico {
                 navio.getIdentificador(),
                 navio.getNome(),
                 navio.getCodigoImo(),
-                navio.getStatusOperacao(),
-                navio.getDataPrevistaAtracacao(),
-                navio.getBercoPrevisto()
+                navio.getEmpresaArmadora(),
+                navio.getCapacidadeTeu()
         );
     }
 
@@ -157,13 +142,9 @@ public class NavioServico {
                 navio.getPaisBandeira(),
                 navio.getEmpresaArmadora(),
                 navio.getCapacidadeTeu(),
-                navio.getStatusOperacao(),
-                navio.getDataPrevistaAtracacao(),
-                navio.getDataEfetivaAtracacao(),
-                navio.getDataEfetivaDesatracacao(),
-                navio.getBercoPrevisto(),
-                navio.getBercoAtual(),
-                navio.getObservacoes()
+                navio.getLoaMetros(),
+                navio.getCaladoMaximoMetros(),
+                navio.getCallSign()
         );
     }
 }

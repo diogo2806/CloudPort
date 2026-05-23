@@ -2,13 +2,11 @@ package br.com.cloudport.serviconavio.navio.entidade;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "navio")
@@ -34,27 +32,14 @@ public class Navio {
     @Column(name = "capacidade_teu", nullable = false)
     private Integer capacidadeTeu;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status_operacao", nullable = false, length = 30)
-    private StatusOperacaoNavio statusOperacao;
+    @Column(name = "loa_metros", precision = 6, scale = 2)
+    private BigDecimal loaMetros;
 
-    @Column(name = "data_prevista_atracacao", nullable = false)
-    private LocalDateTime dataPrevistaAtracacao;
+    @Column(name = "calado_maximo_metros", precision = 5, scale = 2)
+    private BigDecimal caladoMaximoMetros;
 
-    @Column(name = "data_efetiva_atracacao")
-    private LocalDateTime dataEfetivaAtracacao;
-
-    @Column(name = "data_efetiva_desatracacao")
-    private LocalDateTime dataEfetivaDesatracacao;
-
-    @Column(name = "berco_previsto", length = 20)
-    private String bercoPrevisto;
-
-    @Column(name = "berco_atual", length = 20)
-    private String bercoAtual;
-
-    @Column(name = "observacoes", length = 500)
-    private String observacoes;
+    @Column(name = "call_sign", length = 15)
+    private String callSign;
 
     public Long getIdentificador() {
         return identificador;
@@ -104,59 +89,27 @@ public class Navio {
         this.capacidadeTeu = capacidadeTeu;
     }
 
-    public StatusOperacaoNavio getStatusOperacao() {
-        return statusOperacao;
+    public BigDecimal getLoaMetros() {
+        return loaMetros;
     }
 
-    public void setStatusOperacao(StatusOperacaoNavio statusOperacao) {
-        this.statusOperacao = statusOperacao;
+    public void setLoaMetros(BigDecimal loaMetros) {
+        this.loaMetros = loaMetros;
     }
 
-    public LocalDateTime getDataPrevistaAtracacao() {
-        return dataPrevistaAtracacao;
+    public BigDecimal getCaladoMaximoMetros() {
+        return caladoMaximoMetros;
     }
 
-    public void setDataPrevistaAtracacao(LocalDateTime dataPrevistaAtracacao) {
-        this.dataPrevistaAtracacao = dataPrevistaAtracacao;
+    public void setCaladoMaximoMetros(BigDecimal caladoMaximoMetros) {
+        this.caladoMaximoMetros = caladoMaximoMetros;
     }
 
-    public LocalDateTime getDataEfetivaAtracacao() {
-        return dataEfetivaAtracacao;
+    public String getCallSign() {
+        return callSign;
     }
 
-    public void setDataEfetivaAtracacao(LocalDateTime dataEfetivaAtracacao) {
-        this.dataEfetivaAtracacao = dataEfetivaAtracacao;
-    }
-
-    public LocalDateTime getDataEfetivaDesatracacao() {
-        return dataEfetivaDesatracacao;
-    }
-
-    public void setDataEfetivaDesatracacao(LocalDateTime dataEfetivaDesatracacao) {
-        this.dataEfetivaDesatracacao = dataEfetivaDesatracacao;
-    }
-
-    public String getBercoPrevisto() {
-        return bercoPrevisto;
-    }
-
-    public void setBercoPrevisto(String bercoPrevisto) {
-        this.bercoPrevisto = bercoPrevisto;
-    }
-
-    public String getBercoAtual() {
-        return bercoAtual;
-    }
-
-    public void setBercoAtual(String bercoAtual) {
-        this.bercoAtual = bercoAtual;
-    }
-
-    public String getObservacoes() {
-        return observacoes;
-    }
-
-    public void setObservacoes(String observacoes) {
-        this.observacoes = observacoes;
+    public void setCallSign(String callSign) {
+        this.callSign = callSign;
     }
 }

@@ -4,14 +4,13 @@ import br.com.cloudport.serviconavio.comum.validacao.SanitizadorEntrada;
 import br.com.cloudport.serviconavio.navio.dto.CadastroNavioDTO;
 import br.com.cloudport.serviconavio.navio.dto.NavioDetalheDTO;
 import br.com.cloudport.serviconavio.navio.entidade.Navio;
-import br.com.cloudport.serviconavio.navio.entidade.StatusOperacaoNavio;
 import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,12 +46,14 @@ class NavioServicoTest {
         dto.setPaisBandeira("Brasil");
         dto.setEmpresaArmadora("Armadora X");
         dto.setCapacidadeTeu(5000);
-        dto.setDataPrevistaAtracacao(LocalDateTime.of(2026, 5, 23, 8, 0));
+        dto.setLoaMetros(new BigDecimal("294.00"));
+        dto.setCaladoMaximoMetros(new BigDecimal("14.50"));
+        dto.setCallSign("PWXY");
         return dto;
     }
 
     @Test
-    void registrarDefineStatusAgendadoeNormalizaCodigoImo() {
+    void registrarNormalizaCodigoImoEPreservaAtributosFisicos() {
         when(navioRepositorio.existsByCodigoImoIgnoreCase(anyString())).thenReturn(false);
         when(navioRepositorio.save(any(Navio.class))).thenAnswer(invocacao -> {
             Navio navio = invocacao.getArgument(0);
@@ -66,9 +67,11 @@ class NavioServicoTest {
         ArgumentCaptor<Navio> capturado = ArgumentCaptor.forClass(Navio.class);
         verify(navioRepositorio).save(capturado.capture());
         Navio salvo = capturado.getValue();
-        assertThat(salvo.getStatusOperacao()).isEqualTo(StatusOperacaoNavio.AGENDADO);
         assertThat(salvo.getCodigoImo()).isEqualTo("IMO1234567");
         assertThat(salvo.getNome()).isEqualTo("Navio Teste");
+        assertThat(salvo.getLoaMetros()).isEqualByComparingTo("294.00");
+        assertThat(salvo.getCaladoMaximoMetros()).isEqualByComparingTo("14.50");
+        assertThat(salvo.getCallSign()).isEqualTo("PWXY");
     }
 
     @Test

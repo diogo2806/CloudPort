@@ -1,13 +1,11 @@
 package br.com.cloudport.serviconavio.navio.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import br.com.cloudport.serviconavio.navio.entidade.StatusOperacaoNavio;
-
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.DecimalMin;
+import javax.validation.constraints.Digits;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 public class AtualizacaoNavioDTO {
 
@@ -26,26 +24,16 @@ public class AtualizacaoNavioDTO {
     @Positive(message = "A capacidade em TEU deve ser maior que zero.")
     private Integer capacidadeTeu;
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime dataPrevistaAtracacao;
+    @DecimalMin(value = "0.0", inclusive = false, message = "O comprimento (LOA) deve ser maior que zero.")
+    @Digits(integer = 4, fraction = 2, message = "O comprimento (LOA) deve ter no máximo 4 dígitos inteiros e 2 decimais.")
+    private BigDecimal loaMetros;
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime dataEfetivaAtracacao;
+    @DecimalMin(value = "0.0", inclusive = false, message = "O calado máximo deve ser maior que zero.")
+    @Digits(integer = 3, fraction = 2, message = "O calado máximo deve ter no máximo 3 dígitos inteiros e 2 decimais.")
+    private BigDecimal caladoMaximoMetros;
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime dataEfetivaDesatracacao;
-
-    @Size(max = 20, message = "O berço previsto deve ter no máximo 20 caracteres.")
-    private String bercoPrevisto;
-
-    @Size(max = 20, message = "O berço atual deve ter no máximo 20 caracteres.")
-    private String bercoAtual;
-
-    @Size(max = 500, message = "As observações devem ter no máximo 500 caracteres.")
-    private String observacoes;
-
-    @NotNull(message = "Informe o status da operação do navio.")
-    private StatusOperacaoNavio statusOperacao;
+    @Size(max = 15, message = "O call sign deve ter no máximo 15 caracteres.")
+    private String callSign;
 
     public AtualizacaoNavioDTO() {
     }
@@ -90,59 +78,27 @@ public class AtualizacaoNavioDTO {
         this.capacidadeTeu = capacidadeTeu;
     }
 
-    public LocalDateTime getDataPrevistaAtracacao() {
-        return dataPrevistaAtracacao;
+    public BigDecimal getLoaMetros() {
+        return loaMetros;
     }
 
-    public void setDataPrevistaAtracacao(LocalDateTime dataPrevistaAtracacao) {
-        this.dataPrevistaAtracacao = dataPrevistaAtracacao;
+    public void setLoaMetros(BigDecimal loaMetros) {
+        this.loaMetros = loaMetros;
     }
 
-    public LocalDateTime getDataEfetivaAtracacao() {
-        return dataEfetivaAtracacao;
+    public BigDecimal getCaladoMaximoMetros() {
+        return caladoMaximoMetros;
     }
 
-    public void setDataEfetivaAtracacao(LocalDateTime dataEfetivaAtracacao) {
-        this.dataEfetivaAtracacao = dataEfetivaAtracacao;
+    public void setCaladoMaximoMetros(BigDecimal caladoMaximoMetros) {
+        this.caladoMaximoMetros = caladoMaximoMetros;
     }
 
-    public LocalDateTime getDataEfetivaDesatracacao() {
-        return dataEfetivaDesatracacao;
+    public String getCallSign() {
+        return callSign;
     }
 
-    public void setDataEfetivaDesatracacao(LocalDateTime dataEfetivaDesatracacao) {
-        this.dataEfetivaDesatracacao = dataEfetivaDesatracacao;
-    }
-
-    public String getBercoPrevisto() {
-        return bercoPrevisto;
-    }
-
-    public void setBercoPrevisto(String bercoPrevisto) {
-        this.bercoPrevisto = bercoPrevisto;
-    }
-
-    public String getBercoAtual() {
-        return bercoAtual;
-    }
-
-    public void setBercoAtual(String bercoAtual) {
-        this.bercoAtual = bercoAtual;
-    }
-
-    public String getObservacoes() {
-        return observacoes;
-    }
-
-    public void setObservacoes(String observacoes) {
-        this.observacoes = observacoes;
-    }
-
-    public StatusOperacaoNavio getStatusOperacao() {
-        return statusOperacao;
-    }
-
-    public void setStatusOperacao(StatusOperacaoNavio statusOperacao) {
-        this.statusOperacao = statusOperacao;
+    public void setCallSign(String callSign) {
+        this.callSign = callSign;
     }
 }

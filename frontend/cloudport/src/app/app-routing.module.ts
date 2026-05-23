@@ -52,6 +52,12 @@ const homeChildRoutes: Routes = [
     canActivate: [AuthGuard],
     canLoad: [AuthGuard],
     loadChildren: () => import('./componentes/patio/patio.module').then(m => m.PatioModule)
+  },
+  {
+    path: 'embarque',
+    canActivate: [AuthGuard],
+    canLoad: [AuthGuard],
+    loadChildren: () => import('./componentes/embarque/embarque.module').then(m => m.EmbarqueModule)
   }
 ];
 

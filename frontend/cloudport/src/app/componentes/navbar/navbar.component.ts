@@ -19,6 +19,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private readonly grupoGate = 'GATE';
   private readonly grupoFerrovia = 'FERROVIA';
   private readonly grupoPatio = 'PATIO';
+  private readonly grupoNavio = 'NAVIO';
 
   constructor(
     private readonly servicoAutenticacao: ServicoAutenticacao,
@@ -57,6 +58,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   get yardTabs(): RegistroAba[] {
     return this.obterAbasPorGrupo(this.grupoPatio);
+  }
+
+  get navioTabs(): RegistroAba[] {
+    return this.obterAbasPorGrupo(this.grupoNavio);
   }
 
   openTab(tab: RegistroAba): void {

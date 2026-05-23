@@ -6,7 +6,10 @@
               <h1 class="display-4 mt-3">CloudPort</h1>
               <app-navbar></app-navbar>
           </div>
-          <button *ngIf="mostrarMenu" class="btn btn-outline-danger btn-sm" (click)="logout()">Sair</button>
+          <div class="d-flex align-items-center header-actions">
+              <app-controle-tamanho-texto></app-controle-tamanho-texto>
+              <button *ngIf="mostrarMenu" class="btn btn-outline-danger btn-sm" (click)="logout()">Sair</button>
+          </div>
       </div>
   </div>
 </div>

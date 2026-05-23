@@ -8,9 +8,10 @@ import {
 } from '../../model/gate/agendamento.model';
 
 @Component({
-  selector: 'app-gate-agendamentos',
-  templateUrl: './gate-agendamentos.component.html',
-  styleUrls: ['./gate-agendamentos.component.css']
+    selector: 'app-gate-agendamentos',
+    templateUrl: './gate-agendamentos.component.html',
+    styleUrls: ['./gate-agendamentos.component.css'],
+    standalone: false
 })
 export class GateAgendamentosComponent implements OnInit, OnDestroy {
   readonly titulo = 'Central de Ação do Gate';

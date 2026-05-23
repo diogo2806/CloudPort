@@ -2,10 +2,11 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { GatePass } from '../../../model/gate/agendamento.model';
 
 @Component({
-  selector: 'app-motorista-pass',
-  templateUrl: './motorista-pass.component.html',
-  styleUrls: ['./motorista-pass.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-motorista-pass',
+    templateUrl: './motorista-pass.component.html',
+    styleUrls: ['./motorista-pass.component.css'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class MotoristaPassComponent {
   @Input() gatePass: GatePass | null = null;

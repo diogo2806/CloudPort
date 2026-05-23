@@ -13,9 +13,10 @@ interface AgendamentoRow {
 }
 
 @Component({
-  selector: 'app-agendamentos-list',
-  templateUrl: './agendamentos-list.component.html',
-  styleUrls: ['./agendamentos-list.component.css']
+    selector: 'app-agendamentos-list',
+    templateUrl: './agendamentos-list.component.html',
+    styleUrls: ['./agendamentos-list.component.css'],
+    standalone: false
 })
 export class AgendamentosListComponent implements OnChanges {
   @Input() agendamentos: Agendamento[] | null = [];

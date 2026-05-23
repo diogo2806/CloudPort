@@ -5,9 +5,10 @@ import { SanitizadorConteudoService } from '../../../service/sanitizacao/sanitiz
 import { ServicoFerroviaService, VisitaTrem } from '../../../service/servico-ferrovia/servico-ferrovia.service';
 
 @Component({
-  selector: 'app-lista-visitas-trem',
-  templateUrl: './lista-visitas-trem.component.html',
-  styleUrls: ['./lista-visitas-trem.component.css']
+    selector: 'app-lista-visitas-trem',
+    templateUrl: './lista-visitas-trem.component.html',
+    styleUrls: ['./lista-visitas-trem.component.css'],
+    standalone: false
 })
 export class ListaVisitasTremComponent implements OnInit {
   visitas: VisitaTrem[] = [];

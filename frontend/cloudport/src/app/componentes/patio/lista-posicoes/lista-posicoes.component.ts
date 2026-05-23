@@ -3,9 +3,10 @@ import { PosicaoPatio, ServicoPatioService } from '../../service/servico-patio/s
 import { SanitizadorConteudoService } from '../../service/sanitizacao/sanitizador-conteudo.service';
 
 @Component({
-  selector: 'app-lista-posicoes',
-  templateUrl: './lista-posicoes.component.html',
-  styleUrls: ['./lista-posicoes.component.css']
+    selector: 'app-lista-posicoes',
+    templateUrl: './lista-posicoes.component.html',
+    styleUrls: ['./lista-posicoes.component.css'],
+    standalone: false
 })
 export class ListaPosicoesComponent implements OnInit {
   posicoes: PosicaoPatio[] = [];

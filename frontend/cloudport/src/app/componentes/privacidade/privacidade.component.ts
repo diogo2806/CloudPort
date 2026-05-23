@@ -4,9 +4,10 @@ import { catchError, finalize, takeUntil } from 'rxjs/operators';
 import { OpcaoPrivacidade, PrivacidadeService } from '../service/privacidade/privacidade.service';
 
 @Component({
-  selector: 'app-privacidade',
-  templateUrl: './privacidade.component.html',
-  styleUrls: ['./privacidade.component.css']
+    selector: 'app-privacidade',
+    templateUrl: './privacidade.component.html',
+    styleUrls: ['./privacidade.component.css'],
+    standalone: false
 })
 export class PrivacidadeComponent implements OnInit, OnDestroy {
   opcoes: OpcaoPrivacidade[] = [];

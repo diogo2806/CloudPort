@@ -27,9 +27,10 @@ interface VagaoAgrupado {
 }
 
 @Component({
-  selector: 'app-detalhe-visita-trem',
-  templateUrl: './detalhe-visita-trem.component.html',
-  styleUrls: ['./detalhe-visita-trem.component.css']
+    selector: 'app-detalhe-visita-trem',
+    templateUrl: './detalhe-visita-trem.component.html',
+    styleUrls: ['./detalhe-visita-trem.component.css'],
+    standalone: false
 })
 export class DetalheVisitaTremComponent implements OnInit {
   visita?: VisitaTrem;

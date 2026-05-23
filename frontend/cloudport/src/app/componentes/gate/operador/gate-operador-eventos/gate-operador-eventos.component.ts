@@ -6,10 +6,11 @@ import { GateOperadorEvento } from '../../../model/gate/operador.model';
 import { GateEnumOption } from '../../../model/gate/agendamento.model';
 
 @Component({
-  selector: 'app-gate-operador-eventos',
-  templateUrl: './gate-operador-eventos.component.html',
-  styleUrls: ['./gate-operador-eventos.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-gate-operador-eventos',
+    templateUrl: './gate-operador-eventos.component.html',
+    styleUrls: ['./gate-operador-eventos.component.css'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class GateOperadorEventosComponent implements OnInit, OnDestroy {
   readonly statusConexao$ = this.gateOperadorService.statusConexao$;

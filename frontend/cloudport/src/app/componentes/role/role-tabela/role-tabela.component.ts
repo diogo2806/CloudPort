@@ -19,9 +19,10 @@ import { GridReadyEvent } from 'ag-grid-community';
 
 
 @Component({
-  selector: 'app-role-tabela',
-  templateUrl: './role-tabela.component.html',
-  styleUrls: ['./role-tabela.component.css']
+    selector: 'app-role-tabela',
+    templateUrl: './role-tabela.component.html',
+    styleUrls: ['./role-tabela.component.css'],
+    standalone: false
 })
 export class RoleTabelaComponent  implements OnInit, AfterViewInit {
 

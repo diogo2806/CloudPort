@@ -10,9 +10,10 @@ import { PopupService } from '../service/popupService';
 
 
 @Component({
-  selector: 'app-dynamic-table',
-  templateUrl: './dynamic-table.component.html',
-  styleUrls: ['./dynamic-table.component.css']
+    selector: 'app-dynamic-table',
+    templateUrl: './dynamic-table.component.html',
+    styleUrls: ['./dynamic-table.component.css'],
+    standalone: false
 })
 export class DynamicTableComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
 

@@ -14,10 +14,11 @@ import {
 } from '../analytics-preferences';
 
 @Component({
-  selector: 'app-gate-relatorios',
-  templateUrl: './gate-relatorios.component.html',
-  styleUrls: ['./gate-relatorios.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-gate-relatorios',
+    templateUrl: './gate-relatorios.component.html',
+    styleUrls: ['./gate-relatorios.component.css'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class GateRelatoriosComponent implements OnInit, OnDestroy {
   protected readonly isNaN = Number.isNaN;

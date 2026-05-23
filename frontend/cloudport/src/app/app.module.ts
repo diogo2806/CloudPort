@@ -7,7 +7,7 @@ import { AppComponent } from './app.component';
 import { LoginComponent } from './componentes/login/login.component';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-import { HTTP_INTERCEPTORS, HttpClient, HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HomeComponent } from './componentes/home/home.component';
 import { HeaderComponent } from './componentes/header/header.component';
@@ -26,47 +26,40 @@ import { UsuariosListaComponent } from './componentes/usuarios-lista/usuarios-li
 import { DynamicTableModule } from './componentes/dynamic-table/dynamic-table.module';
 import { TextoSeguroPipe } from './componentes/pipes/texto-seguro.pipe';
 
-@NgModule({
-  declarations: [
-    AppComponent,
-    LoginComponent,
-    HomeComponent,
-    HeaderComponent,
-    FooterComponent,
-    NavbarComponent,
-    RoleTabelaComponent,
-    ContextMenuComponent,
-    SegurancaComponent,
-    NotificacoesComponent,
-    PrivacidadeComponent,
-    UsuariosListaComponent,
-    TextoSeguroPipe,
-
-  ],
-  imports: [
-    BrowserModule,
-    AppRoutingModule,
-    BrowserAnimationsModule,
-    ReactiveFormsModule,
-    FormsModule,
-    HttpClientModule,
-    TranslateModule.forRoot({
-      loader: {
-        provide: TranslateLoader,
-        useFactory: HttpLoaderFactory,
-        deps: [HttpClient]
-      },
-      defaultLanguage: 'pt'
-    }),
-    AgGridModule,
-    DynamicTableModule
-  ],
-  providers: [
-    { provide: RouteReuseStrategy, useClass: CustomReuseStrategy },
-    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true }
-  ],
-  bootstrap: [AppComponent]
-})
+@NgModule({ declarations: [
+        AppComponent,
+        LoginComponent,
+        HomeComponent,
+        HeaderComponent,
+        FooterComponent,
+        NavbarComponent,
+        RoleTabelaComponent,
+        ContextMenuComponent,
+        SegurancaComponent,
+        NotificacoesComponent,
+        PrivacidadeComponent,
+        UsuariosListaComponent,
+        TextoSeguroPipe,
+    ],
+    bootstrap: [AppComponent], imports: [BrowserModule,
+        AppRoutingModule,
+        BrowserAnimationsModule,
+        ReactiveFormsModule,
+        FormsModule,
+        TranslateModule.forRoot({
+            loader: {
+                provide: TranslateLoader,
+                useFactory: HttpLoaderFactory,
+                deps: [HttpClient]
+            },
+            defaultLanguage: 'pt'
+        }),
+        AgGridModule,
+        DynamicTableModule], providers: [
+        { provide: RouteReuseStrategy, useClass: CustomReuseStrategy },
+        { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
+        provideHttpClient(withInterceptorsFromDi())
+    ] })
 export class AppModule { }
 
 export function HttpLoaderFactory(http: HttpClient): TranslateHttpLoader {

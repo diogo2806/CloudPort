@@ -4,9 +4,10 @@ import { PopupService } from '../../service/popupService';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
-  selector: 'app-role-cadastro',
-  templateUrl: './role-cadastro.component.html',
-  styleUrls: ['./role-cadastro.component.css']
+    selector: 'app-role-cadastro',
+    templateUrl: './role-cadastro.component.html',
+    styleUrls: ['./role-cadastro.component.css'],
+    standalone: false
 })
 export class RoleCadastroComponent implements OnInit {
   form!: FormGroup;

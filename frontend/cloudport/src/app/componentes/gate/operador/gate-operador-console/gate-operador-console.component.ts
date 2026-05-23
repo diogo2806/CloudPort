@@ -19,10 +19,11 @@ interface AlertaTemporario {
 }
 
 @Component({
-  selector: 'app-gate-operador-console',
-  templateUrl: './gate-operador-console.component.html',
-  styleUrls: ['./gate-operador-console.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-gate-operador-console',
+    templateUrl: './gate-operador-console.component.html',
+    styleUrls: ['./gate-operador-console.component.css'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class GateOperadorConsoleComponent implements OnInit, OnDestroy {
   readonly painel$: Observable<GateOperadorPainel> = this.gateOperadorService.painel$;

@@ -22,7 +22,8 @@ const ROTA_PROTEGIDA_PADRAO = '/home/role';
             transition('void => *', animate('0.5s ease-in')),
             transition('* => void', animate('0.5s ease-out'))
         ])
-    ]
+    ],
+    standalone: false
 })
 
 export class LoginComponent implements OnInit {

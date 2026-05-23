@@ -18,9 +18,10 @@ interface FiltroFormulario {
 }
 
 @Component({
-  selector: 'app-mapa-patio',
-  templateUrl: './mapa-patio.component.html',
-  styleUrls: ['./mapa-patio.component.css']
+    selector: 'app-mapa-patio',
+    templateUrl: './mapa-patio.component.html',
+    styleUrls: ['./mapa-patio.component.css'],
+    standalone: false
 })
 export class MapaPatioComponent implements OnInit, OnDestroy {
   filtrosDisponiveis?: FiltrosMapaPatio;

@@ -2,7 +2,8 @@ import { Pipe, PipeTransform } from '@angular/core';
 import { SanitizadorConteudoService } from '../service/sanitizacao/sanitizador-conteudo.service';
 
 @Pipe({
-  name: 'textoSeguro'
+    name: 'textoSeguro',
+    standalone: false
 })
 export class TextoSeguroPipe implements PipeTransform {
   constructor(private readonly sanitizadorConteudo: SanitizadorConteudoService) {}

@@ -14,10 +14,11 @@ import {
 } from '../analytics-preferences';
 
 @Component({
-  selector: 'app-gate-dashboard',
-  templateUrl: './gate-dashboard.component.html',
-  styleUrls: ['./gate-dashboard.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'app-gate-dashboard',
+    templateUrl: './gate-dashboard.component.html',
+    styleUrls: ['./gate-dashboard.component.css'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class GateDashboardComponent implements OnInit, OnDestroy {
   protected readonly isNaN = Number.isNaN;

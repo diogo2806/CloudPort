@@ -3,9 +3,10 @@ import { Component, Input, Output, EventEmitter, ElementRef } from '@angular/cor
 
 
 @Component({
-  selector: 'app-context-menu',
-  templateUrl: './context-menu.component.html',
-  styleUrls: ['./context-menu.component.css']
+    selector: 'app-context-menu',
+    templateUrl: './context-menu.component.html',
+    styleUrls: ['./context-menu.component.css'],
+    standalone: false
 })
 export class ContextMenuComponent {
   @Output() optionSelected = new EventEmitter<string>();

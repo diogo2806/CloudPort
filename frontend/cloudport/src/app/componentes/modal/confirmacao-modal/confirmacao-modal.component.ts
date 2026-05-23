@@ -2,9 +2,10 @@ import { Component, Input } from '@angular/core';
 import { PopupService, ConfirmacaoModalData } from '../../service/popupService';
 
 @Component({
-  selector: 'app-confirmacao-modal',
-  templateUrl: './confirmacao-modal.component.html',
-  styleUrls: ['./confirmacao-modal.component.css']
+    selector: 'app-confirmacao-modal',
+    templateUrl: './confirmacao-modal.component.html',
+    styleUrls: ['./confirmacao-modal.component.css'],
+    standalone: false
 })
 export class ConfirmacaoModalComponent {
   @Input() data: ConfirmacaoModalData | null = null;

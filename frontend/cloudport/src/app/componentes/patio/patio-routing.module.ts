@@ -5,11 +5,16 @@ import { ListaPosicoesComponent } from './lista-posicoes/lista-posicoes.componen
 import { ListaMovimentacoesComponent } from './lista-movimentacoes/lista-movimentacoes.component';
 import { FormularioMovimentacaoComponent } from './formulario-movimentacao/formulario-movimentacao.component';
 import { ListaTrabalhoPatioComponent } from './lista-trabalho-patio/lista-trabalho-patio.component';
+import { DispatchComponent } from './dispatch/dispatch.component';
 
 const routes: Routes = [
   {
     path: 'lista-trabalho',
     component: ListaTrabalhoPatioComponent
+  },
+  {
+    path: 'dispatch',
+    component: DispatchComponent
   },
   {
     path: 'mapa',

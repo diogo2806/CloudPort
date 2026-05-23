@@ -1,0 +1,94 @@
+<section class="dispatch">
+  <header class="dispatch__cabecalho">
+    <h2>Dispatch de Movimentações</h2>
+    <button type="button" (click)="alternarFormulario()">
+      {{ exibirFormulario ? 'Cancelar' : 'Nova instrução' }}
+    </button>
+  </header>
+
+  <p *ngIf="erro" class="alerta alerta--erro">{{ erro }}</p>
+  <p *ngIf="mensagem" class="alerta alerta--ok">{{ mensagem }}</p>
+
+  <div class="dispatch__equipamento">
+    <label>
+      Equipamento (CHE)
+      <select [(ngModel)]="equipamentoSelecionadoId" (ngModelChange)="carregarJobList()">
+        <option [ngValue]="0">— selecione —</option>
+        <option *ngFor="let equipamento of equipamentos" [ngValue]="equipamento.id">
+          {{ equipamento.identificador }} ({{ equipamento.tipoEquipamento }} · {{ equipamento.statusOperacional }})
+        </option>
+      </select>
+    </label>
+  </div>
+
+  <section *ngIf="equipamentoSelecionadoId" class="dispatch__joblist">
+    <h3>Job list do equipamento</h3>
+    <ol>
+      <li *ngFor="let job of jobList" class="dispatch__job">
+        <strong>{{ job.codigoConteiner }}</strong> · {{ job.tipoMove }}
+        <span>{{ job.posicaoOrigem || '—' }} → {{ job.posicaoDestino || '—' }}</span>
+        <em>{{ job.status }}</em>
+        <span *ngIf="job.prioridadeFetch" class="badge badge--fetch">Fetch prioritário</span>
+        <span *ngIf="job.moveTwin" class="badge">Twin</span>
+        <span *ngIf="job.requerEnergia" class="badge">Reefer</span>
+        <span *ngIf="job.perigoso" class="badge badge--perigo">Perigoso</span>
+        <span *ngIf="job.foraDeBitola" class="badge">OOG</span>
+      </li>
+      <li *ngIf="jobList.length === 0">Sem trabalho pendente para este equipamento.</li>
+    </ol>
+  </section>
+
+  <form *ngIf="exibirFormulario" class="dispatch__form" (ngSubmit)="planejar()">
+    <input type="text" name="codigo" placeholder="Contêiner" [(ngModel)]="nova.codigoConteiner" maxlength="30" required />
+    <select name="tipoMove" [(ngModel)]="nova.tipoMove">
+      <option *ngFor="let tipo of tiposMove" [ngValue]="tipo">{{ tipo }}</option>
+    </select>
+    <input type="text" name="origem" placeholder="Posição origem" [(ngModel)]="nova.posicaoOrigem" maxlength="60" />
+    <input type="text" name="destino" placeholder="Posição destino" [(ngModel)]="nova.posicaoDestino" maxlength="60" />
+    <input type="text" name="iso" placeholder="ISO" [(ngModel)]="nova.isoTipo" maxlength="10" />
+    <input type="text" name="line" placeholder="Line operator" [(ngModel)]="nova.lineOperator" maxlength="60" />
+    <input type="number" name="peso" placeholder="Peso (kg)" [(ngModel)]="nova.pesoKg" />
+    <input type="number" name="seq" placeholder="Sequência" [(ngModel)]="nova.sequencia" />
+    <label class="dispatch__check"><input type="checkbox" name="fetch" [(ngModel)]="nova.prioridadeFetch" /> Fetch prioritário</label>
+    <label class="dispatch__check"><input type="checkbox" name="twin" [(ngModel)]="nova.moveTwin" /> Twin</label>
+    <label class="dispatch__check"><input type="checkbox" name="reefer" [(ngModel)]="nova.requerEnergia" /> Reefer</label>
+    <label class="dispatch__check"><input type="checkbox" name="perigoso" [(ngModel)]="nova.perigoso" /> Perigoso</label>
+    <label class="dispatch__check"><input type="checkbox" name="oog" [(ngModel)]="nova.foraDeBitola" /> OOG</label>
+    <button type="submit">Planejar</button>
+  </form>
+
+  <p *ngIf="carregando">Carregando instruções...</p>
+
+  <table *ngIf="!carregando" class="dispatch__tabela">
+    <thead>
+      <tr>
+        <th>Contêiner</th>
+        <th>Move</th>
+        <th>Origem → Destino</th>
+        <th>Equipamento</th>
+        <th>Seq.</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let instrucao of instrucoes">
+        <td>{{ instrucao.codigoConteiner }}</td>
+        <td>{{ instrucao.tipoMove }}</td>
+        <td>{{ instrucao.posicaoOrigem || '—' }} → {{ instrucao.posicaoDestino || '—' }}</td>
+        <td>{{ instrucao.equipamentoIdentificador || '—' }}</td>
+        <td>{{ instrucao.sequencia }}</td>
+        <td>{{ instrucao.status }}</td>
+        <td class="dispatch__acoes">
+          <button type="button" *ngIf="instrucao.status === 'PLANEJADA' || instrucao.status === 'DESPACHADA'" (click)="despachar(instrucao)">Despachar</button>
+          <button type="button" *ngIf="instrucao.status === 'DESPACHADA'" (click)="iniciar(instrucao)">Iniciar</button>
+          <button type="button" *ngIf="instrucao.status === 'EM_EXECUCAO'" (click)="concluir(instrucao)">Concluir</button>
+          <button type="button" *ngIf="instrucao.status !== 'CONCLUIDA' && instrucao.status !== 'CANCELADA'" (click)="cancelar(instrucao)">Cancelar</button>
+        </td>
+      </tr>
+      <tr *ngIf="instrucoes.length === 0">
+        <td colspan="7">Nenhuma instrução cadastrada.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

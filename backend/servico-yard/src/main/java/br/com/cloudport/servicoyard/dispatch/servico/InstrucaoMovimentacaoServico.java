@@ -3,6 +3,7 @@ package br.com.cloudport.servicoyard.dispatch.servico;
 import br.com.cloudport.servicoyard.container.validacao.SanitizadorEntrada;
 import br.com.cloudport.servicoyard.dispatch.dto.CadastroInstrucaoMovimentacaoDTO;
 import br.com.cloudport.servicoyard.dispatch.dto.DespachoInstrucaoDTO;
+import br.com.cloudport.servicoyard.dispatch.dto.EquipamentoResumoDTO;
 import br.com.cloudport.servicoyard.dispatch.dto.InstrucaoMovimentacaoDTO;
 import br.com.cloudport.servicoyard.dispatch.modelo.InstrucaoMovimentacao;
 import br.com.cloudport.servicoyard.dispatch.modelo.StatusInstrucaoMovimentacao;
@@ -45,6 +46,17 @@ public class InstrucaoMovimentacaoServico {
     @Transactional(readOnly = true)
     public InstrucaoMovimentacaoDTO buscar(Long id) {
         return mapear(obter(id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<EquipamentoResumoDTO> listarEquipamentos() {
+        return equipamentoRepositorio.findAllByOrderByTipoEquipamentoAscIdentificadorAsc().stream()
+                .map(equipamento -> new EquipamentoResumoDTO(
+                        equipamento.getId(),
+                        equipamento.getIdentificador(),
+                        equipamento.getTipoEquipamento(),
+                        equipamento.getStatusOperacional()))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

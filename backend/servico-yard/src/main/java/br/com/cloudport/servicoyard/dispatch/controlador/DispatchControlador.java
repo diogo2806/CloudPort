@@ -2,6 +2,7 @@ package br.com.cloudport.servicoyard.dispatch.controlador;
 
 import br.com.cloudport.servicoyard.dispatch.dto.CadastroInstrucaoMovimentacaoDTO;
 import br.com.cloudport.servicoyard.dispatch.dto.DespachoInstrucaoDTO;
+import br.com.cloudport.servicoyard.dispatch.dto.EquipamentoResumoDTO;
 import br.com.cloudport.servicoyard.dispatch.dto.InstrucaoMovimentacaoDTO;
 import br.com.cloudport.servicoyard.dispatch.servico.InstrucaoMovimentacaoServico;
 import java.util.List;
@@ -61,6 +62,11 @@ public class DispatchControlador {
     @PostMapping("/instrucoes/{id}/cancelar")
     public InstrucaoMovimentacaoDTO cancelar(@PathVariable Long id) {
         return instrucaoServico.cancelar(id);
+    }
+
+    @GetMapping("/equipamentos")
+    public List<EquipamentoResumoDTO> listarEquipamentos() {
+        return instrucaoServico.listarEquipamentos();
     }
 
     @GetMapping("/equipamentos/{equipamentoId}/job-list")

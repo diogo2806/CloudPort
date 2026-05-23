@@ -29,7 +29,7 @@ class PapelRepositorioTest {
     void buscarPorNomeRetornaPapelComVinculosDeUsuarios() {
         Papel papel = papelRepositorio.save(new Papel("ADMIN"));
 
-        Usuario usuario = new Usuario(UUID.randomUUID(), "john.doe", "senha", new HashSet<>());
+        Usuario usuario = new Usuario("john.doe", "senha", new HashSet<>());
         usuarioRepositorio.save(usuario);
 
         UsuarioPapel vinculo = new UsuarioPapel(usuario, papel);

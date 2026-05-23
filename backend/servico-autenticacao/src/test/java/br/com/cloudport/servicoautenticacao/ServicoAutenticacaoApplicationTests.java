@@ -6,9 +6,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.junit.jupiter.api.Assertions.*;
 
 import br.com.cloudport.servicoautenticacao.config.TokenService;
-import br.com.cloudport.servicoautenticacao.model.User;
+import br.com.cloudport.servicoautenticacao.model.Usuario;
 
 import java.util.HashSet;
+import java.util.Optional;
 
 @SpringBootTest
 class ServicoAutenticacaoApplicationTests {
@@ -22,16 +23,16 @@ class ServicoAutenticacaoApplicationTests {
 
     @Test
     void generateAndValidateToken() {
-        User user = new User("test", "pass", new HashSet<>());
-        String token = tokenService.generateToken(user);
+        Usuario usuario = new Usuario("test", "pass", new HashSet<>());
+        String token = tokenService.generateToken(usuario);
         assertNotNull(token);
-        assertEquals(user.getLogin(), tokenService.validateToken(token));
+        assertEquals(Optional.of(usuario.getLogin()), tokenService.validateToken(token));
     }
 
     @Test
     void invalidTokenReturnsEmpty() {
         String invalidToken = "invalid";
-        assertEquals("", tokenService.validateToken(invalidToken));
+        assertTrue(tokenService.validateToken(invalidToken).isEmpty());
     }
 
 }

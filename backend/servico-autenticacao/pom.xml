@@ -15,7 +15,20 @@
 	<description>Serviço responsável pela autenticação e autorização de usuários na aplicação CloudPort.</description>
 	<properties>
 		<java.version>11</java.version>
+		<lombok.version>1.18.34</lombok.version>
+		<testcontainers.version>1.19.7</testcontainers.version>
 	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>testcontainers-bom</artifactId>
+				<version>${testcontainers.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
         <dependencies>
                 <dependency>
 			<groupId>org.projectlombok</groupId>
@@ -46,6 +59,10 @@
                 <dependency>
                         <groupId>org.springframework.boot</groupId>
                         <artifactId>spring-boot-starter-data-jpa</artifactId>
+                </dependency>
+                <dependency>
+                        <groupId>org.flywaydb</groupId>
+                        <artifactId>flyway-core</artifactId>
                 </dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>

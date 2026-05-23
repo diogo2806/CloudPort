@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ValidadorParametroSeguranca {
 
-    private static final Pattern PADRAO_INJECAO = Pattern.compile("(?i)(<|>|script|onerror|onload|onfocus|onmouseover|onmouseenter|javascript:|alert\\(|\\"|\\'|`)");
+    private static final Pattern PADRAO_INJECAO = Pattern.compile("(?i)(<|>|script|onerror|onload|onfocus|onmouseover|onmouseenter|javascript:|alert\\(|\"|'|`)");
 
     public void validarParametroOpcional(String valor, String nomeParametro) {
         if (valor == null || valor.isBlank()) {

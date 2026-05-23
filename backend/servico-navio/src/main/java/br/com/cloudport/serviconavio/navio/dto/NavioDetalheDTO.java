@@ -1,9 +1,6 @@
 package br.com.cloudport.serviconavio.navio.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import br.com.cloudport.serviconavio.navio.entidade.StatusOperacaoNavio;
-
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 public class NavioDetalheDTO {
 
@@ -13,16 +10,9 @@ public class NavioDetalheDTO {
     private final String paisBandeira;
     private final String empresaArmadora;
     private final Integer capacidadeTeu;
-    private final StatusOperacaoNavio statusOperacao;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private final LocalDateTime dataPrevistaAtracacao;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private final LocalDateTime dataEfetivaAtracacao;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private final LocalDateTime dataEfetivaDesatracacao;
-    private final String bercoPrevisto;
-    private final String bercoAtual;
-    private final String observacoes;
+    private final BigDecimal loaMetros;
+    private final BigDecimal caladoMaximoMetros;
+    private final String callSign;
 
     public NavioDetalheDTO(Long identificador,
                            String nome,
@@ -30,26 +20,18 @@ public class NavioDetalheDTO {
                            String paisBandeira,
                            String empresaArmadora,
                            Integer capacidadeTeu,
-                           StatusOperacaoNavio statusOperacao,
-                           LocalDateTime dataPrevistaAtracacao,
-                           LocalDateTime dataEfetivaAtracacao,
-                           LocalDateTime dataEfetivaDesatracacao,
-                           String bercoPrevisto,
-                           String bercoAtual,
-                           String observacoes) {
+                           BigDecimal loaMetros,
+                           BigDecimal caladoMaximoMetros,
+                           String callSign) {
         this.identificador = identificador;
         this.nome = nome;
         this.codigoImo = codigoImo;
         this.paisBandeira = paisBandeira;
         this.empresaArmadora = empresaArmadora;
         this.capacidadeTeu = capacidadeTeu;
-        this.statusOperacao = statusOperacao;
-        this.dataPrevistaAtracacao = dataPrevistaAtracacao;
-        this.dataEfetivaAtracacao = dataEfetivaAtracacao;
-        this.dataEfetivaDesatracacao = dataEfetivaDesatracacao;
-        this.bercoPrevisto = bercoPrevisto;
-        this.bercoAtual = bercoAtual;
-        this.observacoes = observacoes;
+        this.loaMetros = loaMetros;
+        this.caladoMaximoMetros = caladoMaximoMetros;
+        this.callSign = callSign;
     }
 
     public Long getIdentificador() {
@@ -76,31 +58,15 @@ public class NavioDetalheDTO {
         return capacidadeTeu;
     }
 
-    public StatusOperacaoNavio getStatusOperacao() {
-        return statusOperacao;
+    public BigDecimal getLoaMetros() {
+        return loaMetros;
     }
 
-    public LocalDateTime getDataPrevistaAtracacao() {
-        return dataPrevistaAtracacao;
+    public BigDecimal getCaladoMaximoMetros() {
+        return caladoMaximoMetros;
     }
 
-    public LocalDateTime getDataEfetivaAtracacao() {
-        return dataEfetivaAtracacao;
-    }
-
-    public LocalDateTime getDataEfetivaDesatracacao() {
-        return dataEfetivaDesatracacao;
-    }
-
-    public String getBercoPrevisto() {
-        return bercoPrevisto;
-    }
-
-    public String getBercoAtual() {
-        return bercoAtual;
-    }
-
-    public String getObservacoes() {
-        return observacoes;
+    public String getCallSign() {
+        return callSign;
     }
 }

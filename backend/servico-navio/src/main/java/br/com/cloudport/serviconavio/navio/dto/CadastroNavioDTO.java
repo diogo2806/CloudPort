@@ -1,13 +1,13 @@
 package br.com.cloudport.serviconavio.navio.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
+import javax.validation.constraints.DecimalMin;
+import javax.validation.constraints.Digits;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 public class CadastroNavioDTO {
 
@@ -31,15 +31,16 @@ public class CadastroNavioDTO {
     @Positive(message = "A capacidade em TEU deve ser maior que zero.")
     private Integer capacidadeTeu;
 
-    @NotNull(message = "Informe a data prevista de atracação.")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime dataPrevistaAtracacao;
+    @DecimalMin(value = "0.0", inclusive = false, message = "O comprimento (LOA) deve ser maior que zero.")
+    @Digits(integer = 4, fraction = 2, message = "O comprimento (LOA) deve ter no máximo 4 dígitos inteiros e 2 decimais.")
+    private BigDecimal loaMetros;
 
-    @Size(max = 20, message = "O berço previsto deve ter no máximo 20 caracteres.")
-    private String bercoPrevisto;
+    @DecimalMin(value = "0.0", inclusive = false, message = "O calado máximo deve ser maior que zero.")
+    @Digits(integer = 3, fraction = 2, message = "O calado máximo deve ter no máximo 3 dígitos inteiros e 2 decimais.")
+    private BigDecimal caladoMaximoMetros;
 
-    @Size(max = 500, message = "As observações devem ter no máximo 500 caracteres.")
-    private String observacoes;
+    @Size(max = 15, message = "O call sign deve ter no máximo 15 caracteres.")
+    private String callSign;
 
     public CadastroNavioDTO() {
     }
@@ -84,27 +85,27 @@ public class CadastroNavioDTO {
         this.capacidadeTeu = capacidadeTeu;
     }
 
-    public LocalDateTime getDataPrevistaAtracacao() {
-        return dataPrevistaAtracacao;
+    public BigDecimal getLoaMetros() {
+        return loaMetros;
     }
 
-    public void setDataPrevistaAtracacao(LocalDateTime dataPrevistaAtracacao) {
-        this.dataPrevistaAtracacao = dataPrevistaAtracacao;
+    public void setLoaMetros(BigDecimal loaMetros) {
+        this.loaMetros = loaMetros;
     }
 
-    public String getBercoPrevisto() {
-        return bercoPrevisto;
+    public BigDecimal getCaladoMaximoMetros() {
+        return caladoMaximoMetros;
     }
 
-    public void setBercoPrevisto(String bercoPrevisto) {
-        this.bercoPrevisto = bercoPrevisto;
+    public void setCaladoMaximoMetros(BigDecimal caladoMaximoMetros) {
+        this.caladoMaximoMetros = caladoMaximoMetros;
     }
 
-    public String getObservacoes() {
-        return observacoes;
+    public String getCallSign() {
+        return callSign;
     }
 
-    public void setObservacoes(String observacoes) {
-        this.observacoes = observacoes;
+    public void setCallSign(String callSign) {
+        this.callSign = callSign;
     }
 }

@@ -1,13 +1,13 @@
 package br.com.cloudport.servicogate.app.gestor;
 
-import br.com.cloudport.servicogate.app.gestor.dto.AgendamentoDTO;
-import br.com.cloudport.servicogate.app.gestor.dto.DocumentoAgendamentoDTO;
+import br.com.cloudport.servicogate.app.cidadao.dto.AgendamentoDTO;
+import br.com.cloudport.servicogate.app.cidadao.dto.DocumentoAgendamentoDTO;
+import br.com.cloudport.servicogate.app.cidadao.dto.JanelaAtendimentoDTO;
+import br.com.cloudport.servicogate.app.cidadao.dto.MotoristaDTO;
+import br.com.cloudport.servicogate.app.cidadao.dto.TransportadoraDTO;
+import br.com.cloudport.servicogate.app.cidadao.dto.VeiculoDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.GateEventDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.GatePassDTO;
-import br.com.cloudport.servicogate.app.gestor.dto.JanelaAtendimentoDTO;
-import br.com.cloudport.servicogate.app.gestor.dto.MotoristaDTO;
-import br.com.cloudport.servicogate.app.gestor.dto.TransportadoraDTO;
-import br.com.cloudport.servicogate.app.gestor.dto.VeiculoDTO;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.DocumentoAgendamento;
 import br.com.cloudport.servicogate.model.GateEvent;

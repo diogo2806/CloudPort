@@ -37,6 +37,8 @@ const homeChildRoutes: Routes = [
   },
   {
     path: 'gate',
+    canActivate: [AuthGuard],
+    canLoad: [AuthGuard],
     loadChildren: () => import('./componentes/gate/gate.module').then(m => m.GateModule)
   },
   {

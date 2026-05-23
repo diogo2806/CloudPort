@@ -19,14 +19,11 @@ import { AgGridModule } from 'ag-grid-angular';
 import { CustomReuseStrategy } from './componentes/tab-content/customreusestrategy';
 import { RouteReuseStrategy } from '@angular/router';
 import { JwtInterceptor } from './componentes/service/servico-autenticacao/jwt.interceptor';
-import { ModalComponent } from './componentes/modal/modal.component';
-import { RoleCadastroComponent } from './componentes/role/role-cadastro/role-cadastro.component';
 import { SegurancaComponent } from './componentes/seguranca/seguranca.component';
 import { NotificacoesComponent } from './componentes/notificacoes/notificacoes.component';
 import { PrivacidadeComponent } from './componentes/privacidade/privacidade.component';
 import { UsuariosListaComponent } from './componentes/usuarios-lista/usuarios-lista.component';
 import { DynamicTableModule } from './componentes/dynamic-table/dynamic-table.module';
-import { ConfirmacaoModalComponent } from './componentes/modal/confirmacao-modal/confirmacao-modal.component';
 import { TextoSeguroPipe } from './componentes/pipes/texto-seguro.pipe';
 
 @NgModule({
@@ -39,9 +36,6 @@ import { TextoSeguroPipe } from './componentes/pipes/texto-seguro.pipe';
     NavbarComponent,
     RoleTabelaComponent,
     ContextMenuComponent,
-    ModalComponent,
-    ConfirmacaoModalComponent,
-    RoleCadastroComponent,
     SegurancaComponent,
     NotificacoesComponent,
     PrivacidadeComponent,

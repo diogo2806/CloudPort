@@ -24,7 +24,7 @@ interface FiltroFormulario {
 })
 export class MapaPatioComponent implements OnInit, OnDestroy {
   filtrosDisponiveis?: FiltrosMapaPatio;
-  formularioFiltros: FormGroup<FiltroFormulario>;
+  formularioFiltros: FormGroup;
   mapaCompleto?: MapaPatioResposta;
   mapaFiltrado?: MapaPatioResposta;
   carregando = false;
@@ -155,11 +155,11 @@ export class MapaPatioComponent implements OnInit, OnDestroy {
     }
     const valores = this.formularioFiltros.getRawValue();
     const filtrosAtivos = {
-      status: new Set((valores.status ?? []).map((valor) => valor.toUpperCase())),
-      tiposCarga: new Set((valores.tiposCarga ?? []).map((valor) => valor.toUpperCase())),
-      destinos: new Set((valores.destinos ?? []).map((valor) => valor.toUpperCase())),
-      camadas: new Set((valores.camadas ?? []).map((valor) => valor.toUpperCase())),
-      tiposEquipamento: new Set((valores.tiposEquipamento ?? []).map((valor) => valor.toUpperCase()))
+      status: new Set((valores.status ?? []).map((valor: string) => valor.toUpperCase())),
+      tiposCarga: new Set((valores.tiposCarga ?? []).map((valor: string) => valor.toUpperCase())),
+      destinos: new Set((valores.destinos ?? []).map((valor: string) => valor.toUpperCase())),
+      camadas: new Set((valores.camadas ?? []).map((valor: string) => valor.toUpperCase())),
+      tiposEquipamento: new Set((valores.tiposEquipamento ?? []).map((valor: string) => valor.toUpperCase()))
     };
 
     const conteineresFiltrados = this.mapaCompleto.conteineres.filter((conteiner) => {

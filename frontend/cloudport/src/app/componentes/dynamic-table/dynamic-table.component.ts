@@ -401,15 +401,14 @@ onBtExport() {
     this.showModal = false; // Fecha o modal
   }
 
-  
-}
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['columns']) {
       this.updateColumnDefinitions();
       if (this.gridApi && this.filteredData) {
         this.gridApi.setColumnDefs(this.columnDefinitions);
-        this.gridApi.refreshClientSideRowModel('everything');
+        this.gridApi.refreshClientSideRowModel('group');
       }
     }
   }
+}
 

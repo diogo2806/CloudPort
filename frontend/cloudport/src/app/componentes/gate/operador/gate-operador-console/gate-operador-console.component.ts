@@ -54,7 +54,7 @@ export class GateOperadorConsoleComponent implements OnInit, OnDestroy {
   readonly formOcorrencia = this.fb.group({
     tipoCodigo: [null, Validators.required],
     descricao: ['', [Validators.required, Validators.minLength(5)]],
-    veiculoId: [null]
+    veiculoId: [null as number | null]
   });
 
   modalLiberacaoAberto = false;
@@ -124,7 +124,7 @@ export class GateOperadorConsoleComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const payload = this.formLiberacao.getRawValue() as GateLiberacaoManualRequest;
+    const payload = this.formLiberacao.getRawValue() as unknown as GateLiberacaoManualRequest;
     this.mensagemFeedback = 'Enviando liberação manual...';
     this.erroAcao = null;
 
@@ -145,7 +145,7 @@ export class GateOperadorConsoleComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const payload = this.formBloqueio.getRawValue() as GateBloqueioRequest;
+    const payload = this.formBloqueio.getRawValue() as unknown as GateBloqueioRequest;
     this.mensagemFeedback = 'Registrando bloqueio do veículo...';
     this.erroAcao = null;
 
@@ -166,7 +166,7 @@ export class GateOperadorConsoleComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const payload = this.formOcorrencia.getRawValue() as GateOcorrenciaRequest;
+    const payload = this.formOcorrencia.getRawValue() as unknown as GateOcorrenciaRequest;
     this.mensagemFeedback = 'Enviando ocorrência ao time de monitoramento...';
     this.erroAcao = null;
 

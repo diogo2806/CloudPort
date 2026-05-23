@@ -318,7 +318,7 @@ export class AgendamentoDetalheComponent implements OnDestroy {
       await this.pushNotificationService.showNotification(
         this.translate.instant('gate.agendamentoDetalhe.notificacaoJanelaTitulo'),
         {
-          body: this.janelaMensagem,
+          body: this.janelaMensagem ?? undefined,
           icon: 'assets/icons/bell.svg'
         }
       );

@@ -20,13 +20,13 @@ export class AgendamentoComprovanteService {
     linhas.push(titulo);
     linhas.push(legenda);
     linhas.push(''.padEnd(50, '='));
-    linhas.push(`${campos.codigo}: ${agendamento.codigo}`);
-    linhas.push(`${campos.transportadora}: ${agendamento.transportadoraNome ?? '—'}`);
-    linhas.push(`${campos.motorista}: ${agendamento.motoristaNome ?? '—'}`);
-    linhas.push(`${campos.placa}: ${agendamento.placaVeiculo ?? '—'}`);
-    linhas.push(`${campos.janela}: ${this.formatarJanela(agendamento)}`);
-    linhas.push(`${campos.status}: ${agendamento.statusDescricao ?? agendamento.status}`);
-    linhas.push(`${campos.documentos}:`);
+    linhas.push(`${campos['codigo']}: ${agendamento.codigo}`);
+    linhas.push(`${campos['transportadora']}: ${agendamento.transportadoraNome ?? '—'}`);
+    linhas.push(`${campos['motorista']}: ${agendamento.motoristaNome ?? '—'}`);
+    linhas.push(`${campos['placa']}: ${agendamento.placaVeiculo ?? '—'}`);
+    linhas.push(`${campos['janela']}: ${this.formatarJanela(agendamento)}`);
+    linhas.push(`${campos['status']}: ${agendamento.statusDescricao ?? agendamento.status}`);
+    linhas.push(`${campos['documentos']}:`);
     const documentos = agendamento.documentos ?? [];
     if (!documentos.length) {
       linhas.push(` - ${semDocumentos}`);

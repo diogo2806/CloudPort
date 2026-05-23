@@ -9,9 +9,9 @@ import { AgendamentosListComponent } from './portal/agendamentos-list/agendament
 import { AgendamentoFormComponent } from './portal/agendamento-form/agendamento-form.component';
 import { AgendamentoDetalheComponent } from './portal/agendamento-detalhe/agendamento-detalhe.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { DynamicTableModule } from '../../dynamic-table/dynamic-table.module';
+import { DynamicTableModule } from '../dynamic-table/dynamic-table.module';
 import { NgChartsModule } from 'ng2-charts';
-import { NgxQRCodeModule } from 'ngx-qrcode2';
+import { QRCodeModule } from 'angularx-qrcode';
 import { TranslateModule } from '@ngx-translate/core';
 import { GateOperadorConsoleComponent } from './operador/gate-operador-console/gate-operador-console.component';
 import { GateOperadorEventosComponent } from './operador/gate-operador-eventos/gate-operador-eventos.component';
@@ -36,7 +36,7 @@ import { MotoristaPassComponent } from './portal/motorista-pass/motorista-pass.c
     ReactiveFormsModule,
     DynamicTableModule,
     NgChartsModule,
-    NgxQRCodeModule,
+    QRCodeModule,
     TranslateModule,
     GateRoutingModule
   ]

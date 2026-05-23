@@ -20,6 +20,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class GateRelatoriosComponent implements OnInit, OnDestroy {
+  protected readonly isNaN = Number.isNaN;
   private readonly destroy$ = new Subject<void>();
 
   readonly filtrosForm = this.fb.nonNullable.group({
@@ -244,7 +245,7 @@ export class GateRelatoriosComponent implements OnInit, OnDestroy {
           display: true,
           text: titulo,
           color: corTexto,
-          font: { size: 16, weight: '600' }
+          font: { size: 16, weight: 600 }
         }
       }
     };

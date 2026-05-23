@@ -27,9 +27,17 @@ Trabalho concluído nesta rodada de hardening (back-end e front-end):
 - ✅ **Flyway** passou a ser a fonte única do schema no `servico-autenticacao`
   (`ddl-auto=none`), eliminando o risco de divergência com as migrações.
 
-⚠️ **Pendente:** upgrade do Angular 16 → 19 (ver seção de limitações abaixo). O
-front-end ainda não compila (erros de TypeScript e orçamentos de CSS pré-existentes),
-o que precisa ser resolvido antes/junto do upgrade.
+- ✅ **Upgrade do Angular 16 → 19 concluído.** O front-end (que não compilava)
+  passou a compilar e foi migrado via `ng update` para **Angular 19.2** (TypeScript 5.8,
+  zone.js 0.15). Isso elimina a exposição aos CVEs de XSS/XSRF que **não tinham
+  correção na série 16.x** (corrigidos a partir de 19.2.16/19.2.17).
+
+⚠️ **Acompanhamento recomendado:** algumas libs de UI (ag-grid 31, ng2-charts 5,
+ngx-mask 13, angularx-qrcode 16, ngx-translate 15) ainda declaram peer deps de
+Angular mais antigo. O build conclui (compatível via Angular linker) e foi adicionado
+`legacy-peer-deps=true` no `.npmrc` para tornar o `npm install` reproduzível, mas
+recomenda-se atualizá-las para as versões nativas de Angular 19 com validação em
+navegador (mudam APIs: módulos → componentes standalone / provider functions).
 
 ---
 
@@ -84,7 +92,11 @@ o que precisa ser resolvido antes/junto do upgrade.
 
 The following vulnerabilities **CANNOT be fixed** within the current Angular 16 architecture without breaking changes:
 
-### 1. Angular Framework Vulnerabilities (HIGH SEVERITY)
+### 1. Angular Framework Vulnerabilities (HIGH SEVERITY) — ✅ RESOLVIDO
+
+> **Atualização:** o projeto foi migrado para **Angular 19.2**, que inclui as
+> correções de XSRF (19.2.16+) e XSS (19.2.17+). As vulnerabilidades abaixo
+> referem-se à antiga versão 16.x e são mantidas apenas como histórico.
 
 **Affected Packages:**
 - `@angular/common@16.2.12`
@@ -297,7 +309,8 @@ The following vulnerabilities **CANNOT be fixed** within the current Angular 16 
 - [ ] Implement XSRF/XSS mitigations for Angular (mitigação parcial via CSP; resta o upgrade)
 
 ### Long-term (Q1/Q2 2026)
-- [ ] Plan Angular 16 → 19 upgrade (requer primeiro corrigir o build do front-end)
+- [x] Angular 16 → 19 upgrade concluído (build via ng update, Angular 19.2)
+- [ ] Atualizar libs de UI (ag-grid, ng2-charts, ngx-mask, angularx-qrcode, ngx-translate) para versões nativas de Angular 19
 - [ ] Update all Angular ecosystem packages
 - [ ] Comprehensive testing post-upgrade
 - [ ] Update developer documentation

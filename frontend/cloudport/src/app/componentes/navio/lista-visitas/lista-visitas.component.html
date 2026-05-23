@@ -1,0 +1,72 @@
+<section class="navio-visitas">
+  <header class="navio-visitas__cabecalho">
+    <h2>Visitas de Navio</h2>
+    <div class="navio-visitas__acoes">
+      <a routerLink="/home/navio/painel">Painel de atracação</a>
+      <a routerLink="/home/navio/bercos">Berços</a>
+      <button type="button" (click)="alternarFormulario()">
+        {{ exibirFormulario ? 'Cancelar' : 'Nova visita' }}
+      </button>
+    </div>
+  </header>
+
+  <p *ngIf="erro" class="alerta alerta--erro">{{ erro }}</p>
+  <p *ngIf="mensagem" class="alerta alerta--ok">{{ mensagem }}</p>
+
+  <form *ngIf="exibirFormulario" class="navio-visitas__form" (ngSubmit)="registrar()">
+    <label>
+      Navio
+      <select name="navioId" [(ngModel)]="nova.navioId" required>
+        <option [ngValue]="0" disabled>Selecione o navio</option>
+        <option *ngFor="let navio of navios" [ngValue]="navio.identificador">
+          {{ navio.nome }} ({{ navio.codigoImo }})
+        </option>
+      </select>
+    </label>
+    <label>
+      Número da viagem
+      <input type="text" name="numeroViagem" [(ngModel)]="nova.numeroViagem" maxlength="40" required />
+    </label>
+    <label>
+      Atracação prevista
+      <input type="datetime-local" name="atracacaoPrevista" [(ngModel)]="nova.atracacaoPrevista" required />
+    </label>
+    <label>
+      Desatracação prevista
+      <input type="datetime-local" name="desatracacaoPrevista" [(ngModel)]="nova.desatracacaoPrevista" required />
+    </label>
+    <label>
+      Observações
+      <textarea name="observacoes" [(ngModel)]="nova.observacoes" rows="2" maxlength="500"></textarea>
+    </label>
+    <button type="submit">Registrar visita</button>
+  </form>
+
+  <p *ngIf="carregando">Carregando visitas...</p>
+
+  <table *ngIf="!carregando" class="navio-visitas__tabela">
+    <thead>
+      <tr>
+        <th>Navio</th>
+        <th>IMO</th>
+        <th>Viagem</th>
+        <th>Berço</th>
+        <th>Atracação prevista</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let visita of visitas" (click)="abrir(visita)" class="navio-visitas__linha">
+        <td>{{ visita.navioNome }}</td>
+        <td>{{ visita.codigoImo }}</td>
+        <td>{{ visita.numeroViagem }}</td>
+        <td>{{ visita.bercoNome || '—' }}</td>
+        <td>{{ visita.atracacaoPrevista | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>{{ visita.status }}</td>
+      </tr>
+      <tr *ngIf="visitas.length === 0">
+        <td colspan="6">Nenhuma visita cadastrada.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

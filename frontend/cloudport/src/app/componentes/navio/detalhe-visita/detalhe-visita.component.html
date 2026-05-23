@@ -1,0 +1,97 @@
+<section class="navio-detalhe" *ngIf="visita as v">
+  <header class="navio-detalhe__cabecalho">
+    <button type="button" (click)="voltar()">← Voltar</button>
+    <h2>{{ v.navioNome }} — Viagem {{ v.numeroViagem }}</h2>
+    <span class="navio-detalhe__status">{{ v.status }}</span>
+  </header>
+
+  <p *ngIf="erro" class="alerta alerta--erro">{{ erro }}</p>
+  <p *ngIf="mensagem" class="alerta alerta--ok">{{ mensagem }}</p>
+
+  <dl class="navio-detalhe__dados">
+    <div><dt>IMO</dt><dd>{{ v.codigoImo }}</dd></div>
+    <div><dt>Berço</dt><dd>{{ v.bercoNome || '—' }}</dd></div>
+    <div><dt>Atracação prevista</dt><dd>{{ v.atracacaoPrevista | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+    <div><dt>Desatracação prevista</dt><dd>{{ v.desatracacaoPrevista | date: 'dd/MM/yyyy HH:mm' }}</dd></div>
+    <div><dt>Atracação efetiva</dt><dd>{{ (v.atracacaoEfetiva | date: 'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
+    <div><dt>Desatracação efetiva</dt><dd>{{ (v.desatracacaoEfetiva | date: 'dd/MM/yyyy HH:mm') || '—' }}</dd></div>
+  </dl>
+
+  <div class="navio-detalhe__acoes">
+    <button type="button" *ngIf="podeAtracar" (click)="atracar()">Registrar atracação</button>
+    <button type="button" *ngIf="podeIniciar" (click)="iniciarOperacaoVisita()">Iniciar operação</button>
+    <button type="button" *ngIf="podeConcluir" (click)="concluirOperacaoVisita()">Concluir operação</button>
+    <button type="button" *ngIf="podeDesatracar" (click)="desatracar()">Registrar desatracação</button>
+    <button type="button" *ngIf="podeCancelar" (click)="cancelar()">Cancelar visita</button>
+  </div>
+
+  <section class="navio-detalhe__bloco" *ngIf="podePlanejar">
+    <h3>Planejamento de atracação</h3>
+    <form class="navio-detalhe__form" (ngSubmit)="planejar()">
+      <label>
+        Berço
+        <select name="bercoId" [(ngModel)]="planejamento.bercoId" required>
+          <option [ngValue]="0" disabled>Selecione o berço</option>
+          <option *ngFor="let berco of bercos" [ngValue]="berco.identificador">
+            {{ berco.nome }} ({{ berco.status }})
+          </option>
+        </select>
+      </label>
+      <label>
+        Atracação prevista
+        <input type="datetime-local" name="atrPrev" [(ngModel)]="planejamento.atracacaoPrevista" required />
+      </label>
+      <label>
+        Desatracação prevista
+        <input type="datetime-local" name="desPrev" [(ngModel)]="planejamento.desatracacaoPrevista" required />
+      </label>
+      <button type="submit">Planejar atracação</button>
+    </form>
+  </section>
+
+  <section class="navio-detalhe__bloco">
+    <h3>Listas de embarque/descarga</h3>
+    <form class="navio-detalhe__form-operacao" (ngSubmit)="adicionarOperacao()">
+      <select name="tipo" [(ngModel)]="novaOperacao.tipoOperacao">
+        <option value="DESCARGA">Descarga</option>
+        <option value="EMBARQUE">Embarque</option>
+      </select>
+      <input type="text" name="conteiner" placeholder="Contêiner" [(ngModel)]="novaOperacao.identificacaoConteiner" maxlength="20" required />
+      <input type="number" name="bay" placeholder="Bay" [(ngModel)]="novaOperacao.bay" />
+      <input type="number" name="fileira" placeholder="Fileira" [(ngModel)]="novaOperacao.fileira" />
+      <input type="number" name="altura" placeholder="Altura" [(ngModel)]="novaOperacao.altura" />
+      <input type="number" name="peso" placeholder="Peso (t)" step="0.001" [(ngModel)]="novaOperacao.pesoToneladas" />
+      <button type="submit">Adicionar</button>
+    </form>
+
+    <table class="navio-detalhe__tabela">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Contêiner</th>
+          <th>Estiva (bay/fileira/altura)</th>
+          <th>Peso (t)</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let operacao of v.operacoes">
+          <td>{{ operacao.tipoOperacao }}</td>
+          <td>{{ operacao.identificacaoConteiner }}</td>
+          <td>{{ posicaoEstiva(operacao) }}</td>
+          <td>{{ operacao.pesoToneladas ?? '—' }}</td>
+          <td>{{ operacao.status }}</td>
+          <td class="navio-detalhe__acoes-linha">
+            <button type="button" *ngIf="operacao.status === 'PLANEJADA'" (click)="alterarStatusOperacao(operacao, 'EM_ANDAMENTO')">Iniciar</button>
+            <button type="button" *ngIf="operacao.status === 'EM_ANDAMENTO'" (click)="alterarStatusOperacao(operacao, 'CONCLUIDA')">Concluir</button>
+            <button type="button" (click)="removerOperacao(operacao)">Remover</button>
+          </td>
+        </tr>
+        <tr *ngIf="v.operacoes.length === 0">
+          <td colspan="6">Nenhuma operação cadastrada.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</section>

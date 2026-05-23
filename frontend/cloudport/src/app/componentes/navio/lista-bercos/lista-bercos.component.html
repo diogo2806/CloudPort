@@ -1,0 +1,48 @@
+<section class="navio-bercos">
+  <header class="navio-bercos__cabecalho">
+    <h2>Berços</h2>
+    <a routerLink="/home/navio/visitas">Visitas</a>
+  </header>
+
+  <p *ngIf="erro" class="alerta alerta--erro">{{ erro }}</p>
+
+  <form class="navio-bercos__form" (ngSubmit)="salvar()">
+    <input type="text" name="nome" placeholder="Nome do berço" [(ngModel)]="formulario.nome" maxlength="60" required />
+    <input type="number" name="comprimento" placeholder="Comprimento (m)" step="0.01" [(ngModel)]="formulario.comprimentoMetros" required />
+    <input type="number" name="calado" placeholder="Calado máx. (m)" step="0.01" [(ngModel)]="formulario.caladoMaximoMetros" required />
+    <select name="status" [(ngModel)]="formulario.status">
+      <option *ngFor="let status of statusDisponiveis" [ngValue]="status">{{ status }}</option>
+    </select>
+    <button type="submit">{{ edicaoId == null ? 'Adicionar' : 'Salvar' }}</button>
+    <button type="button" *ngIf="edicaoId != null" (click)="cancelarEdicao()">Cancelar</button>
+  </form>
+
+  <p *ngIf="carregando">Carregando berços...</p>
+
+  <table *ngIf="!carregando" class="navio-bercos__tabela">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Comprimento (m)</th>
+        <th>Calado máx. (m)</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let berco of bercos">
+        <td>{{ berco.nome }}</td>
+        <td>{{ berco.comprimentoMetros }}</td>
+        <td>{{ berco.caladoMaximoMetros }}</td>
+        <td>{{ berco.status }}</td>
+        <td class="navio-bercos__acoes">
+          <button type="button" (click)="editar(berco)">Editar</button>
+          <button type="button" (click)="remover(berco)">Remover</button>
+        </td>
+      </tr>
+      <tr *ngIf="bercos.length === 0">
+        <td colspan="5">Nenhum berço cadastrado.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

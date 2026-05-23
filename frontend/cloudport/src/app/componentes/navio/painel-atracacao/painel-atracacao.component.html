@@ -1,0 +1,27 @@
+<section class="navio-painel">
+  <header class="navio-painel__cabecalho">
+    <h2>Painel de atracação</h2>
+    <a routerLink="/home/navio/visitas">Visitas</a>
+  </header>
+
+  <p *ngIf="erro" class="alerta alerta--erro">{{ erro }}</p>
+  <p *ngIf="carregando">Carregando agenda...</p>
+
+  <div *ngIf="!carregando" class="navio-painel__bercos">
+    <article *ngFor="let berco of bercos" class="navio-painel__berco">
+      <header>
+        <h3>{{ berco.nome }}</h3>
+        <span>{{ berco.status }} · {{ berco.comprimentoMetros }}m · calado {{ berco.caladoMaximoMetros }}m</span>
+      </header>
+      <ul>
+        <li *ngFor="let visita of visitasDoBerco(berco)" (click)="abrir(visita)" class="navio-painel__visita">
+          <strong>{{ visita.navioNome }}</strong> ({{ visita.numeroViagem }})
+          <span>{{ visita.atracacaoPrevista | date: 'dd/MM HH:mm' }} → {{ visita.desatracacaoPrevista | date: 'dd/MM HH:mm' }}</span>
+          <em>{{ visita.status }}</em>
+        </li>
+        <li *ngIf="visitasDoBerco(berco).length === 0" class="navio-painel__vazio">Sem atracações planejadas.</li>
+      </ul>
+    </article>
+    <p *ngIf="bercos.length === 0">Nenhum berço cadastrado.</p>
+  </div>
+</section>

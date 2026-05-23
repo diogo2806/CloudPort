@@ -17,6 +17,8 @@ import br.com.cloudport.serviconavio.atracacao.entidade.VisitaNavio;
 import br.com.cloudport.serviconavio.atracacao.repositorio.OperacaoNavioConteinerRepositorio;
 import br.com.cloudport.serviconavio.atracacao.repositorio.VisitaNavioRepositorio;
 import br.com.cloudport.serviconavio.comum.validacao.SanitizadorEntrada;
+import br.com.cloudport.serviconavio.linha.entidade.ServicoLinha;
+import br.com.cloudport.serviconavio.linha.servico.ServicoLinhaServico;
 import br.com.cloudport.serviconavio.navio.entidade.Navio;
 import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
 import java.time.LocalDateTime;
@@ -41,17 +43,20 @@ public class VisitaNavioServico {
     private final OperacaoNavioConteinerRepositorio operacaoRepositorio;
     private final NavioRepositorio navioRepositorio;
     private final BercoServico bercoServico;
+    private final ServicoLinhaServico servicoLinhaServico;
     private final SanitizadorEntrada sanitizadorEntrada;
 
     public VisitaNavioServico(VisitaNavioRepositorio visitaRepositorio,
                               OperacaoNavioConteinerRepositorio operacaoRepositorio,
                               NavioRepositorio navioRepositorio,
                               BercoServico bercoServico,
+                              ServicoLinhaServico servicoLinhaServico,
                               SanitizadorEntrada sanitizadorEntrada) {
         this.visitaRepositorio = visitaRepositorio;
         this.operacaoRepositorio = operacaoRepositorio;
         this.navioRepositorio = navioRepositorio;
         this.bercoServico = bercoServico;
+        this.servicoLinhaServico = servicoLinhaServico;
         this.sanitizadorEntrada = sanitizadorEntrada;
     }
 
@@ -86,6 +91,8 @@ public class VisitaNavioServico {
         visita.setAtracacaoPrevista(dto.getAtracacaoPrevista());
         visita.setDesatracacaoPrevista(dto.getDesatracacaoPrevista());
         visita.setObservacoes(tratarTextoOpcional(dto.getObservacoes()));
+        aplicarServico(visita, dto.getServicoId());
+        visita.setChegadaPrevista(dto.getChegadaPrevista());
         visita.setStatus(StatusVisitaNavio.PLANEJADA);
         return mapearDetalhe(visitaRepositorio.save(visita));
     }
@@ -104,6 +111,12 @@ public class VisitaNavioServico {
         }
         if (dto.getObservacoes() != null) {
             visita.setObservacoes(tratarTextoOpcional(dto.getObservacoes()));
+        }
+        if (dto.getServicoId() != null) {
+            aplicarServico(visita, dto.getServicoId());
+        }
+        if (dto.getChegadaPrevista() != null) {
+            visita.setChegadaPrevista(dto.getChegadaPrevista());
         }
         validarJanela(visita.getAtracacaoPrevista(), visita.getDesatracacaoPrevista());
         return mapearDetalhe(visitaRepositorio.save(visita));
@@ -132,11 +145,24 @@ public class VisitaNavioServico {
     }
 
     @Transactional
-    public VisitaNavioDetalheDTO registrarAtracacao(Long identificador) {
+    public VisitaNavioDetalheDTO registrarChegada(Long identificador) {
         VisitaNavio visita = obter(identificador);
         if (visita.getStatus() != StatusVisitaNavio.PROGRAMADA) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "A visita precisa estar programada (com berço planejado) para registrar a atracação.");
+                    "A visita precisa estar programada para confirmar a chegada do navio.");
+        }
+        visita.setStatus(StatusVisitaNavio.CHEGADA_CONFIRMADA);
+        visita.setChegadaEfetiva(LocalDateTime.now());
+        return mapearDetalhe(visitaRepositorio.save(visita));
+    }
+
+    @Transactional
+    public VisitaNavioDetalheDTO registrarAtracacao(Long identificador) {
+        VisitaNavio visita = obter(identificador);
+        if (visita.getStatus() != StatusVisitaNavio.PROGRAMADA
+                && visita.getStatus() != StatusVisitaNavio.CHEGADA_CONFIRMADA) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A visita precisa estar programada ou com chegada confirmada para registrar a atracação.");
         }
         visita.setStatus(StatusVisitaNavio.ATRACADA);
         visita.setAtracacaoEfetiva(LocalDateTime.now());
@@ -275,6 +301,14 @@ public class VisitaNavioServico {
         return StringUtils.hasText(limpo) ? limpo : null;
     }
 
+    private void aplicarServico(VisitaNavio visita, Long servicoId) {
+        if (servicoId == null) {
+            return;
+        }
+        ServicoLinha servico = servicoLinhaServico.obter(servicoId);
+        visita.setServico(servico);
+    }
+
     private VisitaNavioResumoDTO mapearResumo(VisitaNavio visita) {
         return new VisitaNavioResumoDTO(
                 visita.getIdentificador(),
@@ -284,7 +318,8 @@ public class VisitaNavioServico {
                 visita.getBerco() != null ? visita.getBerco().getNome() : null,
                 visita.getAtracacaoPrevista(),
                 visita.getDesatracacaoPrevista(),
-                visita.getStatus()
+                visita.getStatus(),
+                visita.getServico() != null ? visita.getServico().getCodigo() : null
         );
     }
 
@@ -306,6 +341,10 @@ public class VisitaNavioServico {
                 visita.getDesatracacaoEfetiva(),
                 visita.getStatus(),
                 visita.getObservacoes(),
+                visita.getServico() != null ? visita.getServico().getIdentificador() : null,
+                visita.getServico() != null ? visita.getServico().getCodigo() : null,
+                visita.getChegadaPrevista(),
+                visita.getChegadaEfetiva(),
                 operacoes
         );
     }

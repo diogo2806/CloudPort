@@ -13,10 +13,12 @@ public class VisitaNavioResumoDTO {
     private final LocalDateTime atracacaoPrevista;
     private final LocalDateTime desatracacaoPrevista;
     private final StatusVisitaNavio status;
+    private final String servicoCodigo;
 
     public VisitaNavioResumoDTO(Long identificador, String navioNome, String codigoImo, String numeroViagem,
                                 String bercoNome, LocalDateTime atracacaoPrevista,
-                                LocalDateTime desatracacaoPrevista, StatusVisitaNavio status) {
+                                LocalDateTime desatracacaoPrevista, StatusVisitaNavio status,
+                                String servicoCodigo) {
         this.identificador = identificador;
         this.navioNome = navioNome;
         this.codigoImo = codigoImo;
@@ -25,6 +27,7 @@ public class VisitaNavioResumoDTO {
         this.atracacaoPrevista = atracacaoPrevista;
         this.desatracacaoPrevista = desatracacaoPrevista;
         this.status = status;
+        this.servicoCodigo = servicoCodigo;
     }
 
     public Long getIdentificador() {
@@ -57,5 +60,9 @@ public class VisitaNavioResumoDTO {
 
     public StatusVisitaNavio getStatus() {
         return status;
+    }
+
+    public String getServicoCodigo() {
+        return servicoCodigo;
     }
 }

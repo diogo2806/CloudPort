@@ -19,6 +19,10 @@ public class VisitaNavioDetalheDTO {
     private final LocalDateTime desatracacaoEfetiva;
     private final StatusVisitaNavio status;
     private final String observacoes;
+    private final Long servicoId;
+    private final String servicoCodigo;
+    private final LocalDateTime chegadaPrevista;
+    private final LocalDateTime chegadaEfetiva;
     private final List<OperacaoNavioConteinerDTO> operacoes;
 
     public VisitaNavioDetalheDTO(Long identificador, Long navioId, String navioNome, String codigoImo,
@@ -26,6 +30,8 @@ public class VisitaNavioDetalheDTO {
                                  LocalDateTime atracacaoPrevista, LocalDateTime atracacaoEfetiva,
                                  LocalDateTime desatracacaoPrevista, LocalDateTime desatracacaoEfetiva,
                                  StatusVisitaNavio status, String observacoes,
+                                 Long servicoId, String servicoCodigo,
+                                 LocalDateTime chegadaPrevista, LocalDateTime chegadaEfetiva,
                                  List<OperacaoNavioConteinerDTO> operacoes) {
         this.identificador = identificador;
         this.navioId = navioId;
@@ -40,6 +46,10 @@ public class VisitaNavioDetalheDTO {
         this.desatracacaoEfetiva = desatracacaoEfetiva;
         this.status = status;
         this.observacoes = observacoes;
+        this.servicoId = servicoId;
+        this.servicoCodigo = servicoCodigo;
+        this.chegadaPrevista = chegadaPrevista;
+        this.chegadaEfetiva = chegadaEfetiva;
         this.operacoes = operacoes;
     }
 
@@ -93,6 +103,22 @@ public class VisitaNavioDetalheDTO {
 
     public String getObservacoes() {
         return observacoes;
+    }
+
+    public Long getServicoId() {
+        return servicoId;
+    }
+
+    public String getServicoCodigo() {
+        return servicoCodigo;
+    }
+
+    public LocalDateTime getChegadaPrevista() {
+        return chegadaPrevista;
+    }
+
+    public LocalDateTime getChegadaEfetiva() {
+        return chegadaEfetiva;
     }
 
     public List<OperacaoNavioConteinerDTO> getOperacoes() {

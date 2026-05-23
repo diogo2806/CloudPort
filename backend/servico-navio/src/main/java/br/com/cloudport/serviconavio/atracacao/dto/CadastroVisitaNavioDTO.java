@@ -26,6 +26,27 @@ public class CadastroVisitaNavioDTO {
     @Size(max = 500, message = "As observações devem ter no máximo 500 caracteres.")
     private String observacoes;
 
+    private Long servicoId;
+
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime chegadaPrevista;
+
+    public Long getServicoId() {
+        return servicoId;
+    }
+
+    public void setServicoId(Long servicoId) {
+        this.servicoId = servicoId;
+    }
+
+    public LocalDateTime getChegadaPrevista() {
+        return chegadaPrevista;
+    }
+
+    public void setChegadaPrevista(LocalDateTime chegadaPrevista) {
+        this.chegadaPrevista = chegadaPrevista;
+    }
+
     public Long getNavioId() {
         return navioId;
     }

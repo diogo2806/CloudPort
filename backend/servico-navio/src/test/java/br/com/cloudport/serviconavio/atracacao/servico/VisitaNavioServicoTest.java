@@ -10,6 +10,7 @@ import br.com.cloudport.serviconavio.atracacao.entidade.VisitaNavio;
 import br.com.cloudport.serviconavio.atracacao.repositorio.OperacaoNavioConteinerRepositorio;
 import br.com.cloudport.serviconavio.atracacao.repositorio.VisitaNavioRepositorio;
 import br.com.cloudport.serviconavio.comum.validacao.SanitizadorEntrada;
+import br.com.cloudport.serviconavio.linha.servico.ServicoLinhaServico;
 import br.com.cloudport.serviconavio.navio.entidade.Navio;
 import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,8 +52,9 @@ class VisitaNavioServicoTest {
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
         when(visitaRepositorio.save(any(VisitaNavio.class)))
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
+        ServicoLinhaServico servicoLinhaServico = mock(ServicoLinhaServico.class);
         servico = new VisitaNavioServico(visitaRepositorio, operacaoRepositorio, navioRepositorio,
-                bercoServico, sanitizadorEntrada);
+                bercoServico, servicoLinhaServico, sanitizadorEntrada);
     }
 
     private Navio navio() {

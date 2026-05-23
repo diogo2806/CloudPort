@@ -1,5 +1,6 @@
 package br.com.cloudport.serviconavio.atracacao.entidade;
 
+import br.com.cloudport.serviconavio.linha.entidade.ServicoLinha;
 import br.com.cloudport.serviconavio.navio.entidade.Navio;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,6 +38,16 @@ public class VisitaNavio {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "berco_id")
     private Berco berco;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "servico_linha_id")
+    private ServicoLinha servico;
+
+    @Column(name = "chegada_prevista")
+    private LocalDateTime chegadaPrevista;
+
+    @Column(name = "chegada_efetiva")
+    private LocalDateTime chegadaEfetiva;
 
     @Column(name = "atracacao_prevista", nullable = false)
     private LocalDateTime atracacaoPrevista;
@@ -100,6 +111,30 @@ public class VisitaNavio {
 
     public void setBerco(Berco berco) {
         this.berco = berco;
+    }
+
+    public ServicoLinha getServico() {
+        return servico;
+    }
+
+    public void setServico(ServicoLinha servico) {
+        this.servico = servico;
+    }
+
+    public LocalDateTime getChegadaPrevista() {
+        return chegadaPrevista;
+    }
+
+    public void setChegadaPrevista(LocalDateTime chegadaPrevista) {
+        this.chegadaPrevista = chegadaPrevista;
+    }
+
+    public LocalDateTime getChegadaEfetiva() {
+        return chegadaEfetiva;
+    }
+
+    public void setChegadaEfetiva(LocalDateTime chegadaEfetiva) {
+        this.chegadaEfetiva = chegadaEfetiva;
     }
 
     public LocalDateTime getAtracacaoPrevista() {

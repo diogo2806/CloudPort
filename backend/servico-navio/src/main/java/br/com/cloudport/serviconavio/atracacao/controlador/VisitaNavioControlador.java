@@ -68,6 +68,11 @@ public class VisitaNavioControlador {
         return visitaNavioServico.planejarAtracacao(identificador, dto);
     }
 
+    @PostMapping("/{identificador}/chegada")
+    public VisitaNavioDetalheDTO confirmarChegada(@PathVariable Long identificador) {
+        return visitaNavioServico.registrarChegada(identificador);
+    }
+
     @PostMapping("/{identificador}/atracar")
     public VisitaNavioDetalheDTO atracar(@PathVariable Long identificador) {
         return visitaNavioServico.registrarAtracacao(identificador);

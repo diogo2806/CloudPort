@@ -7,7 +7,8 @@ import {
   NovoPlanoEstiva,
   PlanoEstivaDetalhe,
   ServicoEstivaService,
-  TipoCargaConteiner
+  TipoCargaConteiner,
+  TipoOperacaoEstiva
 } from '../../service/servico-estiva/servico-estiva.service';
 
 interface OpcaoTipoCarga {
@@ -34,6 +35,8 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
   escalas: EscalaResumo[] = [];
   escalaSelecionadaId: number | null = null;
   plano: PlanoEstivaDetalhe | null = null;
+
+  modoOperacao: TipoOperacaoEstiva = 'EMBARQUE';
 
   carregando = false;
   salvando = false;
@@ -118,6 +121,14 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
     });
   }
 
+  alternarModo(modo: TipoOperacaoEstiva): void {
+    if (this.modoOperacao === modo) {
+      return;
+    }
+    this.modoOperacao = modo;
+    this.novaAtribuicao = { ...this.criarAtribuicaoVazia(), baia: this.baiaSelecionada ?? 1 };
+  }
+
   selecionarBaia(baia: number): void {
     this.baiaSelecionada = baia;
     this.novaAtribuicao.baia = baia;
@@ -127,8 +138,7 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
     if (this.baiaSelecionada == null) {
       return;
     }
-    const ocupante = this.atribuicaoEm(this.baiaSelecionada, fileira, camada);
-    if (ocupante) {
+    if (this.atribuicaoEm(this.baiaSelecionada, fileira, camada)) {
       return;
     }
     this.novaAtribuicao.baia = this.baiaSelecionada;
@@ -144,8 +154,10 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
     this.erro = null;
     const payload: NovaAtribuicaoEstiva = {
       ...this.novaAtribuicao,
+      tipoOperacao: this.modoOperacao,
       pesoToneladas: this.novaAtribuicao.pesoToneladas || null,
       posicaoPatioOrigem: this.novaAtribuicao.posicaoPatioOrigem || null,
+      posicaoPatioDestino: this.novaAtribuicao.posicaoPatioDestino || null,
       sequenciaEmbarque: this.novaAtribuicao.sequenciaEmbarque || null
     };
     this.servicoEstiva.adicionarAtribuicao(this.escalaSelecionadaId, payload).subscribe({
@@ -161,17 +173,17 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
     });
   }
 
-  embarcar(atribuicao: AtribuicaoEstiva): void {
+  operar(atribuicao: AtribuicaoEstiva): void {
     this.salvando = true;
     this.erro = null;
-    this.servicoEstiva.embarcar(atribuicao.id).subscribe({
+    this.servicoEstiva.operar(atribuicao.id).subscribe({
       next: (plano) => {
         this.aplicarPlano(plano);
         this.salvando = false;
       },
       error: (erro) => {
         this.salvando = false;
-        this.erro = this.extrairMensagem(erro, 'Não foi possível registrar o embarque.');
+        this.erro = this.extrairMensagem(erro, 'Não foi possível registrar a operação.');
       }
     });
   }
@@ -192,14 +204,15 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
   }
 
   atribuicaoEm(baia: number, fileira: number, camada: number): AtribuicaoEstiva | undefined {
-    return this.celulasOcupadas.get(this.chaveCelula(baia, fileira, camada));
+    return this.celulasOcupadas.get(this.chaveCelula(this.modoOperacao, baia, fileira, camada));
   }
 
   contarNaBaia(baia: number): number {
     if (!this.plano) {
       return 0;
     }
-    return this.plano.atribuicoes.filter((a) => a.baia === baia).length;
+    return this.plano.atribuicoes
+      .filter((a) => a.tipoOperacao === this.modoOperacao && a.baia === baia).length;
   }
 
   atribuicoesDaBaia(baia: number): AtribuicaoEstiva[] {
@@ -207,7 +220,7 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
       return [];
     }
     return this.plano.atribuicoes
-      .filter((a) => a.baia === baia)
+      .filter((a) => a.tipoOperacao === this.modoOperacao && a.baia === baia)
       .sort((a, b) => (a.sequenciaEmbarque ?? 0) - (b.sequenciaEmbarque ?? 0));
   }
 
@@ -221,6 +234,35 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
 
   get camadasArrayDescendente(): number[] {
     return this.intervalo(this.plano?.camadas ?? 0).reverse();
+  }
+
+  get ehDescarga(): boolean {
+    return this.modoOperacao === 'DESCARGA';
+  }
+
+  get rotuloAcao(): string {
+    return this.ehDescarga ? 'Descarregar' : 'Embarcar';
+  }
+
+  get totalPlanejado(): number {
+    if (!this.plano) {
+      return 0;
+    }
+    return this.ehDescarga ? this.plano.descargaPlanejada : this.plano.embarquePlanejado;
+  }
+
+  get totalExecutado(): number {
+    if (!this.plano) {
+      return 0;
+    }
+    return this.ehDescarga ? this.plano.descargaExecutada : this.plano.embarqueExecutado;
+  }
+
+  get totalPendente(): number {
+    if (!this.plano) {
+      return 0;
+    }
+    return this.ehDescarga ? this.plano.descargaPendente : this.plano.embarquePendente;
   }
 
   rotuloTipo(tipo: TipoCargaConteiner): string {
@@ -248,7 +290,7 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
     this.celulasOcupadas = new Map<string, AtribuicaoEstiva>();
     for (const atribuicao of plano.atribuicoes) {
       this.celulasOcupadas.set(
-        this.chaveCelula(atribuicao.baia, atribuicao.fileira, atribuicao.camada),
+        this.chaveCelula(atribuicao.tipoOperacao, atribuicao.baia, atribuicao.fileira, atribuicao.camada),
         atribuicao
       );
     }
@@ -267,6 +309,7 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
 
   private criarAtribuicaoVazia(): NovaAtribuicaoEstiva {
     return {
+      tipoOperacao: this.modoOperacao,
       codigoConteiner: '',
       tipoCarga: 'SECO',
       pesoToneladas: null,
@@ -274,6 +317,7 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
       fileira: 1,
       camada: 1,
       posicaoPatioOrigem: null,
+      posicaoPatioDestino: null,
       sequenciaEmbarque: null
     };
   }
@@ -282,8 +326,8 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
     return Array.from({ length: Math.max(0, tamanho) }, (_, indice) => indice + 1);
   }
 
-  private chaveCelula(baia: number, fileira: number, camada: number): string {
-    return `${baia}-${fileira}-${camada}`;
+  private chaveCelula(operacao: TipoOperacaoEstiva, baia: number, fileira: number, camada: number): string {
+    return `${operacao}-${baia}-${fileira}-${camada}`;
   }
 
   private extrairMensagem(erro: unknown, padrao: string): string {

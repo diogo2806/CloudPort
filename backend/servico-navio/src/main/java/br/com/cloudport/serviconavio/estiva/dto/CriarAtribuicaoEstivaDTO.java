@@ -1,6 +1,7 @@
 package br.com.cloudport.serviconavio.estiva.dto;
 
 import br.com.cloudport.serviconavio.estiva.entidade.TipoCargaConteiner;
+import br.com.cloudport.serviconavio.estiva.entidade.TipoOperacaoEstiva;
 import javax.validation.constraints.DecimalMax;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -10,6 +11,9 @@ import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public class CriarAtribuicaoEstivaDTO {
+
+    @NotNull(message = "Informe o tipo de operação (EMBARQUE ou DESCARGA).")
+    private TipoOperacaoEstiva tipoOperacao;
 
     @NotBlank(message = "Informe o código do contêiner.")
     @Size(max = 20, message = "O código do contêiner deve ter no máximo 20 caracteres.")
@@ -37,10 +41,21 @@ public class CriarAtribuicaoEstivaDTO {
     @Size(max = 40, message = "A posição de origem no pátio deve ter no máximo 40 caracteres.")
     private String posicaoPatioOrigem;
 
+    @Size(max = 40, message = "A posição de destino no pátio deve ter no máximo 40 caracteres.")
+    private String posicaoPatioDestino;
+
     @Min(value = 1, message = "A sequência de embarque deve ser maior ou igual a 1.")
     private Integer sequenciaEmbarque;
 
     public CriarAtribuicaoEstivaDTO() {
+    }
+
+    public TipoOperacaoEstiva getTipoOperacao() {
+        return tipoOperacao;
+    }
+
+    public void setTipoOperacao(TipoOperacaoEstiva tipoOperacao) {
+        this.tipoOperacao = tipoOperacao;
     }
 
     public String getCodigoConteiner() {
@@ -97,6 +112,14 @@ public class CriarAtribuicaoEstivaDTO {
 
     public void setPosicaoPatioOrigem(String posicaoPatioOrigem) {
         this.posicaoPatioOrigem = posicaoPatioOrigem;
+    }
+
+    public String getPosicaoPatioDestino() {
+        return posicaoPatioDestino;
+    }
+
+    public void setPosicaoPatioDestino(String posicaoPatioDestino) {
+        this.posicaoPatioDestino = posicaoPatioDestino;
     }
 
     public Integer getSequenciaEmbarque() {

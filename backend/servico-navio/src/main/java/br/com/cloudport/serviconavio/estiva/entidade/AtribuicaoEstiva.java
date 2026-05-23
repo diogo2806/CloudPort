@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "atribuicao_estiva", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_atribuicao_celula", columnNames = {"plano_id", "baia", "fileira", "camada"}),
+        @UniqueConstraint(name = "uk_atribuicao_celula", columnNames = {"plano_id", "tipo_operacao", "baia", "fileira", "camada"}),
         @UniqueConstraint(name = "uk_atribuicao_conteiner", columnNames = {"plano_id", "codigo_conteiner"})
 })
 public class AtribuicaoEstiva {
@@ -36,6 +36,10 @@ public class AtribuicaoEstiva {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "plano_id", nullable = false)
     private PlanoEstiva plano;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_operacao", nullable = false, length = 20)
+    private TipoOperacaoEstiva tipoOperacao;
 
     @Column(name = "codigo_conteiner", nullable = false, length = 20)
     private String codigoConteiner;
@@ -58,6 +62,9 @@ public class AtribuicaoEstiva {
 
     @Column(name = "posicao_patio_origem", length = 40)
     private String posicaoPatioOrigem;
+
+    @Column(name = "posicao_patio_destino", length = 40)
+    private String posicaoPatioDestino;
 
     @Column(name = "sequencia_embarque")
     private Integer sequenciaEmbarque;
@@ -88,6 +95,14 @@ public class AtribuicaoEstiva {
 
     public void setPlano(PlanoEstiva plano) {
         this.plano = plano;
+    }
+
+    public TipoOperacaoEstiva getTipoOperacao() {
+        return tipoOperacao;
+    }
+
+    public void setTipoOperacao(TipoOperacaoEstiva tipoOperacao) {
+        this.tipoOperacao = tipoOperacao;
     }
 
     public String getCodigoConteiner() {
@@ -144,6 +159,14 @@ public class AtribuicaoEstiva {
 
     public void setPosicaoPatioOrigem(String posicaoPatioOrigem) {
         this.posicaoPatioOrigem = posicaoPatioOrigem;
+    }
+
+    public String getPosicaoPatioDestino() {
+        return posicaoPatioDestino;
+    }
+
+    public void setPosicaoPatioDestino(String posicaoPatioDestino) {
+        this.posicaoPatioDestino = posicaoPatioDestino;
     }
 
     public Integer getSequenciaEmbarque() {

@@ -45,9 +45,9 @@ public class PlanoEstivaControlador {
         return planoEstivaServico.adicionarAtribuicao(escalaId, dto);
     }
 
-    @PatchMapping("/plano-estiva/atribuicoes/{atribuicaoId}/embarcar")
-    public PlanoEstivaDetalheDTO embarcar(@PathVariable Long atribuicaoId) {
-        return planoEstivaServico.embarcar(atribuicaoId);
+    @PatchMapping("/plano-estiva/atribuicoes/{atribuicaoId}/operar")
+    public PlanoEstivaDetalheDTO operar(@PathVariable Long atribuicaoId) {
+        return planoEstivaServico.registrarOperacao(atribuicaoId);
     }
 
     @DeleteMapping("/plano-estiva/atribuicoes/{atribuicaoId}")

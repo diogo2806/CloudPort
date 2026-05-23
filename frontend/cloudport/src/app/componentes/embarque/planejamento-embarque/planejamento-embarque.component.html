@@ -1,8 +1,9 @@
 <section class="embarque">
   <header class="embarque-cabecalho">
-    <h2>Planejamento de Embarque</h2>
+    <h2>Planejamento de Embarque e Descarga</h2>
     <p class="subtitulo">
-      Plano de estiva (bay/row/tier): organize a saída da carga do pátio para o navio e registre o embarque.
+      Plano de estiva (bay/row/tier): planeje a saída da carga do pátio para o navio (embarque)
+      e a retirada da carga do navio para o pátio (descarga).
     </p>
   </header>
 
@@ -41,27 +42,39 @@
   </div>
 
   <ng-container *ngIf="plano">
-    <!-- Indicadores / controle de saída de estoque -->
+    <!-- Alternância entre embarque e descarga -->
+    <div class="modo-operacao">
+      <button type="button" [class.ativo]="!ehDescarga" (click)="alternarModo('EMBARQUE')">
+        Embarque (pátio → navio)
+      </button>
+      <button type="button" [class.ativo]="ehDescarga" (click)="alternarModo('DESCARGA')">
+        Descarga (navio → pátio)
+      </button>
+    </div>
+
+    <!-- Indicadores / controle de estoque -->
     <div class="indicadores">
       <div class="indicador">
         <span class="indicador-valor">{{ plano.status }}</span>
         <span class="indicador-rotulo">Status do plano</span>
       </div>
       <div class="indicador">
-        <span class="indicador-valor">{{ plano.totalPlanejado }}</span>
-        <span class="indicador-rotulo">Planejados</span>
+        <span class="indicador-valor">{{ totalPlanejado }}</span>
+        <span class="indicador-rotulo">Planejados ({{ ehDescarga ? 'descarga' : 'embarque' }})</span>
       </div>
       <div class="indicador embarcado">
-        <span class="indicador-valor">{{ plano.totalEmbarcado }}</span>
-        <span class="indicador-rotulo">Embarcados (baixa do pátio)</span>
+        <span class="indicador-valor">{{ totalExecutado }}</span>
+        <span class="indicador-rotulo">
+          {{ ehDescarga ? 'Descarregados (entrada no pátio)' : 'Embarcados (baixa do pátio)' }}
+        </span>
       </div>
       <div class="indicador">
-        <span class="indicador-valor">{{ plano.totalPendente }}</span>
-        <span class="indicador-rotulo">Pendentes no pátio</span>
+        <span class="indicador-valor">{{ totalPendente }}</span>
+        <span class="indicador-rotulo">{{ ehDescarga ? 'Pendentes a bordo' : 'Pendentes no pátio' }}</span>
       </div>
       <div class="indicador">
-        <span class="indicador-valor">{{ plano.ocupacaoPercentual }}%</span>
-        <span class="indicador-rotulo">Ocupação ({{ plano.capacidadeCelulas }} células)</span>
+        <span class="indicador-valor">{{ plano.capacidadeCelulas }}</span>
+        <span class="indicador-rotulo">Células do navio</span>
       </div>
     </div>
 
@@ -84,7 +97,9 @@
         </div>
 
         <div *ngIf="baiaSelecionada != null" class="grade-navio">
-          <p class="grade-legenda-eixo">Baia {{ baiaSelecionada }} — camadas (tiers) × fileiras (rows)</p>
+          <p class="grade-legenda-eixo">
+            Baia {{ baiaSelecionada }} — camadas (tiers) × fileiras (rows) · modo {{ ehDescarga ? 'DESCARGA' : 'EMBARQUE' }}
+          </p>
           <table class="grade-celulas">
             <tbody>
               <tr *ngFor="let camada of camadasArrayDescendente">
@@ -117,14 +132,14 @@
             <li><span class="amostra tipo-perigoso"></span> Perigoso</li>
             <li><span class="amostra tipo-graneleiro"></span> Granel</li>
             <li><span class="amostra tipo-outro"></span> Outro</li>
-            <li><span class="amostra embarcado"></span> Embarcado</li>
+            <li><span class="amostra embarcado"></span> {{ ehDescarga ? 'Descarregado' : 'Embarcado' }}</li>
           </ul>
         </div>
       </div>
 
-      <!-- Fluxo pátio -> navio -->
+      <!-- Fluxo pátio <-> navio -->
       <div class="cartao fluxo">
-        <h3>Pátio → Navio</h3>
+        <h3>{{ ehDescarga ? 'Navio → Pátio' : 'Pátio → Navio' }}</h3>
         <p class="ajuda">Clique numa célula livre da grade para escolher a posição; preencha os dados do contêiner.</p>
 
         <form class="form-atribuicao" (ngSubmit)="adicionarAtribuicao()">
@@ -139,8 +154,11 @@
           <label>Peso (t)
             <input type="number" min="0" step="0.01" [(ngModel)]="novaAtribuicao.pesoToneladas" name="peso" />
           </label>
-          <label>Origem no pátio
+          <label *ngIf="!ehDescarga">Origem no pátio
             <input type="text" maxlength="40" [(ngModel)]="novaAtribuicao.posicaoPatioOrigem" name="origem" placeholder="ex: A-12-3" />
+          </label>
+          <label *ngIf="ehDescarga">Destino no pátio
+            <input type="text" maxlength="40" [(ngModel)]="novaAtribuicao.posicaoPatioDestino" name="destino" placeholder="ex: B-04-1" />
           </label>
           <div class="posicao-celula">
             <label>Baia
@@ -157,13 +175,13 @@
             </label>
           </div>
           <button type="submit" class="btn-primario" [disabled]="salvando || !novaAtribuicao.codigoConteiner">
-            Atribuir ao navio
+            {{ ehDescarga ? 'Planejar descarga' : 'Atribuir ao navio' }}
           </button>
         </form>
 
-        <h4>Carga da baia {{ baiaSelecionada }}</h4>
+        <h4>Carga da baia {{ baiaSelecionada }} ({{ ehDescarga ? 'descarga' : 'embarque' }})</h4>
         <p *ngIf="baiaSelecionada != null && atribuicoesDaBaia(baiaSelecionada).length === 0" class="vazio">
-          Nenhum contêiner atribuído nesta baia.
+          Nenhum contêiner planejado nesta baia para esta operação.
         </p>
         <ul class="lista-atribuicoes" *ngIf="baiaSelecionada != null">
           <li *ngFor="let item of atribuicoesDaBaia(baiaSelecionada)" [class.embarcado]="item.embarcado">
@@ -171,13 +189,14 @@
               <strong>{{ item.codigoConteiner }}</strong>
               <span class="item-detalhe">
                 {{ rotuloTipo(item.tipoCarga) }} · R{{ item.fileira }}/T{{ item.camada }}
-                <ng-container *ngIf="item.posicaoPatioOrigem"> · pátio {{ item.posicaoPatioOrigem }}</ng-container>
+                <ng-container *ngIf="!ehDescarga && item.posicaoPatioOrigem"> · de {{ item.posicaoPatioOrigem }}</ng-container>
+                <ng-container *ngIf="ehDescarga && item.posicaoPatioDestino"> · para {{ item.posicaoPatioDestino }}</ng-container>
               </span>
             </div>
             <div class="item-acoes">
-              <span *ngIf="item.embarcado" class="tag-embarcado">Embarcado</span>
-              <button *ngIf="!item.embarcado" type="button" class="btn-secundario" [disabled]="salvando" (click)="embarcar(item)">
-                Embarcar
+              <span *ngIf="item.embarcado" class="tag-embarcado">{{ ehDescarga ? 'Descarregado' : 'Embarcado' }}</span>
+              <button *ngIf="!item.embarcado" type="button" class="btn-secundario" [disabled]="salvando" (click)="operar(item)">
+                {{ rotuloAcao }}
               </button>
               <button *ngIf="!item.embarcado" type="button" class="btn-remover" [disabled]="salvando" (click)="remover(item)">
                 Remover

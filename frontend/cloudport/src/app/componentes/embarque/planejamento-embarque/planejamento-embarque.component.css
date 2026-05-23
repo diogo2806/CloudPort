@@ -91,6 +91,29 @@ select {
   border: 1px solid #cbd2d9;
 }
 
+.modo-operacao {
+  display: inline-flex;
+  border: 1px solid #234986;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.modo-operacao button {
+  border: none;
+  background: #ffffff;
+  color: #234986;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.modo-operacao button.ativo {
+  background: #234986;
+  color: #ffffff;
+}
+
 .indicadores {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

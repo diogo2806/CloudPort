@@ -5,6 +5,7 @@ import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao
 
 export type TipoCargaConteiner = 'SECO' | 'REFRIGERADO' | 'PERIGOSO' | 'GRANELEIRO' | 'OUTRO';
 export type StatusPlanoEstiva = 'RASCUNHO' | 'CONFIRMADO' | 'EM_EXECUCAO' | 'CONCLUIDO';
+export type TipoOperacaoEstiva = 'EMBARQUE' | 'DESCARGA';
 
 export interface EscalaResumo {
   id: number;
@@ -19,6 +20,7 @@ export interface EscalaResumo {
 
 export interface AtribuicaoEstiva {
   id: number;
+  tipoOperacao: TipoOperacaoEstiva;
   codigoConteiner: string;
   tipoCarga: TipoCargaConteiner;
   pesoToneladas?: number | null;
@@ -26,6 +28,7 @@ export interface AtribuicaoEstiva {
   fileira: number;
   camada: number;
   posicaoPatioOrigem?: string | null;
+  posicaoPatioDestino?: string | null;
   sequenciaEmbarque?: number | null;
   embarcado: boolean;
   embarcadoEm?: string | null;
@@ -41,10 +44,12 @@ export interface PlanoEstivaDetalhe {
   fileiras: number;
   camadas: number;
   capacidadeCelulas: number;
-  totalPlanejado: number;
-  totalEmbarcado: number;
-  totalPendente: number;
-  ocupacaoPercentual: number;
+  embarquePlanejado: number;
+  embarqueExecutado: number;
+  embarquePendente: number;
+  descargaPlanejada: number;
+  descargaExecutada: number;
+  descargaPendente: number;
   atribuicoes: AtribuicaoEstiva[];
 }
 
@@ -55,6 +60,7 @@ export interface NovoPlanoEstiva {
 }
 
 export interface NovaAtribuicaoEstiva {
+  tipoOperacao: TipoOperacaoEstiva;
   codigoConteiner: string;
   tipoCarga: TipoCargaConteiner;
   pesoToneladas?: number | null;
@@ -62,6 +68,7 @@ export interface NovaAtribuicaoEstiva {
   fileira: number;
   camada: number;
   posicaoPatioOrigem?: string | null;
+  posicaoPatioDestino?: string | null;
   sequenciaEmbarque?: number | null;
 }
 
@@ -93,9 +100,9 @@ export class ServicoEstivaService {
     );
   }
 
-  embarcar(atribuicaoId: number): Observable<PlanoEstivaDetalhe> {
+  operar(atribuicaoId: number): Observable<PlanoEstivaDetalhe> {
     return this.http.patch<PlanoEstivaDetalhe>(
-      this.construirUrl(`/plano-estiva/atribuicoes/${atribuicaoId}/embarcar`),
+      this.construirUrl(`/plano-estiva/atribuicoes/${atribuicaoId}/operar`),
       {}
     );
   }

@@ -1,0 +1,29 @@
+# Build output (Maven)
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+
+# Logs
+*.log
+
+# IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/*
+!.vscode/extensions.json
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Artefatos de concatenação de código (scripts "unir arquivos")
+*_[0-9]*.txt

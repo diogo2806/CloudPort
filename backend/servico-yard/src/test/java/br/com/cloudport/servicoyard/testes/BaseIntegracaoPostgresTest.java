@@ -27,5 +27,6 @@ public abstract class BaseIntegracaoPostgresTest {
         registry.add("spring.jpa.properties.hibernate.default_schema", () -> "public");
         registry.add("spring.flyway.default-schema", () -> "public");
         registry.add("spring.flyway.schemas", () -> "public");
+        registry.add("JWT_SECRET", () -> "segredo-de-teste-com-pelo-menos-256-bits-1234567890");
     }
 }

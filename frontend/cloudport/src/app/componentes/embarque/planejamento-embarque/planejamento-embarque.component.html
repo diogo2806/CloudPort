@@ -32,8 +32,11 @@
       <label>Fileiras (rows)
         <input type="number" min="1" max="40" [(ngModel)]="novoPlano.fileiras" />
       </label>
-      <label>Camadas (tiers)
-        <input type="number" min="1" max="20" [(ngModel)]="novoPlano.camadas" />
+      <label>Camadas no porão (tiers 02, 04…)
+        <input type="number" min="0" max="20" [(ngModel)]="novoPlano.camadasPorao" />
+      </label>
+      <label>Camadas no convés (tiers 82, 84…)
+        <input type="number" min="0" max="20" [(ngModel)]="novoPlano.camadasConves" />
       </label>
     </div>
     <button type="button" class="btn-primario" [disabled]="salvando" (click)="criarPlano()">
@@ -78,6 +81,36 @@
       </div>
     </div>
 
+    <!-- Ternos (crane split / work queue) -->
+    <div class="cartao ternos">
+      <h3>Ternos (crane split)</h3>
+      <p class="ajuda">Atribua turmas/guindastes a um intervalo de baias e defina a ordem de operação.</p>
+      <form class="form-terno" (ngSubmit)="adicionarTerno()">
+        <label>Terno
+          <input type="text" maxlength="40" required [(ngModel)]="novoTerno.identificador" name="ternoId" placeholder="ex: GUINDASTE 1" />
+        </label>
+        <label>Sequência
+          <input type="number" min="1" [(ngModel)]="novoTerno.sequencia" name="ternoSeq" />
+        </label>
+        <label>Baia inicial
+          <input type="number" min="1" [(ngModel)]="novoTerno.baiaInicial" name="ternoIni" />
+        </label>
+        <label>Baia final
+          <input type="number" min="1" [(ngModel)]="novoTerno.baiaFinal" name="ternoFim" />
+        </label>
+        <button type="submit" class="btn-primario" [disabled]="salvando || !novoTerno.identificador">
+          Adicionar terno
+        </button>
+      </form>
+      <ul class="lista-ternos">
+        <li *ngFor="let terno of plano.ternos">
+          <span><strong>#{{ terno.sequencia }} {{ terno.identificador }}</strong> · baias {{ terno.baiaInicial }}–{{ terno.baiaFinal }}</span>
+          <button type="button" class="btn-remover" [disabled]="salvando" (click)="removerTerno(terno)">Remover</button>
+        </li>
+        <li *ngIf="!plano.ternos.length" class="vazio">Nenhum terno definido.</li>
+      </ul>
+    </div>
+
     <div class="layout-plano">
       <!-- Visualização gráfica do navio -->
       <div class="cartao navio">
@@ -89,10 +122,12 @@
             type="button"
             class="chip-baia"
             [class.ativa]="baia === baiaSelecionada"
+            [title]="ternoDaBaia(baia) ? ('Terno ' + ternoDaBaia(baia)?.identificador) : 'Sem terno'"
             (click)="selecionarBaia(baia)"
           >
             Baia {{ baia }}
             <span class="chip-contador">{{ contarNaBaia(baia) }}</span>
+            <span *ngIf="ternoDaBaia(baia) as t" class="chip-terno">{{ t.identificador }}</span>
           </button>
         </div>
 
@@ -102,19 +137,40 @@
           </p>
           <table class="grade-celulas">
             <tbody>
-              <tr *ngFor="let camada of camadasArrayDescendente">
-                <th scope="row" class="rotulo-eixo">T{{ camada }}</th>
+              <tr *ngFor="let tier of tiersConvesDesc">
+                <th scope="row" class="rotulo-eixo">T{{ tier }}</th>
                 <td *ngFor="let fileira of fileirasArray">
                   <button
                     type="button"
                     class="celula"
-                    [ngClass]="classeCelula(baiaSelecionada, fileira, camada)"
-                    [class.selecionada]="celulaSelecionadaNoForm(fileira, camada)"
-                    [title]="(atribuicaoEm(baiaSelecionada, fileira, camada)?.codigoConteiner) || ('Fileira ' + fileira + ' / Tier ' + camada)"
-                    (click)="selecionarCelula(fileira, camada)"
+                    [ngClass]="classeCelula(baiaSelecionada, fileira, tier)"
+                    [class.selecionada]="celulaSelecionadaNoForm(fileira, tier)"
+                    [title]="(atribuicaoEm(baiaSelecionada, fileira, tier)?.codigoConteiner) || ('Convés · Fileira ' + fileira + ' / Tier ' + tier)"
+                    (click)="selecionarCelula(fileira, tier)"
                   >
                     <span class="celula-codigo">
-                      {{ atribuicaoEm(baiaSelecionada, fileira, camada)?.codigoConteiner }}
+                      {{ atribuicaoEm(baiaSelecionada, fileira, tier)?.codigoConteiner }}
+                    </span>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="tiersConvesDesc.length && tiersPoraoDesc.length" class="linha-escotilha">
+                <th scope="row" class="rotulo-eixo"></th>
+                <td [attr.colspan]="fileirasArray.length" class="escotilha">tampa de escotilha (convés ↑ · porão ↓)</td>
+              </tr>
+              <tr *ngFor="let tier of tiersPoraoDesc">
+                <th scope="row" class="rotulo-eixo">T{{ tier }}</th>
+                <td *ngFor="let fileira of fileirasArray">
+                  <button
+                    type="button"
+                    class="celula"
+                    [ngClass]="classeCelula(baiaSelecionada, fileira, tier)"
+                    [class.selecionada]="celulaSelecionadaNoForm(fileira, tier)"
+                    [title]="(atribuicaoEm(baiaSelecionada, fileira, tier)?.codigoConteiner) || ('Porão · Fileira ' + fileira + ' / Tier ' + tier)"
+                    (click)="selecionarCelula(fileira, tier)"
+                  >
+                    <span class="celula-codigo">
+                      {{ atribuicaoEm(baiaSelecionada, fileira, tier)?.codigoConteiner }}
                     </span>
                   </button>
                 </td>
@@ -167,8 +223,12 @@
             <label>Fileira
               <input type="number" min="1" [(ngModel)]="novaAtribuicao.fileira" name="fileira" />
             </label>
-            <label>Camada
-              <input type="number" min="1" [(ngModel)]="novaAtribuicao.camada" name="camada" />
+            <label>Camada (tier)
+              <select [(ngModel)]="novaAtribuicao.camada" name="camada">
+                <option *ngFor="let tier of tiersDisponiveis" [ngValue]="tier">
+                  {{ tier }} ({{ tier >= 80 ? 'convés' : 'porão' }})
+                </option>
+              </select>
             </label>
             <label>Sequência
               <input type="number" min="1" [(ngModel)]="novaAtribuicao.sequenciaEmbarque" name="sequencia" />

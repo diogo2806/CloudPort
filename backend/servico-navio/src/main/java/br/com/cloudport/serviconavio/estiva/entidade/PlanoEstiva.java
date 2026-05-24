@@ -48,12 +48,19 @@ public class PlanoEstiva {
     @Column(name = "fileiras", nullable = false)
     private int fileiras;
 
-    @Column(name = "camadas", nullable = false)
-    private int camadas;
+    @Column(name = "camadas_porao", nullable = false)
+    private int camadasPorao;
+
+    @Column(name = "camadas_conves", nullable = false)
+    private int camadasConves;
 
     @OneToMany(mappedBy = "plano", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("baia ASC, fileira ASC, camada ASC")
     private List<AtribuicaoEstiva> atribuicoes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "plano", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("sequencia ASC, baiaInicial ASC")
+    private List<Terno> ternos = new ArrayList<>();
 
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
@@ -101,12 +108,20 @@ public class PlanoEstiva {
         this.fileiras = fileiras;
     }
 
-    public int getCamadas() {
-        return camadas;
+    public int getCamadasPorao() {
+        return camadasPorao;
     }
 
-    public void setCamadas(int camadas) {
-        this.camadas = camadas;
+    public void setCamadasPorao(int camadasPorao) {
+        this.camadasPorao = camadasPorao;
+    }
+
+    public int getCamadasConves() {
+        return camadasConves;
+    }
+
+    public void setCamadasConves(int camadasConves) {
+        this.camadasConves = camadasConves;
     }
 
     public List<AtribuicaoEstiva> getAtribuicoes() {
@@ -115,6 +130,24 @@ public class PlanoEstiva {
 
     public void setAtribuicoes(List<AtribuicaoEstiva> atribuicoes) {
         this.atribuicoes = atribuicoes;
+    }
+
+    public List<Terno> getTernos() {
+        return ternos;
+    }
+
+    public void setTernos(List<Terno> ternos) {
+        this.ternos = ternos;
+    }
+
+    public void adicionarTerno(Terno terno) {
+        terno.setPlano(this);
+        this.ternos.add(terno);
+    }
+
+    public void removerTerno(Terno terno) {
+        this.ternos.remove(terno);
+        terno.setPlano(null);
     }
 
     public void adicionarAtribuicao(AtribuicaoEstiva atribuicao) {
@@ -128,7 +161,7 @@ public class PlanoEstiva {
     }
 
     public int capacidadeCelulas() {
-        return baias * fileiras * camadas;
+        return baias * fileiras * (camadasPorao + camadasConves);
     }
 
     public LocalDateTime getCriadoEm() {

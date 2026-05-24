@@ -5,8 +5,10 @@ import {
   EscalaResumo,
   NovaAtribuicaoEstiva,
   NovoPlanoEstiva,
+  NovoTerno,
   PlanoEstivaDetalhe,
   ServicoEstivaService,
+  Terno,
   TipoCargaConteiner,
   TipoOperacaoEstiva
 } from '../../service/servico-estiva/servico-estiva.service';
@@ -45,9 +47,11 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
 
   baiaSelecionada: number | null = null;
 
-  novoPlano: NovoPlanoEstiva = { baias: 10, fileiras: 6, camadas: 4 };
+  novoPlano: NovoPlanoEstiva = { baias: 10, fileiras: 6, camadasPorao: 4, camadasConves: 3 };
 
   novaAtribuicao: NovaAtribuicaoEstiva = this.criarAtribuicaoVazia();
+
+  novoTerno: NovoTerno = this.criarTernoVazio();
 
   private celulasOcupadas = new Map<string, AtribuicaoEstiva>();
 
@@ -126,7 +130,7 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
       return;
     }
     this.modoOperacao = modo;
-    this.novaAtribuicao = { ...this.criarAtribuicaoVazia(), baia: this.baiaSelecionada ?? 1 };
+    this.reiniciarFormularioAtribuicao();
   }
 
   selecionarBaia(baia: number): void {
@@ -203,6 +207,44 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
     });
   }
 
+  adicionarTerno(): void {
+    if (this.escalaSelecionadaId == null) {
+      return;
+    }
+    this.salvando = true;
+    this.erro = null;
+    this.servicoEstiva.criarTerno(this.escalaSelecionadaId, this.novoTerno).subscribe({
+      next: (plano) => {
+        this.aplicarPlano(plano);
+        this.novoTerno = this.criarTernoVazio();
+        this.salvando = false;
+      },
+      error: (erro) => {
+        this.salvando = false;
+        this.erro = this.extrairMensagem(erro, 'Não foi possível criar o terno.');
+      }
+    });
+  }
+
+  removerTerno(terno: Terno): void {
+    this.salvando = true;
+    this.erro = null;
+    this.servicoEstiva.removerTerno(terno.id).subscribe({
+      next: (plano) => {
+        this.aplicarPlano(plano);
+        this.salvando = false;
+      },
+      error: (erro) => {
+        this.salvando = false;
+        this.erro = this.extrairMensagem(erro, 'Não foi possível remover o terno.');
+      }
+    });
+  }
+
+  ternoDaBaia(baia: number): Terno | undefined {
+    return this.plano?.ternos.find((t) => baia >= t.baiaInicial && baia <= t.baiaFinal);
+  }
+
   atribuicaoEm(baia: number, fileira: number, camada: number): AtribuicaoEstiva | undefined {
     return this.celulasOcupadas.get(this.chaveCelula(this.modoOperacao, baia, fileira, camada));
   }
@@ -232,8 +274,16 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
     return this.intervalo(this.plano?.fileiras ?? 0);
   }
 
-  get camadasArrayDescendente(): number[] {
-    return this.intervalo(this.plano?.camadas ?? 0).reverse();
+  get tiersConvesDesc(): number[] {
+    return [...(this.plano?.tiersConves ?? [])].reverse();
+  }
+
+  get tiersPoraoDesc(): number[] {
+    return [...(this.plano?.tiersPorao ?? [])].reverse();
+  }
+
+  get tiersDisponiveis(): number[] {
+    return [...(this.plano?.tiersPorao ?? []), ...(this.plano?.tiersConves ?? [])];
   }
 
   get ehDescarga(): boolean {
@@ -300,11 +350,17 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
     if (this.baiaSelecionada != null) {
       this.novaAtribuicao.baia = this.baiaSelecionada;
     }
+    const tiers = this.tiersDisponiveis;
+    if (tiers.length > 0 && !tiers.includes(this.novaAtribuicao.camada)) {
+      this.novaAtribuicao.camada = tiers[0];
+    }
   }
 
   private reiniciarFormularioAtribuicao(): void {
     const baia = this.baiaSelecionada ?? 1;
-    this.novaAtribuicao = { ...this.criarAtribuicaoVazia(), baia };
+    const tiers = this.tiersDisponiveis;
+    const camada = tiers.length > 0 ? tiers[0] : 2;
+    this.novaAtribuicao = { ...this.criarAtribuicaoVazia(), baia, camada };
   }
 
   private criarAtribuicaoVazia(): NovaAtribuicaoEstiva {
@@ -315,11 +371,15 @@ export class PlanejamentoEmbarqueComponent implements OnInit {
       pesoToneladas: null,
       baia: 1,
       fileira: 1,
-      camada: 1,
+      camada: 2,
       posicaoPatioOrigem: null,
       posicaoPatioDestino: null,
       sequenciaEmbarque: null
     };
+  }
+
+  private criarTernoVazio(): NovoTerno {
+    return { identificador: '', sequencia: 1, baiaInicial: 1, baiaFinal: 1 };
   }
 
   private intervalo(tamanho: number): number[] {

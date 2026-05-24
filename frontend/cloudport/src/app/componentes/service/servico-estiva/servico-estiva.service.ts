@@ -6,6 +6,22 @@ import { ConfiguracaoAplicacaoService } from '../../../configuracao/configuracao
 export type TipoCargaConteiner = 'SECO' | 'REFRIGERADO' | 'PERIGOSO' | 'GRANELEIRO' | 'OUTRO';
 export type StatusPlanoEstiva = 'RASCUNHO' | 'CONFIRMADO' | 'EM_EXECUCAO' | 'CONCLUIDO';
 export type TipoOperacaoEstiva = 'EMBARQUE' | 'DESCARGA';
+export type ConvesNavio = 'PORAO' | 'CONVES';
+
+export interface Terno {
+  id: number;
+  identificador: string;
+  sequencia: number;
+  baiaInicial: number;
+  baiaFinal: number;
+}
+
+export interface NovoTerno {
+  identificador: string;
+  sequencia: number;
+  baiaInicial: number;
+  baiaFinal: number;
+}
 
 export interface EscalaResumo {
   id: number;
@@ -27,6 +43,7 @@ export interface AtribuicaoEstiva {
   baia: number;
   fileira: number;
   camada: number;
+  conves: ConvesNavio;
   posicaoPatioOrigem?: string | null;
   posicaoPatioDestino?: string | null;
   sequenciaEmbarque?: number | null;
@@ -42,7 +59,10 @@ export interface PlanoEstivaDetalhe {
   status: StatusPlanoEstiva;
   baias: number;
   fileiras: number;
-  camadas: number;
+  camadasPorao: number;
+  camadasConves: number;
+  tiersPorao: number[];
+  tiersConves: number[];
   capacidadeCelulas: number;
   embarquePlanejado: number;
   embarqueExecutado: number;
@@ -51,12 +71,14 @@ export interface PlanoEstivaDetalhe {
   descargaExecutada: number;
   descargaPendente: number;
   atribuicoes: AtribuicaoEstiva[];
+  ternos: Terno[];
 }
 
 export interface NovoPlanoEstiva {
   baias: number;
   fileiras: number;
-  camadas: number;
+  camadasPorao: number;
+  camadasConves: number;
 }
 
 export interface NovaAtribuicaoEstiva {
@@ -110,6 +132,19 @@ export class ServicoEstivaService {
   removerAtribuicao(atribuicaoId: number): Observable<PlanoEstivaDetalhe> {
     return this.http.delete<PlanoEstivaDetalhe>(
       this.construirUrl(`/plano-estiva/atribuicoes/${atribuicaoId}`)
+    );
+  }
+
+  criarTerno(escalaId: number, payload: NovoTerno): Observable<PlanoEstivaDetalhe> {
+    return this.http.post<PlanoEstivaDetalhe>(
+      this.construirUrl(`/escalas/${escalaId}/plano-estiva/ternos`),
+      payload
+    );
+  }
+
+  removerTerno(ternoId: number): Observable<PlanoEstivaDetalhe> {
+    return this.http.delete<PlanoEstivaDetalhe>(
+      this.construirUrl(`/plano-estiva/ternos/${ternoId}`)
     );
   }
 

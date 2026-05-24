@@ -60,6 +60,10 @@ public class AtribuicaoEstiva {
     @Column(name = "camada", nullable = false)
     private int camada;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "conves", nullable = false, length = 10)
+    private ConvesNavio conves;
+
     @Column(name = "posicao_patio_origem", length = 40)
     private String posicaoPatioOrigem;
 
@@ -151,6 +155,14 @@ public class AtribuicaoEstiva {
 
     public void setCamada(int camada) {
         this.camada = camada;
+    }
+
+    public ConvesNavio getConves() {
+        return conves;
+    }
+
+    public void setConves(ConvesNavio conves) {
+        this.conves = conves;
     }
 
     public String getPosicaoPatioOrigem() {

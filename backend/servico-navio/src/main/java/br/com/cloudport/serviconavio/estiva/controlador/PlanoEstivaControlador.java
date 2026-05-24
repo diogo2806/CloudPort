@@ -2,6 +2,7 @@ package br.com.cloudport.serviconavio.estiva.controlador;
 
 import br.com.cloudport.serviconavio.estiva.dto.CriarAtribuicaoEstivaDTO;
 import br.com.cloudport.serviconavio.estiva.dto.CriarPlanoEstivaDTO;
+import br.com.cloudport.serviconavio.estiva.dto.CriarTernoDTO;
 import br.com.cloudport.serviconavio.estiva.dto.PlanoEstivaDetalheDTO;
 import br.com.cloudport.serviconavio.estiva.servico.PlanoEstivaServico;
 import javax.validation.Valid;
@@ -53,5 +54,17 @@ public class PlanoEstivaControlador {
     @DeleteMapping("/plano-estiva/atribuicoes/{atribuicaoId}")
     public PlanoEstivaDetalheDTO removerAtribuicao(@PathVariable Long atribuicaoId) {
         return planoEstivaServico.removerAtribuicao(atribuicaoId);
+    }
+
+    @PostMapping("/escalas/{escalaId}/plano-estiva/ternos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PlanoEstivaDetalheDTO adicionarTerno(@PathVariable Long escalaId,
+                                                @Valid @RequestBody CriarTernoDTO dto) {
+        return planoEstivaServico.adicionarTerno(escalaId, dto);
+    }
+
+    @DeleteMapping("/plano-estiva/ternos/{ternoId}")
+    public PlanoEstivaDetalheDTO removerTerno(@PathVariable Long ternoId) {
+        return planoEstivaServico.removerTerno(ternoId);
     }
 }

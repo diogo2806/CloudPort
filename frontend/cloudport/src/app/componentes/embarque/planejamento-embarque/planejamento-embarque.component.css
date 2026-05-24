@@ -206,6 +206,58 @@ select {
   border-spacing: 4px;
 }
 
+.linha-escotilha .escotilha {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #92400e;
+  background: repeating-linear-gradient(45deg, #fde68a, #fde68a 6px, #fcd34d 6px, #fcd34d 12px);
+  border-radius: 4px;
+  padding: 0.15rem 0;
+}
+
+.chip-terno {
+  background: #f59e0b;
+  color: #1f2933;
+  border-radius: 999px;
+  padding: 0 0.4rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.chip-baia.ativa .chip-terno {
+  color: #1f2933;
+}
+
+.ternos .form-terno {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.lista-ternos {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.lista-ternos li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid #e4e7eb;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+}
+
 .rotulo-eixo {
   font-size: 0.7rem;
   color: #7b8794;

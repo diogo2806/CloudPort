@@ -5,12 +5,16 @@ import br.com.cloudport.serviconavio.escala.entidade.Escala;
 import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
 import br.com.cloudport.serviconavio.estiva.dto.CriarAtribuicaoEstivaDTO;
 import br.com.cloudport.serviconavio.estiva.dto.CriarPlanoEstivaDTO;
+import br.com.cloudport.serviconavio.estiva.dto.CriarTernoDTO;
 import br.com.cloudport.serviconavio.estiva.dto.PlanoEstivaDetalheDTO;
 import br.com.cloudport.serviconavio.estiva.entidade.AtribuicaoEstiva;
 import br.com.cloudport.serviconavio.estiva.entidade.PlanoEstiva;
 import br.com.cloudport.serviconavio.estiva.entidade.StatusPlanoEstiva;
+import br.com.cloudport.serviconavio.estiva.entidade.Terno;
+import br.com.cloudport.serviconavio.estiva.entidade.TiersEstiva;
 import br.com.cloudport.serviconavio.estiva.repositorio.AtribuicaoEstivaRepositorio;
 import br.com.cloudport.serviconavio.estiva.repositorio.PlanoEstivaRepositorio;
+import br.com.cloudport.serviconavio.estiva.repositorio.TernoRepositorio;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import org.springframework.http.HttpStatus;
@@ -24,15 +28,18 @@ public class PlanoEstivaServico {
 
     private final PlanoEstivaRepositorio planoEstivaRepositorio;
     private final AtribuicaoEstivaRepositorio atribuicaoEstivaRepositorio;
+    private final TernoRepositorio ternoRepositorio;
     private final EscalaRepositorio escalaRepositorio;
     private final SanitizadorEntrada sanitizadorEntrada;
 
     public PlanoEstivaServico(PlanoEstivaRepositorio planoEstivaRepositorio,
                               AtribuicaoEstivaRepositorio atribuicaoEstivaRepositorio,
+                              TernoRepositorio ternoRepositorio,
                               EscalaRepositorio escalaRepositorio,
                               SanitizadorEntrada sanitizadorEntrada) {
         this.planoEstivaRepositorio = planoEstivaRepositorio;
         this.atribuicaoEstivaRepositorio = atribuicaoEstivaRepositorio;
+        this.ternoRepositorio = ternoRepositorio;
         this.escalaRepositorio = escalaRepositorio;
         this.sanitizadorEntrada = sanitizadorEntrada;
     }
@@ -51,12 +58,18 @@ public class PlanoEstivaServico {
                     "Esta escala já possui um plano de estiva.");
         }
 
+        if (dto.getCamadasPorao() + dto.getCamadasConves() < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "O navio deve ter ao menos uma camada (porão ou convés).");
+        }
+
         PlanoEstiva plano = new PlanoEstiva();
         plano.setEscala(escala);
         plano.setStatus(StatusPlanoEstiva.RASCUNHO);
         plano.setBaias(dto.getBaias());
         plano.setFileiras(dto.getFileiras());
-        plano.setCamadas(dto.getCamadas());
+        plano.setCamadasPorao(dto.getCamadasPorao());
+        plano.setCamadasConves(dto.getCamadasConves());
 
         return PlanoEstivaDetalheDTO.deEntidade(planoEstivaRepositorio.save(plano));
     }
@@ -98,6 +111,7 @@ public class PlanoEstivaServico {
         atribuicao.setBaia(dto.getBaia());
         atribuicao.setFileira(dto.getFileira());
         atribuicao.setCamada(dto.getCamada());
+        atribuicao.setConves(TiersEstiva.convesDoTier(dto.getCamada()));
         atribuicao.setPosicaoPatioOrigem(tratarTextoOpcional(dto.getPosicaoPatioOrigem()));
         atribuicao.setPosicaoPatioDestino(tratarTextoOpcional(dto.getPosicaoPatioDestino()));
         atribuicao.setSequenciaEmbarque(dto.getSequenciaEmbarque());
@@ -134,6 +148,55 @@ public class PlanoEstivaServico {
         return PlanoEstivaDetalheDTO.deEntidade(planoEstivaRepositorio.save(plano));
     }
 
+    @Transactional
+    public PlanoEstivaDetalheDTO adicionarTerno(Long escalaId, CriarTernoDTO dto) {
+        PlanoEstiva plano = obterPlanoPorEscala(escalaId);
+
+        if (dto.getBaiaInicial() > dto.getBaiaFinal()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A baia inicial do terno não pode ser maior que a baia final.");
+        }
+        if (dto.getBaiaFinal() > plano.getBaias()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format(Locale.ROOT, "O terno excede o número de baias do navio (%d).", plano.getBaias()));
+        }
+
+        String identificador = sanitizadorEntrada
+                .limparTextoObrigatorio(dto.getIdentificador(), "identificador do terno")
+                .toUpperCase(Locale.ROOT);
+
+        for (Terno existente : plano.getTernos()) {
+            if (existente.getIdentificador().equalsIgnoreCase(identificador)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        String.format(Locale.ROOT, "Já existe o terno %s neste plano.", identificador));
+            }
+            if (existente.sobrepoe(dto.getBaiaInicial(), dto.getBaiaFinal())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        String.format(Locale.ROOT, "As baias do terno %s se sobrepõem ao terno %s.",
+                                identificador, existente.getIdentificador()));
+            }
+        }
+
+        Terno terno = new Terno();
+        terno.setIdentificador(identificador);
+        terno.setSequencia(dto.getSequencia());
+        terno.setBaiaInicial(dto.getBaiaInicial());
+        terno.setBaiaFinal(dto.getBaiaFinal());
+
+        plano.adicionarTerno(terno);
+        return PlanoEstivaDetalheDTO.deEntidade(planoEstivaRepositorio.save(plano));
+    }
+
+    @Transactional
+    public PlanoEstivaDetalheDTO removerTerno(Long ternoId) {
+        Terno terno = ternoRepositorio.findById(ternoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Terno não encontrado."));
+        PlanoEstiva plano = terno.getPlano();
+        plano.removerTerno(terno);
+        ternoRepositorio.delete(terno);
+        return PlanoEstivaDetalheDTO.deEntidade(planoEstivaRepositorio.save(plano));
+    }
+
     private void atualizarStatusAposOperacao(PlanoEstiva plano) {
         boolean todosEmbarcados = !plano.getAtribuicoes().isEmpty()
                 && plano.getAtribuicoes().stream().allMatch(AtribuicaoEstiva::isEmbarcado);
@@ -146,11 +209,19 @@ public class PlanoEstivaServico {
     }
 
     private void validarCelulaDentroDosLimites(PlanoEstiva plano, int baia, int fileira, int camada) {
-        if (baia > plano.getBaias() || fileira > plano.getFileiras() || camada > plano.getCamadas()) {
+        if (baia < 1 || baia > plano.getBaias() || fileira < 1 || fileira > plano.getFileiras()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     String.format(Locale.ROOT,
-                            "A célula %d-%d-%d está fora dos limites do navio (%d baias, %d fileiras, %d camadas).",
-                            baia, fileira, camada, plano.getBaias(), plano.getFileiras(), plano.getCamadas()));
+                            "A célula %d-%d-%d está fora dos limites do navio (%d baias, %d fileiras).",
+                            baia, fileira, camada, plano.getBaias(), plano.getFileiras()));
+        }
+        if (!TiersEstiva.tierValido(camada, plano.getCamadasPorao(), plano.getCamadasConves())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format(Locale.ROOT,
+                            "Tier %d inválido. Use porão %s ou convés %s.",
+                            camada,
+                            TiersEstiva.tiersPorao(plano.getCamadasPorao()),
+                            TiersEstiva.tiersConves(plano.getCamadasConves())));
         }
     }
 

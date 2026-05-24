@@ -16,10 +16,15 @@ public class CriarPlanoEstivaDTO {
     @Max(value = 40, message = "O número de fileiras não pode exceder 40.")
     private Integer fileiras;
 
-    @NotNull(message = "Informe a quantidade de camadas (tiers).")
-    @Min(value = 1, message = "O navio deve ter ao menos 1 camada.")
-    @Max(value = 20, message = "O número de camadas não pode exceder 20.")
-    private Integer camadas;
+    @NotNull(message = "Informe a quantidade de camadas no porão (tiers in-hold).")
+    @Min(value = 0, message = "O número de camadas do porão não pode ser negativo.")
+    @Max(value = 20, message = "O número de camadas do porão não pode exceder 20.")
+    private Integer camadasPorao;
+
+    @NotNull(message = "Informe a quantidade de camadas no convés (tiers on-deck).")
+    @Min(value = 0, message = "O número de camadas do convés não pode ser negativo.")
+    @Max(value = 20, message = "O número de camadas do convés não pode exceder 20.")
+    private Integer camadasConves;
 
     public CriarPlanoEstivaDTO() {
     }
@@ -40,11 +45,19 @@ public class CriarPlanoEstivaDTO {
         this.fileiras = fileiras;
     }
 
-    public Integer getCamadas() {
-        return camadas;
+    public Integer getCamadasPorao() {
+        return camadasPorao;
     }
 
-    public void setCamadas(Integer camadas) {
-        this.camadas = camadas;
+    public void setCamadasPorao(Integer camadasPorao) {
+        this.camadasPorao = camadasPorao;
+    }
+
+    public Integer getCamadasConves() {
+        return camadasConves;
+    }
+
+    public void setCamadasConves(Integer camadasConves) {
+        this.camadasConves = camadasConves;
     }
 }

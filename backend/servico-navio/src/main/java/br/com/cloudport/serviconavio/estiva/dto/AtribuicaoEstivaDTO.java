@@ -1,6 +1,7 @@
 package br.com.cloudport.serviconavio.estiva.dto;
 
 import br.com.cloudport.serviconavio.estiva.entidade.AtribuicaoEstiva;
+import br.com.cloudport.serviconavio.estiva.entidade.ConvesNavio;
 import br.com.cloudport.serviconavio.estiva.entidade.TipoCargaConteiner;
 import br.com.cloudport.serviconavio.estiva.entidade.TipoOperacaoEstiva;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -17,6 +18,7 @@ public class AtribuicaoEstivaDTO {
     private final int baia;
     private final int fileira;
     private final int camada;
+    private final ConvesNavio conves;
     private final String posicaoPatioOrigem;
     private final String posicaoPatioDestino;
     private final Integer sequenciaEmbarque;
@@ -32,6 +34,7 @@ public class AtribuicaoEstivaDTO {
                                int baia,
                                int fileira,
                                int camada,
+                               ConvesNavio conves,
                                String posicaoPatioOrigem,
                                String posicaoPatioDestino,
                                Integer sequenciaEmbarque,
@@ -45,6 +48,7 @@ public class AtribuicaoEstivaDTO {
         this.baia = baia;
         this.fileira = fileira;
         this.camada = camada;
+        this.conves = conves;
         this.posicaoPatioOrigem = posicaoPatioOrigem;
         this.posicaoPatioDestino = posicaoPatioDestino;
         this.sequenciaEmbarque = sequenciaEmbarque;
@@ -62,6 +66,7 @@ public class AtribuicaoEstivaDTO {
                 atribuicao.getBaia(),
                 atribuicao.getFileira(),
                 atribuicao.getCamada(),
+                atribuicao.getConves(),
                 atribuicao.getPosicaoPatioOrigem(),
                 atribuicao.getPosicaoPatioDestino(),
                 atribuicao.getSequenciaEmbarque(),
@@ -100,6 +105,10 @@ public class AtribuicaoEstivaDTO {
 
     public int getCamada() {
         return camada;
+    }
+
+    public ConvesNavio getConves() {
+        return conves;
     }
 
     public String getPosicaoPatioOrigem() {

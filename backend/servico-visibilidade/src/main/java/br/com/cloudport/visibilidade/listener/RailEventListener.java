@@ -12,11 +12,15 @@ public class RailEventListener {
     @RabbitListener(queues = RabbitMQConfig.VISIBILIDADE_RAIL_QUEUE)
     public void handleRailEvent(Map<String, Object> event) {
         String eventType = (String) event.get("eventType");
-        System.out.println("[RailEventListener] Evento recebido: " + eventType);
+        String containerId = (String) event.get("containerId");
+        String origem = (String) event.get("origem");
+        String destino = (String) event.get("destino");
 
-        if ("rail.container.moved".equals(eventType)) {
-            // TODO: Rastrear movimentação via rail (se integrado)
-            System.out.println("Container movimentado via rail");
+        System.out.println("[RailEventListener] Evento: " + eventType);
+
+        if ("rail.container.moved".equals(eventType) && containerId != null) {
+            System.out.println("--> Container " + containerId + " movimentado via rail de " + origem + " para " + destino);
+            // TODO: Atualizar rastreamento/histórico do container via integração rail
         }
     }
 }

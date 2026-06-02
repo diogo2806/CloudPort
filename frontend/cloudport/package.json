@@ -12,16 +12,16 @@
   "private": true,
   "dependencies": {
     "@ag-grid-community/core": "^31.3.4",
-    "@angular/animations": "^19.2.22",
-    "@angular/cdk": "^19.2.19",
-    "@angular/common": "^19.2.22",
-    "@angular/compiler": "^19.2.22",
-    "@angular/core": "^19.2.22",
-    "@angular/forms": "^19.2.22",
-    "@angular/material": "^19.2.19",
-    "@angular/platform-browser": "^19.2.22",
-    "@angular/platform-browser-dynamic": "^19.2.22",
-    "@angular/router": "^19.2.22",
+    "@angular/animations": "^21.2.13",
+    "@angular/cdk": "^21.2.13",
+    "@angular/common": "^21.2.13",
+    "@angular/compiler": "^21.2.13",
+    "@angular/core": "^21.2.13",
+    "@angular/forms": "^21.2.13",
+    "@angular/material": "^21.2.13",
+    "@angular/platform-browser": "^21.2.13",
+    "@angular/platform-browser-dynamic": "^21.2.13",
+    "@angular/router": "^21.2.13",
     "@ngx-translate/core": "^15.0.0",
     "@ngx-translate/http-loader": "^8.0.0",
     "angularx-qrcode": "^16.0.2",
@@ -36,9 +36,9 @@
     "zone.js": "~0.15.1"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^19.2.26",
-    "@angular/cli": "~19.2.26",
-    "@angular/compiler-cli": "^19.2.22",
+    "@angular-devkit/build-angular": "^21.2.13",
+    "@angular/cli": "^21.2.13",
+    "@angular/compiler-cli": "^21.2.13",
     "@types/jasmine": "~4.3.0",
     "@types/node": "^20.5.0",
     "cookie": "^0.7.0",
@@ -51,9 +51,9 @@
     "karma-jasmine-html-reporter": "~2.1.0",
     "rollup": "~3.30.0",
     "send": "^0.19.0",
-    "typescript": "~5.8.3",
-    "vite": "~5.4.20",
-    "webpack-dev-server": "^5.2.1",
+    "typescript": "~5.9.3",
+    "vite": "^6.4.2",
+    "webpack-dev-server": "^5.2.4",
     "express": "^4.20.0",
     "http-proxy-middleware": "^2.0.9",
     "cross-spawn": "^7.0.5",
@@ -63,14 +63,25 @@
   "overrides": {
     "esbuild": "^0.25.0",
     "@babel/runtime": "^7.26.10",
-    "qs": "~6.14.1",
-    "lodash": "~4.17.23",
-    "lodash-es": "~4.17.23",
+    "qs": "~6.15.2",
+    "lodash": "~4.18.0",
+    "lodash-es": "~4.18.0",
+    "path-to-regexp": "~0.1.13",
+    "follow-redirects": "~1.16.0",
+    "uuid": "~11.1.1",
+    "ws": "~8.20.1",
+    "tmp": "~0.2.6",
     "minimatch": "~5.1.7",
     "serialize-javascript": "~7.0.3",
     "flatted": "~3.4.0",
     "socket.io-parser": "~4.2.6",
     "picomatch": "~2.3.2",
-    "node-forge": "~1.4.0"
+    "node-forge": "~1.4.0",
+    "pacote": {
+      "tar": "~7.5.15"
+    },
+    "@angular-devkit/build-angular": {
+      "webpack-dev-server": "^5.2.4"
+    }
   }
 }

@@ -10,6 +10,7 @@ public class MapaPatioRespostaDto {
     private Integer totalLinhas;
     private Integer totalColunas;
     private LocalDateTime atualizadoEm;
+    private List<AlertaPatioDto> alertas;
 
     public MapaPatioRespostaDto() {
     }
@@ -21,6 +22,17 @@ public class MapaPatioRespostaDto {
         this.totalLinhas = totalLinhas;
         this.totalColunas = totalColunas;
         this.atualizadoEm = atualizadoEm;
+    }
+
+    public MapaPatioRespostaDto(List<ConteinerMapaDto> conteineres, List<EquipamentoMapaDto> equipamentos,
+                                Integer totalLinhas, Integer totalColunas, LocalDateTime atualizadoEm,
+                                List<AlertaPatioDto> alertas) {
+        this.conteineres = conteineres;
+        this.equipamentos = equipamentos;
+        this.totalLinhas = totalLinhas;
+        this.totalColunas = totalColunas;
+        this.atualizadoEm = atualizadoEm;
+        this.alertas = alertas;
     }
 
     public List<ConteinerMapaDto> getConteineres() {
@@ -61,5 +73,13 @@ public class MapaPatioRespostaDto {
 
     public void setAtualizadoEm(LocalDateTime atualizadoEm) {
         this.atualizadoEm = atualizadoEm;
+    }
+
+    public List<AlertaPatioDto> getAlertas() {
+        return alertas;
+    }
+
+    public void setAlertas(List<AlertaPatioDto> alertas) {
+        this.alertas = alertas;
     }
 }

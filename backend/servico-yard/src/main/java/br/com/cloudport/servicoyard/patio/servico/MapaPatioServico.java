@@ -57,6 +57,7 @@ public class MapaPatioServico {
     private final MovimentoPatioRepositorio movimentoPatioRepositorio;
     private final SimpMessagingTemplate messagingTemplate;
     private final PublicadorEventoMovimentoPatio publicadorEventoMovimentoPatio;
+    private final AlertasPatioServico alertasPatioServico;
 
     public MapaPatioServico(ConteinerPatioRepositorio conteinerPatioRepositorio,
                              EquipamentoPatioRepositorio equipamentoPatioRepositorio,
@@ -64,7 +65,8 @@ public class MapaPatioServico {
                              CargaPatioRepositorio cargaPatioRepositorio,
                              MovimentoPatioRepositorio movimentoPatioRepositorio,
                              SimpMessagingTemplate messagingTemplate,
-                             PublicadorEventoMovimentoPatio publicadorEventoMovimentoPatio) {
+                             PublicadorEventoMovimentoPatio publicadorEventoMovimentoPatio,
+                             AlertasPatioServico alertasPatioServico) {
         this.conteinerPatioRepositorio = conteinerPatioRepositorio;
         this.equipamentoPatioRepositorio = equipamentoPatioRepositorio;
         this.posicaoPatioRepositorio = posicaoPatioRepositorio;
@@ -72,6 +74,7 @@ public class MapaPatioServico {
         this.movimentoPatioRepositorio = movimentoPatioRepositorio;
         this.messagingTemplate = messagingTemplate;
         this.publicadorEventoMovimentoPatio = publicadorEventoMovimentoPatio;
+        this.alertasPatioServico = alertasPatioServico;
     }
 
     @Transactional(readOnly = true)
@@ -102,8 +105,10 @@ public class MapaPatioServico {
                 .max(LocalDateTime::compareTo)
                 .orElse(LocalDateTime.now());
 
+        var alertas = alertasPatioServico.calcularAlertas();
+
         return new MapaPatioRespostaDto(conteineresFiltrados, equipamentosFiltrados,
-                totalLinhas + 1, totalColunas + 1, ultimaAtualizacao);
+                totalLinhas + 1, totalColunas + 1, ultimaAtualizacao, alertas);
     }
 
     @Transactional(readOnly = true)

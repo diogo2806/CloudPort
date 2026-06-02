@@ -35,6 +35,131 @@
   margin-top: 0.5rem;
 }
 
+.painel-alertas {
+  background-color: #ffffff;
+  border-radius: 10px;
+  border: 2px solid #dc2626;
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);
+}
+
+.cabecalho-alertas {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.cabecalho-alertas h3 {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 1.1rem;
+}
+
+.botao-colapso {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #b91c1c;
+  padding: 0.25rem 0.5rem;
+  transition: transform 0.2s;
+}
+
+.botao-colapso:hover {
+  transform: scale(1.2);
+}
+
+.lista-alertas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 100vh;
+  }
+}
+
+.alerta {
+  border-left: 4px solid;
+  padding: 0.75rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.alerta:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateX(2px);
+}
+
+.alerta-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.alerta-icone {
+  font-size: 1.25rem;
+}
+
+.alerta-tipo {
+  color: #1f2937;
+}
+
+.alerta-severidade {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+.severidade-critico {
+  background-color: #dc2626;
+  color: white;
+}
+
+.severidade-atencao {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.severidade-info {
+  background-color: #2563eb;
+  color: white;
+}
+
+.alerta-conteudo {
+  margin: 0;
+}
+
+.alerta-mensagem {
+  margin: 0 0 0.5rem;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.alerta-recomendacao {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.9rem;
+  font-style: italic;
+  padding: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+}
+
 .painel-filtros {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

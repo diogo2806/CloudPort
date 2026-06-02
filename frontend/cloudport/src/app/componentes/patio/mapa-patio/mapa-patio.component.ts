@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import {
+  AlertaPatio,
   EventoTempoRealMapa,
   FiltrosMapaPatio,
   MapaPatioResposta,
@@ -45,6 +46,8 @@ export class MapaPatioComponent implements OnInit, OnDestroy {
   celulaDestineAlvo?: { linha: number; coluna: number };
   salvandoModo = false;
   mensagemSucesso?: string;
+  alertas: AlertaPatio[] = [];
+  alertasAbertos = true;
 
   constructor(
     private readonly servicoPatio: ServicoPatioService,
@@ -272,6 +275,7 @@ export class MapaPatioComponent implements OnInit, OnDestroy {
     this.servicoPatio.obterMapa({}).subscribe({
       next: (mapa) => {
         this.mapaCompleto = mapa;
+        this.atualizarAlertas();
         this.aplicarFiltrosLocais();
         this.carregando = false;
       },
@@ -287,7 +291,40 @@ export class MapaPatioComponent implements OnInit, OnDestroy {
       return;
     }
     this.mapaCompleto = evento.mapa;
+    this.atualizarAlertas();
     this.aplicarFiltrosLocais();
+  }
+
+  private atualizarAlertas(): void {
+    this.alertas = this.mapaCompleto?.alertas ?? [];
+  }
+
+  obterCoresAlerta(alerta: AlertaPatio): { fundo: string; borda: string; icone: string } {
+    switch (alerta.nivelSeveridade) {
+      case 'CRITICO':
+        return { fundo: '#fecaca', borda: '#dc2626', icone: '⚠️' };
+      case 'ATENCAO':
+        return { fundo: '#fef3c7', borda: '#f59e0b', icone: '⚡' };
+      default:
+        return { fundo: '#dbeafe', borda: '#2563eb', icone: 'ℹ️' };
+    }
+  }
+
+  obterTituloAlerta(tipo: string): string {
+    switch (tipo) {
+      case 'REHANDLE':
+        return 'Re-handle';
+      case 'CONFLITO_INFRAESTRUTURA':
+        return 'Conflito de Infraestrutura';
+      case 'GARGALO_EQUIPAMENTO':
+        return 'Gargalo de Equipamento';
+      default:
+        return 'Alerta';
+    }
+  }
+
+  alternarPainelAlertas(): void {
+    this.alertasAbertos = !this.alertasAbertos;
   }
 
   private aplicarFiltrosLocais(): void {

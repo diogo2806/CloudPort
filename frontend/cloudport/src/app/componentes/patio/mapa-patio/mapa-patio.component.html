@@ -10,6 +10,34 @@
     </div>
   </div>
 
+  <section class="painel-alertas" *ngIf="alertas && alertas.length > 0">
+    <div class="cabecalho-alertas">
+      <h3>⚠️ Alertas Inteligentes ({{ alertas.length }})</h3>
+      <button class="botao-colapso" (click)="alternarPainelAlertas()" [attr.aria-expanded]="alertasAbertos">
+        {{ alertasAbertos ? '▼' : '▶' }}
+      </button>
+    </div>
+    <div class="lista-alertas" *ngIf="alertasAbertos">
+      <article class="alerta" *ngFor="let alerta of alertas"
+               [style.backgroundColor]="obterCoresAlerta(alerta).fundo"
+               [style.borderLeftColor]="obterCoresAlerta(alerta).borda">
+        <div class="alerta-header">
+          <span class="alerta-icone">{{ obterCoresAlerta(alerta).icone }}</span>
+          <span class="alerta-tipo">{{ obterTituloAlerta(alerta.tipoAlerta) }}</span>
+          <span class="alerta-severidade" [class]="'severidade-' + alerta.nivelSeveridade.toLowerCase()">
+            {{ alerta.nivelSeveridade }}
+          </span>
+        </div>
+        <div class="alerta-conteudo">
+          <p class="alerta-mensagem">{{ sanitizarTexto(alerta.mensagem) }}</p>
+          <p class="alerta-recomendacao" *ngIf="alerta.recomendacao">
+            <strong>💡 Recomendação:</strong> {{ sanitizarTexto(alerta.recomendacao) }}
+          </p>
+        </div>
+      </article>
+    </div>
+  </section>
+
   <section class="painel-filtros" *ngIf="filtrosDisponiveis">
     <div class="filtro-grupo">
       <label for="filtro-status">Status dos contêineres</label>

@@ -5,11 +5,11 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.5.4</version>
+        <version>2.7.18</version>
         <relativePath/>
     </parent>
-    <groupId>br.com.cloudport</groupId>
-    <artifactId>servico-gate</artifactId>
+        <groupId>br.com.cloudport</groupId>
+        <artifactId>servico-gate</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>servico-gate</name>
     <description>Serviço de orquestração e integração de gate</description>
@@ -71,7 +71,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-ui</artifactId>
-            <version>1.5.10</version>
+            <version>1.7.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

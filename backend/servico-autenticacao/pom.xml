@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.5.4</version>
+		<version>2.7.18</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>br.com.cloudport</groupId>
@@ -14,7 +14,7 @@
 	<name>servico-autenticacao</name>
 	<description>Serviço responsável pela autenticação e autorização de usuários na aplicação CloudPort.</description>
 	<properties>
-		<java.version>11</java.version>
+		<java.version>17</java.version>
 		<lombok.version>1.18.34</lombok.version>
 		<testcontainers.version>1.19.7</testcontainers.version>
 	</properties>
@@ -46,14 +46,9 @@
 			<version>3.1.0</version>
 		</dependency>
 		<dependency>
-			<groupId>io.springfox</groupId>
-			<artifactId>springfox-boot-starter</artifactId>
-			<version>3.0.0</version>
-		</dependency>
-		<dependency>
-			<groupId>io.springfox</groupId>
-			<artifactId>springfox-spring-webmvc</artifactId>
-			<version>3.0.0</version>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-ui</artifactId>
+			<version>1.7.0</version>
 		</dependency>
 
                 <dependency>

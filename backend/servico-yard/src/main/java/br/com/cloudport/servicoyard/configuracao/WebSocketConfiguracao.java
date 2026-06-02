@@ -20,5 +20,7 @@ public class WebSocketConfiguracao implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws/patio")
                 .setAllowedOriginPatterns("*");
+        registry.addEndpoint("/ws/recursos")
+                .setAllowedOriginPatterns("*");
     }
 }

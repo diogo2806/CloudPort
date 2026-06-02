@@ -1,0 +1,260 @@
+<section class="recursos-patio" aria-live="polite">
+  <header class="hero">
+    <div class="hero-texto">
+      <p class="eyebrow">Gestão de Recursos Portuários</p>
+      <h1>Berços, calendário e ocupação em uma única visão</h1>
+      <p>
+        O painel consolida recomendação automática, manutenção preventiva, bloqueio de zona e calendário de 14 dias.
+      </p>
+    </div>
+    <div class="hero-cards" *ngIf="resumo">
+      <article>
+        <span>Total de berços</span>
+        <strong>{{ resumo.totalBercos }}</strong>
+      </article>
+      <article>
+        <span>Operacionais</span>
+        <strong>{{ resumo.bercosOperacionais }}</strong>
+      </article>
+      <article>
+        <span>Em manutenção</span>
+        <strong>{{ resumo.bercosEmManutencao }}</strong>
+      </article>
+      <article>
+        <span>Bloqueados</span>
+        <strong>{{ resumo.bercosBloqueados }}</strong>
+      </article>
+    </div>
+  </header>
+
+  <section class="faixa-alertas" *ngIf="resumo?.alertas?.length">
+    <div *ngFor="let alerta of resumo?.alertas">{{ sanitizar(alerta) }}</div>
+  </section>
+
+  <div class="grade-principal">
+    <section class="card card-form">
+      <header>
+        <h2>Alocação de berço</h2>
+        <p>Preencha os dados do navio e confirme a alocação ou apenas visualize a recomendação.</p>
+      </header>
+
+      <form [formGroup]="formularioAlocacao" (ngSubmit)="submeterAlocacao()" class="formulario">
+        <label>
+          Código do navio
+          <input type="text" formControlName="navioCodigo" placeholder="SHIP-789">
+        </label>
+        <label>
+          Nome do navio
+          <input type="text" formControlName="navioNome" placeholder="CMA CGM Antoine">
+        </label>
+        <div class="linha-2">
+          <label>
+            Chegada prevista
+            <input type="datetime-local" formControlName="chegadaPrevista">
+          </label>
+          <label>
+            Saída prevista
+            <input type="datetime-local" formControlName="saidaPrevista">
+          </label>
+        </div>
+        <div class="linha-3">
+          <label>
+            Comprimento
+            <input type="number" formControlName="comprimentoNavio">
+          </label>
+          <label>
+            Calado
+            <input type="number" step="0.1" formControlName="caladoNavio">
+          </label>
+          <label>
+            Guindastes
+            <input type="number" formControlName="guinchesRequeridos">
+          </label>
+        </div>
+        <div class="linha-2">
+          <label>
+            Tipo de carga
+            <select formControlName="tipoCarga">
+              <option value="CONTAINER">Container</option>
+              <option value="BREAKBULK">Breakbulk</option>
+              <option value="RORO">RoRo</option>
+              <option value="CARGA_GERAL">Carga geral</option>
+              <option value="REEFER">Reefer</option>
+              <option value="PERIGOSA">Perigosa</option>
+              <option value="GRANEL">Granel</option>
+            </select>
+          </label>
+          <label>
+            Zona de armazenagem
+            <select formControlName="zonaArmazenagem">
+              <option *ngFor="let zona of zonas; trackBy: trackByZona" [value]="zona.codigo">{{ sanitizar(zona.codigo) }}</option>
+            </select>
+          </label>
+        </div>
+        <div class="linha-3">
+          <label>
+            Tonneladas previstas
+            <input type="number" formControlName="toneladasPrevistas">
+          </label>
+          <label>
+            Berço preferido
+            <input type="text" formControlName="bercoPreferido" placeholder="BERCO_001">
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" formControlName="confirmar">
+            Confirmar alocação
+          </label>
+        </div>
+        <button type="submit" class="botao-principal" [disabled]="carregando">Gerar recomendação</button>
+      </form>
+
+      <article class="resultado-alocacao" *ngIf="respostaAlocacao">
+        <h3>Recomendação</h3>
+        <p><strong>Berço:</strong> {{ respostaAlocacao.bercoRecomendado.codigo }} - {{ respostaAlocacao.bercoRecomendado.nome }}</p>
+        <p><strong>Score:</strong> {{ respostaAlocacao.bercoRecomendado.scoreAtual }}</p>
+        <p><strong>Motivo:</strong> {{ sanitizar(respostaAlocacao.bercoRecomendado.motivoRecomendacao) }}</p>
+        <div class="ranking">
+          <h4>Top 3</h4>
+          <ol>
+            <li *ngFor="let item of respostaAlocacao.ranking">{{ item.codigo }} - {{ item.scoreAtual }}</li>
+          </ol>
+        </div>
+      </article>
+    </section>
+
+    <section class="card card-zonas">
+      <header>
+        <h2>Ocupação das zonas</h2>
+        <p>O bloqueio é automático quando a ocupação ultrapassa 95%.</p>
+      </header>
+      <div class="zonas" *ngIf="zonas.length">
+        <article class="zona" *ngFor="let zona of zonas; trackBy: trackByZona" [ngClass]="classeZona(zona)">
+          <div class="zona-topo">
+            <strong>{{ sanitizar(zona.codigo) }}</strong>
+            <span>{{ statusZona(zona) }}</span>
+          </div>
+          <div class="barra">
+            <span [style.width.%]="zona.percentualOcupacao"></span>
+          </div>
+          <p>{{ zona.ocupacaoAtual }} / {{ zona.capacidadeTotal }} - {{ zona.percentualOcupacao | number:'1.0-0' }}%</p>
+          <small>{{ sanitizar(zona.observacao) }}</small>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <section class="card card-bercos">
+    <header>
+      <h2>Berços disponíveis</h2>
+      <p>O calendário e a recomendação usam essa mesma base para evitar conflito de alocação.</p>
+    </header>
+
+    <div class="tabela-bercos" *ngIf="bercos.length">
+      <article class="berco" *ngFor="let berco of bercos; trackBy: trackByCodigo" [class.recomendado]="destacarBerco(berco.codigo)">
+        <div class="berco-cabecalho">
+          <div>
+            <h3>{{ sanitizar(berco.codigo) }}</h3>
+            <p>{{ sanitizar(berco.nome) }}</p>
+          </div>
+          <span class="selo" [ngClass]="berco.status.toLowerCase()">{{ sanitizar(berco.status) }}</span>
+        </div>
+        <dl>
+          <div><dt>Comprimento</dt><dd>{{ berco.comprimentoMetros }} m</dd></div>
+          <div><dt>Calado</dt><dd>{{ berco.caladoMetros }} m</dd></div>
+          <div><dt>Guindastes</dt><dd>{{ berco.guinchesPermanentes }}</dd></div>
+          <div><dt>Zona</dt><dd>{{ sanitizar(berco.zonaPrimaria) }}</dd></div>
+          <div><dt>Transporte</dt><dd>{{ berco.tempoTransporteMinutos }} min</dd></div>
+          <div><dt>Score</dt><dd>{{ berco.scoreAtual }}</dd></div>
+        </dl>
+        <p class="motivo">{{ sanitizar(berco.motivoRecomendacao) }}</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="card card-calendario">
+    <header>
+      <h2>Calendário de berços - 14 dias</h2>
+      <p>Leitura consolidada por berço com livre, ocupado e manutenção.</p>
+    </header>
+
+    <div class="calendario" *ngIf="calendario.length">
+      <article class="linha-calendario" *ngFor="let linha of calendario; trackBy: trackByCalendario">
+        <h3>{{ sanitizar(linha.codigoBerco) }} - {{ sanitizar(linha.nomeBerco) }}</h3>
+        <div class="dias">
+          <div class="dia" *ngFor="let dia of linha.dias" [ngClass]="dia.status.toLowerCase()">
+            <strong>{{ formatarData(dia.data) }}</strong>
+            <span>{{ sanitizar(dia.rotulo) }}</span>
+            <small *ngIf="dia.navioCodigo">{{ sanitizar(dia.navioCodigo) }}</small>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <div class="grade-secundaria">
+    <section class="card card-form">
+      <header>
+        <h2>Manutenção preventiva</h2>
+        <p>Agende uma janela e o berço será ajustado para manutenção.</p>
+      </header>
+
+      <form [formGroup]="formularioManutencao" (ngSubmit)="submeterManutencao()" class="formulario">
+        <div class="linha-2">
+          <label>
+            Berço
+            <select formControlName="bercoCodigo">
+              <option *ngFor="let berco of bercos; trackBy: trackByCodigo" [value]="berco.codigo">{{ sanitizar(berco.codigo) }}</option>
+            </select>
+          </label>
+          <label>
+            Observação
+            <input type="text" formControlName="observacao">
+          </label>
+        </div>
+        <div class="linha-2">
+          <label>
+            Início
+            <input type="date" formControlName="inicio">
+          </label>
+          <label>
+            Fim
+            <input type="date" formControlName="fim">
+          </label>
+        </div>
+        <button type="submit" class="botao-secundario" [disabled]="carregando">Agendar manutenção</button>
+      </form>
+    </section>
+
+    <section class="card card-listas">
+      <header>
+        <h2>Reservas e equipamentos</h2>
+        <p>Última leitura do estado operacional do recurso.</p>
+      </header>
+
+      <div class="subsecao">
+        <h3>Reservas confirmadas</h3>
+        <div class="lista" *ngIf="reservas.length">
+          <article *ngFor="let reserva of reservas; trackBy: trackByReserva">
+            <strong>{{ sanitizar(reserva.navioCodigo) }}</strong>
+            <span>{{ sanitizar(reserva.bercoCodigo) }} | {{ sanitizar(reserva.tipoReserva) }} | {{ sanitizar(reserva.status) }}</span>
+            <small>{{ reserva.chegadaPrevista | date:'dd/MM/yyyy HH:mm' }} - {{ reserva.saidaPrevista | date:'dd/MM/yyyy HH:mm' }}</small>
+          </article>
+        </div>
+      </div>
+
+      <div class="subsecao">
+        <h3>Equipamentos</h3>
+        <div class="lista" *ngIf="equipamentos.length">
+          <article *ngFor="let equipamento of equipamentos">
+            <strong>{{ sanitizar(equipamento.identificador) }}</strong>
+            <span>{{ sanitizar(equipamento.tipo) }} | {{ sanitizar(equipamento.bercoCodigo) }}</span>
+            <small>{{ sanitizar(equipamento.status) }}</small>
+          </article>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="estado erro" *ngIf="mensagemErro">{{ sanitizar(mensagemErro) }}</p>
+  <p class="estado sucesso" *ngIf="mensagemSucesso">{{ sanitizar(mensagemSucesso) }}</p>
+</section>

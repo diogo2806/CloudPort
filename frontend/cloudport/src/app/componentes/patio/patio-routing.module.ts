@@ -5,6 +5,7 @@ import { ListaPosicoesComponent } from './lista-posicoes/lista-posicoes.componen
 import { ListaMovimentacoesComponent } from './lista-movimentacoes/lista-movimentacoes.component';
 import { FormularioMovimentacaoComponent } from './formulario-movimentacao/formulario-movimentacao.component';
 import { ListaTrabalhoPatioComponent } from './lista-trabalho-patio/lista-trabalho-patio.component';
+import { RecursosPatioComponent } from './recursos-patio/recursos-patio.component';
 
 const routes: Routes = [
   {
@@ -28,9 +29,13 @@ const routes: Routes = [
     component: FormularioMovimentacaoComponent
   },
   {
+    path: 'recursos',
+    component: RecursosPatioComponent
+  },
+  {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'lista-trabalho'
+    redirectTo: 'recursos'
   }
 ];
 

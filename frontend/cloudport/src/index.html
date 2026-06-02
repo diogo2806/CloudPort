@@ -4,10 +4,11 @@
   <meta charset="utf-8">
   <!--
     Content-Security-Policy de base (mitigação de XSS recomendada no SECURITY_NOTES).
-    Em produção, prefira definir o CSP por cabeçalho HTTP no gateway/servidor, onde
-    também é possível usar frame-ancestors, e ajuste connect-src para as origens reais.
+    Em produção, prefira definir o CSP por cabeçalho HTTP no gateway/servidor.
+    O connect-src abaixo permite chamadas para a própria origem e para APIs/WS
+    publicados em HTTPS/WSS sem prender a aplicação a localhost.
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://localhost:8080 http://localhost:8081 http://localhost:8082 http://localhost:8083 http://localhost:8084 ws://localhost:8081 wss://localhost:8081 ws://localhost:4200 wss://localhost:4200; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Cloudport</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">

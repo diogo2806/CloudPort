@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.5.4</version>
+        <version>2.7.18</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>br.com.cloudport</groupId>
@@ -14,7 +14,7 @@
     <name>servico-yard</name>
     <description>Serviço de gestão de pátio</description>
     <properties>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
         <testcontainers.version>1.19.7</testcontainers.version>
         <lombok.version>1.18.34</lombok.version>
     </properties>
@@ -62,7 +62,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-ui</artifactId>
-            <version>1.5.10</version>
+            <version>1.7.0</version>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

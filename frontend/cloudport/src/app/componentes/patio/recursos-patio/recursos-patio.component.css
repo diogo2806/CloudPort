@@ -1,0 +1,422 @@
+.recursos-patio {
+  display: grid;
+  gap: 1.5rem;
+  color: #0f172a;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 35%),
+    linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%);
+  color: #e2e8f0;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22);
+}
+
+.hero-texto h1 {
+  margin: 0.2rem 0 0.6rem;
+  font-size: clamp(2rem, 3vw, 3.3rem);
+  line-height: 1;
+}
+
+.hero-texto p {
+  margin: 0;
+  max-width: 62ch;
+  color: #cbd5e1;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.75rem;
+  color: #67e8f9;
+  margin-bottom: 0.4rem;
+}
+
+.hero-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.hero-cards article,
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 22px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+.hero-cards article {
+  padding: 1rem;
+}
+
+.hero-cards span {
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.hero-cards strong {
+  font-size: 2rem;
+  color: #0f172a;
+}
+
+.faixa-alertas {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.faixa-alertas div,
+.estado {
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.faixa-alertas div {
+  background: linear-gradient(90deg, #fff7ed, #fff);
+  border-color: #fdba74;
+}
+
+.estado.erro {
+  background: #fff1f2;
+  border-color: #fda4af;
+  color: #9f1239;
+}
+
+.estado.sucesso {
+  background: #ecfdf5;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.grade-principal,
+.grade-secundaria {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1rem;
+}
+
+.card {
+  padding: 1.2rem;
+}
+
+.card header h2,
+.card header h3 {
+  margin: 0;
+}
+
+.card header p {
+  margin: 0.3rem 0 0;
+  color: #64748b;
+}
+
+.formulario {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.formulario label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+  color: #334155;
+}
+
+.formulario input,
+.formulario select {
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  background: #fff;
+}
+
+.linha-2,
+.linha-3 {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.linha-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.linha-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.checkbox {
+  align-content: end;
+}
+
+.botao-principal,
+.botao-secundario {
+  justify-self: start;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.9rem 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.botao-principal {
+  color: #fff;
+  background: linear-gradient(135deg, #0f172a, #0f766e);
+}
+
+.botao-secundario {
+  color: #0f172a;
+  background: #e2e8f0;
+}
+
+.resultado-alocacao {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  background: #f8fafc;
+}
+
+.ranking ol {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.zonas {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.zona {
+  padding: 0.9rem;
+  border-radius: 18px;
+  background: #f8fafc;
+}
+
+.zona-topo {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.barra {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+  margin: 0.65rem 0 0.5rem;
+}
+
+.barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22c55e, #f59e0b, #ef4444);
+}
+
+.zona-bloqueada .barra span {
+  background: #ef4444;
+}
+
+.zona-critica .barra span {
+  background: #f97316;
+}
+
+.zona-atencao .barra span {
+  background: #eab308;
+}
+
+.zona-normal .barra span {
+  background: #22c55e;
+}
+
+.tabela-bercos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.berco {
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.berco.recomendado {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.1);
+}
+
+.berco-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.berco h3,
+.berco p {
+  margin: 0;
+}
+
+.selo {
+  align-self: start;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.selo.operacional {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.selo.manutencao {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.selo.bloqueado {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.berco dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.9rem 0 0;
+}
+
+.berco dl div {
+  background: #f8fafc;
+  padding: 0.65rem;
+  border-radius: 12px;
+}
+
+.berco dt {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.berco dd {
+  margin: 0.2rem 0 0;
+  font-weight: 700;
+}
+
+.motivo {
+  margin: 0.8rem 0 0;
+  color: #475569;
+}
+
+.calendario {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.linha-calendario {
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 18px;
+}
+
+.dias {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.dia {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.55rem;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 0.72rem;
+  min-height: 72px;
+}
+
+.dia.livre {
+  border: 1px solid #86efac;
+}
+
+.dia.ocupado {
+  border: 1px solid #fdba74;
+  background: #fff7ed;
+}
+
+.dia.manutencao {
+  border: 1px solid #fca5a5;
+  background: #fef2f2;
+}
+
+.subsecao + .subsecao {
+  margin-top: 1rem;
+}
+
+.lista {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+}
+
+.lista article {
+  padding: 0.8rem;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.lista strong,
+.lista span,
+.lista small {
+  display: block;
+}
+
+@media (max-width: 1200px) {
+  .hero,
+  .grade-principal,
+  .grade-secundaria {
+    grid-template-columns: 1fr;
+  }
+
+  .tabela-bercos {
+    grid-template-columns: 1fr;
+  }
+
+  .dias {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .linha-2,
+  .linha-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .dias {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .berco dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

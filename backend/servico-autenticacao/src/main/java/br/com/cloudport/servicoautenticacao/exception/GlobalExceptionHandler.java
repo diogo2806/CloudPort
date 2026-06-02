@@ -1,5 +1,7 @@
 package br.com.cloudport.servicoautenticacao.exception;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -9,9 +11,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -45,18 +44,32 @@ public class GlobalExceptionHandler {
 
         Map<String, String> fieldErrors = new LinkedHashMap<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.put(error.getField(), error.getDefaultMessage());
+            String fieldName = normalizarNomeCampo(error.getField());
+            if (!fieldErrors.containsKey(fieldName) || isNotBlankError(error)) {
+                fieldErrors.put(fieldName, error.getDefaultMessage());
+            }
         }
 
         body.put("erros", fieldErrors);
 
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
-    
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Object> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
         logger.warn("DataIntegrityViolationException encontrada no GlobalExceptionHandler: ", ex);
         return new ResponseEntity<>("Erro de integridade dos dados", HttpStatus.CONFLICT);
+    }
+
+    private String normalizarNomeCampo(String fieldName) {
+        if ("senha".equals(fieldName)) {
+            return "password";
+        }
+        return fieldName;
+    }
+
+    private boolean isNotBlankError(FieldError error) {
+        return error.getCode() != null && error.getCode().startsWith("NotBlank");
     }
 
     // outros manipuladores de exceções...

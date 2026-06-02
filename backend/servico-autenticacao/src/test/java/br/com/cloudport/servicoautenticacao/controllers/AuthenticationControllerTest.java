@@ -57,13 +57,13 @@ class AuthenticationControllerTest {
         Papel papel = new Papel("ADMIN");
         UsuarioPapel usuarioPapel = new UsuarioPapel(papel);
         Set<UsuarioPapel> papeis = Collections.singleton(usuarioPapel);
-        Usuario usuario = new Usuario("test", "pass", papeis);
+        Usuario usuario = new Usuario("test", "pass123", papeis);
 
         Authentication autenticacao = new UsernamePasswordAuthenticationToken(usuario, null, Collections.emptyList());
         when(authenticationManager.authenticate(any())).thenReturn(autenticacao);
         when(tokenService.generateToken(usuario)).thenReturn("token");
 
-        AuthenticationDTO dto = new AuthenticationDTO("test", "pass");
+        AuthenticationDTO dto = new AuthenticationDTO("test", "pass123");
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -72,9 +72,9 @@ class AuthenticationControllerTest {
                 .andExpect(jsonPath("$.id").value(usuario.getId().toString()))
                 .andExpect(jsonPath("$.login").value("test"))
                 .andExpect(jsonPath("$.nome").value("test"))
-                .andExpect(jsonPath("$.perfil").value("ADMIN"))
+                .andExpect(jsonPath("$.perfil").value("ROLE_ADMIN"))
                 .andExpect(jsonPath("$.token").value("token"))
-                .andExpect(jsonPath("$.roles[0]").value("ADMIN"));
+                .andExpect(jsonPath("$.roles[0]").value("ROLE_ADMIN"));
     }
 
     @Test
@@ -82,7 +82,7 @@ class AuthenticationControllerTest {
         when(authenticationManager.authenticate(any()))
                 .thenThrow(new BadCredentialsException("bad creds"));
 
-        AuthenticationDTO dto = new AuthenticationDTO("bad", "creds");
+        AuthenticationDTO dto = new AuthenticationDTO("bad", "creds12");
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

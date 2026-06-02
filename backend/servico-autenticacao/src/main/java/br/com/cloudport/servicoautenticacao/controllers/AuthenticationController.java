@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,13 +58,13 @@ public class AuthenticationController {
         String senhaSanitizada;
         try {
             loginSanitizado = SanitizadorEntrada.sanitizarLogin(dados.getLogin());
-            senhaSanitizada = SanitizadorEntrada.sanitizarSenha(dados.getSenha());
+            senhaSanitizada = SanitizadorEntrada.sanitizarSenha(dados.getPassword());
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
 
         var usernamePassword = new UsernamePasswordAuthenticationToken(loginSanitizado, senhaSanitizada);
-        var autenticacao = this.authenticationManager.authenticate(usernamePassword);
+        var autenticacao = authenticate(usernamePassword);
 
         Usuario usuario = (Usuario) autenticacao.getPrincipal();
         var token = tokenService.generateToken(usuario);
@@ -88,6 +89,14 @@ public class AuthenticationController {
                 usuario.getTransportadoraDocumento(),
                 usuario.getTransportadoraNome()
         ));
+    }
+
+    private org.springframework.security.core.Authentication authenticate(UsernamePasswordAuthenticationToken usernamePassword) {
+        try {
+            return this.authenticationManager.authenticate(usernamePassword);
+        } catch (BadCredentialsException ex) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciais inválidas");
+        }
     }
 
     @PostMapping("/register")

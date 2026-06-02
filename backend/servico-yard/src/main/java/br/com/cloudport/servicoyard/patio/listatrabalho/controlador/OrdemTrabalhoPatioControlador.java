@@ -7,6 +7,9 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRe
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OrdemTrabalhoPatioServico;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorDualCyclingServico;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorDualCyclingServico.AnaliseDualCyclingDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorDualCyclingServico.PairOrdensTrabalhDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorRotasPatioServico;
 import java.util.List;
 import javax.validation.Valid;
@@ -27,11 +30,14 @@ public class OrdemTrabalhoPatioControlador {
 
     private final OrdemTrabalhoPatioServico ordemTrabalhoPatioServico;
     private final OtimizadorRotasPatioServico otimizadorRotas;
+    private final OtimizadorDualCyclingServico otimizadorDualCycling;
 
     public OrdemTrabalhoPatioControlador(OrdemTrabalhoPatioServico ordemTrabalhoPatioServico,
-                                         OtimizadorRotasPatioServico otimizadorRotas) {
+                                         OtimizadorRotasPatioServico otimizadorRotas,
+                                         OtimizadorDualCyclingServico otimizadorDualCycling) {
         this.ordemTrabalhoPatioServico = ordemTrabalhoPatioServico;
         this.otimizadorRotas = otimizadorRotas;
+        this.otimizadorDualCycling = otimizadorDualCycling;
     }
 
     @GetMapping
@@ -78,5 +84,24 @@ public class OrdemTrabalhoPatioControlador {
                         .map(OrdemTrabalhoPatioRespostaDto::deEntidade)
                         .toList()
         );
+    }
+
+    @GetMapping("/otimizacao/dual-cycling/analise")
+    public AnaliseDualCyclingDto analisarDualCycling() {
+        return otimizadorDualCycling.analisarPairingsPotenciais();
+    }
+
+    @GetMapping("/otimizacao/dual-cycling/pairs")
+    public List<PairOrdensTrabalhDto> gerarPairsOtimizados(
+            @RequestParam(name = "raio", required = false) Integer raioAdjacencia) {
+        return otimizadorDualCycling.gerarPairs(raioAdjacencia);
+    }
+
+    @GetMapping("/otimizacao/dual-cycling/sequencia")
+    public List<OrdemTrabalhoPatioRespostaDto> obterSequenciaComDualCycling() {
+        List<OrdemTrabalhoPatio> sequencia = otimizadorDualCycling.obterSequenciaOtimizadaComDualCycling();
+        return sequencia.stream()
+                .map(OrdemTrabalhoPatioRespostaDto::deEntidade)
+                .toList();
     }
 }

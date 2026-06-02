@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd
+                                  https://dependency-check.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
+    <suppress>
+        <notes><![CDATA[
+        False positive on spring-web 5.3.39 reported by Dependency-Check via CPE matching.
+        ]]></notes>
+        <filePath regex="true">.*spring-web-5\.3\.39\.jar$</filePath>
+        <cve>CVE-2016-1000027</cve>
+    </suppress>
+
+    <suppress>
+        <notes><![CDATA[
+        Swagger UI webjar bundles DOMPurify 3.2.6; no patched webjar is available in the current Spring Boot 2.7 line.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:javascript/DOMPurify@3\.2\.6$</packageUrl>
+        <vulnerabilityName regex="true">.*</vulnerabilityName>
+    </suppress>
+</suppressions>

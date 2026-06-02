@@ -15,20 +15,27 @@
     <description>Microsserviço de Visibilidade em Tempo Real - Dashboard, Rastreamento, Alertas e Métricas</description>
     <properties>
         <java.version>17</java.version>
-        <opentelemetry.version>1.27.0</opentelemetry.version>
-        <opentelemetry-instrumentation.version>1.27.0-alpha</opentelemetry-instrumentation.version>
+        <jackson.version>2.18.4</jackson.version>
         <logstash-logback.version>7.4</logstash-logback.version>
         <logback.version>1.2.13</logback.version>
         <netty.version>4.1.134.Final</netty.version>
         <reactor-bom.version>2020.0.47</reactor-bom.version>
-        <snakeyaml.version>1.33</snakeyaml.version>
+        <snakeyaml.version>2.6</snakeyaml.version>
         <spring-framework.version>5.3.39</spring-framework.version>
         <spring-security.version>5.7.14</spring-security.version>
         <tomcat.version>9.0.118</tomcat.version>
+        <swagger-ui.version>5.31.0</swagger-ui.version>
         <testcontainers.version>1.19.7</testcontainers.version>
     </properties>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-framework-bom</artifactId>
@@ -87,6 +94,21 @@
                 <artifactId>tomcat-embed-el</artifactId>
                 <version>${tomcat.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.rabbitmq</groupId>
+                <artifactId>amqp-client</artifactId>
+                <version>5.31.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>9.48</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars</groupId>
+                <artifactId>swagger-ui</artifactId>
+                <version>${swagger-ui.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>
@@ -133,6 +155,12 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.prometheus</groupId>
+                    <artifactId>simpleclient_tracer_otel_agent</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -152,21 +180,6 @@
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
             <version>${logstash-logback.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry.instrumentation</groupId>
-            <artifactId>opentelemetry-spring-boot-starter</artifactId>
-            <version>${opentelemetry-instrumentation.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>${opentelemetry.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry.instrumentation</groupId>
-            <artifactId>opentelemetry-logback-mdc-1.0</artifactId>
-            <version>${opentelemetry-instrumentation.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

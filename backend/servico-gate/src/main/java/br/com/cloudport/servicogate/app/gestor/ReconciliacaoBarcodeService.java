@@ -10,7 +10,9 @@ import br.com.cloudport.servicogate.model.enums.TipoDesincroniaBarcode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,7 @@ public class ReconciliacaoBarcodeService {
 
         List<ReconciliacaoBarcode> problemasEncontrados = new ArrayList<>();
 
+        // Verificações de reconciliação padrão
         List<GatePass> gatePassesPendentes = gatePassRepository.findByStatus(StatusGate.AGUARDANDO_CONFIRMACAO_BARCODE);
         for (GatePass gatePass : gatePassesPendentes) {
             ReconciliacaoBarcode problema = verificarTimeoutPendente(gatePass);
@@ -62,10 +65,151 @@ public class ReconciliacaoBarcodeService {
             problemasEncontrados.addAll(problemas);
         }
 
+        // Anomaly Detection
+        List<ReconciliacaoBarcode> anomalias = executarAnomalyDetection();
+        problemasEncontrados.addAll(anomalias);
+
         LOGGER.info("event=reconciliacao.concluida problemas_encontrados={} timestamp={}",
                 problemasEncontrados.size(), LocalDateTime.now());
 
         return problemasEncontrados;
+    }
+
+    private List<ReconciliacaoBarcode> executarAnomalyDetection() {
+        List<ReconciliacaoBarcode> anomalias = new ArrayList<>();
+
+        // Anomalia 1: Saída sem entrada
+        anomalias.addAll(detectarSaidaSemEntrada());
+
+        // Anomalia 2: Múltiplos containers mesma placa em 1h
+        anomalias.addAll(detectarMultiplosContainersMesmaPlaca());
+
+        // Anomalia 3: Tempo de gate > 30min
+        anomalias.addAll(detectarTempoGateExcedido());
+
+        return anomalias;
+    }
+
+    private List<ReconciliacaoBarcode> detectarSaidaSemEntrada() {
+        List<ReconciliacaoBarcode> anomalias = new ArrayList<>();
+
+        List<GatePass> gatePassesFinalizados = gatePassRepository.findByStatus(StatusGate.FINALIZADO);
+        for (GatePass gatePass : gatePassesFinalizados) {
+            if (gatePass.getDataEntrada() == null && gatePass.getDataSaida() != null) {
+                Optional<ReconciliacaoBarcode> existente = reconciliacaoRepository
+                        .findByGatePassIdAndTipoDesinconia(gatePass.getId(),
+                                TipoDesincroniaBarcode.SAIDA_SEM_ENTRADA);
+
+                if (existente.isEmpty()) {
+                    ReconciliacaoBarcode anomalia = new ReconciliacaoBarcode();
+                    anomalia.setGatePass(gatePass);
+                    anomalia.setTipoDesinconia(TipoDesincroniaBarcode.SAIDA_SEM_ENTRADA);
+                    anomalia.setDescricao(String.format(
+                            "Container saiu do gate sem registrar entrada. Saída: %s",
+                            gatePass.getDataSaida()));
+                    anomalia.setStatusLocal(StatusGate.FINALIZADO.name());
+                    anomalia.setDetectadoEm(LocalDateTime.now());
+                    anomalia.setAlertaEnviado(false);
+
+                    ReconciliacaoBarcode salvo = reconciliacaoRepository.save(anomalia);
+                    LOGGER.error("event=anomaly.saida_sem_entrada gatePassId={} dataSaida={} timestamp={}",
+                            gatePass.getId(), gatePass.getDataSaida(), LocalDateTime.now());
+                    anomalias.add(salvo);
+                }
+            }
+        }
+
+        return anomalias;
+    }
+
+    private List<ReconciliacaoBarcode> detectarMultiplosContainersMesmaPlaca() {
+        List<ReconciliacaoBarcode> anomalias = new ArrayList<>();
+
+        LocalDateTime agora = LocalDateTime.now();
+        LocalDateTime uma_hora_atras = agora.minusHours(1);
+
+        // Buscar todos os gate passes da última hora
+        List<GatePass> gatePasses = gatePassRepository.findAll();
+
+        Map<String, List<GatePass>> porPlaca = new HashMap<>();
+        for (GatePass gatePass : gatePasses) {
+            if (gatePass.getDataEntrada() != null &&
+                gatePass.getDataEntrada().isAfter(uma_hora_atras) &&
+                gatePass.getDataEntrada().isBefore(agora)) {
+
+                String placa = gatePass.getAgendamento().getVeiculo().getPlaca();
+                porPlaca.computeIfAbsent(placa, k -> new ArrayList<>()).add(gatePass);
+            }
+        }
+
+        // Detectar placas com múltiplos containers
+        for (Map.Entry<String, List<GatePass>> entry : porPlaca.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                for (GatePass gatePass : entry.getValue()) {
+                    Optional<ReconciliacaoBarcode> existente = reconciliacaoRepository
+                            .findByGatePassIdAndTipoDesinconia(gatePass.getId(),
+                                    TipoDesincroniaBarcode.MULTIPLOS_CONTAINERS_PLACA);
+
+                    if (existente.isEmpty()) {
+                        ReconciliacaoBarcode anomalia = new ReconciliacaoBarcode();
+                        anomalia.setGatePass(gatePass);
+                        anomalia.setTipoDesinconia(TipoDesincroniaBarcode.MULTIPLOS_CONTAINERS_PLACA);
+                        anomalia.setDescricao(String.format(
+                                "Placa %s registrou %d containers em 1 hora (suspeito de fraude/roubo)",
+                                entry.getKey(), entry.getValue().size()));
+                        anomalia.setStatusLocal(gatePass.getStatus().name());
+                        anomalia.setDetectadoEm(agora);
+                        anomalia.setAlertaEnviado(false);
+
+                        ReconciliacaoBarcode salvo = reconciliacaoRepository.save(anomalia);
+                        LOGGER.warn("event=anomaly.multiplos_containers placa={} quantidade={} timestamp={}",
+                                entry.getKey(), entry.getValue().size(), agora);
+                        anomalias.add(salvo);
+                    }
+                }
+            }
+        }
+
+        return anomalias;
+    }
+
+    private List<ReconciliacaoBarcode> detectarTempoGateExcedido() {
+        List<ReconciliacaoBarcode> anomalias = new ArrayList<>();
+
+        List<GatePass> gatePasses = gatePassRepository.findAll();
+        for (GatePass gatePass : gatePasses) {
+            if (gatePass.getDataEntrada() != null && gatePass.getDataSaida() == null) {
+                LocalDateTime agora = LocalDateTime.now();
+                Duration tempo = Duration.between(gatePass.getDataEntrada(), agora);
+                long minutos = tempo.toMinutes();
+
+                if (minutos > 30) {
+                    Optional<ReconciliacaoBarcode> existente = reconciliacaoRepository
+                            .findByGatePassIdAndTipoDesinconia(gatePass.getId(),
+                                    TipoDesincroniaBarcode.TEMPO_GATE_EXCEDIDO);
+
+                    if (existente.isEmpty()) {
+                        ReconciliacaoBarcode anomalia = new ReconciliacaoBarcode();
+                        anomalia.setGatePass(gatePass);
+                        anomalia.setTipoDesinconia(TipoDesincroniaBarcode.TEMPO_GATE_EXCEDIDO);
+                        anomalia.setDescricao(String.format(
+                                "Container no gate há %d minutos (limite: 30min). Possível avaria ou obstrução.",
+                                minutos));
+                        anomalia.setStatusLocal(gatePass.getStatus().name());
+                        anomalia.setTempoPendenciaHoras((int) (minutos / 60));
+                        anomalia.setDetectadoEm(agora);
+                        anomalia.setAlertaEnviado(false);
+
+                        ReconciliacaoBarcode salvo = reconciliacaoRepository.save(anomalia);
+                        LOGGER.warn("event=anomaly.tempo_gate_excedido gatePassId={} minutos={} timestamp={}",
+                                gatePass.getId(), minutos, agora);
+                        anomalias.add(salvo);
+                    }
+                }
+            }
+        }
+
+        return anomalias;
     }
 
     private ReconciliacaoBarcode verificarTimeoutPendente(GatePass gatePass) {

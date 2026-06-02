@@ -7,7 +7,10 @@ public enum TipoDesincroniaBarcode {
     TIMEOUT_NAO_RESOLVIDO("Timeout de barcode nunca foi resolvido"),
     STATUS_INCONSISTENTE("Status de barcode inconsistente com TOS"),
     ENTRADA_SEM_SAIDA_24H("Container na entrada há mais de 24 horas"),
-    DISCREPANCIA_TEMPORAL("Timestamps inconsistentes (entrada > saída)");
+    DISCREPANCIA_TEMPORAL("Timestamps inconsistentes (entrada > saída)"),
+    SAIDA_SEM_ENTRADA("Container saiu sem registrar entrada"),
+    MULTIPLOS_CONTAINERS_PLACA("Múltiplos containers mesma placa em 1 hora"),
+    TEMPO_GATE_EXCEDIDO("Tempo de gate > 30 minutos");
 
     private final String descricao;
 

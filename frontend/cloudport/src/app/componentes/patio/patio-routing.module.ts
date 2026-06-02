@@ -7,6 +7,7 @@ import { FormularioMovimentacaoComponent } from './formulario-movimentacao/formu
 import { ListaTrabalhoPatioComponent } from './lista-trabalho-patio/lista-trabalho-patio.component';
 import { RecursosPatioComponent } from './recursos-patio/recursos-patio.component';
 import { SimuladorPatioComponent } from './simulador-patio/simulador-patio.component';
+import { DashboardKpiPatioComponent } from './dashboard-kpi-patio/dashboard-kpi-patio.component';
 
 const routes: Routes = [
   {
@@ -36,6 +37,10 @@ const routes: Routes = [
   {
     path: 'simulador',
     component: SimuladorPatioComponent
+  },
+  {
+    path: 'dashboard-kpi',
+    component: DashboardKpiPatioComponent
   },
   {
     path: '',

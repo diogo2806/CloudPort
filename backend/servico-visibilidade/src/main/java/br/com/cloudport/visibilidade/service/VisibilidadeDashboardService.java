@@ -5,6 +5,7 @@ import br.com.cloudport.visibilidade.dto.ConteinerBuscaDTO;
 import br.com.cloudport.visibilidade.dto.DashboardAtualizacaoDTO;
 import br.com.cloudport.visibilidade.dto.DashboardVisibilidadeDTO;
 import br.com.cloudport.visibilidade.dto.NavioDetalhadoDTO;
+import br.com.cloudport.visibilidade.dto.StatusNavioDTO;
 import br.com.cloudport.visibilidade.dto.OcupacaoPatioDTO;
 import br.com.cloudport.visibilidade.dto.TimelineEventoDTO;
 import br.com.cloudport.visibilidade.dto.ThroughputGateDTO;
@@ -22,6 +23,7 @@ import br.com.cloudport.visibilidade.repository.StatusNavioRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -348,7 +350,29 @@ public class VisibilidadeDashboardService {
                     return resumo;
                 })
                 .collect(Collectors.toList()));
-        dto.setTimeline(criarTimelineNavio(navio));
+        dto.setTimeline(criarTimelineResumoNavio(navio));
+        return dto;
+    }
+
+    private List<StatusNavioDTO.TimelineDTO> criarTimelineResumoNavio(StatusNavio navio) {
+        List<StatusNavioDTO.TimelineDTO> timeline = new ArrayList<>();
+        if (navio.getEtaEstimado() != null) {
+            timeline.add(timelineResumo("ETA estimado", navio.getEtaEstimado()));
+        }
+        if (navio.getChegadaReal() != null) {
+            timeline.add(timelineResumo("Chegada real", navio.getChegadaReal()));
+        }
+        if (StringUtils.hasText(navio.getBercoAlocado())) {
+            timeline.add(timelineResumo("Berco alocado", navio.getDataAtualizacao()));
+        }
+        timeline.add(timelineResumo("Status operacional", navio.getDataAtualizacao()));
+        return timeline;
+    }
+
+    private StatusNavioDTO.TimelineDTO timelineResumo(String evento, LocalDateTime tempo) {
+        StatusNavioDTO.TimelineDTO dto = new StatusNavioDTO.TimelineDTO();
+        dto.setEvento(evento);
+        dto.setTempo(tempo);
         return dto;
     }
 
@@ -516,9 +540,10 @@ public class VisibilidadeDashboardService {
     }
 
     private String normalizar(String valor) {
-        return HtmlUtils.htmlEscape(String.valueOf(valor), "UTF-8")
-                .normalize(Locale.ROOT)
-                .toLowerCase(Locale.ROOT);
+        String escapado = HtmlUtils.htmlEscape(String.valueOf(valor), "UTF-8");
+        String semAcentos = Normalizer.normalize(escapado, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+        return semAcentos.toLowerCase(Locale.ROOT);
     }
 
     private String escapar(String valor) {

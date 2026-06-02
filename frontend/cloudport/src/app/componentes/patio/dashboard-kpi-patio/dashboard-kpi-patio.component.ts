@@ -27,6 +27,7 @@ export class DashboardKpiPatioComponent implements OnInit, OnDestroy {
   erro?: string;
   inscricaoAtualizacao?: Subscription;
   intervaloAtualizacao = 30000;
+  Math = Math;
 
   constructor(private readonly servicoKpi: ServicoKpiPatio) {}
 

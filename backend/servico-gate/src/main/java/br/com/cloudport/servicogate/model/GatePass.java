@@ -1,6 +1,7 @@
 package br.com.cloudport.servicogate.model;
 
 import br.com.cloudport.servicogate.model.enums.StatusGate;
+import br.com.cloudport.servicogate.model.enums.StatusConfirmacaoBarcode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +41,19 @@ public class GatePass extends AbstractAuditableEntity {
 
     @Column(name = "data_saida")
     private LocalDateTime dataSaida;
+
+    @Column(name = "codigo_barcode", length = 50)
+    private String codigoBarcode;
+
+    @Column(name = "data_confirmacao_barcode")
+    private LocalDateTime dataConfirmacaoBarcode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_confirmacao_barcode", length = 40)
+    private StatusConfirmacaoBarcode statusConfirmacaoBarcode;
+
+    @Column(name = "motivo_rejeicao_barcode", length = 500)
+    private String motivoRejeicaoBarcode;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agendamento_id", nullable = false, unique = true)
@@ -110,5 +124,37 @@ public class GatePass extends AbstractAuditableEntity {
 
     public void setEventos(List<GateEvent> eventos) {
         this.eventos = eventos;
+    }
+
+    public String getCodigoBarcode() {
+        return codigoBarcode;
+    }
+
+    public void setCodigoBarcode(String codigoBarcode) {
+        this.codigoBarcode = codigoBarcode;
+    }
+
+    public LocalDateTime getDataConfirmacaoBarcode() {
+        return dataConfirmacaoBarcode;
+    }
+
+    public void setDataConfirmacaoBarcode(LocalDateTime dataConfirmacaoBarcode) {
+        this.dataConfirmacaoBarcode = dataConfirmacaoBarcode;
+    }
+
+    public StatusConfirmacaoBarcode getStatusConfirmacaoBarcode() {
+        return statusConfirmacaoBarcode;
+    }
+
+    public void setStatusConfirmacaoBarcode(StatusConfirmacaoBarcode statusConfirmacaoBarcode) {
+        this.statusConfirmacaoBarcode = statusConfirmacaoBarcode;
+    }
+
+    public String getMotivoRejeicaoBarcode() {
+        return motivoRejeicaoBarcode;
+    }
+
+    public void setMotivoRejeicaoBarcode(String motivoRejeicaoBarcode) {
+        this.motivoRejeicaoBarcode = motivoRejeicaoBarcode;
     }
 }

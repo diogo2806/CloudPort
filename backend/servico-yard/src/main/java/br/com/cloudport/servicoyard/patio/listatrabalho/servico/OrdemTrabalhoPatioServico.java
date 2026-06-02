@@ -30,13 +30,16 @@ public class OrdemTrabalhoPatioServico {
     private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
     private final ConteinerPatioRepositorio conteinerRepositorio;
     private final MapaPatioServico mapaPatioServico;
+    private final OtimizadorRotasPatioServico otimizadorRotas;
 
     public OrdemTrabalhoPatioServico(OrdemTrabalhoPatioRepositorio ordemRepositorio,
                                      ConteinerPatioRepositorio conteinerRepositorio,
-                                     MapaPatioServico mapaPatioServico) {
+                                     MapaPatioServico mapaPatioServico,
+                                     OtimizadorRotasPatioServico otimizadorRotas) {
         this.ordemRepositorio = ordemRepositorio;
         this.conteinerRepositorio = conteinerRepositorio;
         this.mapaPatioServico = mapaPatioServico;
+        this.otimizadorRotas = otimizadorRotas;
     }
 
     @Transactional(readOnly = true)
@@ -47,6 +50,38 @@ public class OrdemTrabalhoPatioServico {
         return ordemRepositorio.findByStatusOrdemInOrderByCriadoEmAsc(filtros).stream()
                 .map(OrdemTrabalhoPatioRespostaDto::deEntidade)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrdemTrabalhoPatioRespostaDto> listarOrdensOtimizadas(StatusOrdemTrabalhoPatio status) {
+        List<OrdemTrabalhoPatio> ordens = status != null
+                ? ordemRepositorio.findByStatusOrdemOrderByCriadoEmAsc(status)
+                : ordemRepositorio.findByStatusOrdemInOrderByCriadoEmAsc(
+                new ArrayList<>(EnumSet.allOf(StatusOrdemTrabalhoPatio.class)));
+
+        if (ordens.isEmpty() || status != StatusOrdemTrabalhoPatio.PENDENTE) {
+            return ordens.stream()
+                    .map(OrdemTrabalhoPatioRespostaDto::deEntidade)
+                    .toList();
+        }
+
+        List<OrdemTrabalhoPatio> ordensOtimizadas = otimizadorRotas.otimizarRota();
+        return ordensOtimizadas.stream()
+                .map(OrdemTrabalhoPatioRespostaDto::deEntidade)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrdemTrabalhoPatioRespostaDto> listarOrdensOtimizadasComDualCycling() {
+        List<OrdemTrabalhoPatio> ordensOtimizadas = otimizadorRotas.otimizarRotaComProximidade();
+        return ordensOtimizadas.stream()
+                .map(OrdemTrabalhoPatioRespostaDto::deEntidade)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrdemTrabalhoPatio> listarOrdensOriginais(StatusOrdemTrabalhoPatio status) {
+        return ordemRepositorio.findByStatusOrdemOrderByCriadoEmAsc(status);
     }
 
     @Transactional

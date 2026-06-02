@@ -58,6 +58,7 @@ public class MapaPatioServico {
     private final SimpMessagingTemplate messagingTemplate;
     private final PublicadorEventoMovimentoPatio publicadorEventoMovimentoPatio;
     private final AlertasPatioServico alertasPatioServico;
+    private final ValidadorYardPlacementService validadorYardPlacement;
 
     public MapaPatioServico(ConteinerPatioRepositorio conteinerPatioRepositorio,
                              EquipamentoPatioRepositorio equipamentoPatioRepositorio,
@@ -66,7 +67,8 @@ public class MapaPatioServico {
                              MovimentoPatioRepositorio movimentoPatioRepositorio,
                              SimpMessagingTemplate messagingTemplate,
                              PublicadorEventoMovimentoPatio publicadorEventoMovimentoPatio,
-                             AlertasPatioServico alertasPatioServico) {
+                             AlertasPatioServico alertasPatioServico,
+                             ValidadorYardPlacementService validadorYardPlacement) {
         this.conteinerPatioRepositorio = conteinerPatioRepositorio;
         this.equipamentoPatioRepositorio = equipamentoPatioRepositorio;
         this.posicaoPatioRepositorio = posicaoPatioRepositorio;
@@ -75,6 +77,7 @@ public class MapaPatioServico {
         this.messagingTemplate = messagingTemplate;
         this.publicadorEventoMovimentoPatio = publicadorEventoMovimentoPatio;
         this.alertasPatioServico = alertasPatioServico;
+        this.validadorYardPlacement = validadorYardPlacement;
     }
 
     @Transactional(readOnly = true)
@@ -201,6 +204,8 @@ public class MapaPatioServico {
 
     @Transactional
     public ConteinerMapaDto registrarOuAtualizarConteiner(ConteinerPatioRequisicaoDto requisicaoDto) {
+        validadorYardPlacement.validarAlocacao(requisicaoDto);
+
         ConteinerPatio conteiner = localizarConteiner(requisicaoDto);
         boolean novoConteiner = conteiner.getId() == null;
 

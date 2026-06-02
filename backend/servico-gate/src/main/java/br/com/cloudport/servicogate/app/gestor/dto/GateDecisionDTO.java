@@ -15,6 +15,7 @@ public class GateDecisionDTO {
     private String codigoAgendamento;
     private Long gatePassId;
     private String codigoGatePass;
+    private String tokenGatePass;
     private String mensagem;
 
     public static GateDecisionDTO autorizado(StatusGate status, Agendamento agendamento, GatePass gatePass,
@@ -32,6 +33,18 @@ public class GateDecisionDTO {
         dto.setAutorizado(false);
         dto.preencherContexto(status, agendamento, gatePass);
         dto.setMensagem(mensagem);
+        return dto;
+    }
+
+    public static GateDecisionDTO pendenteBarcodeConfirmacao(GatePass gatePass) {
+        GateDecisionDTO dto = new GateDecisionDTO();
+        dto.setAutorizado(false);
+        dto.setStatusGate(StatusGate.AGUARDANDO_CONFIRMACAO_BARCODE.name());
+        dto.setStatusDescricao(StatusGate.AGUARDANDO_CONFIRMACAO_BARCODE.getDescricao());
+        dto.setGatePassId(gatePass.getId());
+        dto.setCodigoGatePass(gatePass.getCodigo());
+        dto.setTokenGatePass(gatePass.getToken());
+        dto.setMensagem("Aguardando confirmação de barcode do operador DMT. Token enviado para dispositivo móvel.");
         return dto;
     }
 
@@ -104,6 +117,14 @@ public class GateDecisionDTO {
 
     public void setCodigoGatePass(String codigoGatePass) {
         this.codigoGatePass = codigoGatePass;
+    }
+
+    public String getTokenGatePass() {
+        return tokenGatePass;
+    }
+
+    public void setTokenGatePass(String tokenGatePass) {
+        this.tokenGatePass = tokenGatePass;
     }
 
     public String getMensagem() {

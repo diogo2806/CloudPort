@@ -10,6 +10,8 @@ public interface OrdemTrabalhoPatioRepositorio extends JpaRepository<OrdemTrabal
 
     List<OrdemTrabalhoPatio> findByStatusOrdemInOrderByCriadoEmAsc(List<StatusOrdemTrabalhoPatio> status);
 
+    List<OrdemTrabalhoPatio> findByStatusOrdemOrderByCriadoEmAsc(StatusOrdemTrabalhoPatio status);
+
     boolean existsByCodigoConteinerIgnoreCaseAndStatusOrdemIn(String codigoConteiner,
                                                               List<StatusOrdemTrabalhoPatio> status);
 

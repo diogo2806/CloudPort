@@ -1,9 +1,10 @@
 <div class="mapa-patio-container" [formGroup]="formularioFiltros">
   <div class="cabecalho">
     <h2>Mapa 2D do Pátio</h2>
-    <p class="descricao">Monitoramento em tempo real com camadas de equipamentos e filtros operacionais.</p>
-    <div class="status-carregamento" *ngIf="carregando || carregandoFiltros">Carregando informações do pátio...</div>
+    <p class="descricao">Monitoramento em tempo real com camadas de equipamentos e filtros operacionais. Arraste contêineres para replanejá-los.</p>
+    <div class="status-carregamento" *ngIf="carregando || carregandoFiltros || salvandoModo">{{ salvandoModo ? 'Salvando movimentação...' : 'Carregando informações do pátio...' }}</div>
     <div class="status-erro" *ngIf="erro">{{ erro }}</div>
+    <div class="status-sucesso" *ngIf="mensagemSucesso">{{ mensagemSucesso }}</div>
     <div class="status-atualizacao" *ngIf="mapaFiltrado">
       Última atualização: {{ mapaFiltrado.atualizadoEm | date: 'dd/MM/yyyy HH:mm:ss' }}
     </div>
@@ -46,16 +47,26 @@
     <div class="mapa-grid"
          [style.gridTemplateColumns]="obterTemplateColunas()"
          [style.gridTemplateRows]="obterTemplateLinhas()">
-      <div class="mapa-celula" *ngFor="let celula of obterCelulas(); let indice = index"
+      <div class="mapa-celula"
+           *ngFor="let celula of obterCelulas(); let indice = index"
            [attr.data-linha]="obterLinha(indice) + 1"
-           [attr.data-coluna]="obterColuna(indice) + 1">
+           [attr.data-coluna]="obterColuna(indice) + 1"
+           (dragover)="sobrecelula($event, obterLinha(indice), obterColuna(indice))"
+           (dragleave)="saiuDaCelula()"
+           (drop)="soltarEmCelula($event, obterLinha(indice), obterColuna(indice))"
+           [class.celula-alvo]="celulaDestineAlvo?.linha === obterLinha(indice) && celulaDestineAlvo?.coluna === obterColuna(indice)">
       </div>
-      <div class="mapa-conteiner" *ngFor="let conteiner of mapaFiltrado.conteineres"
+      <div class="mapa-conteiner"
+           *ngFor="let conteiner of mapaFiltrado.conteineres"
            [style.gridRow]="(conteiner.linha + 1)"
            [style.gridColumn]="(conteiner.coluna + 1)"
-           [ngClass]="obterClasseStatus(conteiner.status)"
+           [ngClass]="[obterClasseStatus(conteiner.status), { 'conteiner-arrastando': conteinerEmDragueio?.codigo === conteiner.codigo }]"
            [attr.aria-label]="'Contêiner ' + conteiner.codigo"
-           role="button">
+           role="button"
+           draggable="true"
+           (dragstart)="iniciarDrag($event, conteiner)"
+           (dragend)="terminarDrag()"
+           [attr.data-codigo]="conteiner.codigo">
         <span class="conteiner-codigo">{{ sanitizarTexto(conteiner.codigo) }}</span>
         <span class="conteiner-detalhe">{{ sanitizarTexto(conteiner.tipoCarga) }}</span>
         <span class="conteiner-detalhe">{{ sanitizarTexto(conteiner.destino) }}</span>

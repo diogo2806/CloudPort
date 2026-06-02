@@ -22,6 +22,7 @@ export class SimuladorPatioComponent implements OnInit {
   resultado: any = null;
   carregando = false;
   erro?: string;
+  Math = Math;
   tiposCenario = [
     { valor: 'ATRASO_NAVIO', label: '🚢 Atraso de Navio' },
     { valor: 'MANUTENCAO_EQUIPAMENTO', label: '🔧 Manutenção de Equipamento' },
@@ -73,7 +74,7 @@ export class SimuladorPatioComponent implements OnInit {
     }
 
     const valor = this.formularioSimulacao.getRawValue();
-    const cenario = {
+    const cenario: any = {
       tipoCenario: valor.tipoCenario,
       descricao: valor.descricao,
       horasAtraso: valor.horasAtraso,

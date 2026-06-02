@@ -12,6 +12,8 @@ public interface GatePassRepository extends JpaRepository<GatePass, Long> {
 
     Optional<GatePass> findByCodigo(String codigo);
 
+    Optional<GatePass> findByToken(String token);
+
     List<GatePass> findByStatus(StatusGate status);
 
     Optional<GatePass> findByAgendamentoId(Long agendamentoId);

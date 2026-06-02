@@ -53,12 +53,21 @@ export interface OpcoesCadastroPatio {
   tiposMovimento: string[];
 }
 
+export interface AlertaPatio {
+  codigoConteiner?: string;
+  tipoAlerta: 'REHANDLE' | 'CONFLITO_INFRAESTRUTURA' | 'GARGALO_EQUIPAMENTO';
+  nivelSeveridade: 'INFO' | 'ATENCAO' | 'CRITICO';
+  mensagem: string;
+  recomendacao?: string;
+}
+
 export interface MapaPatioResposta {
   conteineres: ConteinerMapa[];
   equipamentos: EquipamentoMapa[];
   totalLinhas: number;
   totalColunas: number;
   atualizadoEm: string;
+  alertas?: AlertaPatio[];
 }
 
 export interface FiltrosMapaPatio {

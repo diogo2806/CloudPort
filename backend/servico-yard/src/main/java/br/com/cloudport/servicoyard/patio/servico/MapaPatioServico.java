@@ -57,6 +57,7 @@ public class MapaPatioServico {
     private final MovimentoPatioRepositorio movimentoPatioRepositorio;
     private final SimpMessagingTemplate messagingTemplate;
     private final PublicadorEventoMovimentoPatio publicadorEventoMovimentoPatio;
+    private final AlertasPatioServico alertasPatioServico;
     private final ValidadorYardPlacementService validadorYardPlacement;
 
     public MapaPatioServico(ConteinerPatioRepositorio conteinerPatioRepositorio,
@@ -66,6 +67,7 @@ public class MapaPatioServico {
                              MovimentoPatioRepositorio movimentoPatioRepositorio,
                              SimpMessagingTemplate messagingTemplate,
                              PublicadorEventoMovimentoPatio publicadorEventoMovimentoPatio,
+                             AlertasPatioServico alertasPatioServico,
                              ValidadorYardPlacementService validadorYardPlacement) {
         this.conteinerPatioRepositorio = conteinerPatioRepositorio;
         this.equipamentoPatioRepositorio = equipamentoPatioRepositorio;
@@ -74,6 +76,7 @@ public class MapaPatioServico {
         this.movimentoPatioRepositorio = movimentoPatioRepositorio;
         this.messagingTemplate = messagingTemplate;
         this.publicadorEventoMovimentoPatio = publicadorEventoMovimentoPatio;
+        this.alertasPatioServico = alertasPatioServico;
         this.validadorYardPlacement = validadorYardPlacement;
     }
 
@@ -105,8 +108,10 @@ public class MapaPatioServico {
                 .max(LocalDateTime::compareTo)
                 .orElse(LocalDateTime.now());
 
+        var alertas = alertasPatioServico.calcularAlertas();
+
         return new MapaPatioRespostaDto(conteineresFiltrados, equipamentosFiltrados,
-                totalLinhas + 1, totalColunas + 1, ultimaAtualizacao);
+                totalLinhas + 1, totalColunas + 1, ultimaAtualizacao, alertas);
     }
 
     @Transactional(readOnly = true)

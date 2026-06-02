@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import {
+  AlertaPatio,
   EventoTempoRealMapa,
   FiltrosMapaPatio,
   MapaPatioResposta,
@@ -15,6 +16,14 @@ interface FiltroFormulario {
   destinos: FormControl<string[]>;
   camadas: FormControl<string[]>;
   tiposEquipamento: FormControl<string[]>;
+}
+
+interface ConteinerEmMovimento {
+  codigo: string;
+  linhaOrigem: number;
+  colunaOrigem: number;
+  linhaDestino?: number;
+  colunaDestino?: number;
 }
 
 @Component({
@@ -33,6 +42,12 @@ export class MapaPatioComponent implements OnInit, OnDestroy {
   erro?: string;
   inscricaoTempoReal?: Subscription;
   inscricaoFormulario?: Subscription;
+  conteinerEmDragueio?: ConteinerEmMovimento;
+  celulaDestineAlvo?: { linha: number; coluna: number };
+  salvandoModo = false;
+  mensagemSucesso?: string;
+  alertas: AlertaPatio[] = [];
+  alertasAbertos = true;
 
   constructor(
     private readonly servicoPatio: ServicoPatioService,
@@ -113,6 +128,134 @@ export class MapaPatioComponent implements OnInit, OnDestroy {
     return this.sanitizador.sanitizar(texto ?? '');
   }
 
+  iniciarDrag(evento: DragEvent, conteiner: any): void {
+    if (evento.dataTransfer) {
+      evento.dataTransfer.effectAllowed = 'move';
+      evento.dataTransfer.setData('application/json', JSON.stringify(conteiner));
+    }
+    this.conteinerEmDragueio = {
+      codigo: conteiner.codigo,
+      linhaOrigem: conteiner.linha,
+      colunaOrigem: conteiner.coluna
+    };
+  }
+
+  terminarDrag(): void {
+    this.conteinerEmDragueio = undefined;
+    this.celulaDestineAlvo = undefined;
+  }
+
+  sobrecelula(evento: DragEvent, linha: number, coluna: number): void {
+    evento.preventDefault();
+    if (evento.dataTransfer) {
+      evento.dataTransfer.dropEffect = 'move';
+    }
+    if (this.conteinerEmDragueio) {
+      this.celulaDestineAlvo = { linha, coluna };
+    }
+  }
+
+  saiuDaCelula(): void {
+    this.celulaDestineAlvo = undefined;
+  }
+
+  soltarEmCelula(evento: DragEvent, linha: number, coluna: number): void {
+    evento.preventDefault();
+    if (!this.conteinerEmDragueio) {
+      return;
+    }
+
+    const posicaoAtual = `(${this.conteinerEmDragueio.linhaOrigem}, ${this.conteinerEmDragueio.colunaOrigem})`;
+    const posicaoNova = `(${linha}, ${coluna})`;
+
+    if (posicaoAtual === posicaoNova) {
+      this.celulaDestineAlvo = undefined;
+      this.conteinerEmDragueio = undefined;
+      return;
+    }
+
+    if (!this.mapaFiltrado) {
+      return;
+    }
+
+    const conteinerOriginal = this.mapaFiltrado.conteineres.find(
+      (c) => c.linha === this.conteinerEmDragueio?.linhaOrigem &&
+             c.coluna === this.conteinerEmDragueio?.colunaOrigem
+    );
+
+    if (!conteinerOriginal) {
+      this.erro = 'Contêiner não encontrado.';
+      this.celulaDestineAlvo = undefined;
+      this.conteinerEmDragueio = undefined;
+      return;
+    }
+
+    const validacao = this.validarMovimentacao(linha, coluna, conteinerOriginal);
+    if (!validacao.valido) {
+      this.erro = `Movimento não permitido: ${validacao.motivo}`;
+      this.celulaDestineAlvo = undefined;
+      this.conteinerEmDragueio = undefined;
+      return;
+    }
+
+    this.executarMovimentacao(conteinerOriginal, linha, coluna);
+  }
+
+  private validarMovimentacao(linha: number, coluna: number, conteiner: any): { valido: boolean; motivo?: string } {
+    if (!this.mapaCompleto) {
+      return { valido: false, motivo: 'Mapa não carregado' };
+    }
+
+    if (linha < 0 || coluna < 0 || linha >= (this.mapaCompleto.totalLinhas || 0) || coluna >= (this.mapaCompleto.totalColunas || 0)) {
+      return { valido: false, motivo: 'Posição fora dos limites do pátio' };
+    }
+
+    const jaOcupada = this.mapaCompleto.conteineres.some(
+      (c) => c.linha === linha && c.coluna === coluna && c.codigo !== conteiner.codigo
+    );
+
+    if (jaOcupada) {
+      return { valido: false, motivo: 'Posição já ocupada por outro contêiner' };
+    }
+
+    const equipamentoNo = this.mapaCompleto.equipamentos.some(
+      (e) => e.linha === linha && e.coluna === coluna
+    );
+
+    if (equipamentoNo) {
+      return { valido: false, motivo: 'Posição ocupada por equipamento' };
+    }
+
+    return { valido: true };
+  }
+
+  private executarMovimentacao(conteiner: any, novaLinha: number, novaColuna: number): void {
+    this.salvandoModo = true;
+    this.erro = undefined;
+    this.mensagemSucesso = undefined;
+
+    const conteinerAtualizado = {
+      ...conteiner,
+      linha: novaLinha,
+      coluna: novaColuna
+    };
+
+    this.servicoPatio.salvarConteiner(conteinerAtualizado).subscribe({
+      next: () => {
+        this.mensagemSucesso = `Contêiner ${conteiner.codigo} movido com sucesso.`;
+        this.carregarMapaCompleto();
+        this.salvandoModo = false;
+      },
+      error: (erro) => {
+        this.erro = `Erro ao mover contêiner: ${erro?.error?.message || 'operação falhou'}`;
+        this.salvandoModo = false;
+      }
+    });
+
+    this.celulaDestineAlvo = undefined;
+    this.conteinerEmDragueio = undefined;
+  }
+
   private carregarFiltros(): void {
     this.carregandoFiltros = true;
     this.servicoPatio.obterFiltros().subscribe({
@@ -132,6 +275,7 @@ export class MapaPatioComponent implements OnInit, OnDestroy {
     this.servicoPatio.obterMapa({}).subscribe({
       next: (mapa) => {
         this.mapaCompleto = mapa;
+        this.atualizarAlertas();
         this.aplicarFiltrosLocais();
         this.carregando = false;
       },
@@ -147,7 +291,40 @@ export class MapaPatioComponent implements OnInit, OnDestroy {
       return;
     }
     this.mapaCompleto = evento.mapa;
+    this.atualizarAlertas();
     this.aplicarFiltrosLocais();
+  }
+
+  private atualizarAlertas(): void {
+    this.alertas = this.mapaCompleto?.alertas ?? [];
+  }
+
+  obterCoresAlerta(alerta: AlertaPatio): { fundo: string; borda: string; icone: string } {
+    switch (alerta.nivelSeveridade) {
+      case 'CRITICO':
+        return { fundo: '#fecaca', borda: '#dc2626', icone: '⚠️' };
+      case 'ATENCAO':
+        return { fundo: '#fef3c7', borda: '#f59e0b', icone: '⚡' };
+      default:
+        return { fundo: '#dbeafe', borda: '#2563eb', icone: 'ℹ️' };
+    }
+  }
+
+  obterTituloAlerta(tipo: string): string {
+    switch (tipo) {
+      case 'REHANDLE':
+        return 'Re-handle';
+      case 'CONFLITO_INFRAESTRUTURA':
+        return 'Conflito de Infraestrutura';
+      case 'GARGALO_EQUIPAMENTO':
+        return 'Gargalo de Equipamento';
+      default:
+        return 'Alerta';
+    }
+  }
+
+  alternarPainelAlertas(): void {
+    this.alertasAbertos = !this.alertasAbertos;
   }
 
   private aplicarFiltrosLocais(): void {

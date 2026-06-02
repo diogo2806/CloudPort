@@ -23,11 +23,14 @@ public class ConfirmacaoBarcodeService {
 
     private final GatePassRepository gatePassRepository;
     private final GateEventRepository gateEventRepository;
+    private final AgendamentoRealtimeService agendamentoRealtimeService;
 
     public ConfirmacaoBarcodeService(GatePassRepository gatePassRepository,
-                                     GateEventRepository gateEventRepository) {
+                                     GateEventRepository gateEventRepository,
+                                     AgendamentoRealtimeService agendamentoRealtimeService) {
         this.gatePassRepository = gatePassRepository;
         this.gateEventRepository = gateEventRepository;
+        this.agendamentoRealtimeService = agendamentoRealtimeService;
     }
 
     public ConfirmacaoBarcodeResponse confirmarBarcode(ConfirmacaoBarcodeRequest request) {
@@ -64,6 +67,8 @@ public class ConfirmacaoBarcodeService {
         LOGGER.info("event=barcode.confirmado gatePassId={} barcode={} dmt={} timestamp={}",
                 salvo.getId(), codigoBarcode, dispositivoDmtId, dataConfirmacao);
 
+        agendamentoRealtimeService.notificarStatus(salvo.getAgendamento());
+
         return new ConfirmacaoBarcodeResponse(salvo.getId(), salvo.getToken(), codigoBarcode,
                 StatusConfirmacaoBarcode.CONFIRMADO.toString(), dataConfirmacao,
                 "Barcode confirmado com sucesso");
@@ -89,6 +94,8 @@ public class ConfirmacaoBarcodeService {
         LOGGER.warn("event=barcode.rejeitado gatePassId={} barcode={} dmt={} motivo={} timestamp={}",
                 salvo.getId(), codigoBarcode, dispositivoDmtId, motivo, dataConfirmacao);
 
+        agendamentoRealtimeService.notificarStatus(salvo.getAgendamento());
+
         return new ConfirmacaoBarcodeResponse(salvo.getId(), salvo.getToken(), codigoBarcode,
                 StatusConfirmacaoBarcode.REJEITADO.toString(), dataConfirmacao,
                 String.format("Barcode rejeitado: %s", motivo != null ? motivo : "sem motivo informado"));
@@ -109,6 +116,8 @@ public class ConfirmacaoBarcodeService {
 
         LOGGER.warn("event=barcode.timeout gatePassId={} dmt={} timestamp={}",
                 salvo.getId(), dispositivoDmtId, LocalDateTime.now());
+
+        agendamentoRealtimeService.notificarStatus(salvo.getAgendamento());
 
         return new ConfirmacaoBarcodeResponse(salvo.getId(), salvo.getToken(), null,
                 StatusConfirmacaoBarcode.TIMEOUT.toString(), LocalDateTime.now(),

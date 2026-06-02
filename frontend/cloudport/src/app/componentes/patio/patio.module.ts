@@ -9,6 +9,7 @@ import { ListaTrabalhoPatioComponent } from './lista-trabalho-patio/lista-trabal
 import { RecursosPatioComponent } from './recursos-patio/recursos-patio.component';
 import { SimuladorPatioComponent } from './simulador-patio/simulador-patio.component';
 import { DashboardKpiPatioComponent } from './dashboard-kpi-patio/dashboard-kpi-patio.component';
+import { AutomacaoTarefasPatioComponent } from './automacao-tarefas-patio/automacao-tarefas-patio.component';
 import { PatioRoutingModule } from './patio-routing.module';
 
 @NgModule({
@@ -20,7 +21,8 @@ import { PatioRoutingModule } from './patio-routing.module';
     ListaTrabalhoPatioComponent,
     RecursosPatioComponent,
     SimuladorPatioComponent,
-    DashboardKpiPatioComponent
+    DashboardKpiPatioComponent,
+    AutomacaoTarefasPatioComponent
   ],
   imports: [CommonModule, ReactiveFormsModule, PatioRoutingModule]
 })

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import br.com.cloudport.servicoyard.estivagembulk.dto.AnaliseEmpilhamentoDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
+import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.PlanoEstivaBulk;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.PoraoNavio;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.PosicaoBobina;
@@ -11,7 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("EmpilhamentoBobinaServico - Validação de empilhamento e corredor")
+@DisplayName("EmpilhamentoBobinaServico - Análise de empilhamento de bobinas")
 class EmpilhamentoBobinaServicoTest {
 
     private EmpilhamentoBobinaServico servico;
@@ -22,97 +23,141 @@ class EmpilhamentoBobinaServicoTest {
     }
 
     @Test
-    @DisplayName("Altura da segunda camada calculada corretamente via fórmula de travamento")
+    @DisplayName("Altura da segunda camada calculada corretamente")
     void alturaSegundaCamadaCalculadaCorretamente() {
-        // r1 = 1500/2 = 750mm = 0.75m, r2 = 0.75m
-        // h = sqrt(r2² + 2×r1×r2) = sqrt(0.5625 + 1.125) = sqrt(1.6875) ≈ 1.299m
-        double altura = servico.calcularAlturaCamada(1500.0, 1500.0);
+        double d1 = 1500.0;
+        double d2 = 1500.0;
 
+        double altura = servico.calcularAlturaCamada(d1, d2);
+
+        double r1 = d1 / 2000.0;
+        double r2 = d2 / 2000.0;
+        double esperado = Math.sqrt(r2 * r2 + 2.0 * r1 * r2);
+        assertEquals(esperado, altura, 0.001);
         assertEquals(1.299, altura, 0.001);
     }
 
     @Test
-    @DisplayName("Bobina maior acima de bobina menor gera violação de intertravamento PERIGO")
+    @DisplayName("Intertravamento inválido (bobina topo > 1.2× base) gera violação PERIGO")
     void intertravamentoInvalidoGeraViolacao() {
-        PlanoEstivaBulk plano = new PlanoEstivaBulk();
-        PoraoNavio porao = criarPorao(1L, 20.0, 12.0);
+        NavioGranel navio = criarNavio();
+        PoraoNavio porao = criarPorao(navio, 1, 0.0, 50.0, 10.0);
+        navio.getPoroes().add(porao);
+        porao.setId(1L);
 
-        // Camada 1: Ø1000mm, Camada 2: Ø2000mm (> 1000 × 1.2 = 1200mm → invalid)
-        PosicaoBobina pos1 = criarPosicaoBobina(plano, porao, 1, 5.0, 5.0, 1000.0);
-        PosicaoBobina pos2 = criarPosicaoBobina(plano, porao, 2, 5.0, 5.0, 2000.0);
-        plano.getPosicoes().add(pos1);
-        plano.getPosicoes().add(pos2);
+        PlanoEstivaBulk plano = new PlanoEstivaBulk();
+        plano.setNavio(navio);
+
+        BobinaManifesto bobBase = criarBobina("BOB-BASE", 20000.0, 1000.0, 2000.0);
+        BobinaManifesto bobTopo = criarBobina("BOB-TOPO", 15000.0, 2000.0, 2000.0);
+
+        PosicaoBobina posBase = criarPosicao(plano, porao, bobBase, 1, 5.0, 5.0);
+        PosicaoBobina posTopo = criarPosicao(plano, porao, bobTopo, 2, 5.0, 5.0);
+        plano.getPosicoes().add(posBase);
+        plano.getPosicoes().add(posTopo);
 
         AnaliseEmpilhamentoDto dto = servico.analisarEmpilhamento(plano, 1L);
 
         assertTrue(dto.getViolacoes().stream()
                 .anyMatch(v -> "INTERTRAVAMENTO_INVALIDO".equals(v.getTipo())
-                        && "PERIGO".equals(v.getSeveridade())));
+                        && "PERIGO".equals(v.getSeveridade())),
+                "Deve detectar intertravamento inválido");
     }
 
     @Test
-    @DisplayName("Bobinas ocupando toda a largura do porão bloqueiam corredor")
+    @DisplayName("Corredor bloqueado quando soma das bobinas excede largura do porão")
     void corredorBloqueadoGeraViolacao() {
-        PlanoEstivaBulk plano = new PlanoEstivaBulk();
-        PoraoNavio porao = criarPorao(1L, 8.0, 12.0); // largura = 8m
+        NavioGranel navio = criarNavio();
+        PoraoNavio porao = criarPorao(navio, 1, 0.0, 30.0, 10.0);
+        navio.getPoroes().add(porao);
+        porao.setId(2L);
 
-        // 3 bobinas Ø3000mm = 3m each → total 9m > 8m → no corridor
+        PlanoEstivaBulk plano = new PlanoEstivaBulk();
+        plano.setNavio(navio);
+
         for (int i = 0; i < 3; i++) {
-            plano.getPosicoes().add(criarPosicaoBobina(plano, porao, 1, i * 3.0, 2.0, 3000.0));
+            BobinaManifesto bob = criarBobina("BOB-" + i, 20000.0, 3500.0, 2000.0);
+            PosicaoBobina pos = criarPosicao(plano, porao, bob, 1, i * 4.0, 5.0);
+            plano.getPosicoes().add(pos);
         }
 
-        AnaliseEmpilhamentoDto dto = servico.analisarEmpilhamento(plano, 1L);
+        AnaliseEmpilhamentoDto dto = servico.analisarEmpilhamento(plano, 2L);
 
-        assertTrue(dto.getViolacoes().stream()
-                .anyMatch(v -> "CORREDOR_BLOQUEADO".equals(v.getTipo())));
         assertFalse(dto.isCorredorOperacaoLivre());
+        assertTrue(dto.getViolacoes().stream()
+                .anyMatch(v -> "CORREDOR_BLOQUEADO".equals(v.getTipo())
+                        && "PERIGO".equals(v.getSeveridade())),
+                "Deve detectar corredor bloqueado");
     }
 
     @Test
-    @DisplayName("Empilhamento válido com corredor livre não gera violações")
+    @DisplayName("Empilhamento válido não gera violações e corredor está livre")
     void empilhamentoValidoSemViolacoes() {
+        NavioGranel navio = criarNavio();
+        PoraoNavio porao = criarPorao(navio, 1, 0.0, 50.0, 20.0);
+        navio.getPoroes().add(porao);
+        porao.setId(3L);
+
         PlanoEstivaBulk plano = new PlanoEstivaBulk();
-        PoraoNavio porao = criarPorao(1L, 20.0, 12.0); // largura = 20m, altura = 12m
+        plano.setNavio(navio);
 
-        // 1 bobina Ø1500mm = 1.5m total → 20 - 1.5 = 18.5m corredor → valid
-        plano.getPosicoes().add(criarPosicaoBobina(plano, porao, 1, 2.0, 5.0, 1500.0));
+        BobinaManifesto bobBase = criarBobina("BOB-A", 20000.0, 1500.0, 2000.0);
+        BobinaManifesto bobTopo = criarBobina("BOB-B", 15000.0, 1500.0, 2000.0);
 
-        AnaliseEmpilhamentoDto dto = servico.analisarEmpilhamento(plano, 1L);
+        PosicaoBobina posBase = criarPosicao(plano, porao, bobBase, 1, 5.0, 5.0);
+        PosicaoBobina posTopo = criarPosicao(plano, porao, bobTopo, 2, 5.0, 5.0);
+        plano.getPosicoes().add(posBase);
+        plano.getPosicoes().add(posTopo);
 
-        assertTrue(dto.isCorredorOperacaoLivre());
+        AnaliseEmpilhamentoDto dto = servico.analisarEmpilhamento(plano, 3L);
+
+        assertTrue(dto.isCorredorOperacaoLivre(), "Corredor deve estar livre");
         assertTrue(dto.getViolacoes().stream()
-                .noneMatch(v -> "PERIGO".equals(v.getSeveridade())));
+                .noneMatch(v -> "PERIGO".equals(v.getSeveridade())),
+                "Não deve haver violações PERIGO");
+        assertTrue(dto.getAlturaFinalM() > 0);
+        assertEquals(2, dto.getTotalCamadas());
     }
 
-    private PoraoNavio criarPorao(Long id, double largura, double alturaUtil) {
+    private NavioGranel criarNavio() {
+        NavioGranel n = new NavioGranel();
+        n.setNome("MV TEST");
+        n.setLpp(200.0);
+        n.setBoca(32.0);
+        n.setCalado(10.0);
+        return n;
+    }
+
+    private PoraoNavio criarPorao(NavioGranel navio, int numero, double inicio, double fim, double largura) {
         PoraoNavio p = new PoraoNavio();
-        try {
-            java.lang.reflect.Field f = PoraoNavio.class.getDeclaredField("id");
-            f.setAccessible(true);
-            f.set(p, id);
-        } catch (Exception ignored) {}
-        p.setNumero(1);
+        p.setNavio(navio);
+        p.setNumero(numero);
+        p.setPosLongInicio(inicio);
+        p.setPosLongFim(fim);
         p.setLargura(largura);
-        p.setAlturaUtil(alturaUtil);
-        p.setComprimento(30.0);
+        p.setAlturaUtil(12.0);
         return p;
     }
 
-    private PosicaoBobina criarPosicaoBobina(PlanoEstivaBulk plano, PoraoNavio porao,
-                                               int camada, double x, double y, double diametroMm) {
-        BobinaManifesto bobina = new BobinaManifesto();
-        bobina.setCodigo("BOB_" + (int) x + "_" + camada);
-        bobina.setDiametroExternoMm(diametroMm);
-        bobina.setLarguraMm(2000.0);
-        bobina.setPesoKg(15000.0);
+    private BobinaManifesto criarBobina(String codigo, double pesoKg, double diametroMm, double larguraMm) {
+        BobinaManifesto b = new BobinaManifesto();
+        b.setCodigo(codigo);
+        b.setPesoKg(pesoKg);
+        b.setDiametroExternoMm(diametroMm);
+        b.setLarguraMm(larguraMm);
+        return b;
+    }
 
+    private PosicaoBobina criarPosicao(PlanoEstivaBulk plano, PoraoNavio porao,
+                                        BobinaManifesto bobina, int camada,
+                                        double posX, double posY) {
         PosicaoBobina pos = new PosicaoBobina();
         pos.setPlano(plano);
-        pos.setBobina(bobina);
         pos.setPorao(porao);
+        pos.setBobina(bobina);
         pos.setCamada(camada);
-        pos.setPosicaoX(x);
-        pos.setPosicaoY(y);
+        pos.setPosicaoX(posX);
+        pos.setPosicaoY(posY);
         return pos;
     }
 }

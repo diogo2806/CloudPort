@@ -1,8 +1,10 @@
 package br.com.cloudport.servicoyard.patio.otimizacao;
 
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OrdemTrabalhoPatioServico;
 import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
 import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
@@ -21,13 +23,16 @@ public class PredictiveReshuffflingServico {
 
     private final ConteinerPatioRepositorio conteinerRepositorio;
     private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
+    private final OrdemTrabalhoPatioServico ordemServico;
     private final MapaOcupacaoServico mapaOcupacao;
 
     public PredictiveReshuffflingServico(ConteinerPatioRepositorio conteinerRepositorio,
                                           OrdemTrabalhoPatioRepositorio ordemRepositorio,
+                                          OrdemTrabalhoPatioServico ordemServico,
                                           MapaOcupacaoServico mapaOcupacao) {
         this.conteinerRepositorio = conteinerRepositorio;
         this.ordemRepositorio = ordemRepositorio;
+        this.ordemServico = ordemServico;
         this.mapaOcupacao = mapaOcupacao;
     }
 
@@ -70,7 +75,7 @@ public class PredictiveReshuffflingServico {
             return;
         }
 
-        for (ConteinerParaReshuffflingDto candidato : plano.getConteineirsParaReshuffling()) {
+        for (ConteinerParaReshuffflingDto candidato : plano.getConteinersParaReshuffling()) {
             executarReshuffflingConteiner(candidato);
         }
     }
@@ -111,22 +116,16 @@ public class PredictiveReshuffflingServico {
             return;
         }
 
-        OrdemTrabalhoPatio ordem = new OrdemTrabalhoPatio(
-                conteiner,
-                candidato.getCodigoConteiner(),
-                conteiner.getCarga() != null ? conteiner.getCarga().getCodigo() : null,
-                conteiner.getDestino(),
-                candidato.getNovaLinha(),
-                candidato.getNovaColuna(),
-                candidato.getNovaCamada(),
-                TipoMovimentoPatio.REMANEJAMENTO,
-                StatusOrdemTrabalhoPatio.PENDENTE,
-                StatusConteiner.ARMAZENADO,
-                LocalDateTime.now(),
-                LocalDateTime.now()
-        );
-
-        ordemRepositorio.save(ordem);
+        OrdemTrabalhoPatioRequisicaoDto dto = new OrdemTrabalhoPatioRequisicaoDto();
+        dto.setCodigoConteiner(candidato.getCodigoConteiner());
+        dto.setTipoCarga(conteiner.getCarga() != null ? conteiner.getCarga().getCodigo() : null);
+        dto.setDestino(conteiner.getDestino());
+        dto.setLinhaDestino(candidato.getNovaLinha());
+        dto.setColunaDestino(candidato.getNovaColuna());
+        dto.setCamadaDestino(candidato.getNovaCamada());
+        dto.setTipoMovimento(TipoMovimentoPatio.REMANEJAMENTO);
+        dto.setStatusConteinerDestino(StatusConteiner.ARMAZENADO);
+        ordemServico.registrarOrdem(dto);
     }
 
     private boolean isPriorityPara(ConteinerPatio conteiner) {
@@ -184,7 +183,7 @@ public class PredictiveReshuffflingServico {
             this.mensagem = mensagem;
         }
 
-        public List<ConteinerParaReshuffflingDto> getConteineirsParaReshuffling() { return conteinersParaReshuffling; }
+        public List<ConteinerParaReshuffflingDto> getConteinersParaReshuffling() { return conteinersParaReshuffling; }
         public boolean isRecomendado() { return recomendado; }
         public String getMensagem() { return mensagem; }
     }

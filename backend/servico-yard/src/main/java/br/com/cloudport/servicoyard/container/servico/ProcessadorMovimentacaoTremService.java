@@ -1,15 +1,16 @@
 package br.com.cloudport.servicoyard.container.servico;
 
 import br.com.cloudport.servicoyard.container.dto.MovimentacaoTremConcluidaEventoDto;
-import br.com.cloudport.servicoyard.container.entidade.Conteiner;
-import br.com.cloudport.servicoyard.container.entidade.HistoricoOperacaoConteiner;
-import br.com.cloudport.servicoyard.container.entidade.StatusOperacionalConteiner;
-import br.com.cloudport.servicoyard.container.entidade.TipoOperacaoConteiner;
 import br.com.cloudport.servicoyard.container.enumeracao.TipoMovimentacaoFerroviaEnum;
-import br.com.cloudport.servicoyard.container.repositorio.ConteinerRepositorio;
-import br.com.cloudport.servicoyard.container.repositorio.HistoricoOperacaoConteinerRepositorio;
 import br.com.cloudport.servicoyard.container.validacao.SanitizadorEntrada;
-import java.time.OffsetDateTime;
+import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
+import br.com.cloudport.servicoyard.patio.modelo.MovimentoPatio;
+import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
+import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
+import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
+import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.repositorio.MovimentoPatioRepositorio;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.Optional;
@@ -25,15 +26,15 @@ public class ProcessadorMovimentacaoTremService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProcessadorMovimentacaoTremService.class);
     private static final String RESPONSAVEL_INTEGRACAO = "Integração Ferrovia";
 
-    private final ConteinerRepositorio conteinerRepositorio;
-    private final HistoricoOperacaoConteinerRepositorio historicoRepositorio;
+    private final ConteinerPatioRepositorio conteinerRepositorio;
+    private final MovimentoPatioRepositorio movimentoRepositorio;
     private final SanitizadorEntrada sanitizadorEntrada;
 
-    public ProcessadorMovimentacaoTremService(ConteinerRepositorio conteinerRepositorio,
-                                              HistoricoOperacaoConteinerRepositorio historicoRepositorio,
+    public ProcessadorMovimentacaoTremService(ConteinerPatioRepositorio conteinerRepositorio,
+                                              MovimentoPatioRepositorio movimentoRepositorio,
                                               SanitizadorEntrada sanitizadorEntrada) {
         this.conteinerRepositorio = conteinerRepositorio;
-        this.historicoRepositorio = historicoRepositorio;
+        this.movimentoRepositorio = movimentoRepositorio;
         this.sanitizadorEntrada = sanitizadorEntrada;
     }
 
@@ -70,57 +71,53 @@ public class ProcessadorMovimentacaoTremService {
                     evento.getTipoMovimentacao(), evento.getIdOrdemMovimentacao(), evento.getIdVisitaTrem());
             return;
         }
-        TipoOperacaoConteiner tipoOperacao = tipoMovimentacao.getTipoOperacaoConteiner();
-        Conteiner conteiner = conteinerRepositorio.findByIdentificacaoIgnoreCase(codigoConteiner)
-                .orElse(null);
+        TipoMovimentoPatio tipoMovimento = tipoMovimentacao.getTipoOperacaoConteiner();
+        ConteinerPatio conteiner = conteinerRepositorio.findByCodigoIgnoreCase(codigoConteiner).orElse(null);
         if (conteiner == null) {
             LOGGER.warn("event=movimentacao_trem.conteiner_nao_localizado codigo={} ordem={} visita={}",
                     codigoConteiner, evento.getIdOrdemMovimentacao(), evento.getIdVisitaTrem());
             return;
         }
-        StatusOperacionalConteiner statusAnterior = conteiner.getStatusOperacional();
-        StatusOperacionalConteiner novoStatus = definirStatusPosMovimentacao(tipoMovimentacao, statusAnterior);
+        StatusConteiner statusAnterior = conteiner.getStatus();
+        StatusConteiner novoStatus = tipoMovimentacao.getNovoStatus();
         if (novoStatus != null && novoStatus != statusAnterior) {
-            conteiner.setStatusOperacional(novoStatus);
+            conteiner.setStatus(novoStatus);
             conteinerRepositorio.save(conteiner);
         }
-        registrarHistorico(conteiner, tipoMovimentacao, tipoOperacao, evento, statusAnterior, novoStatus);
+        registrarMovimento(conteiner, tipoMovimentacao, tipoMovimento, evento, statusAnterior, novoStatus);
     }
 
-    private void registrarHistorico(Conteiner conteiner,
+    private void registrarMovimento(ConteinerPatio conteiner,
                                     TipoMovimentacaoFerroviaEnum tipoMovimentacao,
-                                    TipoOperacaoConteiner tipoOperacao,
+                                    TipoMovimentoPatio tipoMovimento,
                                     MovimentacaoTremConcluidaEventoDto evento,
-                                    StatusOperacionalConteiner statusAnterior,
-                                    StatusOperacionalConteiner novoStatus) {
-        HistoricoOperacaoConteiner historico = new HistoricoOperacaoConteiner();
-        historico.setConteiner(conteiner);
-        historico.setTipoOperacao(tipoOperacao);
-        historico.setDescricao(montarDescricao(tipoMovimentacao, statusAnterior, novoStatus));
-        historico.setPosicaoAnterior(null);
-        historico.setPosicaoAtual(conteiner.getPosicaoPatio());
-        historico.setResponsavel(sanitizadorEntrada.limparTexto(RESPONSAVEL_INTEGRACAO));
-        OffsetDateTime dataRegistro = Optional.ofNullable(evento.getConcluidoEm())
-                .orElse(OffsetDateTime.now(ZoneOffset.UTC));
-        historico.setDataRegistro(dataRegistro);
-        historicoRepositorio.save(historico);
+                                    StatusConteiner statusAnterior,
+                                    StatusConteiner novoStatus) {
+        MovimentoPatio movimento = new MovimentoPatio();
+        movimento.setConteiner(conteiner);
+        movimento.setTipoMovimento(tipoMovimento);
+        movimento.setDescricao(montarDescricao(tipoMovimentacao, statusAnterior, novoStatus));
+        movimento.setPosicaoAnterior(null);
+        movimento.setPosicaoAtual(formatarPosicao(conteiner));
+        movimento.setResponsavel(sanitizadorEntrada.limparTexto(RESPONSAVEL_INTEGRACAO));
+        LocalDateTime registradoEm = Optional.ofNullable(evento.getConcluidoEm())
+                .map(odt -> odt.withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime())
+                .orElseGet(LocalDateTime::now);
+        movimento.setRegistradoEm(registradoEm);
+        movimentoRepositorio.save(movimento);
     }
 
-    private StatusOperacionalConteiner definirStatusPosMovimentacao(TipoMovimentacaoFerroviaEnum tipoMovimentacao,
-                                                                    StatusOperacionalConteiner statusAtual) {
-        if (tipoMovimentacao == null) {
-            return statusAtual;
+    private String formatarPosicao(ConteinerPatio conteiner) {
+        PosicaoPatio posicao = conteiner.getPosicao();
+        if (posicao == null) {
+            return null;
         }
-        StatusOperacionalConteiner novoStatus = tipoMovimentacao.getNovoStatus();
-        if (novoStatus != null) {
-            return novoStatus;
-        }
-        return statusAtual;
+        return posicao.getLinha() + "-" + posicao.getColuna() + "-" + posicao.getCamadaOperacional();
     }
 
     private String montarDescricao(TipoMovimentacaoFerroviaEnum tipoMovimentacao,
-                                   StatusOperacionalConteiner statusAnterior,
-                                   StatusOperacionalConteiner novoStatus) {
+                                   StatusConteiner statusAnterior,
+                                   StatusConteiner novoStatus) {
         if (tipoMovimentacao != null) {
             return tipoMovimentacao.getDescricaoHistorico();
         }

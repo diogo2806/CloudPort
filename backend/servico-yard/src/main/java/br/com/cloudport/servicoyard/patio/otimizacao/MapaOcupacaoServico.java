@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoyard.patio.otimizacao;
 
+import br.com.cloudport.servicoyard.comum.util.YardDistanceCalculator;
 import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
@@ -79,13 +80,8 @@ public class MapaOcupacaoServico {
         if (conteiner == null || conteiner.getPosicao() == null) {
             return Integer.MAX_VALUE;
         }
-
         PosicaoPatio pos = conteiner.getPosicao();
-        int linhaGate = 0;
-        int colunaGate = 0;
-
-        int distancia = Math.abs(pos.getLinha() - linhaGate) + Math.abs(pos.getColuna() - colunaGate);
-        return distancia;
+        return YardDistanceCalculator.fromOrigin(pos.getLinha(), pos.getColuna());
     }
 
     private double[][] criarMatrizHeatmap(int linhas, int colunas) {

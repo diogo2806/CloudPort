@@ -10,7 +10,6 @@ import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
 import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.PosicaoPatioRepositorio;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,43 +62,39 @@ public class MapaOcupacaoServicoTest {
     @Test
     void testObterDistanciaParaGate() {
         PosicaoPatio pos = new PosicaoPatio(1L, 10, 10, "CAMADA_1");
-        ConteinerPatio conteiner = new ConteinerPatio(1L, "CONT001", StatusConteiner.ARMAZENADO,
-                null, "DESTINO_A", pos, LocalDateTime.now());
+        ConteinerPatio conteiner = criarConteiner(1L, "CONT001", pos);
 
         Integer distancia = mapaOcupacaoServico.obterDistanciaMediaParaGate(conteiner);
 
         assertEquals(20, distancia);
     }
 
+    private ConteinerPatio criarConteiner(Long id, String codigo, PosicaoPatio posicao) {
+        ConteinerPatio c = new ConteinerPatio();
+        c.setId(id);
+        c.setCodigo(codigo);
+        c.setStatus(StatusConteiner.ARMAZENADO);
+        c.setDestino("DESTINO_A");
+        c.setPosicao(posicao);
+        return c;
+    }
+
     private List<ConteinerPatio> criarConteinersTest() {
         List<ConteinerPatio> conteineres = new ArrayList<>();
-
         for (int i = 0; i < 3; i++) {
             PosicaoPatio pos = new PosicaoPatio((long) i, i * 5, i * 5, "CAMADA_1");
-            ConteinerPatio conteiner = new ConteinerPatio(
-                    (long) i,
-                    "CONT00" + i,
-                    StatusConteiner.ARMAZENADO,
-                    null,
-                    "DESTINO_A",
-                    pos,
-                    LocalDateTime.now()
-            );
-            conteineres.add(conteiner);
+            conteineres.add(criarConteiner((long) i, "CONT00" + i, pos));
         }
-
         return conteineres;
     }
 
     private List<PosicaoPatio> criarPosicoes() {
         List<PosicaoPatio> posicoes = new ArrayList<>();
-
         for (int i = 0; i < 100; i++) {
             for (int j = 0; j < 100; j++) {
                 posicoes.add(new PosicaoPatio((long) (i * 100 + j), i, j, "CAMADA_1"));
             }
         }
-
         return posicoes;
     }
 }

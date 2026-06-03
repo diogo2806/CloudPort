@@ -1,17 +1,19 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.servico;
 
+import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService;
+import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService.DualCycleConfig;
+import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService.DualCyclePair;
+import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService.YardPosition;
+import br.com.cloudport.servicoyard.comum.util.YardDistanceCalculator;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
-import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
-import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,9 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class OtimizadorRotasPatioServico {
 
     private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
+    private final YardDualCycleService dualCycleService;
 
-    public OtimizadorRotasPatioServico(OrdemTrabalhoPatioRepositorio ordemRepositorio) {
+    public OtimizadorRotasPatioServico(OrdemTrabalhoPatioRepositorio ordemRepositorio,
+                                        YardDualCycleService dualCycleService) {
         this.ordemRepositorio = ordemRepositorio;
+        this.dualCycleService = dualCycleService;
     }
 
     @Transactional(readOnly = true)
@@ -46,7 +51,7 @@ public class OtimizadorRotasPatioServico {
         }
 
         List<OrdemTrabalhoPatio> otimizadas = aplicarNearestNeighbor(ordensPendentes);
-        return aplicarDualCyclingBasico(otimizadas);
+        return aplicarDualCycling(otimizadas);
     }
 
     private List<OrdemTrabalhoPatio> aplicarNearestNeighbor(List<OrdemTrabalhoPatio> ordens) {
@@ -70,18 +75,27 @@ public class OtimizadorRotasPatioServico {
         return resultado;
     }
 
-    private List<OrdemTrabalhoPatio> aplicarDualCyclingBasico(List<OrdemTrabalhoPatio> ordens) {
+    private List<OrdemTrabalhoPatio> aplicarDualCycling(List<OrdemTrabalhoPatio> ordens) {
+        List<YardPosition> pickups = ordens.stream()
+                .map(o -> new YardPosition(
+                        o.getId().toString(),
+                        o.getLinhaDestino() != null ? o.getLinhaDestino() : 0,
+                        o.getColunaDestino() != null ? o.getColunaDestino() : 0,
+                        o.getTipoMovimento() != null ? o.getTipoMovimento().name() : ""))
+                .collect(Collectors.toList());
+
+        List<DualCyclePair> pairs = dualCycleService.otimizar(pickups, new ArrayList<>(),
+                DualCycleConfig.semRestricao());
+
+        Map<String, OrdemTrabalhoPatio> porId = ordens.stream()
+                .collect(Collectors.toMap(o -> o.getId().toString(), o -> o));
+
         List<OrdemTrabalhoPatio> resultado = new ArrayList<>();
-        Map<String, List<OrdemTrabalhoPatio>> porDestino = agruparPorDestino(ordens);
-
-        for (List<OrdemTrabalhoPatio> grupo : porDestino.values()) {
-            grupo.sort(Comparator.comparing(o -> calcularDistancia(
-                    obterPosicaoAtual(o),
-                    obterPosicaoDestino(o)
-            )));
-            resultado.addAll(grupo);
+        for (DualCyclePair pair : pairs) {
+            OrdemTrabalhoPatio o = porId.remove(pair.getPickup().getId());
+            if (o != null) resultado.add(o);
         }
-
+        resultado.addAll(porId.values());
         return resultado;
     }
 
@@ -108,9 +122,7 @@ public class OtimizadorRotasPatioServico {
         if (p1 == null || p2 == null) {
             return Double.MAX_VALUE;
         }
-        int deltaLinha = p1.getLinha() - p2.getLinha();
-        int deltaColuna = p1.getColuna() - p2.getColuna();
-        return Math.sqrt(deltaLinha * deltaLinha + deltaColuna * deltaColuna);
+        return YardDistanceCalculator.manhattan(p1.getLinha(), p1.getColuna(), p2.getLinha(), p2.getColuna());
     }
 
     private PosicaoPatio obterPosicaoAtual(OrdemTrabalhoPatio ordem) {
@@ -130,14 +142,6 @@ public class OtimizadorRotasPatioServico {
             return new PosicaoPatio(null, 0, 0, "");
         }
         return obterPosicaoAtual(ordens.get(0));
-    }
-
-    private Map<String, List<OrdemTrabalhoPatio>> agruparPorDestino(List<OrdemTrabalhoPatio> ordens) {
-        Map<String, List<OrdemTrabalhoPatio>> grupos = new HashMap<>();
-        for (OrdemTrabalhoPatio ordem : ordens) {
-            grupos.computeIfAbsent(ordem.getDestino(), k -> new ArrayList<>()).add(ordem);
-        }
-        return grupos;
     }
 
     public double calcularDistanciaTotal(List<OrdemTrabalhoPatio> ordens) {

@@ -15,9 +15,9 @@ import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -26,12 +26,12 @@ public class OtimizadorRotasPatioServicoTest {
     @Mock
     private OrdemTrabalhoPatioRepositorio ordemRepositorio;
 
-    @InjectMocks
     private OtimizadorRotasPatioServico otimizadorServico;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        otimizadorServico = new OtimizadorRotasPatioServico(ordemRepositorio, new YardDualCycleService());
     }
 
     @Test
@@ -55,16 +55,6 @@ public class OtimizadorRotasPatioServicoTest {
 
         assertNotNull(resultado);
         assertEquals(0, resultado.size());
-    }
-
-    @Test
-    void testCalcularDistancia() {
-        PosicaoPatio p1 = new PosicaoPatio(1L, 0, 0, "CAMADA_1");
-        PosicaoPatio p2 = new PosicaoPatio(2L, 3, 4, "CAMADA_1");
-
-        double distancia = otimizadorServico.calcularDistancia(p1, p2);
-
-        assertEquals(5.0, distancia, 0.01);
     }
 
     @Test
@@ -100,49 +90,41 @@ public class OtimizadorRotasPatioServicoTest {
         assertTrue((Double) stats.get("percentualMejora") >= 0);
     }
 
+    private ConteinerPatio criarConteiner(Long id, String codigo, String destino, PosicaoPatio posicao) {
+        ConteinerPatio c = new ConteinerPatio();
+        c.setId(id);
+        c.setCodigo(codigo);
+        c.setStatus(StatusConteiner.ARMAZENADO);
+        c.setDestino(destino);
+        c.setPosicao(posicao);
+        return c;
+    }
+
     private List<OrdemTrabalhoPatio> criarOrdensTest() {
         List<OrdemTrabalhoPatio> ordens = new ArrayList<>();
 
-        PosicaoPatio pos1 = new PosicaoPatio(1L, 0, 0, "CAMADA_1");
-        ConteinerPatio conteiner1 = new ConteinerPatio(1L, "CONT001", StatusConteiner.ARMAZENADO,
-                null, "DESTINO_A", pos1, LocalDateTime.now());
         OrdemTrabalhoPatio ordem1 = new OrdemTrabalhoPatio(
-                conteiner1, "CONT001", "CARGA_A", "DESTINO_A",
-                5, 5, "CAMADA_1",
-                TipoMovimentoPatio.ALOCACAO,
-                StatusOrdemTrabalhoPatio.PENDENTE,
-                StatusConteiner.ARMAZENADO,
-                LocalDateTime.now(),
-                LocalDateTime.now()
-        );
+                criarConteiner(1L, "CONT001", "DESTINO_A", new PosicaoPatio(1L, 0, 0, "CAMADA_1")),
+                "CONT001", "CARGA_A", "DESTINO_A", 5, 5, "CAMADA_1",
+                TipoMovimentoPatio.ALOCACAO, StatusOrdemTrabalhoPatio.PENDENTE,
+                StatusConteiner.ARMAZENADO, LocalDateTime.now(), LocalDateTime.now());
+        ordem1.setId(1L);
         ordens.add(ordem1);
 
-        PosicaoPatio pos2 = new PosicaoPatio(2L, 10, 10, "CAMADA_1");
-        ConteinerPatio conteiner2 = new ConteinerPatio(2L, "CONT002", StatusConteiner.ARMAZENADO,
-                null, "DESTINO_B", pos2, LocalDateTime.now());
         OrdemTrabalhoPatio ordem2 = new OrdemTrabalhoPatio(
-                conteiner2, "CONT002", "CARGA_B", "DESTINO_B",
-                15, 15, "CAMADA_1",
-                TipoMovimentoPatio.ALOCACAO,
-                StatusOrdemTrabalhoPatio.PENDENTE,
-                StatusConteiner.ARMAZENADO,
-                LocalDateTime.now(),
-                LocalDateTime.now()
-        );
+                criarConteiner(2L, "CONT002", "DESTINO_B", new PosicaoPatio(2L, 10, 10, "CAMADA_1")),
+                "CONT002", "CARGA_B", "DESTINO_B", 15, 15, "CAMADA_1",
+                TipoMovimentoPatio.ALOCACAO, StatusOrdemTrabalhoPatio.PENDENTE,
+                StatusConteiner.ARMAZENADO, LocalDateTime.now(), LocalDateTime.now());
+        ordem2.setId(2L);
         ordens.add(ordem2);
 
-        PosicaoPatio pos3 = new PosicaoPatio(3L, 6, 6, "CAMADA_1");
-        ConteinerPatio conteiner3 = new ConteinerPatio(3L, "CONT003", StatusConteiner.ARMAZENADO,
-                null, "DESTINO_C", pos3, LocalDateTime.now());
         OrdemTrabalhoPatio ordem3 = new OrdemTrabalhoPatio(
-                conteiner3, "CONT003", "CARGA_C", "DESTINO_C",
-                8, 8, "CAMADA_1",
-                TipoMovimentoPatio.ALOCACAO,
-                StatusOrdemTrabalhoPatio.PENDENTE,
-                StatusConteiner.ARMAZENADO,
-                LocalDateTime.now(),
-                LocalDateTime.now()
-        );
+                criarConteiner(3L, "CONT003", "DESTINO_C", new PosicaoPatio(3L, 6, 6, "CAMADA_1")),
+                "CONT003", "CARGA_C", "DESTINO_C", 8, 8, "CAMADA_1",
+                TipoMovimentoPatio.ALOCACAO, StatusOrdemTrabalhoPatio.PENDENTE,
+                StatusConteiner.ARMAZENADO, LocalDateTime.now(), LocalDateTime.now());
+        ordem3.setId(3L);
         ordens.add(ordem3);
 
         return ordens;

@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface MovimentoPatioRepositorio extends JpaRepository<MovimentoPatio, Long> {
 
     List<MovimentoPatio> findTop50ByOrderByRegistradoEmDesc();
+
+    List<MovimentoPatio> findByConteinerIdOrderByRegistradoEmDesc(Long conteinerId);
 }

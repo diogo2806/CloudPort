@@ -1,10 +1,10 @@
 package br.com.cloudport.servicoyard.container.dto;
 
-import br.com.cloudport.servicoyard.container.entidade.StatusOperacionalConteiner;
 import br.com.cloudport.servicoyard.container.entidade.TipoCargaConteiner;
+import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 public class ConteinerDetalheDTO {
     private Long identificador;
@@ -13,13 +13,13 @@ public class ConteinerDetalheDTO {
     private TipoCargaConteiner tipoCarga;
     private BigDecimal pesoToneladas;
     private String restricoes;
-    private StatusOperacionalConteiner statusOperacional;
-    private OffsetDateTime ultimaAtualizacao;
+    private StatusConteiner statusOperacional;
+    private LocalDateTime ultimaAtualizacao;
 
     public ConteinerDetalheDTO(Long identificador, String identificacao, String posicaoPatio,
                                TipoCargaConteiner tipoCarga, BigDecimal pesoToneladas,
-                               String restricoes, StatusOperacionalConteiner statusOperacional,
-                               OffsetDateTime ultimaAtualizacao) {
+                               String restricoes, StatusConteiner statusOperacional,
+                               LocalDateTime ultimaAtualizacao) {
         this.identificador = identificador;
         this.identificacao = identificacao;
         this.posicaoPatio = posicaoPatio;
@@ -54,11 +54,11 @@ public class ConteinerDetalheDTO {
         return restricoes;
     }
 
-    public StatusOperacionalConteiner getStatusOperacional() {
+    public StatusConteiner getStatusOperacional() {
         return statusOperacional;
     }
 
-    public OffsetDateTime getUltimaAtualizacao() {
+    public LocalDateTime getUltimaAtualizacao() {
         return ultimaAtualizacao;
     }
 }

@@ -1,8 +1,9 @@
 package br.com.cloudport.servicoyard.patio.servico;
 
+import br.com.cloudport.servicoyard.comum.constantes.YardConstants;
+import br.com.cloudport.servicoyard.comum.util.YardDistanceCalculator;
 import br.com.cloudport.servicoyard.patio.dto.ContainerOtimizacaoDto;
 import br.com.cloudport.servicoyard.patio.dto.PosicaoOtimizadaDto;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class OptimizadorYardService {
 
-    private static final int ALTURA_MAXIMA_PADRAO = 4;
     private static final int LARGURA_GRID = 20;
     private static final int COMPRIMENTO_GRID = 20;
 
@@ -22,7 +22,7 @@ public class OptimizadorYardService {
         }
 
         List<ContainerOtimizacaoDto> containeresOrdenados = ordenarPorEta(conteineres);
-        BinPacker3D binPacker = new BinPacker3D(LARGURA_GRID, COMPRIMENTO_GRID, ALTURA_MAXIMA_PADRAO);
+        BinPacker3D binPacker = new BinPacker3D(LARGURA_GRID, COMPRIMENTO_GRID, YardConstants.EMPILHAMENTO_MAXIMO);
 
         List<PosicaoOtimizadaDto> resultado = new ArrayList<>();
         int containerIndex = 0;
@@ -50,7 +50,7 @@ public class OptimizadorYardService {
         }
 
         List<ContainerOtimizacaoDto> containeresOrdenados = ordenarPorEta(conteineres);
-        BinPacker3D binPacker = new BinPacker3D(LARGURA_GRID, COMPRIMENTO_GRID, ALTURA_MAXIMA_PADRAO);
+        BinPacker3D binPacker = new BinPacker3D(LARGURA_GRID, COMPRIMENTO_GRID, YardConstants.EMPILHAMENTO_MAXIMO);
 
         List<PosicaoOtimizadaDto> resultado = new ArrayList<>();
         int containerIndex = 0;
@@ -78,7 +78,8 @@ public class OptimizadorYardService {
     private List<ContainerOtimizacaoDto> ordenarPorEta(List<ContainerOtimizacaoDto> conteineres) {
         return conteineres.stream()
                 .sorted(Comparator
-                        .nullsLast(Comparator.comparing(ContainerOtimizacaoDto::getEtaPartida))
+                        .comparing(ContainerOtimizacaoDto::getEtaPartida,
+                                Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(ContainerOtimizacaoDto::getId))
                 .toList();
     }
@@ -102,7 +103,7 @@ public class OptimizadorYardService {
         if (linha == null || coluna == null) {
             return Integer.MAX_VALUE;
         }
-        return linha + coluna;
+        return YardDistanceCalculator.fromOrigin(linha, coluna);
     }
 
     public static class BinPacker3D {

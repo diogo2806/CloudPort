@@ -14,6 +14,7 @@ import br.com.cloudport.servicoyard.patio.dto.OpcoesCadastroPatioDto;
 import br.com.cloudport.servicoyard.patio.dto.PosicaoPatioDto;
 import br.com.cloudport.servicoyard.patio.dto.EventoMovimentoPatioDto;
 import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
+import br.com.cloudport.servicoyard.container.entidade.TipoCargaConteiner;
 import br.com.cloudport.servicoyard.patio.modelo.CargaPatio;
 import br.com.cloudport.servicoyard.patio.modelo.EquipamentoPatio;
 import br.com.cloudport.servicoyard.patio.modelo.MovimentoPatio;
@@ -124,10 +125,9 @@ public class MapaPatioServico {
                 .collect(Collectors.toCollection(TreeSet::new));
 
         Set<String> tiposCarga = conteineres.stream()
-                .map(ConteinerPatio::getCarga)
+                .map(ConteinerPatio::getTipoCarga)
                 .filter(Objects::nonNull)
-                .map(CargaPatio::getCodigo)
-                .filter(StringUtils::hasText)
+                .map(Enum::name)
                 .map(this::escapar)
                 .collect(Collectors.toCollection(TreeSet::new));
 
@@ -216,6 +216,12 @@ public class MapaPatioServico {
         conteiner.setPosicao(posicao);
         conteiner.setStatus(requisicaoDto.getStatus());
         conteiner.setCarga(carga);
+        if (requisicaoDto.getTipoCarga() != null) {
+            try {
+                conteiner.setTipoCarga(TipoCargaConteiner.valueOf(
+                        requisicaoDto.getTipoCarga().toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException ignored) {}
+        }
         conteiner.setDestino(requisicaoDto.getDestino());
         conteiner.setAtualizadoEm(requisicaoDto.gerarHorarioAtualizacao());
 
@@ -301,9 +307,9 @@ public class MapaPatioServico {
     }
 
     private boolean filtrarConteiner(ConteinerPatio conteiner, MapaPatioFiltro filtro) {
-        String codigoCarga = conteiner.getCarga() != null ? conteiner.getCarga().getCodigo() : null;
+        String tipoCarga = conteiner.getTipoCarga() != null ? conteiner.getTipoCarga().name() : null;
         return verificarFiltro(filtro.getStatus(), conteiner.getStatus().name())
-                && verificarFiltro(filtro.getTiposCarga(), codigoCarga)
+                && verificarFiltro(filtro.getTiposCarga(), tipoCarga)
                 && verificarFiltro(filtro.getDestinos(), conteiner.getDestino())
                 && verificarFiltro(filtro.getCamadasOperacionais(), conteiner.getPosicao().getCamadaOperacional());
     }
@@ -403,14 +409,15 @@ public class MapaPatioServico {
     }
 
     private ConteinerMapaDto converterConteiner(ConteinerPatio conteiner) {
-        String codigoCarga = conteiner.getCarga() != null ? conteiner.getCarga().getCodigo() : null;
+        String tipoCargaStr = conteiner.getTipoCarga() != null ? conteiner.getTipoCarga().name()
+                : (conteiner.getCarga() != null ? conteiner.getCarga().getCodigo() : null);
         return new ConteinerMapaDto(
                 conteiner.getId(),
                 escapar(conteiner.getCodigo()),
                 conteiner.getPosicao().getLinha(),
                 conteiner.getPosicao().getColuna(),
                 conteiner.getStatus(),
-                escapar(codigoCarga),
+                escapar(tipoCargaStr),
                 escapar(conteiner.getDestino()),
                 escapar(conteiner.getPosicao().getCamadaOperacional())
         );

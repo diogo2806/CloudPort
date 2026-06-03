@@ -1,7 +1,7 @@
 package br.com.cloudport.servicoyard.container.enumeracao;
 
-import br.com.cloudport.servicoyard.container.entidade.StatusOperacionalConteiner;
-import br.com.cloudport.servicoyard.container.entidade.TipoOperacaoConteiner;
+import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
+import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Collections;
@@ -12,15 +12,15 @@ import java.util.Map;
 public enum TipoMovimentacaoFerroviaEnum {
     DESCARGA_TREM(
             "Descarga do trem",
-            TipoOperacaoConteiner.DESCARGA_TREM,
+            TipoMovimentoPatio.ALOCACAO,
             "Descarga do trem concluída e contêiner disponível no pátio.",
-            StatusOperacionalConteiner.ALOCADO
+            StatusConteiner.ALOCADO
     ),
     CARGA_TREM(
             "Carga no trem",
-            TipoOperacaoConteiner.CARGA_TREM,
+            TipoMovimentoPatio.TRANSFERENCIA,
             "Carga no trem concluída e contêiner encaminhado para o modal ferroviário.",
-            StatusOperacionalConteiner.EM_TRANSFERENCIA
+            StatusConteiner.DESPACHADO
     );
 
     private static final Map<String, TipoMovimentacaoFerroviaEnum> NOME_PARA_ENUM_MAP;
@@ -38,14 +38,14 @@ public enum TipoMovimentacaoFerroviaEnum {
     }
 
     private final String descricao;
-    private final TipoOperacaoConteiner tipoOperacaoConteiner;
+    private final TipoMovimentoPatio tipoOperacaoConteiner;
     private final String descricaoHistorico;
-    private final StatusOperacionalConteiner novoStatus;
+    private final StatusConteiner novoStatus;
 
     TipoMovimentacaoFerroviaEnum(String descricao,
-                                 TipoOperacaoConteiner tipoOperacaoConteiner,
+                                 TipoMovimentoPatio tipoOperacaoConteiner,
                                  String descricaoHistorico,
-                                 StatusOperacionalConteiner novoStatus) {
+                                 StatusConteiner novoStatus) {
         this.descricao = descricao;
         this.tipoOperacaoConteiner = tipoOperacaoConteiner;
         this.descricaoHistorico = descricaoHistorico;
@@ -57,7 +57,7 @@ public enum TipoMovimentacaoFerroviaEnum {
         return descricao;
     }
 
-    public TipoOperacaoConteiner getTipoOperacaoConteiner() {
+    public TipoMovimentoPatio getTipoOperacaoConteiner() {
         return tipoOperacaoConteiner;
     }
 
@@ -65,7 +65,7 @@ public enum TipoMovimentacaoFerroviaEnum {
         return descricaoHistorico;
     }
 
-    public StatusOperacionalConteiner getNovoStatus() {
+    public StatusConteiner getNovoStatus() {
         return novoStatus;
     }
 

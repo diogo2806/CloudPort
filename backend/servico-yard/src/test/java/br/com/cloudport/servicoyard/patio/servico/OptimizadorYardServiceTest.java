@@ -173,20 +173,20 @@ class OptimizadorYardServiceTest {
     @Test
     @DisplayName("Deve rejeitar containers quando espaço se esgota")
     void rejeitarQuandoEspacoEsgotado() {
-        List<ContainerOtimizacaoDto> containers = java.util.stream.IntStream.range(0, 500)
+        List<ContainerOtimizacaoDto> containers = java.util.stream.IntStream.range(0, 2000)
                 .mapToObj(i -> criarContainer((long) i, "CONT" + i, agora.plusDays(i % 10)))
                 .toList();
 
         List<PosicaoOtimizadaDto> resultado = otimizador.otimizarAlocacao(containers);
 
-        assertEquals(500, resultado.size());
+        assertEquals(2000, resultado.size());
 
         long alocados = resultado.stream().filter(PosicaoOtimizadaDto::getOtimizado).count();
         long rejeitados = resultado.stream().filter(p -> !p.getOtimizado()).count();
 
         assertTrue(alocados > 0, "Deve alocar alguns containers");
         assertTrue(rejeitados > 0, "Deve rejeitar quando espaço se esgotar");
-        assertEquals(500, alocados + rejeitados);
+        assertEquals(2000, alocados + rejeitados);
     }
 
     @Test
@@ -218,7 +218,7 @@ class OptimizadorYardServiceTest {
 
         otimizador.otimizarAlocacao(containers);
 
-        OptimizadorYardService.BinPacker3D packer = new OptimizadorYardService.BinPacker3D(20, 20, 4);
+        OptimizadorYardService.BinPacker3D packer = new OptimizadorYardService.BinPacker3D(2, 2, 1);
         packer.encontrarMelhorPosicao(containers.get(0));
         packer.encontrarMelhorPosicao(containers.get(1));
         packer.encontrarMelhorPosicao(containers.get(2));

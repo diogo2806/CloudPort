@@ -1,10 +1,11 @@
 package br.com.cloudport.servicoyard.patio.servico;
 
-import br.com.cloudport.servicoyard.container.entidade.Conteiner;
 import br.com.cloudport.servicoyard.container.entidade.TipoCargaConteiner;
-import br.com.cloudport.servicoyard.container.repositorio.ConteinerRepositorio;
 import br.com.cloudport.servicoyard.patio.dto.ConteinerPatioRequisicaoDto;
+import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
+import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
 import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
+import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.recursos.entidade.BercoPortuario;
 import br.com.cloudport.servicoyard.recursos.entidade.StatusBerco;
 import br.com.cloudport.servicoyard.recursos.repositorio.BercoPortuarioRepositorio;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.when;
 class ValidadorYardPlacementServiceTest {
 
     @Mock
-    private ConteinerRepositorio conteinerRepositorio;
+    private ConteinerPatioRepositorio conteinerPatioRepositorio;
 
     @Mock
     private BercoPortuarioRepositorio bercoRepositorio;
@@ -72,24 +73,27 @@ class ValidadorYardPlacementServiceTest {
         return berco;
     }
 
-    private Conteiner criarContainerPadrao() {
-        Conteiner conteiner = new Conteiner();
+    private ConteinerPatio criarConteinerPadrao() {
+        PosicaoPatio posicao = new PosicaoPatio();
+        posicao.setLinha(1);
+        posicao.setColuna(1);
+        posicao.setCamadaOperacional("1");
+
+        ConteinerPatio conteiner = new ConteinerPatio();
         conteiner.setId(1L);
-        conteiner.setIdentificacao("CNTR001");
+        conteiner.setCodigo("CNTR001");
         conteiner.setTipoCarga(TipoCargaConteiner.SECO);
         conteiner.setPesoToneladas(new BigDecimal("15"));
-        conteiner.setStatusOperacional(br.com.cloudport.servicoyard.container.entidade.StatusOperacionalConteiner.LIBERADO);
+        conteiner.setStatus(StatusConteiner.ALOCADO);
+        conteiner.setPosicao(posicao);
+        conteiner.setDestino("BERCO_01");
         return conteiner;
     }
 
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
-        validador = new ValidadorYardPlacementService(
-                conteinerRepositorio,
-                null,
-                bercoRepositorio
-        );
+        validador = new ValidadorYardPlacementService(conteinerPatioRepositorio, bercoRepositorio);
     }
 
     @Test
@@ -157,8 +161,8 @@ class ValidadorYardPlacementServiceTest {
         dto.setCamadaOperacional("5");
         dto.setTipoCarga("SECO");
 
-        Conteiner conteiner = criarContainerPadrao();
-        when(conteinerRepositorio.findByIdentificacaoIgnoreCase("CNTR001"))
+        ConteinerPatio conteiner = criarConteinerPadrao();
+        when(conteinerPatioRepositorio.findByCodigoIgnoreCase("CNTR001"))
                 .thenReturn(Optional.of(conteiner));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
@@ -172,9 +176,9 @@ class ValidadorYardPlacementServiceTest {
         ConteinerPatioRequisicaoDto dto = criarRequisicaoPadrao();
         dto.setCamadaOperacional("3");
 
-        Conteiner conteiner = criarContainerPadrao();
+        ConteinerPatio conteiner = criarConteinerPadrao();
         conteiner.setPesoToneladas(new BigDecimal("22"));
-        when(conteinerRepositorio.findByIdentificacaoIgnoreCase("CNTR001"))
+        when(conteinerPatioRepositorio.findByCodigoIgnoreCase("CNTR001"))
                 .thenReturn(Optional.of(conteiner));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
@@ -188,9 +192,9 @@ class ValidadorYardPlacementServiceTest {
         ConteinerPatioRequisicaoDto dto = criarRequisicaoPadrao();
         dto.setCamadaOperacional("2");
 
-        Conteiner conteiner = criarContainerPadrao();
+        ConteinerPatio conteiner = criarConteinerPadrao();
         conteiner.setPesoToneladas(new BigDecimal("26"));
-        when(conteinerRepositorio.findByIdentificacaoIgnoreCase("CNTR001"))
+        when(conteinerPatioRepositorio.findByCodigoIgnoreCase("CNTR001"))
                 .thenReturn(Optional.of(conteiner));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
@@ -204,9 +208,9 @@ class ValidadorYardPlacementServiceTest {
         ConteinerPatioRequisicaoDto dto = criarRequisicaoPadrao();
         dto.setCamadaOperacional("1");
 
-        Conteiner conteiner = criarContainerPadrao();
+        ConteinerPatio conteiner = criarConteinerPadrao();
         conteiner.setPesoToneladas(new BigDecimal("28"));
-        when(conteinerRepositorio.findByIdentificacaoIgnoreCase("CNTR001"))
+        when(conteinerPatioRepositorio.findByCodigoIgnoreCase("CNTR001"))
                 .thenReturn(Optional.of(conteiner));
 
         BercoPortuario berco = criarBercoPadrao();

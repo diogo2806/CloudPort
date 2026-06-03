@@ -13,6 +13,11 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+/**
+ * Registro unificado de operações sobre contêineres no pátio.
+ * Substitui HistoricoOperacaoConteiner — todos os eventos de ciclo de vida
+ * (alocação, inspeção, liberação, transferência) são gravados aqui.
+ */
 @Entity
 @Table(name = "movimento_patio")
 public class MovimentoPatio {
@@ -32,58 +37,42 @@ public class MovimentoPatio {
     @Column(name = "descricao", nullable = false, length = 160)
     private String descricao;
 
+    @Column(name = "posicao_anterior", length = 120)
+    private String posicaoAnterior;
+
+    @Column(name = "posicao_atual", length = 120)
+    private String posicaoAtual;
+
+    @Column(name = "responsavel", length = 120)
+    private String responsavel;
+
     @Column(name = "registrado_em", nullable = false)
     private LocalDateTime registradoEm;
 
     public MovimentoPatio() {
     }
 
-    public MovimentoPatio(Long id, ConteinerPatio conteiner, TipoMovimentoPatio tipoMovimento,
-                           String descricao, LocalDateTime registradoEm) {
-        this.id = id;
-        this.conteiner = conteiner;
-        this.tipoMovimento = tipoMovimento;
-        this.descricao = descricao;
-        this.registradoEm = registradoEm;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public Long getId() {
-        return id;
-    }
+    public ConteinerPatio getConteiner() { return conteiner; }
+    public void setConteiner(ConteinerPatio conteiner) { this.conteiner = conteiner; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public TipoMovimentoPatio getTipoMovimento() { return tipoMovimento; }
+    public void setTipoMovimento(TipoMovimentoPatio tipoMovimento) { this.tipoMovimento = tipoMovimento; }
 
-    public ConteinerPatio getConteiner() {
-        return conteiner;
-    }
+    public String getDescricao() { return descricao; }
+    public void setDescricao(String descricao) { this.descricao = descricao; }
 
-    public void setConteiner(ConteinerPatio conteiner) {
-        this.conteiner = conteiner;
-    }
+    public String getPosicaoAnterior() { return posicaoAnterior; }
+    public void setPosicaoAnterior(String posicaoAnterior) { this.posicaoAnterior = posicaoAnterior; }
 
-    public TipoMovimentoPatio getTipoMovimento() {
-        return tipoMovimento;
-    }
+    public String getPosicaoAtual() { return posicaoAtual; }
+    public void setPosicaoAtual(String posicaoAtual) { this.posicaoAtual = posicaoAtual; }
 
-    public void setTipoMovimento(TipoMovimentoPatio tipoMovimento) {
-        this.tipoMovimento = tipoMovimento;
-    }
+    public String getResponsavel() { return responsavel; }
+    public void setResponsavel(String responsavel) { this.responsavel = responsavel; }
 
-    public String getDescricao() {
-        return descricao;
-    }
-
-    public void setDescricao(String descricao) {
-        this.descricao = descricao;
-    }
-
-    public LocalDateTime getRegistradoEm() {
-        return registradoEm;
-    }
-
-    public void setRegistradoEm(LocalDateTime registradoEm) {
-        this.registradoEm = registradoEm;
-    }
+    public LocalDateTime getRegistradoEm() { return registradoEm; }
+    public void setRegistradoEm(LocalDateTime registradoEm) { this.registradoEm = registradoEm; }
 }

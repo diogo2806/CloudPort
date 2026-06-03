@@ -1,121 +1,90 @@
 package br.com.cloudport.servicoyard.scheduler.servico;
 
+import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService;
+import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService.DualCycleConfig;
+import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService.DualCyclePair;
+import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService.YardPosition;
 import br.com.cloudport.servicoyard.scheduler.dto.DualCycleJobDto;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.springframework.stereotype.Service;
 
+/**
+ * Adaptador que expõe DualCycleJobDto para o PredictiveSchedulerService,
+ * delegando toda a lógica ao YardDualCycleService unificado.
+ */
 @Service
 public class DualCycleOptimizationService {
 
-    private static final Integer DISTANCIA_MAXIMA_PARA_PAREAMENTO = 10;
-    private static final Double ECONOMIA_MINIMA_PERCENTUAL = 15.0;
+    private final YardDualCycleService dualCycleService;
+
+    public DualCycleOptimizationService(YardDualCycleService dualCycleService) {
+        this.dualCycleService = dualCycleService;
+    }
 
     public List<DualCycleJobDto> otimizarDualCycles(
             List<String> equipamentosDisponiveis,
             List<ContainerComPosicao> containersParaPegar,
             List<ContainerComPosicao> containersParaSoltar) {
 
-        List<DualCycleJobDto> dualCycles = new ArrayList<>();
+        List<YardPosition> pickups = toYardPositions(containersParaPegar, "PICKUP");
+        List<YardPosition> dropoffs = toYardPositions(containersParaSoltar, "DROPOFF");
 
-        for (String equipamento : equipamentosDisponiveis) {
-            List<DualCycleJobDto> cyclesEquipamento = encontrarMelhoresCombinacoes(
+        List<DualCyclePair> pairs = dualCycleService.otimizar(pickups, dropoffs, DualCycleConfig.padrao());
+
+        List<DualCycleJobDto> jobs = new ArrayList<>();
+        int equipIndex = 0;
+        for (DualCyclePair pair : pairs) {
+            String equipamento = equipamentosDisponiveis.isEmpty()
+                    ? "EQUIP_" + equipIndex
+                    : equipamentosDisponiveis.get(equipIndex % equipamentosDisponiveis.size());
+
+            DualCycleJobDto job = new DualCycleJobDto(
                     equipamento,
-                    containersParaPegar,
-                    containersParaSoltar
+                    pair.getPickup().getId(),
+                    Integer.parseInt(pair.getPickup().getId().contains("@")
+                            ? pair.getPickup().getId().split("@")[1].split(",")[0] : "0"),
+                    Integer.parseInt(pair.getPickup().getId().contains("@")
+                            ? pair.getPickup().getId().split("@")[1].split(",")[1] : "0"),
+                    pair.getDropoff().getId(),
+                    Integer.parseInt(pair.getDropoff().getId().contains("@")
+                            ? pair.getDropoff().getId().split("@")[1].split(",")[0] : "0"),
+                    Integer.parseInt(pair.getDropoff().getId().contains("@")
+                            ? pair.getDropoff().getId().split("@")[1].split(",")[1] : "0")
             );
-            dualCycles.addAll(cyclesEquipamento);
 
-            removerContainersUsados(containersParaPegar, containersParaSoltar, cyclesEquipamento);
+            // Reconstruir com posições corretas via pickup/dropoff diretos
+            DualCycleJobDto jobCorreto = new DualCycleJobDto(
+                    equipamento,
+                    pair.getPickup().getId(),
+                    pair.getPickup().getLinha(),
+                    pair.getPickup().getColuna(),
+                    pair.getDropoff().getId(),
+                    pair.getDropoff().getLinha(),
+                    pair.getDropoff().getColuna()
+            );
+            jobCorreto.setDistanciaTotal(jobCorreto.calcularDistanciaTotal());
+            jobCorreto.setEconomiaDistancia(jobCorreto.calcularEconomiaDistancia());
+            jobCorreto.setEficiencia(pair.getEconomia());
+            jobCorreto.setStatus("PLANEJADO");
+            jobs.add(jobCorreto);
+            equipIndex++;
         }
 
-        return dualCycles.stream()
-                .sorted(Comparator.comparingDouble(
-                        (DualCycleJobDto j) -> j.calcularEficiencia()).reversed())
-                .toList();
+        jobs.sort(Comparator.comparingDouble(DualCycleJobDto::getEficiencia).reversed());
+        return jobs;
     }
 
-    private List<DualCycleJobDto> encontrarMelhoresCombinacoes(
-            String equipamento,
-            List<ContainerComPosicao> pickups,
-            List<ContainerComPosicao> dropoffs) {
-
-        List<DualCycleJobDto> resultado = new ArrayList<>();
-        List<ContainerComPosicao> pickupsDisponiveis = new ArrayList<>(pickups);
-
-        for (ContainerComPosicao pickup : pickupsDisponiveis) {
-            DualCycleJobDto melhorCombo = null;
-            Integer menorDistancia = Integer.MAX_VALUE;
-
-            for (ContainerComPosicao dropoff : dropoffs) {
-                Integer distancia = calcularDistancia(
-                        pickup.getLinha(), pickup.getColuna(),
-                        dropoff.getLinha(), dropoff.getColuna()
-                );
-
-                if (distancia <= DISTANCIA_MAXIMA_PARA_PAREAMENTO &&
-                    distancia < menorDistancia) {
-
-                    DualCycleJobDto combo = criarDualCycleJob(
-                            equipamento, pickup, dropoff, distancia
-                    );
-
-                    if (combo.calcularEficiencia() >= ECONOMIA_MINIMA_PERCENTUAL) {
-                        melhorCombo = combo;
-                        menorDistancia = distancia;
-                    }
-                }
-            }
-
-            if (melhorCombo != null) {
-                resultado.add(melhorCombo);
-                dropoffs.remove(melhorCombo.getLinhaDropoff());
-            }
+    private List<YardPosition> toYardPositions(List<ContainerComPosicao> containers, String tipo) {
+        List<YardPosition> positions = new ArrayList<>();
+        for (ContainerComPosicao c : containers) {
+            positions.add(new YardPosition(c.getCodigoContainer(),
+                    c.getLinha() != null ? c.getLinha() : 0,
+                    c.getColuna() != null ? c.getColuna() : 0,
+                    tipo));
         }
-
-        return resultado;
-    }
-
-    private DualCycleJobDto criarDualCycleJob(
-            String equipamento,
-            ContainerComPosicao pickup,
-            ContainerComPosicao dropoff,
-            Integer distancia) {
-
-        DualCycleJobDto job = new DualCycleJobDto(
-                equipamento,
-                pickup.getCodigoContainer(),
-                pickup.getLinha(),
-                pickup.getColuna(),
-                dropoff.getCodigoContainer(),
-                dropoff.getLinha(),
-                dropoff.getColuna()
-        );
-
-        job.setDistanciaTotal(job.calcularDistanciaTotal());
-        job.setEconomiaDistancia(job.calcularEconomiaDistancia());
-        job.setEficiencia(job.calcularEficiencia());
-        job.setStatus("PLANEJADO");
-
-        return job;
-    }
-
-    private Integer calcularDistancia(Integer l1, Integer c1, Integer l2, Integer c2) {
-        return Math.abs(l1 - l2) + Math.abs(c1 - c2);
-    }
-
-    private void removerContainersUsados(
-            List<ContainerComPosicao> pickups,
-            List<ContainerComPosicao> dropoffs,
-            List<DualCycleJobDto> usados) {
-
-        for (DualCycleJobDto job : usados) {
-            pickups.removeIf(p -> p.getCodigoContainer().equals(job.getContainerPickup()));
-            dropoffs.removeIf(d -> d.getCodigoContainer().equals(job.getContainerDropoff()));
-        }
+        return positions;
     }
 
     public static class ContainerComPosicao {
@@ -130,28 +99,16 @@ public class DualCycleOptimizationService {
             this.coluna = coluna;
         }
 
-        public ContainerComPosicao(String codigoContainer, Integer linha, Integer coluna,
-                                   String tipoOperacao) {
+        public ContainerComPosicao(String codigoContainer, Integer linha, Integer coluna, String tipoOperacao) {
             this.codigoContainer = codigoContainer;
             this.linha = linha;
             this.coluna = coluna;
             this.tipoOperacao = tipoOperacao;
         }
 
-        public String getCodigoContainer() {
-            return codigoContainer;
-        }
-
-        public Integer getLinha() {
-            return linha;
-        }
-
-        public Integer getColuna() {
-            return coluna;
-        }
-
-        public String getTipoOperacao() {
-            return tipoOperacao;
-        }
+        public String getCodigoContainer() { return codigoContainer; }
+        public Integer getLinha() { return linha; }
+        public Integer getColuna() { return coluna; }
+        public String getTipoOperacao() { return tipoOperacao; }
     }
 }

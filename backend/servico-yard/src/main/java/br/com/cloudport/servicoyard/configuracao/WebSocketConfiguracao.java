@@ -22,5 +22,7 @@ public class WebSocketConfiguracao implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns("*");
         registry.addEndpoint("/ws/recursos")
                 .setAllowedOriginPatterns("*");
+        registry.addEndpoint("/ws/edi")
+                .setAllowedOriginPatterns("*");
     }
 }

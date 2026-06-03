@@ -185,6 +185,10 @@ public class PredictiveReshuffflingServico {
         }
 
         public List<ConteinerParaReshuffflingDto> getConteinersParaReshuffling() { return conteinersParaReshuffling; }
+        /**
+         * @deprecated use {@link #getConteinersParaReshuffling()}.
+         */
+        @Deprecated(forRemoval = false, since = "0.0.1")
         public List<ConteinerParaReshuffflingDto> getConteineirsParaReshuffling() { return conteinersParaReshuffling; }
         public boolean isRecomendado() { return recomendado; }
         public String getMensagem() { return mensagem; }

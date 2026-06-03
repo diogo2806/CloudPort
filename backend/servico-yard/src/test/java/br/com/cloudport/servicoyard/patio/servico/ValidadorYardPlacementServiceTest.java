@@ -74,7 +74,6 @@ class ValidadorYardPlacementServiceTest {
 
     private Conteiner criarContainerPadrao() {
         Conteiner conteiner = new Conteiner();
-        conteiner.setId(1L);
         conteiner.setIdentificacao("CNTR001");
         conteiner.setTipoCarga(TipoCargaConteiner.SECO);
         conteiner.setPesoToneladas(new BigDecimal("15"));

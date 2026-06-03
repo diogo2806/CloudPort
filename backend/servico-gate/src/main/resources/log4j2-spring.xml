@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="{&quot;timestamp&quot;:&quot;%d{ISO8601}{UTC}&quot;,&quot;level&quot;:&quot;%p&quot;,&quot;logger&quot;:&quot;%c&quot;,&quot;thread&quot;:&quot;%t&quot;,&quot;message&quot;:&quot;%enc{%m}{JSON}&quot;,&quot;service&quot;:&quot;${spring:spring.application.name:-servico-gate}&quot;,&quot;exception&quot;:&quot;%enc{%xEx}{JSON}&quot;}%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>

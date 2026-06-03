@@ -3,12 +3,12 @@ package br.com.cloudport.servicogate.integration.tos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import br.com.cloudport.servicogate.contingencia.ContingenciaProperties;
+import br.com.cloudport.servicogate.app.administracao.ContingenciaProperties;
 import br.com.cloudport.servicogate.integration.tos.TosIntegrationException;
 import br.com.cloudport.servicogate.monitoring.GateMetrics;
 import br.com.cloudport.servicogate.monitoring.IntegracaoDegradacaoHandler;
-import com.squareup.okhttp.mockwebserver.MockResponse;
-import com.squareup.okhttp.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;

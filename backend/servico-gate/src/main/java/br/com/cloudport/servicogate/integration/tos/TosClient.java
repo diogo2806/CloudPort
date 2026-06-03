@@ -3,7 +3,7 @@ package br.com.cloudport.servicogate.integration.tos;
 import br.com.cloudport.servicogate.integration.tos.model.TosBookingResponse;
 import br.com.cloudport.servicogate.integration.tos.model.TosContainerStatusResponse;
 import br.com.cloudport.servicogate.integration.tos.model.TosCustomsReleaseResponse;
-import br.com.cloudport.servicogate.contingencia.ContingenciaProperties;
+import br.com.cloudport.servicogate.app.administracao.ContingenciaProperties;
 import br.com.cloudport.servicogate.monitoring.IntegracaoDegradacaoHandler;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;

@@ -16,8 +16,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.MockBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(BarcodeConfirmacaoController.class)
@@ -57,7 +58,7 @@ class BarcodeConfirmacaoControllerTest {
                 .andExpect(jsonPath("$.tokenGatePass").value("token-xyz"))
                 .andExpect(jsonPath("$.codigoBarcode").value("CONT123456"))
                 .andExpect(jsonPath("$.statusConfirmacao").value("CONFIRMADO"))
-                .andExpect(jsonPath("$.mensagem").containsString("sucesso"));
+                .andExpect(jsonPath("$.mensagem").value(containsString("sucesso")));
 
         verify(confirmacaoBarcodeService).confirmarBarcode(any());
     }
@@ -85,7 +86,7 @@ class BarcodeConfirmacaoControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.statusConfirmacao").value("REJEITADO"))
-                .andExpect(jsonPath("$.mensagem").containsString("rejeitado"));
+                .andExpect(jsonPath("$.mensagem").value(containsString("rejeitado")));
     }
 
     @Test
@@ -117,7 +118,7 @@ class BarcodeConfirmacaoControllerTest {
         when(confirmacaoBarcodeService.registrarTimeoutBarcode(anyString(), anyString())).thenReturn(response);
 
         mockMvc.perform(post("/gate/barcode/timeout")
-                .with(jwt().roles("ADMIN_PORTO"))
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN_PORTO")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isAccepted())
@@ -131,7 +132,7 @@ class BarcodeConfirmacaoControllerTest {
         request.put("dispositivoDmtId", "DMT-001");
 
         mockMvc.perform(post("/gate/barcode/timeout")
-                .with(jwt().roles("OPERADOR_GATE"))
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_OPERADOR_GATE")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());

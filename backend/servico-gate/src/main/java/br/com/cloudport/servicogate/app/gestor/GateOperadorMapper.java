@@ -67,7 +67,7 @@ public final class GateOperadorMapper {
         return switch (status) {
             case RETIDO -> NivelEvento.CRITICA;
             case LIBERADO, FINALIZADO -> NivelEvento.INFO;
-            case EM_PROCESSAMENTO, AGUARDANDO_ENTRADA -> NivelEvento.OPERACIONAL;
+            case EM_PROCESSAMENTO, AGUARDANDO_ENTRADA, AGUARDANDO_CONFIRMACAO_BARCODE -> NivelEvento.OPERACIONAL;
         };
     }
 }

@@ -2,7 +2,7 @@ package br.com.cloudport.servicogate.app.cidadao;
 
 import br.com.cloudport.servicogate.app.cidadao.dto.JanelaAtendimentoDTO;
 import br.com.cloudport.servicogate.app.cidadao.dto.JanelaAtendimentoRequest;
-import br.com.cloudport.servicogate.app.cidadao.dto.mapper.GateMapper;
+import br.com.cloudport.servicogate.app.gestor.GateMapper;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.exception.NotFoundException;
 import br.com.cloudport.servicogate.model.JanelaAtendimento;

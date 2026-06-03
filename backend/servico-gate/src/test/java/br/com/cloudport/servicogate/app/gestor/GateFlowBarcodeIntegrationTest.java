@@ -6,6 +6,8 @@ import static org.mockito.Mockito.*;
 
 import br.com.cloudport.servicogate.app.gestor.dto.GateDecisionDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.GateFlowRequest;
+import br.com.cloudport.servicogate.app.cidadao.AgendamentoRealtimeService;
+import br.com.cloudport.servicogate.app.cidadao.AgendamentoRepository;
 import br.com.cloudport.servicogate.config.BarcodeProperties;
 import br.com.cloudport.servicogate.integration.dmt.DmtBarcodeService;
 import br.com.cloudport.servicogate.integration.tos.TosIntegrationService;

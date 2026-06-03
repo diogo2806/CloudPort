@@ -1,6 +1,6 @@
 package br.com.cloudport.servicogate.app.cidadao;
 
-import br.com.cloudport.servicogate.app.cidadao.dto.dashboard.OcupacaoPorHoraDTO;
+import br.com.cloudport.servicogate.app.transparencia.dto.OcupacaoPorHoraDTO;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.enums.StatusAgendamento;
 import br.com.cloudport.servicogate.model.enums.TipoOperacao;
@@ -62,7 +62,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     long countByJanelaAtendimentoIdAndStatusNotAndIdNot(Long janelaAtendimentoId, StatusAgendamento status,
                                                         Long id);
 
-    @Query("SELECT new br.com.cloudport.servicogate.app.cidadao.dto.dashboard.OcupacaoPorHoraDTO(" +
+    @Query("SELECT new br.com.cloudport.servicogate.app.transparencia.dto.OcupacaoPorHoraDTO(" +
             "j.horaInicio, " +
             "SUM(CASE WHEN a.id IS NOT NULL AND a.status <> br.com.cloudport.servicogate.model.enums.StatusAgendamento.CANCELADO THEN 1 ELSE 0 END), " +
             "j.capacidade) " +

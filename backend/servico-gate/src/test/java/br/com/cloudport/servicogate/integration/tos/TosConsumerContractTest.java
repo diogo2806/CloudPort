@@ -2,7 +2,7 @@ package br.com.cloudport.servicogate.integration.tos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import br.com.cloudport.servicogate.contingencia.ContingenciaProperties;
+import br.com.cloudport.servicogate.app.administracao.ContingenciaProperties;
 import br.com.cloudport.servicogate.monitoring.GateMetrics;
 import br.com.cloudport.servicogate.monitoring.IntegracaoDegradacaoHandler;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;

@@ -2,6 +2,7 @@ package br.com.cloudport.servicogate.app.gestor;
 
 import br.com.cloudport.servicogate.app.gestor.dto.ConfirmacaoBarcodeRequest;
 import br.com.cloudport.servicogate.app.gestor.dto.ConfirmacaoBarcodeResponse;
+import br.com.cloudport.servicogate.app.cidadao.AgendamentoRealtimeService;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.exception.NotFoundException;
 import br.com.cloudport.servicogate.model.GateEvent;

@@ -1,5 +1,6 @@
 package br.com.cloudport.servicogate.app.cidadao.dto;
 
+import br.com.cloudport.servicogate.app.gestor.dto.GatePassDTO;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;

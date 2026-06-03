@@ -1,7 +1,8 @@
 package br.com.cloudport.servicogate.app.gestor;
 
 import br.com.cloudport.servicogate.config.GateFlowProperties;
-import br.com.cloudport.servicogate.app.gestor.dto.AgendamentoDTO;
+import br.com.cloudport.servicogate.app.cidadao.AgendamentoRealtimeService;
+import br.com.cloudport.servicogate.app.cidadao.dto.AgendamentoDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.GateDecisionDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.GateFlowRequest;
 import br.com.cloudport.servicogate.app.gestor.dto.ManualReleaseAction;

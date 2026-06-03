@@ -129,7 +129,7 @@ public class GateOperadorPainelService {
                     List<GateOperadorVeiculoDTO> veiculos = entry.getValue().stream()
                             .map(agendamento -> toVeiculoDTO(agendamento, calcularTempoFila(agendamento, entrada, agora)))
                             .collect(Collectors.toList());
-                    long media = veiculos.stream()
+                    double media = veiculos.stream()
                             .map(GateOperadorVeiculoDTO::tempoFilaMinutos)
                             .filter(Objects::nonNull)
                             .mapToLong(Long::longValue)

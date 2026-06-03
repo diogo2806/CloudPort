@@ -1,23 +1,31 @@
 package br.com.cloudport.servicoyard.estivagembulk.servico;
 
 import br.com.cloudport.servicoyard.estivagembulk.dto.AnaliseEmpilhamentoDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.BallastOtimizacaoDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.CaladoTresPontosDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.DocumentoCargoManifestDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.EstabilidadeEstrutural;
+import br.com.cloudport.servicoyard.estivagembulk.dto.ImbscComplianceDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.NavioGranelDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PlanoEstivaBulkDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicaoBobinaDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicionarBobinaRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.SequenciaEmbarqueDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.ViolacaoEstivaDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.ClasseNavio;
+import br.com.cloudport.servicoyard.estivagembulk.modelo.ItemCargoSiderurgico;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.PlanoEstivaBulk;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.PoraoNavio;
+import br.com.cloudport.servicoyard.estivagembulk.modelo.PortoViagem;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.PosicaoBobina;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.SetorTanktop;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.StatusPlanoEstiva;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.TipoLashing;
+import br.com.cloudport.servicoyard.estivagembulk.modelo.TipoOperacaoPorto;
 import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
 import br.com.cloudport.servicoyard.estivagembulk.repositorio.PlanoEstivaBulkRepositorio;
 import java.util.ArrayList;
@@ -36,19 +44,37 @@ public class PlanoEstivaBulkServico {
     private final EstabilidadeEstruturalServico estabilidadeServico;
     private final EmpilhamentoBobinaServico empilhamentoServico;
     private final TacktopServico tacktopServico;
+    private final CaladoTresPontosServico caladoServico;
+    private final BallastOtimizadorServico ballastServico;
+    private final SequenciaEmbarqueServico sequenciaServico;
+    private final ImbscComplianceServico imbscServico;
+    private final DocumentoEstivaServico documentoServico;
+    private final RegrasCargaSiderurgicaServico regrasCargaServico;
 
     public PlanoEstivaBulkServico(NavioGranelRepositorio navioRepositorio,
                                    PlanoEstivaBulkRepositorio planoRepositorio,
                                    TanktopCalculadorServico tanktopServico,
                                    EstabilidadeEstruturalServico estabilidadeServico,
                                    EmpilhamentoBobinaServico empilhamentoServico,
-                                   TacktopServico tacktopServico) {
+                                   TacktopServico tacktopServico,
+                                   CaladoTresPontosServico caladoServico,
+                                   BallastOtimizadorServico ballastServico,
+                                   SequenciaEmbarqueServico sequenciaServico,
+                                   ImbscComplianceServico imbscServico,
+                                   DocumentoEstivaServico documentoServico,
+                                   RegrasCargaSiderurgicaServico regrasCargaServico) {
         this.navioRepositorio = navioRepositorio;
         this.planoRepositorio = planoRepositorio;
         this.tanktopServico = tanktopServico;
         this.estabilidadeServico = estabilidadeServico;
         this.empilhamentoServico = empilhamentoServico;
         this.tacktopServico = tacktopServico;
+        this.caladoServico = caladoServico;
+        this.ballastServico = ballastServico;
+        this.sequenciaServico = sequenciaServico;
+        this.imbscServico = imbscServico;
+        this.documentoServico = documentoServico;
+        this.regrasCargaServico = regrasCargaServico;
     }
 
     @Transactional
@@ -179,6 +205,57 @@ public class PlanoEstivaBulkServico {
         plano.setCalado_saida(est.getCaladoSaidaMetros());
         planoRepositorio.save(plano);
         return toDto(plano, est);
+    }
+
+    @Transactional(readOnly = true)
+    public CaladoTresPontosDto calcularCaladoTresPontos(Long planoId) {
+        return caladoServico.calcular(buscarPlano(planoId));
+    }
+
+    @Transactional
+    public BallastOtimizacaoDto otimizarBallast(Long planoId, double trimAlvoM) {
+        PlanoEstivaBulk plano = buscarPlano(planoId);
+        return ballastServico.otimizar(plano, trimAlvoM);
+    }
+
+    @Transactional(readOnly = true)
+    public SequenciaEmbarqueDto analisarSequenciaEmbarque(Long planoId) {
+        return sequenciaServico.analisarSequencia(buscarPlano(planoId));
+    }
+
+    @Transactional(readOnly = true)
+    public ImbscComplianceDto verificarImbscCompliance(Long planoId) {
+        return imbscServico.verificar(buscarPlano(planoId));
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentoCargoManifestDto gerarCargoManifest(Long planoId) {
+        return documentoServico.gerarCargoManifest(buscarPlano(planoId));
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentoCargoManifestDto gerarPlanilhaEstivagem(Long planoId) {
+        return documentoServico.gerarPlanilhaEstivagem(buscarPlano(planoId));
+    }
+
+    @Transactional
+    public PortoViagem adicionarPortoViagem(Long planoId, PortoViagem porto) {
+        PlanoEstivaBulk plano = buscarPlano(planoId);
+        porto.setPlano(plano);
+        if (porto.getTipoOperacao() == null) porto.setTipoOperacao(TipoOperacaoPorto.DESCARGA);
+        plano.getPortosViagem().add(porto);
+        planoRepositorio.save(plano);
+        return porto;
+    }
+
+    @Transactional
+    public ItemCargoSiderurgico adicionarItemCargo(Long planoId, ItemCargoSiderurgico item) {
+        PlanoEstivaBulk plano = buscarPlano(planoId);
+        item.setPlano(plano);
+        regrasCargaServico.aplicarPadroesParaTipo(item);
+        plano.getItensCargo().add(item);
+        planoRepositorio.save(plano);
+        return item;
     }
 
     private PlanoEstivaBulk buscarPlano(Long planoId) {

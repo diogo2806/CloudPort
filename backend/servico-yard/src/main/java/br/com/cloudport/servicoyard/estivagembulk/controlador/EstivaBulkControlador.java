@@ -1,17 +1,24 @@
 package br.com.cloudport.servicoyard.estivagembulk.controlador;
 
 import br.com.cloudport.servicoyard.estivagembulk.dto.AnaliseEmpilhamentoDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.BallastOtimizacaoDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.CaladoTresPontosDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.DocumentoCargoManifestDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.EstabilidadeEstrutural;
+import br.com.cloudport.servicoyard.estivagembulk.dto.ImbscComplianceDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.NavioGranelDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PlanoEstivaBulkDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicaoBobinaDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicionarBobinaRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.SequenciaEmbarqueDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
+import br.com.cloudport.servicoyard.estivagembulk.modelo.ItemCargoSiderurgico;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
-import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
+import br.com.cloudport.servicoyard.estivagembulk.modelo.PortoViagem;
 import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
+import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityNotFoundException;
@@ -22,6 +29,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -151,6 +159,82 @@ public class EstivaBulkControlador {
     public ResponseEntity<?> relatorio(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.buscarPorId(id));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/planos/{id}/calado")
+    public ResponseEntity<CaladoTresPontosDto> calcularCaladoTresPontos(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(servico.calcularCaladoTresPontos(id));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/planos/{id}/ballast/otimizar")
+    public ResponseEntity<BallastOtimizacaoDto> otimizarBallast(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0.5") double trimAlvo) {
+        try {
+            return ResponseEntity.ok(servico.otimizarBallast(id, trimAlvo));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/planos/{id}/sequencia-embarque")
+    public ResponseEntity<SequenciaEmbarqueDto> analisarSequenciaEmbarque(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(servico.analisarSequenciaEmbarque(id));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/planos/{id}/imbsc-compliance")
+    public ResponseEntity<ImbscComplianceDto> verificarImbscCompliance(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(servico.verificarImbscCompliance(id));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/planos/{id}/documentos/cargo-manifest")
+    public ResponseEntity<DocumentoCargoManifestDto> gerarCargoManifest(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(servico.gerarCargoManifest(id));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/planos/{id}/documentos/stowage-plan")
+    public ResponseEntity<DocumentoCargoManifestDto> gerarStowagePlan(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(servico.gerarPlanilhaEstivagem(id));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/planos/{id}/portos")
+    public ResponseEntity<PortoViagem> adicionarPortoViagem(
+            @PathVariable Long id, @RequestBody PortoViagem porto) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(servico.adicionarPortoViagem(id, porto));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/planos/{id}/itens-cargo")
+    public ResponseEntity<ItemCargoSiderurgico> adicionarItemCargo(
+            @PathVariable Long id, @RequestBody ItemCargoSiderurgico item) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(servico.adicionarItemCargo(id, item));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }

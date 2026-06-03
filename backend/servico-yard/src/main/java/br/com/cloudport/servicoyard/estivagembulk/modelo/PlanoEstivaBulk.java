@@ -72,6 +72,21 @@ public class PlanoEstivaBulk {
     @OneToMany(mappedBy = "plano", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<MaterialLashingBulk> materiais = new ArrayList<>();
 
+    @OneToMany(mappedBy = "plano", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<PortoViagem> portosViagem = new ArrayList<>();
+
+    @OneToMany(mappedBy = "plano", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<ItemCargoSiderurgico> itensCargo = new ArrayList<>();
+
+    @Column(name = "calado_proa_m")
+    private Double caladoProaM;
+
+    @Column(name = "calado_meio_m")
+    private Double caladoMeioM;
+
+    @Column(name = "calado_popa_m")
+    private Double caladoPopaM;
+
     private LocalDateTime criadoEm;
 
     private LocalDateTime atualizadoEm;
@@ -225,4 +240,29 @@ public class PlanoEstivaBulk {
     public void setAtualizadoEm(LocalDateTime atualizadoEm) {
         this.atualizadoEm = atualizadoEm;
     }
+
+    public List<PortoViagem> getPortosViagem() {
+        return portosViagem;
+    }
+
+    public void setPortosViagem(List<PortoViagem> portosViagem) {
+        this.portosViagem = portosViagem;
+    }
+
+    public List<ItemCargoSiderurgico> getItensCargo() {
+        return itensCargo;
+    }
+
+    public void setItensCargo(List<ItemCargoSiderurgico> itensCargo) {
+        this.itensCargo = itensCargo;
+    }
+
+    public Double getCaladoProaM() { return caladoProaM; }
+    public void setCaladoProaM(Double caladoProaM) { this.caladoProaM = caladoProaM; }
+
+    public Double getCaladoMeioM() { return caladoMeioM; }
+    public void setCaladoMeioM(Double caladoMeioM) { this.caladoMeioM = caladoMeioM; }
+
+    public Double getCaladoPopaM() { return caladoPopaM; }
+    public void setCaladoPopaM(Double caladoPopaM) { this.caladoPopaM = caladoPopaM; }
 }

@@ -58,6 +58,9 @@ public class NavioGranel {
     @OneToMany(mappedBy = "navio", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<PoraoNavio> poroes = new ArrayList<>();
 
+    @OneToMany(mappedBy = "navio", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<TanqueBallast> tanquesBallast = new ArrayList<>();
+
     private LocalDateTime criadoEm;
 
     private LocalDateTime atualizadoEm;
@@ -174,6 +177,14 @@ public class NavioGranel {
 
     public void setPoroes(List<PoraoNavio> poroes) {
         this.poroes = poroes;
+    }
+
+    public List<TanqueBallast> getTanquesBallast() {
+        return tanquesBallast;
+    }
+
+    public void setTanquesBallast(List<TanqueBallast> tanquesBallast) {
+        this.tanquesBallast = tanquesBallast;
     }
 
     public LocalDateTime getCriadoEm() {

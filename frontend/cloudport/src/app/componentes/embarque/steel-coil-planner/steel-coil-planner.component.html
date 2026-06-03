@@ -3,15 +3,28 @@
     <div>
       <span class="eyebrow">CloudPort Bulk</span>
       <h2>Steel Coil Stowage Planner</h2>
+      <small class="source">Manifesto: {{ manifestSource }}</small>
     </div>
     <div class="top-actions">
+      <label class="file-button">
+        Importar planilha
+        <input type="file" accept=".csv,.xlsx" (change)="importManifest($event)" />
+      </label>
+      <button type="button" class="ghost" (click)="downloadTemplate()">Modelo CSV</button>
       <button type="button" class="ghost" (click)="clearPlan()">Limpar</button>
       <button type="button" class="primary" (click)="openAutoPlan()">Gerar plano automatico</button>
     </div>
   </header>
 
+  <div *ngIf="importError" class="import-error">{{ importError }}</div>
+
   <div class="planner-grid">
     <aside class="sidebar">
+      <section>
+        <h3>Upload standalone</h3>
+        <p class="hint">Colunas aceitas: coil_id, codigo, quantidade, peso_toneladas, largura_mm, diametro_externo_mm, porto_descarga.</p>
+      </section>
+
       <section>
         <h3>Shipment coils</h3>
         <article

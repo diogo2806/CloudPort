@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { Workbook } from 'exceljs';
 
 type ComplianceStatus = 'ok' | 'warn' | 'danger';
 
@@ -83,13 +84,28 @@ export class SteelCoilPlannerComponent {
   sectionHoldId = 1;
   dragTypeId: string | null = null;
   showAutoModal = false;
+  importError: string | null = null;
+  manifestSource = 'Manifesto exemplo';
 
-  readonly coilTypes: CoilType[] = [
+  coilTypes: CoilType[] = [
     { id: 'hrc-a', code: 'HRC-A', label: 'Hot rolled coil A', destination: 'Cartagena', quantity: 18, weightT: 24.5, outerDiameterM: 1.85, widthM: 1.55, color: '#58a6ff' },
     { id: 'hrc-b', code: 'HRC-B', label: 'Hot rolled coil B', destination: 'Vitoria', quantity: 16, weightT: 21.8, outerDiameterM: 1.72, widthM: 1.42, color: '#3fb950' },
     { id: 'crc-c', code: 'CRC-C', label: 'Cold rolled coil C', destination: 'Rio Grande', quantity: 14, weightT: 18.4, outerDiameterM: 1.48, widthM: 1.25, color: '#f78166' },
     { id: 'gal-d', code: 'GAL-D', label: 'Galvanized coil D', destination: 'Santos', quantity: 12, weightT: 16.2, outerDiameterM: 1.36, widthM: 1.18, color: '#d2a8ff' },
     { id: 'plate-e', code: 'PLT-E', label: 'Heavy plate coil E', destination: 'Cartagena', quantity: 10, weightT: 29.6, outerDiameterM: 1.95, widthM: 1.68, color: '#ffa657' }
+  ];
+
+  readonly acceptedColumns = [
+    'coil_id',
+    'codigo',
+    'quantidade',
+    'peso_toneladas',
+    'largura_mm',
+    'diametro_externo_mm',
+    'porto_descarga',
+    'cliente',
+    'grade_aco',
+    'observacoes'
   ];
 
   readonly holds: Hold[] = [
@@ -271,6 +287,48 @@ export class SteelCoilPlannerComponent {
     }
   }
 
+  async importManifest(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) {
+      return;
+    }
+
+    this.importError = null;
+    try {
+      const rows = file.name.toLowerCase().endsWith('.csv')
+        ? this.parseCsv(await file.text())
+        : await this.parseWorkbook(file);
+      const coilTypes = this.mapRowsToCoils(rows);
+      if (coilTypes.length === 0) {
+        this.importError = 'A planilha nao possui bobinas validas para importar.';
+        return;
+      }
+      this.clearPlan();
+      this.coilTypes = coilTypes;
+      this.manifestSource = file.name;
+    } catch (error) {
+      this.importError = error instanceof Error ? error.message : 'Nao foi possivel importar a planilha.';
+    }
+  }
+
+  downloadTemplate(): void {
+    const lines = [
+      this.acceptedColumns.join(','),
+      'C-1001,HRC-A,1,24.5,1550,1850,Cartagena,Cliente A,SAE1006,',
+      'C-1002,HRC-A,1,24.5,1550,1850,Cartagena,Cliente A,SAE1006,',
+      'C-2001,CRC-C,2,18.4,1250,1480,Rio Grande,Cliente B,DX51D,'
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'modelo_manifesto_bobinas.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   coilCx(coil: PlannedCoil): number {
     return 28 + (coil.y + this.sectionHold.beamM / 2) * (264 / this.sectionHold.beamM);
   }
@@ -307,6 +365,158 @@ export class SteelCoilPlannerComponent {
         ...slot
       }
     ];
+  }
+
+  private async parseWorkbook(file: File): Promise<Record<string, string>[]> {
+    const workbook = new Workbook();
+    await workbook.xlsx.load(await file.arrayBuffer());
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      return [];
+    }
+    const headers = this.readWorksheetHeaders(worksheet.getRow(1).values as unknown[]);
+    const rows: Record<string, string>[] = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) {
+        return;
+      }
+      const values = row.values as unknown[];
+      const item: Record<string, string> = {};
+      headers.forEach((header, index) => {
+        item[header] = this.cellText(values[index + 1]);
+      });
+      if (Object.values(item).some((value) => value.length > 0)) {
+        rows.push(item);
+      }
+    });
+    return rows;
+  }
+
+  private parseCsv(text: string): Record<string, string>[] {
+    const rows = text
+      .replace(/^\uFEFF/, '')
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0)
+      .map((line) => this.splitCsvLine(line));
+    if (rows.length < 2) {
+      return [];
+    }
+    const headers = rows[0].map((header) => this.normalizeHeader(header));
+    return rows.slice(1).map((row) => {
+      const item: Record<string, string> = {};
+      headers.forEach((header, index) => item[header] = row[index]?.trim() ?? '');
+      return item;
+    });
+  }
+
+  private mapRowsToCoils(rows: Record<string, string>[]): CoilType[] {
+    const grouped = new Map<string, CoilType>();
+    rows.forEach((row, index) => {
+      const code = this.firstValue(row, ['codigo', 'coil_id', 'coil', 'id']) || `COIL-${index + 1}`;
+      const destination = this.firstValue(row, ['porto_descarga', 'destino', 'destination', 'port']) || 'Santos';
+      const quantity = Math.max(1, Math.round(this.numberValue(this.firstValue(row, ['quantidade', 'qty', 'quantity']), 1)));
+      const weightT = this.numberValue(this.firstValue(row, ['peso_toneladas', 'peso_t', 'weight_t', 'weight']), 0);
+      const widthM = this.dimensionToMeters(this.firstValue(row, ['largura_mm', 'largura', 'width_mm', 'width']), 1.2);
+      const outerDiameterM = this.dimensionToMeters(this.firstValue(row, ['diametro_externo_mm', 'diametro', 'od_mm', 'outer_diameter_mm']), 1.5);
+      if (weightT <= 0) {
+        return;
+      }
+
+      const key = `${code}|${destination}|${weightT}|${widthM}|${outerDiameterM}`;
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.quantity += quantity;
+        return;
+      }
+      grouped.set(key, {
+        id: `import-${grouped.size + 1}`,
+        code: code.slice(0, 12),
+        label: `${code} - ${destination}`,
+        destination,
+        quantity,
+        weightT,
+        outerDiameterM,
+        widthM,
+        color: this.paletteColor(grouped.size)
+      });
+    });
+    return Array.from(grouped.values());
+  }
+
+  private readWorksheetHeaders(values: unknown[]): string[] {
+    return values.slice(1).map((value) => this.normalizeHeader(this.cellText(value)));
+  }
+
+  private splitCsvLine(line: string): string[] {
+    const values: string[] = [];
+    let current = '';
+    let quoted = false;
+    for (let index = 0; index < line.length; index++) {
+      const char = line[index];
+      const next = line[index + 1];
+      if (char === '"' && next === '"') {
+        current += '"';
+        index++;
+      } else if (char === '"') {
+        quoted = !quoted;
+      } else if (char === ',' && !quoted) {
+        values.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current);
+    return values;
+  }
+
+  private normalizeHeader(value: string): string {
+    return value
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+  }
+
+  private firstValue(row: Record<string, string>, keys: string[]): string {
+    for (const key of keys) {
+      const normalizedKey = this.normalizeHeader(key);
+      if (row[normalizedKey]) {
+        return row[normalizedKey];
+      }
+    }
+    return '';
+  }
+
+  private numberValue(value: string, fallback: number): number {
+    const normalized = value.replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private dimensionToMeters(value: string, fallback: number): number {
+    const parsed = this.numberValue(value, fallback);
+    return parsed > 20 ? parsed / 1000 : parsed;
+  }
+
+  private cellText(value: unknown): string {
+    if (value == null) {
+      return '';
+    }
+    if (typeof value === 'object' && 'text' in value) {
+      return String((value as { text?: unknown }).text ?? '');
+    }
+    if (typeof value === 'object' && 'result' in value) {
+      return String((value as { result?: unknown }).result ?? '');
+    }
+    return String(value).trim();
+  }
+
+  private paletteColor(index: number): string {
+    const colors = ['#58a6ff', '#3fb950', '#f78166', '#d2a8ff', '#ffa657', '#2dd4bf', '#facc15', '#fb7185'];
+    return colors[index % colors.length];
   }
 
   private nextSlot(hold: Hold): Pick<PlannedCoil, 'row' | 'tier' | 'x' | 'y'> | null {

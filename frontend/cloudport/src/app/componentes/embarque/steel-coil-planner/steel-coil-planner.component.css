@@ -55,7 +55,8 @@ h3 {
 }
 
 button,
-select {
+select,
+.file-button {
   border: 1px solid #334155;
   border-radius: 6px;
   background: #172033;
@@ -64,8 +65,13 @@ select {
   font: inherit;
 }
 
-button {
+button,
+.file-button {
   padding: 7px 10px;
+}
+
+.file-button input {
+  display: none;
 }
 
 .primary {
@@ -80,6 +86,24 @@ button {
 .top-actions,
 .hold-kpis {
   gap: 8px;
+}
+
+.source {
+  display: block;
+  margin-top: 3px;
+}
+
+.import-error {
+  background: #301719;
+  border-bottom: 1px solid #ef4444;
+  color: #fecaca;
+  padding: 9px 18px;
+}
+
+.hint {
+  color: #cbd5e1;
+  line-height: 1.35;
+  margin: 8px 0 0;
 }
 
 .planner-grid {

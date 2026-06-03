@@ -47,7 +47,7 @@ public class OrdemTrabalhoPatio {
     private String camadaDestino;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_movimento", nullable = false, length = 20)
+    @Column(name = "tipo_movimento", nullable = false, length = 30)
     private TipoMovimentoPatio tipoMovimento;
 
     @Enumerated(EnumType.STRING)

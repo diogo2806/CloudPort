@@ -97,10 +97,12 @@ public class MapaPatioServico {
                 .collect(Collectors.toList());
 
         int totalLinhas = conteineres.stream()
+                .filter(conteiner -> conteiner.getPosicao() != null)
                 .map(conteiner -> conteiner.getPosicao().getLinha())
                 .max(Integer::compareTo)
                 .orElse(0);
         int totalColunas = conteineres.stream()
+                .filter(conteiner -> conteiner.getPosicao() != null)
                 .map(conteiner -> conteiner.getPosicao().getColuna())
                 .max(Integer::compareTo)
                 .orElse(0);
@@ -136,6 +138,7 @@ public class MapaPatioServico {
                 .collect(Collectors.toCollection(TreeSet::new));
 
         Set<String> camadas = conteineres.stream()
+                .filter(conteiner -> conteiner.getPosicao() != null)
                 .map(conteiner -> escapar(conteiner.getPosicao().getCamadaOperacional()))
                 .collect(Collectors.toCollection(TreeSet::new));
 
@@ -220,7 +223,10 @@ public class MapaPatioServico {
             try {
                 conteiner.setTipoCarga(TipoCargaConteiner.valueOf(
                         requisicaoDto.getTipoCarga().toUpperCase(Locale.ROOT)));
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(
+                        "Tipo de carga inválido: " + requisicaoDto.getTipoCarga());
+            }
         }
         conteiner.setDestino(requisicaoDto.getDestino());
         conteiner.setAtualizadoEm(requisicaoDto.gerarHorarioAtualizacao());
@@ -308,10 +314,11 @@ public class MapaPatioServico {
 
     private boolean filtrarConteiner(ConteinerPatio conteiner, MapaPatioFiltro filtro) {
         String tipoCarga = conteiner.getTipoCarga() != null ? conteiner.getTipoCarga().name() : null;
+        String camada = conteiner.getPosicao() != null ? conteiner.getPosicao().getCamadaOperacional() : null;
         return verificarFiltro(filtro.getStatus(), conteiner.getStatus().name())
                 && verificarFiltro(filtro.getTiposCarga(), tipoCarga)
                 && verificarFiltro(filtro.getDestinos(), conteiner.getDestino())
-                && verificarFiltro(filtro.getCamadasOperacionais(), conteiner.getPosicao().getCamadaOperacional());
+                && verificarFiltro(filtro.getCamadasOperacionais(), camada);
     }
 
     private boolean filtrarEquipamento(EquipamentoPatio equipamento, MapaPatioFiltro filtro) {

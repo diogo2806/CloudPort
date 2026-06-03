@@ -4,6 +4,7 @@ import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.PosicaoPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.util.YardDistanceCalculator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,8 +85,7 @@ public class MapaOcupacaoServico {
         int linhaGate = 0;
         int colunaGate = 0;
 
-        int distancia = Math.abs(pos.getLinha() - linhaGate) + Math.abs(pos.getColuna() - colunaGate);
-        return distancia;
+        return YardDistanceCalculator.manhattan(pos.getLinha(), pos.getColuna(), linhaGate, colunaGate);
     }
 
     private double[][] criarMatrizHeatmap(int linhas, int colunas) {

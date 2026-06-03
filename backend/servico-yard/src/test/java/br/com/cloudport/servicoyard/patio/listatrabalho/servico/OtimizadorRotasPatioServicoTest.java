@@ -64,7 +64,7 @@ public class OtimizadorRotasPatioServicoTest {
 
         double distancia = otimizadorServico.calcularDistancia(p1, p2);
 
-        assertEquals(5.0, distancia, 0.01);
+        assertEquals(7.0, distancia, 0.01);
     }
 
     @Test

@@ -100,6 +100,10 @@ public class OrdemTrabalhoPatio {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public ConteinerPatio getConteiner() {
         return conteiner;
     }

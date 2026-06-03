@@ -3,9 +3,8 @@ package br.com.cloudport.servicoyard.scheduler.servico;
 import br.com.cloudport.servicoyard.scheduler.dto.DualCycleJobDto;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import br.com.cloudport.servicoyard.patio.util.YardDistanceCalculator;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -104,7 +103,7 @@ public class DualCycleOptimizationService {
     }
 
     private Integer calcularDistancia(Integer l1, Integer c1, Integer l2, Integer c2) {
-        return Math.abs(l1 - l2) + Math.abs(c1 - c2);
+        return YardDistanceCalculator.manhattan(l1, c1, l2, c2);
     }
 
     private void removerContainersUsados(

@@ -3,8 +3,8 @@ package br.com.cloudport.servicoyard.patio.listatrabalho.servico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
-import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
+import br.com.cloudport.servicoyard.patio.util.YardDistanceCalculator;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -211,10 +211,12 @@ public class OtimizadorDualCyclingServico {
 
     private double calcularDistanciaRetorno(OrdemTrabalhoPatio ordemEntrada,
                                              OrdemTrabalhoPatio ordemSaida) {
-        int deltaLinha = ordemEntrada.getLinhaDestino() - ordemSaida.getLinhaDestino();
-        int deltaColuna = ordemEntrada.getColunaDestino() - ordemSaida.getColunaDestino();
-
-        return Math.sqrt(deltaLinha * deltaLinha + deltaColuna * deltaColuna);
+        return YardDistanceCalculator.manhattan(
+                ordemEntrada.getLinhaDestino(),
+                ordemEntrada.getColunaDestino(),
+                ordemSaida.getLinhaDestino(),
+                ordemSaida.getColunaDestino()
+        );
     }
 
     private double calcularPontucaoQualidade(OrdemTrabalhoPatio ordemEntrada,

@@ -3,9 +3,8 @@ package br.com.cloudport.servicoyard.patio.listatrabalho.servico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
-import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
-import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
+import br.com.cloudport.servicoyard.patio.util.YardDistanceCalculator;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -104,13 +103,13 @@ public class OtimizadorRotasPatioServico {
         return proximoIndice;
     }
 
-    private double calcularDistancia(PosicaoPatio p1, PosicaoPatio p2) {
-        if (p1 == null || p2 == null) {
-            return Double.MAX_VALUE;
-        }
-        int deltaLinha = p1.getLinha() - p2.getLinha();
-        int deltaColuna = p1.getColuna() - p2.getColuna();
-        return Math.sqrt(deltaLinha * deltaLinha + deltaColuna * deltaColuna);
+    double calcularDistancia(PosicaoPatio p1, PosicaoPatio p2) {
+        return YardDistanceCalculator.manhattan(
+                p1 != null ? p1.getLinha() : null,
+                p1 != null ? p1.getColuna() : null,
+                p2 != null ? p2.getLinha() : null,
+                p2 != null ? p2.getColuna() : null
+        );
     }
 
     private PosicaoPatio obterPosicaoAtual(OrdemTrabalhoPatio ordem) {

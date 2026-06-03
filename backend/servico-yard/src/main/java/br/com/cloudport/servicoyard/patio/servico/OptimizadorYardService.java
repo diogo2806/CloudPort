@@ -2,6 +2,8 @@ package br.com.cloudport.servicoyard.patio.servico;
 
 import br.com.cloudport.servicoyard.patio.dto.ContainerOtimizacaoDto;
 import br.com.cloudport.servicoyard.patio.dto.PosicaoOtimizadaDto;
+import br.com.cloudport.servicoyard.patio.util.YardConstants;
+import br.com.cloudport.servicoyard.patio.util.YardDistanceCalculator;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -12,7 +14,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class OptimizadorYardService {
 
-    private static final int ALTURA_MAXIMA_PADRAO = 4;
     private static final int LARGURA_GRID = 20;
     private static final int COMPRIMENTO_GRID = 20;
 
@@ -22,7 +23,8 @@ public class OptimizadorYardService {
         }
 
         List<ContainerOtimizacaoDto> containeresOrdenados = ordenarPorEta(conteineres);
-        BinPacker3D binPacker = new BinPacker3D(LARGURA_GRID, COMPRIMENTO_GRID, ALTURA_MAXIMA_PADRAO);
+        BinPacker3D binPacker = new BinPacker3D(
+                LARGURA_GRID, COMPRIMENTO_GRID, YardConstants.EMPILHAMENTO_MAXIMO);
 
         List<PosicaoOtimizadaDto> resultado = new ArrayList<>();
         int containerIndex = 0;
@@ -50,7 +52,8 @@ public class OptimizadorYardService {
         }
 
         List<ContainerOtimizacaoDto> containeresOrdenados = ordenarPorEta(conteineres);
-        BinPacker3D binPacker = new BinPacker3D(LARGURA_GRID, COMPRIMENTO_GRID, ALTURA_MAXIMA_PADRAO);
+        BinPacker3D binPacker = new BinPacker3D(
+                LARGURA_GRID, COMPRIMENTO_GRID, YardConstants.EMPILHAMENTO_MAXIMO);
 
         List<PosicaoOtimizadaDto> resultado = new ArrayList<>();
         int containerIndex = 0;
@@ -102,7 +105,7 @@ public class OptimizadorYardService {
         if (linha == null || coluna == null) {
             return Integer.MAX_VALUE;
         }
-        return linha + coluna;
+        return YardDistanceCalculator.fromOrigin(linha, coluna);
     }
 
     public static class BinPacker3D {
@@ -134,7 +137,7 @@ public class OptimizadorYardService {
 
             for (int col = 0; col < comprimento; col++) {
                 for (int lin = 0; lin < largura; lin++) {
-                    int distancia = lin + col;
+                    int distancia = YardDistanceCalculator.fromOrigin(lin, col);
 
                     if (distancia > distanciaMaxima) {
                         continue;

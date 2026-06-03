@@ -5,6 +5,7 @@ import br.com.cloudport.servicoyard.container.repositorio.ConteinerRepositorio;
 import br.com.cloudport.servicoyard.patio.dto.ConteinerPatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.util.YardConstants;
 import br.com.cloudport.servicoyard.recursos.entidade.BercoPortuario;
 import br.com.cloudport.servicoyard.recursos.repositorio.BercoPortuarioRepositorio;
 import java.math.BigDecimal;
@@ -17,9 +18,6 @@ public class ValidadorYardPlacementService {
     private final ConteinerRepositorio conteinerRepositorio;
     private final ConteinerPatioRepositorio conteinerPatioRepositorio;
     private final BercoPortuarioRepositorio bercoRepositorio;
-
-    private static final Integer ALTURA_MAXIMA_EMPILHAMENTO_PADRAO = 4;
-    private static final BigDecimal PESO_LIMITE_EMPILHAMENTO = new BigDecimal("20"); // toneladas
 
     public ValidadorYardPlacementService(ConteinerRepositorio conteinerRepositorio,
                                          ConteinerPatioRepositorio conteinerPatioRepositorio,
@@ -121,11 +119,11 @@ public class ValidadorYardPlacementService {
             return;
         }
 
-        if (camadaSolicitada > ALTURA_MAXIMA_EMPILHAMENTO_PADRAO) {
+        if (camadaSolicitada > YardConstants.EMPILHAMENTO_MAXIMO) {
             throw new IllegalArgumentException(
                     String.format(
                             "Altura de empilhamento máxima é %d níveis (solicitado: nível %d)",
-                            ALTURA_MAXIMA_EMPILHAMENTO_PADRAO, camadaSolicitada
+                            YardConstants.EMPILHAMENTO_MAXIMO, camadaSolicitada
                     )
             );
         }
@@ -142,7 +140,7 @@ public class ValidadorYardPlacementService {
             return;
         }
 
-        if (conteiner.getPesoToneladas().compareTo(PESO_LIMITE_EMPILHAMENTO) > 0) {
+        if (conteiner.getPesoToneladas().compareTo(YardConstants.PESO_LIMITE_EMPILHAMENTO) > 0) {
             Integer alturaMaximaParaPeso = calcularAlturaMaximaParaPeso(conteiner.getPesoToneladas());
             if (camadaSolicitada > alturaMaximaParaPeso) {
                 throw new IllegalArgumentException(
@@ -172,7 +170,7 @@ public class ValidadorYardPlacementService {
         boolean existeContainerProximo = conteinerPatioRepositorio.findAll().stream()
                 .anyMatch(c -> c.getPosicao() != null &&
                         c.getCarga() != null &&
-                        "PERIGOSO".equals(c.getCarga().getCodigo()) &&
+                        converterTipoCarga(c.getCarga().getCodigo()) == TipoCargaConteiner.PERIGOSO &&
                         Math.abs(c.getPosicao().getLinha() - linha) <= 1 &&
                         Math.abs(c.getPosicao().getColuna() - coluna) <= 1 &&
                         !(c.getPosicao().getLinha().equals(linha) &&
@@ -218,7 +216,7 @@ public class ValidadorYardPlacementService {
         } else if (pesoToneladas.compareTo(new BigDecimal("20")) >= 0) {
             return 2;
         } else {
-            return ALTURA_MAXIMA_EMPILHAMENTO_PADRAO;
+            return YardConstants.EMPILHAMENTO_MAXIMO;
         }
     }
 }

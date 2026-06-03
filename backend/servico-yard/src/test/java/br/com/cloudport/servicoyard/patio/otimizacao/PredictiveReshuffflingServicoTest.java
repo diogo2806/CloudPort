@@ -3,9 +3,11 @@ package br.com.cloudport.servicoyard.patio.otimizacao;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OrdemTrabalhoPatioServico;
 import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
 import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
@@ -28,6 +30,9 @@ public class PredictiveReshuffflingServicoTest {
     private OrdemTrabalhoPatioRepositorio ordemRepositorio;
 
     @Mock
+    private OrdemTrabalhoPatioServico ordemTrabalhoPatioServico;
+
+    @Mock
     private MapaOcupacaoServico mapaOcupacao;
 
     @InjectMocks
@@ -36,6 +41,7 @@ public class PredictiveReshuffflingServicoTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        lenient().when(ordemRepositorio.findAll()).thenReturn(new ArrayList<>());
     }
 
     @Test
@@ -45,8 +51,6 @@ public class PredictiveReshuffflingServicoTest {
 
         List<ConteinerPatio> conteineres = criarConteinersTest();
         when(conteinerRepositorio.findAll()).thenReturn(conteineres);
-        when(ordemRepositorio.findAll()).thenReturn(new ArrayList<>());
-
         var plano = predictiveReshuffling.analisarNecessidadeReshuffling();
 
         assertNotNull(plano);

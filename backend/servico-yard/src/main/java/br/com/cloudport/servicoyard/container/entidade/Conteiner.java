@@ -64,4 +64,8 @@ public class Conteiner {
     public void atualizarUltimaAtualizacao() {
         ultimaAtualizacao = OffsetDateTime.now(ZoneOffset.UTC);
     }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 }

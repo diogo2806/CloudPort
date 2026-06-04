@@ -644,14 +644,65 @@ function attachStageEvents() {
       render();
     } else if(S.mode==='move' && S.draggingPlaced!==null) {
       const h = HOLDS[S.hold];
+      // Move without pushing others: treat dragged coil as kinematic and prevent overlaps
+      const idx = S.draggingPlaced;
+      const coil = h.coils[idx];
+      if(!coil) return;
       if(S.viewMode==='front' || S.viewMode==='split') {
-        const m = px2m(pt.x, pt.y);
-        h.coils[S.draggingPlaced].x = m.x;
-        h.coils[S.draggingPlaced].y = m.y;
+      let m = px2m(pt.x, pt.y);
+      // prevent going below tanktop resting center
+      const ct = COILS.find(x=>x.id===coil.typeId);
+      const restY = ct.diam/2;
+      if(m.y < restY) m.y = restY;
+      // clamp laterally within porão walls (meters)
+      const minX = (S.geom.floorLeftX + ct.diam/2 * S.geom.scale - S.geom.floorLeftX) / S.geom.scale; // simplifies to ct.diam/2
+      const maxX = (S.geom.floorRightX - ct.diam/2 * S.geom.scale - S.geom.floorLeftX) / S.geom.scale;
+      m.x = Math.max(ct.diam/2, Math.min(h.width - ct.diam/2, m.x));
+      // avoid overlaps: if proposed pos overlaps another coil, push candidate away (do not move others)
+      const scale = S.geom.scale;
+      let ppx = m2px(m.x, m.y);
+        for(let i=0;i<h.coils.length;i++){
+          if(i===idx) continue;
+          const other = h.coils[i];
+          const op = m2px(other.x, other.y);
+          const ra = ct.diam/2 * scale;
+          const rb = COILS.find(x=>x.id===other.typeId).diam/2 * scale;
+          const dx = ppx.x - op.x, dy = ppx.y - op.y;
+          const d = Math.hypot(dx, dy) || 0.0001;
+          const minDist = ra + rb + 0.5;
+          if(d < minDist){
+            // move candidate along dx,dy to avoid overlap
+            const nx = dx / d, ny = dy / d;
+            const pushPx = (minDist - d);
+            ppx.x += nx * pushPx;
+            ppx.y += ny * pushPx;
+            // convert back to meters
+            const nxm = (ppx.x - S.geom.floorLeftX) / S.geom.scale;
+            const nym = (S.geom.tankTopY - ppx.y) / S.geom.scale;
+            m.x = nxm; m.y = nym;
+          }
+        }
+        // apply final candidate
+        coil.x = m.x; coil.y = m.y;
       } else {
+        // top view movement — prevent overlapping projected rectangles by simple rejection
         const m = px2mTop(pt.x, pt.y);
-        h.coils[S.draggingPlaced].x = Math.max(0, Math.min(h.width, m.x));
-        h.coils[S.draggingPlaced].z = Math.max(0, Math.min(h.length, m.z));
+        const nx = Math.max(0, Math.min(h.width, m.x));
+        const nz = Math.max(0, Math.min(h.length, m.z));
+        // check overlap; if overlap, ignore movement beyond overlap (simple)
+        const ct = COILS.find(x=>x.id===coil.typeId);
+        const wPx = ct.diam*S.geom.scale, hPx = ct.len*S.geom.scale;
+        const candPx = m2pxTop(nx, nz);
+        let ok = true;
+        for(let i=0;i<h.coils.length;i++){
+          if(i===idx) continue;
+          const other = h.coils[i];
+          const op = m2pxTop(other.x, (other.z!==undefined)?other.z:1);
+          const cw = COILS.find(x=>x.id===other.typeId).diam*S.geom.scale;
+          const ch = COILS.find(x=>x.id===other.typeId).len*S.geom.scale;
+          if(candPx.x < op.x+cw-4 && candPx.x+wPx > op.x+4 && candPx.y-hPx/2 < op.y+ch/2-4 && candPx.y+hPx/2 > op.y-ch/2+4){ ok = false; break; }
+        }
+        if(ok){ coil.x = nx; coil.z = nz; }
       }
       render();
     }
@@ -672,14 +723,64 @@ function attachStageEvents() {
     }
   });
 
-  svg.addEventListener('mouseup', () => { S.draggingPlaced = null; });
+  svg.addEventListener('mouseup', () => {
+    const idx = S.draggingPlaced;
+    if(idx !== null){
+      const h = HOLDS[S.hold];
+      const c = h && h.coils[idx];
+      if(c){
+        // before releasing, check overlap with other coils; if overlap, revert to original position
+        let hasOverlap = false;
+        const scale = S.geom.scale;
+        const thisPx = m2px(c.x, c.y);
+        const thisR = COILS.find(x=>x.id===c.typeId).diam/2 * scale;
+        for(let i=0;i<h.coils.length;i++){
+          if(i===idx) continue;
+          const o = h.coils[i];
+          const op = m2px(o.x, o.y);
+          const or = COILS.find(x=>x.id===o.typeId).diam/2 * scale;
+          if(Math.hypot(op.x - thisPx.x, op.y - thisPx.y) < (thisR + or - 0.1)) { hasOverlap = true; break; }
+        }
+        if(hasOverlap && c._origPos){
+          // revert to original safe position (do not move others)
+          c.x = c._origPos.x; c.y = c._origPos.y; c.z = c._origPos.z;
+          c.settled = !!c._origSettled;
+          c.vy = 0; c.vx = 0;
+        } else {
+          // allow physics to act on the released coil
+          c.kinematic = false;
+          // ensure not below floor
+          const ct = COILS.find(x=>x.id===c.typeId);
+          const restY = ct.diam/2;
+          if(c.y < restY) c.y = restY;
+          // mark dynamic so physics will settle it if unsupported
+          c.settled = false;
+          c.vy = 0;
+          startPhysics();
+        }
+        // cleanup temporary origin
+        delete c._origPos; delete c._origSettled;
+      }
+    }
+    S.draggingPlaced = null;
+  });
 }
 
 function reattachCoilEvents() {
   document.querySelectorAll('.placed-coil').forEach(g => {
     const idx = parseInt(g.dataset.idx);
     g.addEventListener('mousedown', e => {
-      if(S.mode==='move') { S.draggingPlaced = idx; e.stopPropagation(); }
+      if(S.mode==='move') {
+        S.draggingPlaced = idx;
+        const h = HOLDS[S.hold];
+        if(h && h.coils[idx]){
+          h.coils[idx].kinematic = true;
+          // store original position to allow revert if release causes overlap
+          h.coils[idx]._origPos = { x: h.coils[idx].x, y: h.coils[idx].y, z: h.coils[idx].z };
+          h.coils[idx]._origSettled = !!h.coils[idx].settled;
+        }
+        e.stopPropagation();
+      }
     });
     g.addEventListener('click', e => {
       if(S.mode==='delete') { removeCoil(idx); e.stopPropagation(); }
@@ -864,6 +965,7 @@ function placeCoilTop(centerM) {
   render();
   // ensure physics runs to let this coil fall/settle
   startPhysics();
+}
 
 function removeCoil(idx) {
   const c = HOLDS[S.hold].coils[idx];
@@ -929,7 +1031,8 @@ function simulatePhysics(ts) {
     const rPx = ct.diam/2 * scale;
     const restY = ct.diam / 2; // meters
 
-    if(c.settled) continue;
+    // skip settled or kinematic (being dragged) coils from physics integration
+    if(c.settled || c.kinematic) continue;
 
     c.vy = (c.vy || 0) + phys.g * dt;
     c.y = c.y - c.vy * dt; // y decreases as it falls toward tanktop
@@ -960,6 +1063,80 @@ function simulatePhysics(ts) {
       }
     }
     if(!landedOnSupport) anyMoving = true;
+  }
+
+  // collision resolution: prevent coils passing through each other (pairwise)
+  for(let i=0;i<h.coils.length;i++){
+    for(let j=i+1;j<h.coils.length;j++){
+      const a = h.coils[i], b = h.coils[j];
+      const pa = m2px(a.x, a.y), pb = m2px(b.x, b.y);
+      const ca = COILS.find(x=>x.id===a.typeId), cb = COILS.find(x=>x.id===b.typeId);
+      const ra = ca.diam/2 * scale, rb = cb.diam/2 * scale;
+      const dx = pb.x - pa.x, dy = pb.y - pa.y;
+      const d = Math.hypot(dx, dy);
+      if(d <= 0) continue;
+      const overlap = ra + rb - d;
+      if(overlap > 0.5){
+        // normalize vector from a -> b
+        const nx = dx / d, ny = dy / d;
+        // small slack
+        const pushPx = overlap + 0.5;
+        const aK = !!a.kinematic, bK = !!b.kinematic;
+        const aSettled = !!a.settled, bSettled = !!b.settled;
+        // If one is kinematic (being dragged), only move the kinematic one away (do not move others)
+        if(aK && !bK){
+          const dxm = (pushPx * nx) / scale; const dym = -(pushPx * ny) / scale;
+          a.x -= dxm; a.y -= dym;
+          a.vx = 0; a.vy = 0;
+          anyMoving = true; continue;
+        }
+        if(bK && !aK){
+          const dxm = (pushPx * nx) / scale; const dym = -(pushPx * ny) / scale;
+          b.x += dxm; b.y += dym;
+          b.vx = 0; b.vy = 0;
+          anyMoving = true; continue;
+        }
+        // If neither is kinematic, fallback to previous settled-aware correction
+        if(aSettled && !bSettled){
+          const dxm = (pushPx * nx) / scale; const dym = -(pushPx * ny) / scale;
+          b.x += dxm; b.y += dym;
+          b.vx = (b.vx || 0) * 0.6; b.vy = Math.max(0, b.vy || 0) * 0.4;
+        } else if(!aSettled && bSettled){
+          const dxm = (pushPx * nx) / scale; const dym = -(pushPx * ny) / scale;
+          a.x -= dxm; a.y -= dym;
+          a.vx = (a.vx || 0) * 0.6; a.vy = Math.max(0, a.vy || 0) * 0.4;
+        } else if(!aSettled && !bSettled){
+          const dxm = (pushPx * nx) / (2*scale); const dym = -(pushPx * ny) / (2*scale);
+          a.x -= dxm; a.y -= dym;
+          b.x += dxm; b.y += dym;
+          a.vx = (a.vx || 0) * 0.7; b.vx = (b.vx || 0) * 0.7;
+          a.vy = Math.max(0, a.vy || 0) * 0.6; b.vy = Math.max(0, b.vy || 0) * 0.6;
+        } else {
+          const dxm = (pushPx * nx) / (2*scale); const dym = -(pushPx * ny) / (2*scale);
+          a.x -= dxm; a.y -= dym;
+          b.x += dxm; b.y += dym;
+        }
+        anyMoving = true;
+      }
+    }
+  }
+
+  // enforce porão boundaries: no coil center can go beyond walls or below tanktop
+  for(const c of h.coils){
+    const ct = COILS.find(x=>x.id===c.typeId);
+    const rpx = ct.diam/2 * scale;
+    // lateral clamps in px
+    const pxPos = m2px(c.x, c.y);
+    if(pxPos.x - rpx < S.geom.floorLeftX){
+      pxPos.x = S.geom.floorLeftX + rpx; c.x = (pxPos.x - S.geom.floorLeftX) / scale; anyMoving = true;
+      c.vx = 0;
+    }
+    if(pxPos.x + rpx > S.geom.floorRightX){
+      pxPos.x = S.geom.floorRightX - rpx; c.x = (pxPos.x - S.geom.floorLeftX) / scale; anyMoving = true;
+      c.vx = 0;
+    }
+    // floor clamp
+    if(c.y < ct.diam/2){ c.y = ct.diam/2; c.vy = 0; c.settled = true; anyMoving = true; }
   }
 
   if(anyMoving) render();

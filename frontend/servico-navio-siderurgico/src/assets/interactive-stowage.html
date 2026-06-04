@@ -708,9 +708,19 @@ function attachStageEvents() {
       if(S.viewMode==='front' || S.viewMode==='split') {
         const snapped = snapPosition(pt.x, pt.y);
         if(snapped.valid) placeCoil(snapped.posM, snapped.isKey);
+        else {
+          const ct = COILS.find(x=>x.id===S.selectedCoilType);
+          const reason = explainInvalidPlacement(snapped.pos.x, snapped.pos.y, ct);
+          console.info('placement blocked (front)', {posPx: snapped.pos, posM: snapped.posM, reason});
+        }
       } else {
         const snapped = snapPositionTop(pt.x, pt.y);
         if(snapped.valid) placeCoilTop(snapped.posM);
+        else {
+          const ct = COILS.find(x=>x.id===S.selectedCoilType);
+          const reason = explainInvalidPlacementTop(snapped.pos.x, snapped.pos.y, ct);
+          console.info('placement blocked (top)', {posPx: snapped.pos, posM: snapped.posM, reason});
+        }
       }
     }
   });
@@ -886,6 +896,7 @@ function checkValidPlacement(cx, cy, r, ct) {
 }
 
 function placeCoil(posM, isKey) {
+  console.debug('placeCoil called', {posM, isKey, selected: S.selectedCoilType});
   const ct = COILS.find(x=>x.id===S.selectedCoilType);
   if(ct.stock<=0) return;
   // Choose a fixed fore-aft (z) band for successive placements from the front view
@@ -943,6 +954,7 @@ function snapPositionTop(px, py) {
 }
 
 function placeCoilTop(centerM) {
+  console.debug('placeCoilTop called', {centerM, selected: S.selectedCoilType});
   const ct = COILS.find(x=>x.id===S.selectedCoilType);
   if(ct.stock<=0) return;
   // z stored as bow-edge (left) position in meters
@@ -957,6 +969,40 @@ function placeCoilTop(centerM) {
   render();
   // ensure physics runs to let this coil fall/settle
   startPhysics();
+}
+
+// Explain why a candidate placement (front view px coords) is invalid
+function explainInvalidPlacement(cx, cy, ct){
+  const g = S.geom; const h = HOLDS[S.hold]; const r = ct.diam/2 * g.scale;
+  if(cx - r < g.floorLeftX - 2 || cx + r > g.floorRightX + 2) return 'out-of-walls';
+  if(cy - r < g.oy) return 'above-top-boundary';
+  for(let i=0;i<h.coils.length;i++){
+    const c = h.coils[i];
+    const p = m2px(c.x,c.y);
+    const cr = COILS.find(x=>x.id===c.typeId).diam/2*g.scale;
+    const dist = Math.hypot(p.x-cx, p.y-cy);
+    if(dist < (r+cr)*0.82) return 'overlap-with-coil-'+i;
+  }
+  return 'unknown';
+}
+
+// Explain why a candidate placement (top view leftX, topY px coords) is invalid
+function explainInvalidPlacementTop(leftX, topY, ct){
+  const g = S.geom; const h = HOLDS[S.hold]; const wPx = ct.diam*g.scale, hPx = ct.len*g.scale;
+  // clamp within hull
+  if(leftX < g.ox + g.bowInset || leftX + wPx > g.ox + g.holdL) return 'out-of-hull';
+  if(topY - hPx/2 < g.oy || topY + hPx/2 > g.oy + g.holdB) return 'out-of-hull-v';
+  for(let i=0;i<h.coils.length;i++){
+    const c = h.coils[i];
+    const cct = COILS.find(x=>x.id===c.typeId);
+    const cz = (c.z!==undefined)?c.z:1;
+    const cp = m2pxTop(c.x, cz);
+    const cw = cct.diam*g.scale, chh = cct.len*g.scale;
+    if(leftX < cp.x+cw-4 && leftX+wPx > cp.x+4 && topY-hPx/2 < cp.y+chh/2-4 && topY+hPx/2 > cp.y-chh/2+4){
+      return 'overlap-top-with-coil-'+i;
+    }
+  }
+  return 'unknown';
 }
 
 function removeCoil(idx) {
@@ -1027,9 +1073,14 @@ function simulatePhysics(ts) {
     if(c.settled || c.kinematic) continue;
 
     c.vy = (c.vy || 0) + phys.g * dt;
+    // integrate horizontal velocity (roll/slide)
+    c.vx = c.vx || 0;
+    c.x += c.vx * dt;
+    // apply light horizontal damping
+    c.vx *= 0.995;
     c.y = c.y - c.vy * dt; // y decreases as it falls toward tanktop
 
-    // recompute px position
+    // recompute px position after horizontal move
     const p = m2px(c.x, c.y);
 
     // hit tanktop?
@@ -1040,6 +1091,7 @@ function simulatePhysics(ts) {
     // check simple support by any settled coil under current x (approximate)
     const supports = placed.filter(x=>x.settled && x.i !== i);
     let landedOnSupport = false;
+    const nearbySupports = [];
     for(const s of supports){
       const dx = p.x - s.p.x;
       const d = Math.abs(dx);
@@ -1050,11 +1102,76 @@ function simulatePhysics(ts) {
         const supportYpx = s.p.y - heightPx;
         const supportYm = (S.geom.tankTopY - supportYpx) / scale;
         if(c.y <= supportYm + 0.001){
-          c.y = supportYm; c.vy = 0; c.settled = true; landedOnSupport = true; anyMoving = true; break;
+          nearbySupports.push({s, supportYm, sPx: s.p.x});
         }
       }
     }
-    if(!landedOnSupport) anyMoving = true;
+    if(nearbySupports.length > 0){
+      // choose the closest support height to land on
+      nearbySupports.sort((a,b)=>a.supportYm - b.supportYm);
+      const sup = nearbySupports[0];
+      c.y = sup.supportYm; c.vy = 0; landedOnSupport = true; anyMoving = true;
+
+      // if landed on two supports (or more), apply small lateral impulse towards the lower side to roll
+      if(nearbySupports.length >= 2){
+        // find leftmost and rightmost supports
+        nearbySupports.sort((a,b)=>a.sPx - b.sPx);
+        const left = nearbySupports[0], right = nearbySupports[nearbySupports.length-1];
+        // roll toward the support with smaller supportYm (closer to floor)
+        let dir = 0;
+        if(left.supportYm < right.supportYm) dir = -1; else if(right.supportYm < left.supportYm) dir = 1;
+        // do not roll if it's already touching the floor
+        if(dir !== 0 && c.y > restY + 0.0005){
+          // ensure the target support is actually lower than the current landing support
+          const currentSupportYm = sup.supportYm;
+          const targetSupport = (dir === -1) ? left : right;
+          if(!(targetSupport.supportYm + 0.0005 < currentSupportYm)){
+            dir = 0; // target is not lower than current support -> block upward roll
+          }
+          
+        
+          // ensure rolling only moves downward (towards the lower support)
+          // check immediate space in px to avoid colliding into a neighbor
+          const lookaheadPx = p.x + dir * (rPx + 2);
+          let blocked = false;
+          for(const s of placed){
+            if(s.i === i) continue;
+            if(!s.settled) continue;
+            // if there's a settled coil occupying the lookahead spot (rough check), block roll
+            const dx2 = Math.abs(s.p.x - lookaheadPx);
+            if(dx2 < (rPx + s.r - 1)){
+              // also ensure vertical overlap (only block if neighbor is at same or higher vertical position)
+              if(s.p.y <= p.y + 1){ blocked = true; break; }
+            }
+          }
+          if(!blocked){
+            // sample a small step toward the candidate direction and ensure the landing support
+            // at that position would be lower than the current landing support (avoid rolling up)
+            const sampleDxPx = Math.max(4, rPx * 0.6);
+            const samplePxX = p.x + dir * sampleDxPx;
+            let sampleSupportYm = Infinity;
+            for(const s2 of placed){
+              const dxs = samplePxX - s2.p.x;
+              const ds = Math.abs(dxs);
+              const ra2 = s2.r + rPx;
+              if(ds < ra2 - 0.5){
+                const heightPx2 = Math.sqrt(Math.max(0, ra2*ra2 - ds*ds));
+                const supportYpx2 = s2.p.y - heightPx2;
+                const supportYm2 = (S.geom.tankTopY - supportYpx2) / scale;
+                if(supportYm2 < sampleSupportYm) sampleSupportYm = supportYm2;
+              }
+            }
+            if(sampleSupportYm !== Infinity && sampleSupportYm + 0.0005 < currentSupportYm){
+              const rollSpeed = 0.25; // m/s
+              c.vx = dir * rollSpeed;
+              c.settled = false; // allow it to roll
+            }
+          }
+        }
+      }
+    } else {
+      if(!landedOnSupport) anyMoving = true;
+    }
   }
 
   // collision resolution: prevent coils passing through each other (pairwise)

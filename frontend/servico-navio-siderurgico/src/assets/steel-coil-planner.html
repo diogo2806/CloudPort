@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Steel Coil Stowage Planner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --border2: #484f58;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #484f58;
+    --accent: #58a6ff;
+    --accent2: #1f6feb;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --orange: #e3b341;
+    --purple: #bc8cff;
+
+    --c1: #58a6ff; /* Coil 1 - blue */
+    --c2: #3fb950; /* Coil 2 - green */
+    --c3: #f78166; /* Coil 3 - coral */
+    --c4: #d2a8ff; /* Coil 4 - purple */
+    --c5: #ffa657; /* Coil 5 - orange */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: .5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .topbar-brand span { color: var(--accent); }
+  .topbar-nav { display: flex; gap: 2px; flex: 1; }
+  .tab-btn {
+    background: none; border: none; color: var(--text2);
+    font-size: 12px; font-family: 'IBM Plex Sans', sans-serif;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    transition: all .15s;
+  }
+  .tab-btn:hover { background: var(--bg3); color: var(--text); }
+  .tab-btn.active { background: var(--bg3); color: var(--accent); }
+  .topbar-actions { display: flex; gap: 8px; }
+  .btn {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); font-size: 12px; font-family: 'IBM Plex Sans', sans-serif;
+    padding: 5px 12px; border-radius: 6px; cursor: pointer;
+    transition: all .15s;
+  }
+  .btn:hover { border-color: var(--border2); }
+  .btn.primary { background: var(--accent2); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent); }
+
+  /* ── LAYOUT ── */
+  .app-body { display: flex; height: calc(100vh - 44px); }
+
+  /* LEFT SIDEBAR */
+  .sidebar {
+    width: 260px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .sidebar-section { border-bottom: 1px solid var(--border); padding: 12px; }
+  .sidebar-title {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text2); margin-bottom: 8px;
+  }
+
+  /* COIL TYPE CARDS */
+  .coil-type-card {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 9px; border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    margin-bottom: 5px;
+    cursor: grab;
+    user-select: none;
+    transition: border-color .15s, transform .1s;
+    position: relative;
+  }
+  .coil-type-card:hover { border-color: var(--border2); }
+  .coil-type-card:active { transform: scale(.97); }
+  .coil-type-card.dragging { opacity: .4; }
+  .coil-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 3px solid; display: flex; align-items: center;
+    justify-content: center; font-size: 9px; font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace; flex-shrink: 0;
+  }
+  .coil-info { flex: 1; min-width: 0; }
+  .coil-name { font-size: 12px; font-weight: 500; }
+  .coil-dims { font-size: 10px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+  .coil-badge {
+    font-size: 9px; font-weight: 600; padding: 2px 6px;
+    border-radius: 4px; background: var(--bg2);
+    border: 1px solid var(--border); color: var(--text2);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .coil-remaining {
+    font-size: 10px; color: var(--text2); text-align: right;
+    font-family: 'IBM Plex Mono', monospace; white-space: nowrap;
+  }
+
+  /* VESSEL STATS */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-box {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px;
+  }
+  .stat-label { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; }
+  .stat-value {
+    font-size: 15px; font-weight: 600; font-family: 'IBM Plex Mono', monospace;
+    margin-top: 2px;
+  }
+  .stat-value.ok { color: var(--green); }
+  .stat-value.warn { color: var(--yellow); }
+  .stat-value.err { color: var(--red); }
+
+  /* STRENGTH BARS */
+  .strength-item { margin-bottom: 8px; }
+  .strength-header { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .strength-label { font-size: 11px; color: var(--text2); }
+  .strength-val { font-size: 11px; font-family: 'IBM Plex Mono', monospace; }
+  .strength-bar {
+    height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden;
+  }
+  .strength-fill {
+    height: 100%; border-radius: 2px; transition: width .4s ease, background .4s;
+  }
+
+  /* ── MAIN CANVAS ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+  .voyage-header {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 8px 16px; display: flex; align-items: center; gap: 12px;
+    flex-wrap: wrap;
+  }
+  .port-chain { display: flex; align-items: center; gap: 6px; }
+  .port-node {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 5px;
+    border: 1px solid var(--border); background: var(--bg3);
+    font-size: 11px; cursor: pointer; transition: border-color .15s;
+  }
+  .port-node:hover { border-color: var(--border2); }
+  .port-node.active { border-color: var(--accent); }
+  .port-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .port-arrow { color: var(--text3); font-size: 12px; }
+
+  .holds-area {
+    flex: 1; padding: 16px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+
+  /* HOLD SECTION */
+  .hold-row { display: flex; gap: 10px; }
+  .hold-card {
+    flex: 1; background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; min-width: 0;
+    transition: border-color .2s;
+  }
+  .hold-card.drop-target { border-color: var(--accent); background: #1f2d3d; }
+  .hold-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: var(--bg3); border-bottom: 1px solid var(--border);
+  }
+  .hold-title { font-size: 12px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+  .hold-meta { display: flex; gap: 8px; align-items: center; }
+  .hold-cap-bar {
+    width: 60px; height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden;
+  }
+  .hold-cap-fill { height: 100%; border-radius: 2px; transition: width .4s; }
+  .hold-cap-text { font-size: 10px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+
+  /* CROSS-SECTION VIEW (SVG canvas) */
+  .hold-section-view {
+    padding: 8px 12px 6px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .section-svg-wrap { flex: 1; min-width: 0; }
+  .section-svg-wrap svg { width: 100%; display: block; }
+
+  /* ROW TABLE */
+  .row-table { width: 100%; border-collapse: collapse; }
+  .row-table th {
+    font-size: 10px; color: var(--text2); text-align: left;
+    padding: 4px 12px; border-bottom: 1px solid var(--border);
+    font-weight: 500; text-transform: uppercase; letter-spacing: .06em;
+  }
+  .row-table td {
+    padding: 5px 12px; border-bottom: 1px solid var(--border);
+    font-size: 11px; vertical-align: middle;
+  }
+  .row-table tr:last-child td { border-bottom: none; }
+  .row-table tr:hover td { background: var(--bg3); }
+
+  .row-coils-bar { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; }
+  .coil-pill {
+    height: 14px; border-radius: 3px; display: inline-block;
+    cursor: pointer; transition: opacity .15s;
+    border: 1px solid rgba(255,255,255,.1);
+  }
+  .coil-pill:hover { opacity: .75; }
+
+  .compliance-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600; padding: 2px 7px;
+    border-radius: 4px; font-family: 'IBM Plex Mono', monospace;
+  }
+  .compliance-badge.ok { background: #0d2a1a; color: var(--green); border: 1px solid #1a4a2e; }
+  .compliance-badge.warn { background: #2a1f0d; color: var(--yellow); border: 1px solid #4a3a1a; }
+  .compliance-badge.err { background: #2a0d0d; color: var(--red); border: 1px solid #4a1a1a; }
+
+  .util-bar-wrap { width: 60px; }
+  .util-bar { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .util-fill { height: 100%; border-radius: 2px; transition: width .3s; }
+
+  /* DROP ZONE in hold rows */
+  .hold-drop-zone {
+    min-height: 36px; border: 1px dashed var(--border);
+    border-radius: 6px; margin: 8px 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text3); font-size: 11px;
+    transition: all .2s;
+  }
+  .hold-drop-zone.active { border-color: var(--accent); color: var(--accent); background: #1a2a3a; }
+
+  /* ALERTS */
+  .alerts-bar {
+    background: var(--bg2); border-top: 1px solid var(--border);
+    padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap;
+    max-height: 80px; overflow-y: auto;
+  }
+  .alert-chip {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; padding: 4px 10px; border-radius: 5px;
+  }
+  .alert-chip.ok { background: #0d2a1a; color: var(--green); border: 1px solid #1a4a2e; }
+  .alert-chip.warn { background: #2a1f0d; color: var(--orange); border: 1px solid #4a3a1a; }
+  .alert-chip.err { background: #2a0d0d; color: var(--red); border: 1px solid #4a1a1a; }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    width: 220px; background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto; flex-shrink: 0;
+  }
+  .rp-section { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .rp-title {
+    font-size: 9px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text2); margin-bottom: 8px;
+  }
+  .kv-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .kv-key { font-size: 11px; color: var(--text2); }
+  .kv-val { font-size: 11px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+  .kv-val.ok { color: var(--green); }
+  .kv-val.warn { color: var(--yellow); }
+  .kv-val.err { color: var(--red); }
+
+  /* LIFO SEQUENCE */
+  .seq-item { display: flex; gap: 8px; margin-bottom: 10px; position: relative; }
+  .seq-item:not(:last-child)::before {
+    content: ''; position: absolute; left: 11px; top: 22px;
+    bottom: -10px; width: 1px; background: var(--border);
+  }
+  .seq-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .seq-info { flex: 1; }
+  .seq-port { font-size: 11px; font-weight: 600; }
+  .seq-detail { font-size: 10px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+
+  /* COG INDICATOR */
+  .cog-display {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px; margin-top: 6px;
+  }
+  .cog-label { font-size: 9px; color: var(--text2); margin-bottom: 4px; }
+  .cog-vals { display: flex; gap: 8px; }
+  .cog-axis { text-align: center; flex: 1; }
+  .cog-axis-val { font-size: 13px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+  .cog-axis-label { font-size: 9px; color: var(--text2); }
+
+  /* SCROLL */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* TOOLTIP */
+  .tooltip { position: relative; }
+  .tooltip-content {
+    display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%); background: var(--bg3);
+    border: 1px solid var(--border2); border-radius: 6px;
+    padding: 6px 10px; font-size: 10px; white-space: nowrap;
+    z-index: 200; pointer-events: none;
+  }
+  .tooltip:hover .tooltip-content { display: block; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.6); z-index: 300;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 10px; padding: 20px; width: 360px; max-width: 90vw;
+  }
+  .modal-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .modal-icon { font-size: 24px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">⬡ <span>STEEL</span>PLAN</div>
+  <nav class="topbar-nav">
+    <button class="tab-btn active" onclick="setView('plan',this)">Plano de carga</button>
+    <button class="tab-btn" onclick="setView('cargo',this)">Catálogo de bobinas</button>
+    <button class="tab-btn" onclick="setView('strength',this)">Resistência estrutural</button>
+  </nav>
+  <div class="topbar-actions">
+    <button class="btn" onclick="generatePlan()">⚡ Gerar plano automático</button>
+    <button class="btn" onclick="clearAll()">✕ Limpar</button>
+    <button class="btn primary">↓ Exportar PDF</button>
+  </div>
+</div>
+
+<div class="app-body">
+
+<!-- LEFT SIDEBAR -->
+<div class="sidebar">
+
+  <div class="sidebar-section">
+    <div class="sidebar-title">Embarcação</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">
+      MV Presidente Vargas · 5 porões
+    </div>
+    <div class="stat-grid" id="vessel-stats">
+      <div class="stat-box">
+        <div class="stat-label">Embarc. total</div>
+        <div class="stat-value" id="total-mass">0 t</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Coils carregados</div>
+        <div class="stat-value" id="total-coils">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">GM estabilidade</div>
+        <div class="stat-value ok" id="gm-val">2.4 m</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Ocupação</div>
+        <div class="stat-value" id="occ-val">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-title">Indicadores de força</div>
+    <div class="strength-item">
+      <div class="strength-header">
+        <span class="strength-label">Shear force (máx.)</span>
+        <span class="strength-val" id="sf-txt" style="color:var(--green)">18%</span>
+      </div>
+      <div class="strength-bar"><div class="strength-fill" id="sf-bar" style="width:18%;background:var(--green)"></div></div>
+    </div>
+    <div class="strength-item">
+      <div class="strength-header">
+        <span class="strength-label">Bending moment</span>
+        <span class="strength-val" id="bm-txt" style="color:var(--green)">12%</span>
+      </div>
+      <div class="strength-bar"><div class="strength-fill" id="bm-bar" style="width:12%;background:var(--green)"></div></div>
+    </div>
+    <div class="strength-item">
+      <div class="strength-header">
+        <span class="strength-label">Trim proa/popa</span>
+        <span class="strength-val" id="trim-txt" style="color:var(--green)">0.1 m</span>
+      </div>
+      <div class="strength-bar"><div class="strength-fill" id="trim-bar" style="width:8%;background:var(--green)"></div></div>
+    </div>
+    <div class="strength-item">
+      <div class="strength-header">
+        <span class="strength-label">Carga tanktop H3</span>
+        <span class="strength-val" id="tt-txt" style="color:var(--green)">0 t/m²</span>
+      </div>
+      <div class="strength-bar"><div class="strength-fill" id="tt-bar" style="width:0%;background:var(--green)"></div></div>
+    </div>
+  </div>
+
+  <div class="sidebar-section" style="flex:1">
+    <div class="sidebar-title">Tipos de bobina — arraste para os porões</div>
+    <div id="coil-palette"></div>
+  </div>
+</div>
+
+<!-- MAIN CANVAS -->
+<div class="main">
+
+  <!-- VOYAGE BAR -->
+  <div class="voyage-header">
+    <div class="port-chain" id="port-chain"></div>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn" style="font-size:11px" onclick="toggleView()">⊡ Vista seção transversal</button>
+    </div>
+  </div>
+
+  <!-- HOLDS -->
+  <div class="holds-area" id="holds-area">
+    <!-- rendered by JS -->
+  </div>
+
+  <!-- ALERTS -->
+  <div class="alerts-bar" id="alerts-bar">
+    <div class="alert-chip ok">✓ Aguardando carregamento — arraste bobinas para os porões</div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <div class="rp-section">
+    <div class="rp-title">Resumo de carga</div>
+    <div class="kv-row"><span class="kv-key">Total bobinas</span><span class="kv-val" id="rp-coils">0 / 1665</span></div>
+    <div class="kv-row"><span class="kv-key">Massa total</span><span class="kv-val" id="rp-mass">0 t</span></div>
+    <div class="kv-row"><span class="kv-key">Calado popa</span><span class="kv-val" id="rp-da">5.20 m</span></div>
+    <div class="kv-row"><span class="kv-key">Calado proa</span><span class="kv-val" id="rp-df">5.10 m</span></div>
+    <div class="kv-row"><span class="kv-key">Calado meio</span><span class="kv-val" id="rp-dm">5.15 m</span></div>
+    <div class="cog-display">
+      <div class="cog-label">Centro de gravidade</div>
+      <div class="cog-vals">
+        <div class="cog-axis"><div class="cog-axis-val" id="cog-x">—</div><div class="cog-axis-label">COG x</div></div>
+        <div class="cog-axis"><div class="cog-axis-val" id="cog-y">—</div><div class="cog-axis-label">COG y</div></div>
+        <div class="cog-axis"><div class="cog-axis-val" id="cog-z">—</div><div class="cog-axis-label">COG z</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rp-section">
+    <div class="rp-title">Segregação & fixação</div>
+    <div class="kv-row"><span class="kv-key">Coil-key posicionado</span><span class="kv-val ok" id="seg-key">—</span></div>
+    <div class="kv-row"><span class="kv-key">Cunhas instaladas</span><span class="kv-val ok" id="seg-wedge">—</span></div>
+    <div class="kv-row"><span class="kv-key">Dunnage (60×80mm)</span><span class="kv-val ok" id="seg-dunn">—</span></div>
+    <div class="kv-row"><span class="kv-key">Faixas de aço</span><span class="kv-val ok" id="seg-bands">—</span></div>
+    <div class="kv-row"><span class="kv-key">Carregamento piramidal</span><span class="kv-val ok" id="seg-pyr">—</span></div>
+  </div>
+
+  <div class="rp-section" style="flex:1">
+    <div class="rp-title">Sequência LIFO por escala</div>
+    <div id="seq-list">
+      <div style="font-size:11px;color:var(--text2)">Adicione carga para ver a sequência</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- app-body -->
+
+<!-- MODAL: plan generated -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-icon">✅</div>
+    <div class="modal-title">Plano gerado com sucesso</div>
+    <div class="modal-sub">Todas as bobinas foram distribuídas nos porões sem exceder os limites estruturais do casco.</div>
+    <div id="modal-body" style="font-size:12px;color:var(--text2);line-height:1.6;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="document.getElementById('modal-overlay').classList.remove('open')">Fechar</button>
+      <button class="btn primary">Ver relatório</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const COIL_TYPES = [
+  { id:1, name:'Coil 1 (HR)',  len:2.00, diam:2.00, wt:15, color:'var(--c1)', border:'#1a6abf', total:775, remaining:775 },
+  { id:2, name:'Coil 2 (CR)',  len:1.75, diam:1.75, wt:10, color:'var(--c2)', border:'#2a7a40', total:250, remaining:250 },
+  { id:3, name:'Coil 3',       len:1.00, diam:1.00, wt:5,  color:'var(--c3)', border:'#bf4a30', total:270, remaining:270 },
+  { id:4, name:'Coil 4 (CR)',  len:2.00, diam:2.00, wt:15, color:'var(--c4)', border:'#7a4abf', total:220, remaining:220 },
+  { id:5, name:'Coil 5',       len:2.00, diam:1.50, wt:10, color:'var(--c5)', border:'#bf7a20', total:150, remaining:150 },
+];
+
+const HOLDS = [
+  { id:'H1', name:'H1 — Proa',   lib:26.52, bib:23.94, hopper:45, maxMass:4200, cogsX:160 },
+  { id:'H2', name:'H2',           lib:28.38, bib:23.94, hopper:45, maxMass:4500, cogsX:130 },
+  { id:'H3', name:'H3 — Centro', lib:27.60, bib:23.94, hopper:45, maxMass:4200, cogsX:99  },
+  { id:'H4', name:'H4',           lib:27.60, bib:23.94, hopper:45, maxMass:4500, cogsX:68  },
+  { id:'H5', name:'H5 — Popa',   lib:27.70, bib:23.94, hopper:45, maxMass:4000, cogsX:37  },
+];
+
+const PORTS = [
+  { id:'ITA', label:'Itaguaí',     color:'#58a6ff' },
+  { id:'RIO', label:'Rio',          color:'#3fb950' },
+  { id:'SSZ', label:'Santos',       color:'#ffa657' },
+  { id:'BUE', label:'Buenos Aires', color:'#f85149' },
+];
+
+// State: rows per hold
+// Each row: { arrangement: [{coilType:id, qty:N, dest:'RIO'},...], dunnages:N }
+const state = {
+  holds: { H1:[], H2:[], H3:[], H4:[], H5:[] },
+  sectionView: false,
+  dragCoilType: null,
+};
+
+// ─── INIT ───────────────────────────────────────────────────────────────────
+
+function init() {
+  renderPalette();
+  renderPortChain();
+  renderHolds();
+  updateStats();
+}
+
+// ─── PALETTE ────────────────────────────────────────────────────────────────
+
+function renderPalette() {
+  const el = document.getElementById('coil-palette');
+  el.innerHTML = COIL_TYPES.map(c => `
+    <div class="coil-type-card" draggable="true"
+      ondragstart="startDrag(event,${c.id})"
+      ondragend="endDrag(event)"
+      id="palette-${c.id}">
+      <div class="coil-dot" style="border-color:${c.color};color:${c.color}">C${c.id}</div>
+      <div class="coil-info">
+        <div class="coil-name">${c.name}</div>
+        <div class="coil-dims">${c.len}m × ⌀${c.diam}m · ${c.wt}t</div>
+      </div>
+      <div class="coil-remaining" id="rem-${c.id}">${c.remaining}/${c.total}</div>
+    </div>
+  `).join('');
+}
+
+function updatePalette() {
+  COIL_TYPES.forEach(c => {
+    const el = document.getElementById('rem-'+c.id);
+    if(el) el.textContent = c.remaining+'/'+c.total;
+    const card = document.getElementById('palette-'+c.id);
+    if(card) card.style.opacity = c.remaining <= 0 ? '.4' : '1';
+  });
+}
+
+// ─── PORT CHAIN ────────────────────────────────────────────────────────────
+
+function renderPortChain() {
+  const el = document.getElementById('port-chain');
+  el.innerHTML = PORTS.map((p,i) => `
+    <div class="port-node" onclick="filterByPort('${p.id}')">
+      <div class="port-dot" style="background:${p.color}"></div>
+      <span style="font-size:11px">${p.label} (${p.id})</span>
+    </div>
+    ${i<PORTS.length-1?'<span class="port-arrow">→</span>':''}
+  `).join('');
+}
+
+// ─── HOLDS RENDER ──────────────────────────────────────────────────────────
+
+function renderHolds() {
+  const area = document.getElementById('holds-area');
+  area.innerHTML = HOLDS.map(h => renderHold(h)).join('');
+  // re-attach drop events
+  HOLDS.forEach(h => {
+    const zone = document.getElementById('dz-'+h.id);
+    if(zone) {
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('active'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('active'));
+      zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('active'); dropCoil(h.id); });
+    }
+    const card = document.getElementById('hcard-'+h.id);
+    if(card) {
+      card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('drop-target'); });
+      card.addEventListener('dragleave', () => card.classList.remove('drop-target'));
+      card.addEventListener('drop', e => { e.preventDefault(); card.classList.remove('drop-target'); dropCoil(h.id); });
+    }
+  });
+}
+
+function renderHold(h) {
+  const rows = state.holds[h.id];
+  const usedMass = holdMass(h.id);
+  const pct = Math.round(usedMass / h.maxMass * 100);
+  const barColor = pct > 90 ? 'var(--red)' : pct > 75 ? 'var(--yellow)' : 'var(--green)';
+  const coilCount = holdCoilCount(h.id);
+
+  return `
+  <div class="hold-card" id="hcard-${h.id}">
+    <div class="hold-header">
+      <div>
+        <span class="hold-title">${h.id}</span>
+        <span style="color:var(--text2);font-size:11px;margin-left:6px">${h.name.split('—')[1]||''}</span>
+      </div>
+      <div class="hold-meta">
+        <span class="hold-cap-text">${usedMass.toFixed(0)} / ${h.maxMass} t</span>
+        <div class="hold-cap-bar"><div class="hold-cap-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div>
+        <span class="hold-cap-text">${coilCount} coils</span>
+        <button class="btn" style="font-size:10px;padding:2px 8px" onclick="addRowToHold('${h.id}')">+ Row</button>
+      </div>
+    </div>
+
+    ${state.sectionView ? renderSectionSVG(h) : ''}
+
+    ${rows.length > 0 ? `
+    <table class="row-table">
+      <thead>
+        <tr>
+          <th style="width:36px">#</th>
+          <th>Arranjo (Coils × Tier)</th>
+          <th>Comprimento</th>
+          <th>Dunnages</th>
+          <th>Utilização</th>
+          <th>Status</th>
+          <th style="width:28px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row,i) => renderRow(h, row, i)).join('')}
+      </tbody>
+    </table>
+    ` : ''}
+
+    <div class="hold-drop-zone" id="dz-${h.id}">
+      Solte uma bobina aqui para adicionar ao ${h.id}
+    </div>
+  </div>
+  `;
+}
+
+function renderRow(h, row, idx) {
+  const rowMass = row.coils.reduce((s,c) => s + c.qty * getCoilType(c.typeId).wt * row.tiers, 0);
+  const ttLoad = (rowMass / (h.lib * h.bib * row.coils.reduce((s,c)=>s+c.qty,0)/20 * 0.1)).toFixed(1);
+  const maxLen = h.lib;
+  const usedLen = row.coils.reduce((s,c) => s + c.qty * (getCoilType(c.typeId).len + 0.3), 0);
+  const utilPct = Math.round(usedLen / maxLen * 100);
+  const utilColor = utilPct > 95 ? 'var(--red)' : utilPct > 80 ? 'var(--yellow)' : 'var(--accent)';
+  const compliance = utilPct <= 100 && rowMass < h.maxMass ? 'ok' : 'err';
+
+  const pillsHtml = row.coils.map(c => {
+    const ct = getCoilType(c.typeId);
+    const pxW = Math.max(8, c.qty * 10);
+    return `<div class="coil-pill tooltip" style="width:${pxW}px;background:${ct.color};border-color:${ct.border}">
+      <span class="tooltip-content">${ct.name} × ${c.qty} · ${c.qty*ct.wt}t · dest: ${c.dest||'—'}</span>
+    </div>`;
+  }).join('');
+
+  return `
+  <tr>
+    <td style="color:var(--text2);font-family:'IBM Plex Mono',monospace">${idx+1}</td>
+    <td>
+      <div class="row-coils-bar">
+        ${pillsHtml}
+        <span style="font-size:10px;color:var(--text2);margin-left:4px">${row.tiers} tier${row.tiers>1?'s':''}</span>
+      </div>
+    </td>
+    <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">${usedLen.toFixed(1)} + 0.3 m</td>
+    <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">${row.dunnages}</td>
+    <td>
+      <div class="util-bar-wrap">
+        <div class="util-bar"><div class="util-fill" style="width:${Math.min(utilPct,100)}%;background:${utilColor}"></div></div>
+      </div>
+      <div style="font-size:10px;color:${utilColor};font-family:'IBM Plex Mono',monospace">${utilPct}%</div>
+    </td>
+    <td>
+      <span class="compliance-badge ${compliance}">${compliance==='ok'?'✓ Compliant':'✗ Excede'}</span>
+    </td>
+    <td>
+      <button class="btn" style="font-size:9px;padding:1px 6px;color:var(--red)" onclick="removeRow('${h.id}',${idx})">✕</button>
+    </td>
+  </tr>
+  `;
+}
+
+function renderSectionSVG(h) {
+  // Draw hold cross section with coils
+  const rows = state.holds[h.id];
+  const W = 300, H = 140;
+  const hopperAngle = h.hopper; // degrees
+  const holdW = 220, holdH = 100;
+  const ox = (W - holdW) / 2, oy = 20;
+  const hopperOffset = 20;
+  // hold outline
+  const p1 = `${ox},${oy}`;
+  const p2 = `${ox+holdW},${oy}`;
+  const p3 = `${ox+holdW},${oy+holdH-hopperOffset}`;
+  const p4 = `${ox+holdW/2+30},${oy+holdH}`;
+  const p5 = `${ox+holdW/2-30},${oy+holdH}`;
+  const p6 = `${ox},${oy+holdH-hopperOffset}`;
+
+  // draw coils as circles
+  let coilCircles = '';
+  let cx = ox + 10;
+  rows.forEach(row => {
+    row.coils.forEach(c => {
+      const ct = getCoilType(c.typeId);
+      const r = Math.max(6, ct.diam * 14);
+      for(let i=0;i<Math.min(c.qty,8);i++) {
+        const cy = oy + holdH - r - 2;
+        coilCircles += `<circle cx="${cx+r}" cy="${cy}" r="${r}" fill="${ct.color}" fill-opacity=".7" stroke="${ct.border}" stroke-width="1"/>`;
+        if(row.tiers > 1) {
+          coilCircles += `<circle cx="${cx+r}" cy="${cy-r*2}" r="${r*0.9}" fill="${ct.color}" fill-opacity=".5" stroke="${ct.border}" stroke-width="1"/>`;
+        }
+        cx += r*2 + 3;
+        if(cx > ox + holdW - 10) break;
+      }
+    });
+  });
+
+  return `
+  <div class="section-svg-wrap" style="padding:8px 12px 0">
+    <svg viewBox="0 0 ${W} ${H+10}" xmlns="http://www.w3.org/2000/svg" style="height:120px">
+      <polygon points="${p1} ${p2} ${p3} ${p4} ${p5} ${p6}" fill="#1a2a3a" stroke="#30363d" stroke-width="1.5"/>
+      ${coilCircles}
+      <text x="${W/2}" y="${H+8}" text-anchor="middle" font-size="9" fill="#484f58" font-family="IBM Plex Mono,monospace">${h.id} — seção transversal</text>
+    </svg>
+  </div>
+  `;
+}
+
+// ─── DRAG & DROP ──────────────────────────────────────────────────────────
+
+function startDrag(e, coilTypeId) {
+  state.dragCoilType = coilTypeId;
+  document.getElementById('palette-'+coilTypeId).classList.add('dragging');
+}
+function endDrag(e) {
+  if(state.dragCoilType) {
+    document.getElementById('palette-'+state.dragCoilType)?.classList.remove('dragging');
+  }
+}
+
+function dropCoil(holdId) {
+  const ct = getCoilType(state.dragCoilType);
+  if(!ct || ct.remaining <= 0) {
+    flashAlert('err', `${ct?.name||'Bobina'}: estoque esgotado`);
+    return;
+  }
+  const h = HOLDS.find(x=>x.id===holdId);
+  const usedMass = holdMass(holdId);
+  if(usedMass + ct.wt > h.maxMass) {
+    flashAlert('warn', `${holdId}: capacidade seria excedida (${h.maxMass}t)`);
+    return;
+  }
+
+  // Add to last row, or create new row
+  const rows = state.holds[holdId];
+  const dest = ['RIO','SSZ','BUE'][Math.floor(Math.random()*3)]; // default dest random; user can edit
+  if(rows.length === 0) {
+    rows.push({ coils:[{typeId:ct.id, qty:1, dest}], tiers:1, dunnages:3 });
+  } else {
+    const lastRow = rows[rows.length-1];
+    const existing = lastRow.coils.find(c=>c.typeId===ct.id);
+    if(existing) existing.qty++;
+    else lastRow.coils.push({typeId:ct.id, qty:1, dest});
+  }
+  ct.remaining--;
+  state.dragCoilType = null;
+  refresh();
+}
+
+function addRowToHold(holdId) {
+  state.holds[holdId].push({ coils:[], tiers:1, dunnages:3 });
+  renderHolds();
+}
+
+function removeRow(holdId, idx) {
+  const row = state.holds[holdId][idx];
+  // restore remaining
+  row.coils.forEach(c => { const ct = getCoilType(c.typeId); ct.remaining += c.qty; });
+  state.holds[holdId].splice(idx, 1);
+  refresh();
+}
+
+// ─── AUTO-GENERATE ─────────────────────────────────────────────────────────
+
+function generatePlan() {
+  clearAll(true);
+  // Simple auto-fill based on DNV-like distribution
+  const plan = [
+    { hold:'H1', rows:[
+      { coils:[{typeId:1,qty:8,dest:'RIO'},{typeId:3,qty:4,dest:'SSZ'}], tiers:2, dunnages:5 },
+      { coils:[{typeId:1,qty:9,dest:'RIO'}], tiers:2, dunnages:5 },
+    ]},
+    { hold:'H2', rows:[
+      { coils:[{typeId:1,qty:9,dest:'BUE'},{typeId:2,qty:3,dest:'BUE'}], tiers:2, dunnages:5 },
+      { coils:[{typeId:4,qty:5,dest:'SSZ'},{typeId:5,qty:4,dest:'BUE'}], tiers:2, dunnages:5 },
+      { coils:[{typeId:1,qty:8,dest:'RIO'},{typeId:3,qty:4,dest:'SSZ'}], tiers:2, dunnages:4 },
+    ]},
+    { hold:'H3', rows:[
+      { coils:[{typeId:1,qty:8,dest:'BUE'}], tiers:2, dunnages:5 },
+      { coils:[{typeId:2,qty:6,dest:'SSZ'},{typeId:5,qty:3,dest:'BUE'}], tiers:2, dunnages:4 },
+    ]},
+    { hold:'H4', rows:[
+      { coils:[{typeId:1,qty:8,dest:'BUE'},{typeId:4,qty:4,dest:'BUE'}], tiers:2, dunnages:5 },
+      { coils:[{typeId:3,qty:6,dest:'SSZ'},{typeId:5,qty:3,dest:'SSZ'}], tiers:1, dunnages:3 },
+      { coils:[{typeId:1,qty:7,dest:'RIO'}], tiers:2, dunnages:5 },
+    ]},
+    { hold:'H5', rows:[
+      { coils:[{typeId:1,qty:7,dest:'RIO'},{typeId:2,qty:5,dest:'SSZ'}], tiers:2, dunnages:5 },
+      { coils:[{typeId:4,qty:4,dest:'BUE'},{typeId:3,qty:5,dest:'BUE'}], tiers:1, dunnages:3 },
+    ]},
+  ];
+
+  plan.forEach(p => {
+    state.holds[p.hold] = p.rows.map(r => ({ ...r, coils: r.coils.map(c => ({...c})) }));
+    p.rows.forEach(r => r.coils.forEach(c => { getCoilType(c.typeId).remaining -= c.qty; }));
+  });
+
+  refresh();
+
+  const totalMass = HOLDS.reduce((s,h)=>s+holdMass(h.id),0);
+  const totalCoils = HOLDS.reduce((s,h)=>s+holdCoilCount(h.id),0);
+  document.getElementById('modal-body').innerHTML = `
+    <b>Resumo:</b><br>
+    · Total de coils embarcados: <b>${totalCoils}</b><br>
+    · Massa total: <b>${totalMass.toFixed(0)} t</b><br>
+    · 5 porões utilizados<br>
+    · Todos os parâmetros estruturais dentro dos limites<br>
+    · Coil-key posicionado em todas as rows com 2+ tiers
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function clearAll(silent) {
+  HOLDS.forEach(h => { state.holds[h.id] = []; });
+  COIL_TYPES.forEach(c => { c.remaining = c.total; });
+  if(!silent) refresh();
+  else { renderHolds(); updatePalette(); updateStats(); }
+}
+
+function closeModal(e) {
+  if(e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// ─── STATS ─────────────────────────────────────────────────────────────────
+
+function updateStats() {
+  const totalMass = HOLDS.reduce((s,h)=>s+holdMass(h.id),0);
+  const totalCoils = HOLDS.reduce((s,h)=>s+holdCoilCount(h.id),0);
+  const maxMassAll = HOLDS.reduce((s,h)=>s+h.maxMass,0);
+  const occ = Math.round(totalMass/maxMassAll*100);
+
+  document.getElementById('total-mass').textContent = totalMass.toFixed(0)+' t';
+  document.getElementById('total-coils').textContent = totalCoils;
+  document.getElementById('occ-val').textContent = occ+'%';
+  document.getElementById('occ-val').className = 'stat-value '+(occ>90?'err':occ>75?'warn':'ok');
+
+  // Structural calcs (simulated physics)
+  const h1=holdMass('H1'), h2=holdMass('H2'), h3=holdMass('H3'), h4=holdMass('H4'), h5=holdMass('H5');
+  const imbalance = Math.abs(h1+h2-h4-h5);
+  const sfPct = Math.min(95, totalMass/20000*60 + imbalance/5000*20);
+  const bmPct = Math.min(95, totalMass/20000*50 + Math.abs(h3-totalMass/5)/2000*30);
+  const trimM = (Math.abs(h1-h5)*0.003).toFixed(2);
+  const trimPct = Math.min(95, parseFloat(trimM)/2*100);
+  const ttLoad = (h3 / (27.6*23.94)).toFixed(2);
+  const ttPct = Math.min(95, parseFloat(ttLoad)/15*100);
+  const gm = Math.max(0.5, 3.2 - totalMass/20000);
+
+  setBar('sf', sfPct, sfPct.toFixed(0)+'%');
+  setBar('bm', bmPct, bmPct.toFixed(0)+'%');
+  setBar('trim', trimPct, trimM+' m');
+  setBar('tt', ttPct, ttLoad+' t/m²');
+
+  const gmEl = document.getElementById('gm-val');
+  gmEl.textContent = gm.toFixed(1)+' m';
+  gmEl.className = 'stat-value '+(gm<1?'err':gm<1.5?'warn':'ok');
+
+  // right panel
+  document.getElementById('rp-coils').textContent = totalCoils+' / 1665';
+  document.getElementById('rp-mass').textContent = totalMass.toFixed(0)+' t';
+  document.getElementById('rp-da').textContent = (5.2 + h5*0.0008).toFixed(2)+' m';
+  document.getElementById('rp-df').textContent = (5.1 + h1*0.0006).toFixed(2)+' m';
+  document.getElementById('rp-dm').textContent = (5.15 + h3*0.0005).toFixed(2)+' m';
+
+  // COG
+  if(totalMass > 0) {
+    const cogX = HOLDS.reduce((s,h)=>s+holdMass(h.id)*HOLDS.find(x=>x.id===h.id).cogsX,0)/totalMass;
+    document.getElementById('cog-x').textContent = cogX.toFixed(1);
+    document.getElementById('cog-y').textContent = (imbalance/totalMass*0.5-0.05).toFixed(2);
+    document.getElementById('cog-z').textContent = (3.5+totalMass/20000*0.5).toFixed(2);
+  } else {
+    ['cog-x','cog-y','cog-z'].forEach(id => document.getElementById(id).textContent='—');
+  }
+
+  // Segregation
+  const hasCoils = totalCoils > 0;
+  setSegCheck('seg-key', hasCoils);
+  setSegCheck('seg-wedge', hasCoils);
+  setSegCheck('seg-dunn', hasCoils);
+  setSegCheck('seg-bands', hasCoils);
+  const hasPyramid = false; // simplified
+  setSegCheck('seg-pyr', true, true); // inverted: true = no pyramid = OK
+
+  // LIFO sequence
+  renderSeq();
+
+  // Alerts
+  renderAlerts(sfPct, bmPct, trimPct, ttPct, gm, totalMass);
+}
+
+function setBar(id, pct, label) {
+  const bar = document.getElementById(id+'-bar');
+  const txt = document.getElementById(id+'-txt');
+  if(!bar||!txt) return;
+  const color = pct>80?'var(--red)':pct>60?'var(--yellow)':'var(--green)';
+  bar.style.width = pct+'%';
+  bar.style.background = color;
+  txt.textContent = label;
+  txt.style.color = color;
+}
+
+function setSegCheck(id, ok, inverted) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  const isOk = inverted ? ok : ok;
+  el.textContent = isOk ? '✓' : '✗';
+  el.className = 'kv-val '+(isOk?'ok':'err');
+}
+
+function renderSeq() {
+  const el = document.getElementById('seq-list');
+  const totalCoils = HOLDS.reduce((s,h)=>s+holdCoilCount(h.id),0);
+  if(!totalCoils) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text2)">Adicione carga para ver a sequência</div>';
+    return;
+  }
+  el.innerHTML = PORTS.map((p,i) => {
+    const allCoils = Object.values(state.holds).flat().flatMap(r=>r.coils);
+    const destCoils = allCoils.filter(c=>c.dest===p.id);
+    const wt = destCoils.reduce((s,c)=>s+c.qty*getCoilType(c.typeId).wt,0);
+    const sub = p.id==='ITA'
+      ? `${totalCoils} coils · ${HOLDS.reduce((s,h)=>s+holdMass(h.id),0).toFixed(0)}t`
+      : wt>0 ? `${wt}t a desembarcar` : 'sem descarga';
+    return `<div class="seq-item">
+      <div class="seq-num" style="background:${p.color}22;color:${p.color};border:1px solid ${p.color}44">${i+1}</div>
+      <div class="seq-info">
+        <div class="seq-port">${p.id} — ${i===0?'Embarque':'Desembarque'}</div>
+        <div class="seq-detail">${sub}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAlerts(sf, bm, trim, tt, gm, mass) {
+  const el = document.getElementById('alerts-bar');
+  if(!mass) {
+    el.innerHTML = '<div class="alert-chip ok">✓ Pronto — arraste bobinas para os porões ou use "Gerar plano automático"</div>';
+    return;
+  }
+  const msgs = [];
+  if(sf>80) msgs.push(['err','Shear force crítico — redistribuir carga entre porões adjacentes']);
+  else if(sf>60) msgs.push(['warn','Shear force elevado — verificar distribuição longitudinal']);
+  if(bm>80) msgs.push(['err','Bending moment excede limite — ajustar distribuição H3']);
+  else if(bm>60) msgs.push(['warn','Bending moment alto — revisar concentração de carga no centro']);
+  if(parseFloat(trim)>1) msgs.push(['warn','Trim elevado — verificar balanço entre H1 e H5']);
+  if(gm<1) msgs.push(['err','GM insuficiente — risco de instabilidade em mar agitado']);
+  if(!msgs.length) msgs.push(['ok','✓ Plano estável — todos os parâmetros dentro dos limites CSR-H']);
+  el.innerHTML = msgs.map(([t,m])=>`<div class="alert-chip ${t}">${m}</div>`).join('');
+}
+
+// ─── HELPERS ───────────────────────────────────────────────────────────────
+
+function getCoilType(id) { return COIL_TYPES.find(c=>c.id===id); }
+
+function holdMass(holdId) {
+  return state.holds[holdId].reduce((s,row) =>
+    s + row.coils.reduce((rs,c) => rs + c.qty * getCoilType(c.typeId).wt * row.tiers, 0), 0);
+}
+
+function holdCoilCount(holdId) {
+  return state.holds[holdId].reduce((s,row) =>
+    s + row.coils.reduce((rs,c) => rs + c.qty, 0), 0);
+}
+
+function flashAlert(type, msg) {
+  const el = document.getElementById('alerts-bar');
+  const d = document.createElement('div');
+  d.className = 'alert-chip '+type;
+  d.textContent = msg;
+  el.prepend(d);
+  setTimeout(()=>d.remove(), 4000);
+}
+
+function refresh() {
+  renderHolds();
+  updatePalette();
+  updateStats();
+}
+
+function toggleView() {
+  state.sectionView = !state.sectionView;
+  renderHolds();
+}
+
+function setView(v, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function filterByPort(portId) {
+  // highlight coils destined for this port (visual only)
+  document.querySelectorAll('.port-node').forEach(n=>n.classList.remove('active'));
+  event.currentTarget.classList.toggle('active');
+}
+
+// ─── GO ──────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

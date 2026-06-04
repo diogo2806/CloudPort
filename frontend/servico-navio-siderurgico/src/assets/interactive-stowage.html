@@ -802,13 +802,18 @@ function placeCoil(posM, isKey) {
     S.placeDefaultZ = Math.max(1, Math.round(h.length/2));
   }
   const defaultZ = S.placeDefaultZ;
-  HOLDS[S.hold].coils.push({ typeId: ct.id, x: posM.x, y: posM.y, z: defaultZ, isKey });
+  // initialize physics fields: vy (downwards), vx (lateral), settled flag
+  const restY = ct.diam / 2; // resting centre height above tanktop (meters)
+  const settled = (posM.y <= restY + 0.001);
+  HOLDS[S.hold].coils.push({ typeId: ct.id, x: posM.x, y: posM.y, z: defaultZ, isKey, vy: 0, vx: 0, settled });
   ct.stock--;
   document.getElementById('cc-'+ct.id).textContent = ct.stock;
   if(ct.stock<=0){ document.getElementById('chip-'+ct.id).classList.add('depleted'); S.selectedCoilType=null; }
   renderPalette();
   updateSelectedInfo();
   render();
+  // start physics loop if a newly placed coil is not settled
+  if(!settled){ startPhysics(); }
 }
 
 // ─── TOP VIEW snap & place ───
@@ -848,14 +853,17 @@ function placeCoilTop(centerM) {
   const ct = COILS.find(x=>x.id===S.selectedCoilType);
   if(ct.stock<=0) return;
   // z stored as bow-edge (left) position in meters
-  HOLDS[S.hold].coils.push({ typeId: ct.id, x: centerM.x, y: 0, z: centerM.z, isKey:false });
+  // place slightly above tanktop so gravity can act — y is meters above tanktop
+  const startY = Math.max(ct.diam / 2 + 0.02, ct.diam / 2);
+  HOLDS[S.hold].coils.push({ typeId: ct.id, x: centerM.x, y: startY, z: centerM.z, isKey:false, vy: 0, vx: 0, settled: false });
   ct.stock--;
   document.getElementById('cc-'+ct.id).textContent = ct.stock;
   if(ct.stock<=0){ document.getElementById('chip-'+ct.id).classList.add('depleted'); S.selectedCoilType=null; }
   renderPalette();
   updateSelectedInfo();
   render();
-}
+  // ensure physics runs to let this coil fall/settle
+  startPhysics();
 
 function removeCoil(idx) {
   const c = HOLDS[S.hold].coils[idx];
@@ -873,8 +881,89 @@ function clearHold() {
   HOLDS[S.hold].coils = [];
   S.placeDefaultZ = null;
   COILS.forEach(c => { document.getElementById('cc-'+c.id).textContent = c.stock; document.getElementById('chip-'+c.id).classList.remove('depleted'); });
+  // stop any running physics when clearing the hold
+  if(typeof stopPhysics === 'function') stopPhysics();
   renderPalette();
   render();
+}
+
+// Simple per-hold physics: gravity + basic support detection (requestAnimationFrame loop)
+S.physics = { running: false, rafId: null, lastT: 0, g: 9.8 };
+
+function startPhysics() {
+  if(S.physics.running) return;
+  S.physics.running = true;
+  S.physics.lastT = 0;
+  S.physics.rafId = requestAnimationFrame(simulatePhysics);
+}
+
+function stopPhysics() {
+  if(S.physics.rafId) cancelAnimationFrame(S.physics.rafId);
+  S.physics.running = false;
+  S.physics.rafId = null;
+  S.physics.lastT = 0;
+}
+
+function simulatePhysics(ts) {
+  const phys = S.physics;
+  if(!phys.running) return;
+  if(!phys.lastT) phys.lastT = ts;
+  const dt = Math.min(0.05, (ts - phys.lastT) / 1000);
+  phys.lastT = ts;
+
+  const h = HOLDS[S.hold];
+  if(!h) { if(phys.running) phys.rafId = requestAnimationFrame(simulatePhysics); return; }
+  const scale = S.geom.scale;
+  let anyMoving = false;
+
+  // precompute placed coils (px coords) for support checks
+  const placed = h.coils.map((c, i) => {
+    const p = m2px(c.x, c.y);
+    const r = COILS.find(x=>x.id===c.typeId).diam/2 * scale;
+    return { c, i, p, r, settled: !!c.settled };
+  });
+
+  for(let i=0;i<h.coils.length;i++){
+    const c = h.coils[i];
+    const ct = COILS.find(x=>x.id===c.typeId);
+    const rPx = ct.diam/2 * scale;
+    const restY = ct.diam / 2; // meters
+
+    if(c.settled) continue;
+
+    c.vy = (c.vy || 0) + phys.g * dt;
+    c.y = c.y - c.vy * dt; // y decreases as it falls toward tanktop
+
+    // recompute px position
+    const p = m2px(c.x, c.y);
+
+    // hit tanktop?
+    if(c.y <= restY + 0.0005) {
+      c.y = restY; c.vy = 0; c.settled = true; anyMoving = true; continue;
+    }
+
+    // check simple support by any settled coil under current x (approximate)
+    const supports = placed.filter(x=>x.settled && x.i !== i);
+    let landedOnSupport = false;
+    for(const s of supports){
+      const dx = p.x - s.p.x;
+      const d = Math.abs(dx);
+      const ra = s.r + rPx;
+      if(d < ra - 0.5){
+        // approximate stacking height in px using circle geometry
+        const heightPx = Math.sqrt(Math.max(0, ra*ra - d*d));
+        const supportYpx = s.p.y - heightPx;
+        const supportYm = (S.geom.tankTopY - supportYpx) / scale;
+        if(c.y <= supportYm + 0.001){
+          c.y = supportYm; c.vy = 0; c.settled = true; landedOnSupport = true; anyMoving = true; break;
+        }
+      }
+    }
+    if(!landedOnSupport) anyMoving = true;
+  }
+
+  if(anyMoving) render();
+  if(phys.running) phys.rafId = requestAnimationFrame(simulatePhysics);
 }
 
 function autoFill() {

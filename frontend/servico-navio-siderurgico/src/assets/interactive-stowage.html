@@ -75,7 +75,7 @@
   .mode-btn.active { background: var(--bg3); color: var(--accent); border-color: var(--border2); }
 
   .canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  #stage-svg { width: 100%; max-width: 1000px; cursor: default; }
+  #stage-svg { width: 100%; max-width: 1180px; cursor: default; }
   #stage-svg.placing { cursor: crosshair; }
 
   /* coil being dragged ghost */
@@ -142,6 +142,16 @@
     <div class="stage-toolbar">
       <span class="info" id="stage-info">H3 — Casco trapezoidal · 0 bobinas</span>
       <span class="info" id="selected-info" style="color:var(--accent)"></span>
+      <div class="view-toggle" style="display:flex;gap:2px;margin-left:auto;margin-right:12px">
+        <span class="mode-btn active" id="vb-split" onclick="setViewMode('split')">▦ Corte + planta</span>
+        <span class="mode-btn" id="vb-front" onclick="setViewMode('front')">▣ Corte frontal</span>
+        <span class="mode-btn" id="vb-top" onclick="setViewMode('top')">⊞ Vista superior</span>
+      </div>
+      <div class="view-toggle" style="display:flex;gap:2px;margin-right:12px">
+        <span class="mode-btn" onclick="setZoom(-0.15)">− Zoom</span>
+        <span class="mode-btn" id="zoom-label">100%</span>
+        <span class="mode-btn" onclick="setZoom(0.15)">+ Zoom</span>
+      </div>
       <div class="mode-toggle">
         <span class="mode-btn active" id="mb-place" onclick="setMode('place')">⊕ Posicionar</span>
         <span class="mode-btn" id="mb-move" onclick="setMode('move')">✥ Mover</span>
@@ -149,7 +159,7 @@
       </div>
     </div>
     <div class="canvas-wrap">
-      <svg id="stage-svg" viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg"></svg>
+      <svg id="stage-svg" viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
   </div>
 
@@ -198,20 +208,23 @@ const COILS = [
 ];
 
 const HOLDS = {
-  H1: { name:'H1 — Proa', shape:'hopper', width:23.94, height:13, hopper:45, hopperh:3, coils:[] },
-  H2: { name:'H2',         shape:'box',    width:23.94, height:13, hopper:45, hopperh:3, coils:[] },
-  H3: { name:'H3 — Centro',shape:'hopper', width:23.94, height:13, hopper:45, hopperh:3, coils:[] },
-  H4: { name:'H4',         shape:'box',    width:23.94, height:13, hopper:45, hopperh:3, coils:[] },
-  H5: { name:'H5 — Popa',  shape:'hopper', width:23.94, height:13, hopper:45, hopperh:3, coils:[] },
+  H1: { name:'H1 — Proa', shape:'hopper', width:23.94, height:13, length:26.52, hopper:45, hopperh:3, coils:[] },
+  H2: { name:'H2',         shape:'box',    width:23.94, height:13, length:28.38, hopper:45, hopperh:3, coils:[] },
+  H3: { name:'H3 — Centro',shape:'hopper', width:23.94, height:13, length:27.60, hopper:45, hopperh:3, coils:[] },
+  H4: { name:'H4',         shape:'box',    width:23.94, height:13, length:27.60, hopper:45, hopperh:3, coils:[] },
+  H5: { name:'H5 — Popa',  shape:'hopper', width:23.94, height:13, length:27.70, hopper:45, hopperh:3, coils:[] },
 };
 
 const S = {
   hold: 'H3',
   mode: 'place',
+  viewMode: 'split',
   selectedCoilType: null,
-  draggingPlaced: null, // index of placed coil being dragged
-  scale: 30, // px per meter
-  geom: null, // computed hold geometry in px
+  draggingPlaced: null,
+  scale: 30,
+  zoom: 1,
+  focusZ: null,
+  geom: null,
 };
 
 // each placed coil: { typeId, x, y } in METERS (x from left wall, y from tank top going UP)
@@ -235,6 +248,22 @@ function renderHoldTabs() {
 function selectHold(id) {
   S.hold = id;
   renderHoldTabs();
+  computeGeom();
+  render();
+}
+
+function setViewMode(m) {
+  S.viewMode = m;
+  document.getElementById('vb-split').classList.toggle('active', m==='split');
+  document.getElementById('vb-front').classList.toggle('active', m==='front');
+  document.getElementById('vb-top').classList.toggle('active', m==='top');
+  computeGeom();
+  render();
+}
+
+function setZoom(delta) {
+  S.zoom = Math.max(0.75, Math.min(1.65, S.zoom + delta));
+  document.getElementById('zoom-label').textContent = Math.round(S.zoom * 100) + '%';
   computeGeom();
   render();
 }
@@ -294,45 +323,155 @@ function setMode(m) {
 // ─── GEOMETRY ───
 function computeGeom() {
   const h = HOLDS[S.hold];
-  const scale = S.scale;
-  const W = 1000, H = 560;
-  const holdW = h.width * scale;
-  const holdH = h.height * scale;
-  const ox = (W - holdW)/2;
-  const oy = 70;
-  const bottomY = oy + holdH;
-  const hopperH = h.shape==='hopper' ? h.hopperh*scale : 0;
-  const hopperInset = h.shape==='hopper' ? hopperH / Math.tan(h.hopper*Math.PI/180) : 0;
+  const scale = S.scale * S.zoom;
+  const W = 1000, H = S.viewMode === 'split' ? 760 : 560;
 
-  S.geom = {
-    scale, W, H, ox, oy, holdW, holdH, bottomY, hopperH, hopperInset,
-    tankTopY: bottomY - 6,           // y where coils rest (px)
-    leftWallX: ox,                    // outer wall
-    rightWallX: ox + holdW,
-    floorLeftX: ox + hopperInset,     // tank-top extent (inner)
-    floorRightX: ox + holdW - hopperInset,
-    h
-  };
+  if(S.viewMode === 'front' || S.viewMode === 'split') {
+    const holdW = h.width * scale;
+    const holdH = h.height * scale;
+    const ox = (W - holdW)/2;
+    const oy = S.viewMode === 'split' ? 46 : 70;
+    const bottomY = oy + holdH;
+    const hopperH = h.shape==='hopper' ? h.hopperh*scale : 0;
+    const hopperInset = h.shape==='hopper' ? hopperH / Math.tan(h.hopper*Math.PI/180) : 0;
+    S.geom = {
+      view:'front', scale, W, H, ox, oy, holdW, holdH, bottomY, hopperH, hopperInset,
+      tankTopY: bottomY - 6,
+      leftWallX: ox, rightWallX: ox + holdW,
+      floorLeftX: ox + hopperInset, floorRightX: ox + holdW - hopperInset,
+      h
+    };
+  } else {
+    // TOP VIEW: horizontal = fore-aft (length), vertical = beam (width)
+    const tscale = 22;
+    const holdL = h.length * tscale;   // fore-aft (horizontal)
+    const holdB = h.width * tscale;    // beam (vertical)
+    const ox = (W - holdL)/2;
+    const oy = (H - holdB)/2 + 10;
+    const bowInset = 34;
+    // hatch coaming zone (boca) - middle ~44%
+    const hatchStart = ox + holdL*0.28;
+    const hatchEnd = ox + holdL*0.72;
+    S.geom = {
+      view:'top', scale:tscale, W, H, ox, oy, holdL, holdB, bowInset,
+      hatchStart, hatchEnd, h
+    };
+  }
 }
 
-// convert hold-meters (x from inner-left, y up from tanktop) -> svg px
+// convert hold-meters -> svg px (front view: xm=athwartships from inner-left, ym=height up)
 function m2px(xm, ym) {
   const g = S.geom;
-  return {
-    x: g.floorLeftX + xm * g.scale,
-    y: g.tankTopY - ym * g.scale
-  };
+  return { x: g.floorLeftX + xm * g.scale, y: g.tankTopY - ym * g.scale };
 }
 function px2m(px, py) {
   const g = S.geom;
-  return {
-    x: (px - g.floorLeftX) / g.scale,
-    y: (g.tankTopY - py) / g.scale
-  };
+  return { x: (px - g.floorLeftX) / g.scale, y: (g.tankTopY - py) / g.scale };
 }
 
-// ─── RENDER ───
+// TOP VIEW conversions: xm=athwartships (0..width), zm=fore-aft (0..length from bow)
+function m2pxTop(xm, zm) {
+  const g = S.geom;
+  return { x: g.ox + g.bowInset + zm * g.scale, y: g.oy + xm * g.scale };
+}
+function px2mTop(px, py) {
+  const g = S.geom;
+  return { x: (py - g.oy) / g.scale, z: (px - g.ox - g.bowInset) / g.scale };
+}
+
+// ─── RENDER DISPATCH ───
 function render() {
+  if(S.viewMode === 'split') renderSplit();
+  else if(S.viewMode === 'front') renderFront();
+  else renderTop();
+}
+
+function renderSplit() {
+  const topY = S.geom.bottomY + 70;
+  const topHeight = 320;
+  const viewHeight = Math.max(840, topY + topHeight + 28);
+  document.getElementById('stage-svg').setAttribute('viewBox', `0 0 1000 ${viewHeight}`);
+  const front = buildFrontSvg();
+  const top = buildTopInsetSvg(48, topY, 900, topHeight);
+  document.getElementById('stage-svg').innerHTML = front + top;
+  reattachCoilEvents();
+  reattachTopLaneEvents();
+  updateInspector();
+}
+
+function buildTopInsetSvg(x, y, w, hgt) {
+  const hold = HOLDS[S.hold];
+  const scaleZ = (w - 150) / hold.length;
+  const scaleX = (hgt - 130) / hold.width;
+  const holdL = hold.length * scaleZ;
+  const holdB = hold.width * scaleX;
+  const ox = x + (w - holdL) / 2;
+  const oy = y + 86;
+  const bowInset = 34;
+  const hatchStart = ox + holdL * 0.28;
+  const hatchEnd = ox + holdL * 0.72;
+  let svg = '';
+
+  svg += `<g class="top-inset">`;
+  svg += `<rect x="${x}" y="${y}" width="${w}" height="${hgt}" rx="8" fill="rgba(10,22,40,.78)" stroke="#1e3a5c"/>`;
+  svg += `<text x="${x+18}" y="${y+24}" font-family="IBM Plex Mono,monospace" font-size="15" fill="#4db8ff" font-weight="500">Vista superior</text>`;
+  svg += `<text x="${x+18}" y="${y+43}" font-family="IBM Plex Sans" font-size="12" fill="#7a98b8">Clique em uma faixa longitudinal para focar as bobinas no corte frontal.</text>`;
+  if(S.focusZ !== null) {
+    svg += `<text x="${x+w-18}" y="${y+34}" font-family="IBM Plex Mono,monospace" font-size="12" fill="#ffd60a" text-anchor="end">Filtro ativo: trecho ${S.focusZ + 1} / 6</text>`;
+  }
+  const hull = `M${ox+bowInset},${oy} Q${ox-4},${oy+holdB/2} ${ox+bowInset},${oy+holdB} L${ox+holdL},${oy+holdB} L${ox+holdL},${oy} Z`;
+  svg += `<path d="${hull}" fill="rgba(77,184,255,.045)" stroke="#4db8ff" stroke-width="1.2"/>`;
+  svg += `<line x1="${hatchStart}" y1="${oy}" x2="${hatchStart}" y2="${oy+holdB}" stroke="#4db8ff" stroke-width=".7" stroke-dasharray="4 3" stroke-opacity=".55"/>`;
+  svg += `<line x1="${hatchEnd}" y1="${oy}" x2="${hatchEnd}" y2="${oy+holdB}" stroke="#4db8ff" stroke-width=".7" stroke-dasharray="4 3" stroke-opacity=".55"/>`;
+  svg += `<text x="${(hatchStart+hatchEnd)/2}" y="${oy-12}" font-size="11" fill="#4db8ff" text-anchor="middle" font-family="IBM Plex Mono,monospace">BOCA / escotilha</text>`;
+
+  const laneCount = 6;
+  for(let lane=0; lane<laneCount; lane++){
+    const lx = ox + bowInset + (hold.length/laneCount) * lane * scaleZ;
+    const lw = (hold.length/laneCount) * scaleZ;
+    const active = S.focusZ === lane;
+    svg += `<rect class="top-lane" data-zband="${lane}" x="${lx}" y="${oy}" width="${lw}" height="${holdB}" fill="${active?'#ffd60a':'#4db8ff'}" fill-opacity="${active?'.12':'.025'}" stroke="${active?'#ffd60a':'#2a6a9c'}" stroke-width="${active?'1.2':'.35'}" style="cursor:pointer"/>`;
+    svg += `<text x="${lx+lw/2}" y="${oy+holdB+18}" font-size="10" fill="${active?'#ffd60a':'#7a98b8'}" text-anchor="middle" font-family="IBM Plex Mono,monospace">T${lane+1}</text>`;
+  }
+
+  hold.coils.forEach((coil, i) => {
+    const ct = COILS.find(c=>c.id===coil.typeId);
+    const z = coil.z !== undefined ? coil.z : 1;
+    const px = ox + bowInset + z * scaleZ;
+    const py = oy + coil.x * scaleX;
+    const cw = ct.len * scaleZ;
+    const ch = ct.diam * scaleX;
+    const lane = zBand(coil);
+    const focused = S.focusZ === null || S.focusZ === lane;
+    const col = coil.isKey ? '#ffd60a' : ct.color;
+    svg += `<g class="top-lane" data-zband="${lane}" style="cursor:pointer" opacity="${focused?1:.28}">`;
+    svg += `<rect x="${px}" y="${py-ch/2}" width="${cw}" height="${ch}" rx="3" fill="${col}" fill-opacity=".42" stroke="${col}" stroke-width="1"/>`;
+    svg += `<line x1="${px+4}" y1="${py}" x2="${px+cw-4}" y2="${py}" stroke="${col}" stroke-width=".8" stroke-dasharray="3 2"/>`;
+    svg += `</g>`;
+  });
+
+  svg += `<text x="${ox+bowInset-26}" y="${oy+holdB/2+4}" font-size="11" fill="#7a98b8" text-anchor="end">PROA</text>`;
+  svg += `<text x="${ox+holdL+26}" y="${oy+holdB/2+4}" font-size="11" fill="#7a98b8" text-anchor="start">POPA</text>`;
+  svg += `<line x1="${ox+bowInset}" y1="${oy+holdB+34}" x2="${ox+holdL}" y2="${oy+holdB+34}" stroke="#4db8ff" stroke-width=".75"/>`;
+  svg += `<text x="${(ox+bowInset+ox+holdL)/2}" y="${oy+holdB+42}" font-size="11" fill="#4db8ff" text-anchor="middle" font-family="IBM Plex Mono,monospace">Comprimento do porao: ${hold.length} m</text>`;
+  svg += `</g>`;
+  return svg;
+}
+
+function zBand(coil) {
+  const hold = HOLDS[S.hold];
+  const z = coil.z !== undefined ? coil.z : 1;
+  return Math.max(0, Math.min(5, Math.floor(z / Math.max(1, hold.length / 6))));
+}
+
+function renderFront() {
+  document.getElementById('stage-svg').setAttribute('viewBox', '0 0 1000 560');
+  document.getElementById('stage-svg').innerHTML = buildFrontSvg();
+  reattachCoilEvents();
+  updateInspector();
+}
+
+function buildFrontSvg() {
   const g = S.geom;
   const h = g.h;
   let svg = '';
@@ -368,27 +507,97 @@ function render() {
   svg += `<line x1="${g.ox}" y1="${g.oy-16}" x2="${g.rightWallX}" y2="${g.oy-16}" stroke="#4db8ff" stroke-width=".75"/>`;
   svg += `<text x="${(g.ox+g.rightWallX)/2}" y="${g.oy-20}" font-size="10" fill="#4db8ff" text-anchor="middle" font-family="IBM Plex Mono,monospace">B = ${h.width} m</text>`;
 
-  // placed coils
+  // placed coils (front view collapses z — show all coils stacked by x,y)
   const coils = h.coils;
-  // compute support load for warnings
   coils.forEach((c,i) => {
     const ct = COILS.find(x=>x.id===c.typeId);
     const p = m2px(c.x, c.y);
     const r = ct.diam/2 * g.scale;
-    const isKey = c.isKey;
-    const col = isKey ? '#ffd60a' : ct.color;
+    const col = c.isKey ? '#ffd60a' : ct.color;
+    const focused = S.focusZ === null || zBand(c) === S.focusZ;
+    const opacity = focused ? 1 : 0.22;
     svg += `<g class="placed-coil" data-idx="${i}" style="cursor:${S.mode==='move'?'grab':S.mode==='delete'?'not-allowed':'pointer'}">`;
-    svg += coilRingsSvg(p.x, p.y, r, col, isKey);
+    svg += `<g opacity="${opacity}">${coilRingsSvg(p.x, p.y, r, col, c.isKey)}</g>`;
     svg += `</g>`;
   });
 
-  // ghost preview for placement
+  // ghost preview
   if(S.mode==='place' && S.selectedCoilType && S.ghostPos) {
     const ct = COILS.find(x=>x.id===S.selectedCoilType);
     const r = ct.diam/2*g.scale;
-    const valid = S.ghostValid;
-    svg += coilRingsSvg(S.ghostPos.x, S.ghostPos.y, r, valid?ct.color:'#ff4d4d', false, .5);
-    if(!valid) svg += `<circle cx="${S.ghostPos.x}" cy="${S.ghostPos.y}" r="${r}" fill="none" stroke="#ff4d4d" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    svg += coilRingsSvg(S.ghostPos.x, S.ghostPos.y, r, S.ghostValid?ct.color:'#ff4d4d', false, .5);
+    if(!S.ghostValid) svg += `<circle cx="${S.ghostPos.x}" cy="${S.ghostPos.y}" r="${r}" fill="none" stroke="#ff4d4d" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  }
+
+  if(S.focusZ !== null && S.viewMode !== 'split') {
+    svg += `<text x="40" y="540" font-size="11" fill="#ffd60a" font-family="IBM Plex Mono,monospace">Filtro planta: trecho ${S.focusZ + 1} - clique novamente na planta para limpar</text>`;
+  }
+  return svg;
+}
+
+// ─── TOP VIEW RENDER ───
+function renderTop() {
+  document.getElementById('stage-svg').setAttribute('viewBox', '0 0 1000 560');
+  const g = S.geom;
+  const h = g.h;
+  let svg = '';
+
+  svg += `<text x="40" y="34" font-family="IBM Plex Mono,monospace" font-size="15" fill="#4db8ff" font-weight="500">${h.name} · Vista superior (planta)</text>`;
+  svg += `<text x="40" y="52" font-family="IBM Plex Sans" font-size="11" fill="#7a98b8">Eixos das bobinas paralelos proa-popa · L=${h.length}m × B=${h.width}m</text>`;
+
+  // hull top outline (bow tapered on left)
+  const ox=g.ox, oy=g.oy, holdL=g.holdL, holdB=g.holdB, bi=g.bowInset;
+  const hull = `M${ox+bi},${oy} Q${ox-8},${oy+holdB/2} ${ox+bi},${oy+holdB} L${ox+holdL},${oy+holdB} L${ox+holdL},${oy} Z`;
+  svg += `<path d="${hull}" fill="rgba(77,184,255,.04)" stroke="#4db8ff" stroke-width="2"/>`;
+
+  // hatch coaming (boca) dashed lines
+  svg += `<line x1="${g.hatchStart}" y1="${oy}" x2="${g.hatchStart}" y2="${oy+holdB}" stroke="#4db8ff" stroke-width=".75" stroke-dasharray="5 3" stroke-opacity=".55"/>`;
+  svg += `<line x1="${g.hatchEnd}" y1="${oy}" x2="${g.hatchEnd}" y2="${oy+holdB}" stroke="#4db8ff" stroke-width=".75" stroke-dasharray="5 3" stroke-opacity=".55"/>`;
+
+  // zone labels
+  svg += `<text x="${(ox+bi+g.hatchStart)/2}" y="${oy-8}" font-size="10" fill="#7a98b8" text-anchor="middle" font-family="IBM Plex Mono,monospace">FORA DE BOCA</text>`;
+  svg += `<text x="${(g.hatchStart+g.hatchEnd)/2}" y="${oy-8}" font-size="10" fill="#4db8ff" text-anchor="middle" font-family="IBM Plex Mono,monospace">BOCA (escotilha)</text>`;
+  svg += `<text x="${(g.hatchEnd+ox+holdL)/2}" y="${oy-8}" font-size="10" fill="#7a98b8" text-anchor="middle" font-family="IBM Plex Mono,monospace">FORA DE BOCA</text>`;
+
+  // proa / popa
+  svg += `<text x="${ox+bi-22}" y="${oy+holdB/2+4}" font-size="11" fill="#7a98b8" text-anchor="middle">PROA</text>`;
+  svg += `<text x="${ox+holdL+22}" y="${oy+holdB/2+4}" font-size="11" fill="#7a98b8" text-anchor="middle">POPA</text>`;
+
+  // dimensions
+  svg += `<line x1="${ox+bi}" y1="${oy+holdB+18}" x2="${ox+holdL}" y2="${oy+holdB+18}" stroke="#4db8ff" stroke-width=".75"/>`;
+  svg += `<text x="${(ox+bi+ox+holdL)/2}" y="${oy+holdB+32}" font-size="10" fill="#4db8ff" text-anchor="middle" font-family="IBM Plex Mono,monospace">L = ${h.length} m</text>`;
+  svg += `<line x1="${ox+holdL+34}" y1="${oy}" x2="${ox+holdL+34}" y2="${oy+holdB}" stroke="#4db8ff" stroke-width=".75"/>`;
+  svg += `<text x="${ox+holdL+42}" y="${oy+holdB/2}" transform="rotate(90 ${ox+holdL+42} ${oy+holdB/2})" font-size="10" fill="#4db8ff" text-anchor="middle" font-family="IBM Plex Mono,monospace">B = ${h.width} m</text>`;
+
+  // placed coils — seen from top as rectangles (length along fore-aft × diameter along beam)
+  const coils = h.coils;
+  coils.forEach((c,i) => {
+    const ct = COILS.find(x=>x.id===c.typeId);
+    const zUsed = (c.z !== undefined) ? c.z : 1; // fore-aft position
+    const p = m2pxTop(c.x, zUsed);
+    const wPx = ct.len * g.scale;   // along fore-aft
+    const hPx = ct.diam * g.scale;  // along beam
+    const col = c.isKey ? '#ffd60a' : ct.color;
+    const inHatch = (p.x + wPx/2) > g.hatchStart && (p.x + wPx/2) < g.hatchEnd;
+    const op = inHatch ? 0.5 : 0.32;
+    svg += `<g class="placed-coil" data-idx="${i}" style="cursor:${S.mode==='move'?'grab':S.mode==='delete'?'not-allowed':'pointer'}">`;
+    svg += `<rect x="${p.x}" y="${p.y - hPx/2}" width="${wPx}" height="${hPx}" rx="3" fill="${col}" fill-opacity="${op}" stroke="${col}" stroke-width="1"/>`;
+    // axis core line (fore-aft)
+    svg += `<line x1="${p.x+3}" y1="${p.y}" x2="${p.x+wPx-3}" y2="${p.y}" stroke="${col}" stroke-width=".6" stroke-dasharray="3 2"/>`;
+    // eye holes at both ends
+    svg += `<circle cx="${p.x+5}" cy="${p.y}" r="${hPx*0.12}" fill="${col}" fill-opacity=".4"/>`;
+    svg += `<circle cx="${p.x+wPx-5}" cy="${p.y}" r="${hPx*0.12}" fill="${col}" fill-opacity=".4"/>`;
+    if(c.isKey) svg += `<text x="${p.x+wPx/2}" y="${p.y-hPx/2-3}" text-anchor="middle" font-size="7" fill="#ffd60a" font-family="IBM Plex Mono,monospace">KEY</text>`;
+    svg += `</g>`;
+  });
+
+  // ghost preview (top view)
+  if(S.mode==='place' && S.selectedCoilType && S.ghostPosTop) {
+    const ct = COILS.find(x=>x.id===S.selectedCoilType);
+    const wPx = ct.len*g.scale, hPx = ct.diam*g.scale;
+    const p = S.ghostPosTop;
+    const col = S.ghostValidTop ? ct.color : '#ff4d4d';
+    svg += `<rect x="${p.x}" y="${p.y-hPx/2}" width="${wPx}" height="${hPx}" rx="3" fill="${col}" fill-opacity=".25" stroke="${col}" stroke-width="1.5" ${S.ghostValidTop?'':'stroke-dasharray="4 3"'}/>`;
   }
 
   document.getElementById('stage-svg').innerHTML = svg;
@@ -416,29 +625,45 @@ function attachStageEvents() {
   const svg = document.getElementById('stage-svg');
 
   svg.addEventListener('mousemove', e => {
+    const pt = svgPoint(e);
     if(S.mode==='place' && S.selectedCoilType) {
-      const pt = svgPoint(e);
-      const snapped = snapPosition(pt.x, pt.y);
-      S.ghostPos = snapped.pos;
-      S.ghostValid = snapped.valid;
+      if(S.viewMode==='front' || S.viewMode==='split') {
+        const snapped = snapPosition(pt.x, pt.y);
+        S.ghostPos = snapped.pos;
+        S.ghostValid = snapped.valid;
+      } else {
+        const snapped = snapPositionTop(pt.x, pt.y);
+        S.ghostPosTop = snapped.pos;
+        S.ghostValidTop = snapped.valid;
+      }
       render();
     } else if(S.mode==='move' && S.draggingPlaced!==null) {
-      const pt = svgPoint(e);
-      const m = px2m(pt.x, pt.y);
       const h = HOLDS[S.hold];
-      h.coils[S.draggingPlaced].x = m.x;
-      h.coils[S.draggingPlaced].y = m.y;
+      if(S.viewMode==='front' || S.viewMode==='split') {
+        const m = px2m(pt.x, pt.y);
+        h.coils[S.draggingPlaced].x = m.x;
+        h.coils[S.draggingPlaced].y = m.y;
+      } else {
+        const m = px2mTop(pt.x, pt.y);
+        h.coils[S.draggingPlaced].x = Math.max(0, Math.min(h.width, m.x));
+        h.coils[S.draggingPlaced].z = Math.max(0, Math.min(h.length, m.z));
+      }
       render();
     }
   });
 
-  svg.addEventListener('mouseleave', () => { S.ghostPos=null; if(S.mode==='place') render(); });
+  svg.addEventListener('mouseleave', () => { S.ghostPos=null; S.ghostPosTop=null; if(S.mode==='place') render(); });
 
   svg.addEventListener('click', e => {
     if(S.mode==='place' && S.selectedCoilType) {
       const pt = svgPoint(e);
-      const snapped = snapPosition(pt.x, pt.y);
-      if(snapped.valid) placeCoil(snapped.posM, snapped.isKey);
+      if(S.viewMode==='front' || S.viewMode==='split') {
+        const snapped = snapPosition(pt.x, pt.y);
+        if(snapped.valid) placeCoil(snapped.posM, snapped.isKey);
+      } else {
+        const snapped = snapPositionTop(pt.x, pt.y);
+        if(snapped.valid) placeCoilTop(snapped.posM);
+      }
     }
   });
 
@@ -457,6 +682,17 @@ function reattachCoilEvents() {
   });
 }
 
+function reattachTopLaneEvents() {
+  document.querySelectorAll('.top-lane').forEach(el => {
+    el.addEventListener('click', e => {
+      const band = Number(el.dataset.zband);
+      S.focusZ = S.focusZ === band ? null : band;
+      render();
+      e.stopPropagation();
+    });
+  });
+}
+
 function svgPoint(e) {
   const svg = document.getElementById('stage-svg');
   const rect = svg.getBoundingClientRect();
@@ -467,51 +703,72 @@ function svgPoint(e) {
   };
 }
 
-// snap to a valid stowage position (rest on tanktop or nestle between coils)
+// snap to a valid stowage position: tanktop or any stable pair of lower coils
 function snapPosition(px, py) {
   const g = S.geom;
   const ct = COILS.find(x=>x.id===S.selectedCoilType);
   const r = ct.diam/2 * g.scale;
   const h = HOLDS[S.hold];
 
-  // candidate: resting on tank top at the x where mouse is
-  let cx = px;
-  let cy = g.tankTopY - r;
+  const baseX = Math.max(g.floorLeftX + r, Math.min(g.floorRightX - r, px));
+  const candidates = [{
+    cx: baseX,
+    cy: g.tankTopY - r,
+    isKey: false,
+    score: Math.abs(py - (g.tankTopY - r)) + Math.abs(px - baseX) * 0.25
+  }];
 
-  // clamp x within floor
-  cx = Math.max(g.floorLeftX + r, Math.min(g.floorRightX - r, cx));
+  const placed = h.coils.map((c,i)=>({
+    c,
+    i,
+    p: m2px(c.x,c.y),
+    r: COILS.find(x=>x.id===c.typeId).diam/2*g.scale
+  }));
 
-  // check if it should nestle on top of two existing base coils (tier 2)
-  // find coils near cx in lower tier
-  let restY = cy;
-  let isKey = false;
-  const nearby = h.coils.map((c,i)=>({c,i,p:m2px(c.x,c.y),ct:COILS.find(x=>x.id===c.typeId)}))
-    .filter(o => Math.abs(o.p.x - cx) < (r + o.ct.diam/2*g.scale)*1.1);
+  for(let i=0;i<placed.length;i++){
+    for(let j=i+1;j<placed.length;j++){
+      const a = placed[i], b = placed[j];
+      const dx = b.p.x - a.p.x;
+      const dy = b.p.y - a.p.y;
+      const d = Math.hypot(dx, dy);
+      if(d < 1) continue;
 
-  if(nearby.length >= 2) {
-    // try to rest on top of two coils -> compute y
-    // find two coils that bracket cx
-    const sorted = nearby.sort((a,b)=>a.p.x-b.p.x);
-    for(let k=0;k<sorted.length-1;k++){
-      const left = sorted[k], right = sorted[k+1];
-      const midX = (left.p.x + right.p.x)/2;
-      if(Math.abs(cx - midX) < r) {
-        // rest on top: y = topCoilY such that distance to both = r + theirR
-        const rL = left.ct.diam/2*g.scale, rR = right.ct.diam/2*g.scale;
-        const restOnY = Math.min(left.p.y, right.p.y) - r; // simplified
-        const avgY = (left.p.y + right.p.y)/2 - (rL+r)*0.85;
-        cx = midX;
-        cy = avgY;
-        isKey = true; // a coil resting between two = potential key coil
-        break;
-      }
+      const ra = a.r + r;
+      const rb = b.r + r;
+      if(d > ra + rb || d < Math.abs(ra - rb)) continue;
+
+      const along = (ra*ra - rb*rb + d*d) / (2*d);
+      const height = Math.sqrt(Math.max(0, ra*ra - along*along));
+      const ux = dx / d;
+      const uy = dy / d;
+      const baseCx = a.p.x + along * ux;
+      const baseCy = a.p.y + along * uy;
+      const pairCandidates = [
+        { cx: baseCx - uy * height, cy: baseCy + ux * height },
+        { cx: baseCx + uy * height, cy: baseCy - ux * height }
+      ];
+
+      pairCandidates
+        .filter(pos => pos.cy < Math.min(a.p.y, b.p.y) - 2)
+        .forEach(pos => {
+          const betweenSupports = pos.cx > Math.min(a.p.x, b.p.x) - r && pos.cx < Math.max(a.p.x, b.p.x) + r;
+          if(!betweenSupports) return;
+          candidates.push({
+            cx: pos.cx,
+            cy: pos.cy,
+            isKey: true,
+            score: Math.hypot(px - pos.cx, py - pos.cy)
+          });
+        });
     }
   }
 
-  const posM = px2m(cx, cy);
-  const valid = checkValidPlacement(cx, cy, r, ct);
+  candidates.sort((a,b)=>a.score-b.score);
+  const chosen = candidates.find(pos => checkValidPlacement(pos.cx, pos.cy, r, ct)) || candidates[0];
+  const valid = checkValidPlacement(chosen.cx, chosen.cy, r, ct);
+  const posM = px2m(chosen.cx, chosen.cy);
 
-  return { pos:{x:cx,y:cy}, posM, valid, isKey };
+  return { pos:{x:chosen.cx,y:chosen.cy}, posM, valid, isKey: chosen.isKey };
 }
 
 function checkValidPlacement(cx, cy, r, ct) {
@@ -533,7 +790,54 @@ function checkValidPlacement(cx, cy, r, ct) {
 function placeCoil(posM, isKey) {
   const ct = COILS.find(x=>x.id===S.selectedCoilType);
   if(ct.stock<=0) return;
-  HOLDS[S.hold].coils.push({ typeId: ct.id, x: posM.x, y: posM.y, isKey });
+  // default fore-aft position: first free slot near bow
+  const h = HOLDS[S.hold];
+  const defaultZ = (h.coils.length % 8) * (ct.len + 0.3) + ct.len/2 + 0.5;
+  HOLDS[S.hold].coils.push({ typeId: ct.id, x: posM.x, y: posM.y, z: defaultZ, isKey });
+  ct.stock--;
+  document.getElementById('cc-'+ct.id).textContent = ct.stock;
+  if(ct.stock<=0){ document.getElementById('chip-'+ct.id).classList.add('depleted'); S.selectedCoilType=null; }
+  renderPalette();
+  updateSelectedInfo();
+  render();
+}
+
+// ─── TOP VIEW snap & place ───
+function snapPositionTop(px, py) {
+  const g = S.geom;
+  const ct = COILS.find(x=>x.id===S.selectedCoilType);
+  const h = HOLDS[S.hold];
+  const wPx = ct.len*g.scale, hPx = ct.diam*g.scale;
+
+  // clamp within hull
+  let topY = Math.max(g.oy + hPx/2, Math.min(g.oy + g.holdB - hPx/2, py));
+  let leftX = Math.max(g.ox + g.bowInset, Math.min(g.ox + g.holdL - wPx, px - wPx/2));
+
+  const pos = { x: leftX, y: topY };
+  const posM = px2mTop(leftX, topY); // gives {x:athwartships, z:fore-aft} at top-left... adjust to center
+  // store center positions
+  const centerM = { x: (topY - g.oy)/g.scale, z: (leftX - g.ox - g.bowInset)/g.scale };
+
+  // overlap check (rectangles, top view)
+  let valid = true;
+  for(const c of h.coils){
+    const cct = COILS.find(x=>x.id===c.typeId);
+    const cz = (c.z!==undefined)?c.z:1;
+    const cp = m2pxTop(c.x, cz);
+    const cw = cct.len*g.scale, chh = cct.diam*g.scale;
+    // AABB overlap with small tolerance
+    if(leftX < cp.x+cw-4 && leftX+wPx > cp.x+4 && topY-hPx/2 < cp.y+chh/2-4 && topY+hPx/2 > cp.y-chh/2+4){
+      valid = false; break;
+    }
+  }
+  return { pos, posM: centerM, valid };
+}
+
+function placeCoilTop(centerM) {
+  const ct = COILS.find(x=>x.id===S.selectedCoilType);
+  if(ct.stock<=0) return;
+  // z stored as bow-edge (left) position in meters
+  HOLDS[S.hold].coils.push({ typeId: ct.id, x: centerM.x, y: 0, z: centerM.z, isKey:false });
   ct.stock--;
   document.getElementById('cc-'+ct.id).textContent = ct.stock;
   if(ct.stock<=0){ document.getElementById('chip-'+ct.id).classList.add('depleted'); S.selectedCoilType=null; }

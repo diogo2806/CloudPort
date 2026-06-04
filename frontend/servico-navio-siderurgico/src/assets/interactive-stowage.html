@@ -795,9 +795,13 @@ function checkValidPlacement(cx, cy, r, ct) {
 function placeCoil(posM, isKey) {
   const ct = COILS.find(x=>x.id===S.selectedCoilType);
   if(ct.stock<=0) return;
-  // default fore-aft position: first free slot near bow
+  // Choose a fixed fore-aft (z) band for successive placements from the front view
   const h = HOLDS[S.hold];
-  const defaultZ = (h.coils.length % 8) * (ct.len + 0.3) + ct.len/2 + 0.5;
+  if(S.placeDefaultZ === undefined || S.placeDefaultZ === null){
+    // default to center of hold
+    S.placeDefaultZ = Math.max(1, Math.round(h.length/2));
+  }
+  const defaultZ = S.placeDefaultZ;
   HOLDS[S.hold].coils.push({ typeId: ct.id, x: posM.x, y: posM.y, z: defaultZ, isKey });
   ct.stock--;
   document.getElementById('cc-'+ct.id).textContent = ct.stock;
@@ -867,6 +871,7 @@ function removeCoil(idx) {
 function clearHold() {
   HOLDS[S.hold].coils.forEach(c => { COILS.find(x=>x.id===c.typeId).stock++; });
   HOLDS[S.hold].coils = [];
+  S.placeDefaultZ = null;
   COILS.forEach(c => { document.getElementById('cc-'+c.id).textContent = c.stock; document.getElementById('chip-'+c.id).classList.remove('depleted'); });
   renderPalette();
   render();

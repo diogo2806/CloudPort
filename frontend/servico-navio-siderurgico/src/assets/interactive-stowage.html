@@ -439,14 +439,19 @@ function buildTopInsetSvg(x, y, w, hgt) {
     const z = coil.z !== undefined ? coil.z : 1;
     const px = ox + bowInset + z * scaleZ;
     const py = oy + coil.x * scaleX;
-    const cw = ct.len * scaleZ;
-    const ch = ct.diam * scaleX;
+    // draw coils with axis along the beam (vertical in the top view)
+    // width along fore-aft = coil diameter; height along beam = coil length
+    const cw = ct.diam * scaleZ;
+    const ch = ct.len * scaleX;
     const lane = zBand(coil);
     const focused = S.focusZ === null || S.focusZ === lane;
     const col = coil.isKey ? '#ffd60a' : ct.color;
     svg += `<g class="top-lane" data-zband="${lane}" style="cursor:pointer" opacity="${focused?1:.28}">`;
     svg += `<rect x="${px}" y="${py-ch/2}" width="${cw}" height="${ch}" rx="3" fill="${col}" fill-opacity=".42" stroke="${col}" stroke-width="1"/>`;
-    svg += `<line x1="${px+4}" y1="${py}" x2="${px+cw-4}" y2="${py}" stroke="${col}" stroke-width=".8" stroke-dasharray="3 2"/>`;
+    // axis core line (vertical) and eye holes at both ends
+    svg += `<line x1="${px + cw/2}" y1="${py - ch/2 + 4}" x2="${px + cw/2}" y2="${py + ch/2 - 4}" stroke="${col}" stroke-width=".8" stroke-dasharray="3 2"/>`;
+    svg += `<circle cx="${px + cw/2}" cy="${py - ch/2 + 6}" r="${Math.max(1, (cw*0.12).toFixed(2))}" fill="${col}" fill-opacity=".4"/>`;
+    svg += `<circle cx="${px + cw/2}" cy="${py + ch/2 - 6}" r="${Math.max(1, (cw*0.12).toFixed(2))}" fill="${col}" fill-opacity=".4"/>`;
     svg += `</g>`;
   });
 
@@ -569,32 +574,32 @@ function renderTop() {
   svg += `<line x1="${ox+holdL+34}" y1="${oy}" x2="${ox+holdL+34}" y2="${oy+holdB}" stroke="#4db8ff" stroke-width=".75"/>`;
   svg += `<text x="${ox+holdL+42}" y="${oy+holdB/2}" transform="rotate(90 ${ox+holdL+42} ${oy+holdB/2})" font-size="10" fill="#4db8ff" text-anchor="middle" font-family="IBM Plex Mono,monospace">B = ${h.width} m</text>`;
 
-  // placed coils — seen from top as rectangles (length along fore-aft × diameter along beam)
+  // placed coils — seen from top as rectangles
+  // We draw coils with their axis along the beam: width (fore-aft) = diameter, height (beam) = length
   const coils = h.coils;
   coils.forEach((c,i) => {
     const ct = COILS.find(x=>x.id===c.typeId);
     const zUsed = (c.z !== undefined) ? c.z : 1; // fore-aft position
     const p = m2pxTop(c.x, zUsed);
-    const wPx = ct.len * g.scale;   // along fore-aft
-    const hPx = ct.diam * g.scale;  // along beam
+    const wPx = ct.diam * g.scale;   // along fore-aft (display coil diameter)
+    const hPx = ct.len * g.scale;    // along beam (display coil length)
     const col = c.isKey ? '#ffd60a' : ct.color;
     const inHatch = (p.x + wPx/2) > g.hatchStart && (p.x + wPx/2) < g.hatchEnd;
     const op = inHatch ? 0.5 : 0.32;
     svg += `<g class="placed-coil" data-idx="${i}" style="cursor:${S.mode==='move'?'grab':S.mode==='delete'?'not-allowed':'pointer'}">`;
     svg += `<rect x="${p.x}" y="${p.y - hPx/2}" width="${wPx}" height="${hPx}" rx="3" fill="${col}" fill-opacity="${op}" stroke="${col}" stroke-width="1"/>`;
-    // axis core line (fore-aft)
-    svg += `<line x1="${p.x+3}" y1="${p.y}" x2="${p.x+wPx-3}" y2="${p.y}" stroke="${col}" stroke-width=".6" stroke-dasharray="3 2"/>`;
-    // eye holes at both ends
-    svg += `<circle cx="${p.x+5}" cy="${p.y}" r="${hPx*0.12}" fill="${col}" fill-opacity=".4"/>`;
-    svg += `<circle cx="${p.x+wPx-5}" cy="${p.y}" r="${hPx*0.12}" fill="${col}" fill-opacity=".4"/>`;
-    if(c.isKey) svg += `<text x="${p.x+wPx/2}" y="${p.y-hPx/2-3}" text-anchor="middle" font-size="7" fill="#ffd60a" font-family="IBM Plex Mono,monospace">KEY</text>`;
+    // axis core line (vertical) and eye holes at both ends
+    svg += `<line x1="${p.x + wPx/2}" y1="${p.y - hPx/2 + 4}" x2="${p.x + wPx/2}" y2="${p.y + hPx/2 - 4}" stroke="${col}" stroke-width=".6" stroke-dasharray="3 2"/>`;
+    svg += `<circle cx="${p.x + wPx/2}" cy="${p.y - hPx/2 + 6}" r="${Math.max(1, (wPx*0.12).toFixed(2))}" fill="${col}" fill-opacity=".4"/>`;
+    svg += `<circle cx="${p.x + wPx/2}" cy="${p.y + hPx/2 - 6}" r="${Math.max(1, (wPx*0.12).toFixed(2))}" fill="${col}" fill-opacity=".4"/>`;
+    if(c.isKey) svg += `<text x="${p.x + wPx/2}" y="${p.y-hPx/2-3}" text-anchor="middle" font-size="7" fill="#ffd60a" font-family="IBM Plex Mono,monospace">KEY</text>`;
     svg += `</g>`;
   });
 
   // ghost preview (top view)
   if(S.mode==='place' && S.selectedCoilType && S.ghostPosTop) {
     const ct = COILS.find(x=>x.id===S.selectedCoilType);
-    const wPx = ct.len*g.scale, hPx = ct.diam*g.scale;
+    const wPx = ct.diam*g.scale, hPx = ct.len*g.scale;
     const p = S.ghostPosTop;
     const col = S.ghostValidTop ? ct.color : '#ff4d4d';
     svg += `<rect x="${p.x}" y="${p.y-hPx/2}" width="${wPx}" height="${hPx}" rx="3" fill="${col}" fill-opacity=".25" stroke="${col}" stroke-width="1.5" ${S.ghostValidTop?'':'stroke-dasharray="4 3"'}/>`;
@@ -807,7 +812,8 @@ function snapPositionTop(px, py) {
   const g = S.geom;
   const ct = COILS.find(x=>x.id===S.selectedCoilType);
   const h = HOLDS[S.hold];
-  const wPx = ct.len*g.scale, hPx = ct.diam*g.scale;
+  // width along fore-aft = diameter; height along beam = length
+  const wPx = ct.diam*g.scale, hPx = ct.len*g.scale;
 
   // clamp within hull
   let topY = Math.max(g.oy + hPx/2, Math.min(g.oy + g.holdB - hPx/2, py));
@@ -824,7 +830,8 @@ function snapPositionTop(px, py) {
     const cct = COILS.find(x=>x.id===c.typeId);
     const cz = (c.z!==undefined)?c.z:1;
     const cp = m2pxTop(c.x, cz);
-    const cw = cct.len*g.scale, chh = cct.diam*g.scale;
+    // placed coil dims follow same orientation: width=diameter, height=length
+    const cw = cct.diam*g.scale, chh = cct.len*g.scale;
     // AABB overlap with small tolerance
     if(leftX < cp.x+cw-4 && leftX+wPx > cp.x+4 && topY-hPx/2 < cp.y+chh/2-4 && topY+hPx/2 > cp.y-chh/2+4){
       valid = false; break;

@@ -703,6 +703,8 @@ function attachStageEvents() {
   svg.addEventListener('mouseleave', () => { S.ghostPos=null; S.ghostPosTop=null; if(S.mode==='place') render(); });
 
   svg.addEventListener('click', e => {
+    // Log click context for diagnostics
+    console.info('svg.click', {mode: S.mode, selected: S.selectedCoilType, viewMode: S.viewMode});
     if(S.mode==='place' && S.selectedCoilType) {
       const pt = svgPoint(e);
       if(S.viewMode==='front' || S.viewMode==='split') {
@@ -1345,7 +1347,8 @@ function updateInspector() {
   const warns = [];
   if(tt>15) warns.push('⚠ Carga no tanktop excede 15 t/m².');
   if(tiers>=2 && !hasKey) warns.push('⚠ Fiada superior sem key coil — instável.');
-  if(!edgesOk && baseCoils.length>2) warns.push('⚠ Estiva não iniciou pelos bordos.');
+  // Não listar como aviso impeditivo — apenas informação de boas práticas
+  // if(!edgesOk && baseCoils.length>2) warns.push('⚠ Estiva não iniciou pelos bordos.');
   if(overlap) warns.push('✕ Há bobinas sobrepostas — reposicione.');
   if(tiers===1 && count>0) warns.push('ℹ Apenas 1 fiada — recomenda-se mínimo 2.');
   document.getElementById('warns').innerHTML = warns.length ? warns.join('<br><br>') : (count>0?'✓ Estiva válida.':'Posicione bobinas para validar.');

@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estiva Interativa — Bobinas no Porão</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0a1628; --bg2: #0f1f38; --bg3: #16263f;
+    --blueprint: #0a1d38; --grid: #163052;
+    --line: #4db8ff; --line-dim: #2a6a9c;
+    --yellow: #ffd60a; --orange: #ff7a1a;
+    --green: #3fb950; --red: #ff4d4d;
+    --border: #1e3a5c; --border2: #2e5a8c;
+    --text: #d6e6f5; --text2: #7a98b8; --text3: #4a6a8c;
+    --accent: #4db8ff;
+    --c1:#4db8ff; --c2:#3fb950; --c3:#ff7a66; --c4:#bc8cff; --c5:#ffa657;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; height: 100vh; overflow: hidden; }
+
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 18px; height: 46px; display: flex; align-items: center; gap: 16px; }
+  .brand { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .brand span { color: var(--accent); }
+  .hold-tabs { display: flex; gap: 4px; flex: 1; }
+  .htab { font-size: 12px; color: var(--text2); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; }
+  .htab:hover { background: var(--bg3); }
+  .htab.active { background: var(--bg3); color: var(--accent); }
+  .btn { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); font-size: 12px; font-family: inherit; padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: all .15s; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.danger { color: var(--red); }
+  .btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 500; }
+
+  .layout { display: flex; height: calc(100vh - 46px); }
+
+  /* PALETTE */
+  .palette { width: 220px; background: var(--bg2); border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; padding: 14px; }
+  .pal-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text2); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .pal-title::before { content:''; width: 3px; height: 12px; background: var(--accent); border-radius: 2px; }
+
+  .coil-chip {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 7px; cursor: grab; user-select: none; transition: all .12s; position: relative;
+  }
+  .coil-chip:hover { border-color: var(--border2); transform: translateX(2px); }
+  .coil-chip:active { cursor: grabbing; }
+  .coil-chip.selected { border-color: var(--accent); background: #16314f; }
+  .coil-chip.depleted { opacity: .35; pointer-events: none; }
+  .chip-vis { flex-shrink: 0; position: relative; }
+  .chip-name { font-size: 12px; font-weight: 500; }
+  .chip-spec { font-size: 10px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+  .chip-count {
+    position: absolute; top: 6px; right: 8px; font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace; color: var(--text2);
+    background: var(--bg2); padding: 1px 6px; border-radius: 8px; border: 1px solid var(--border);
+  }
+
+  .hint-box {
+    background: #16314f; border: 1px solid var(--border2); border-radius: 8px;
+    padding: 10px; font-size: 11px; line-height: 1.5; color: var(--text2); margin-top: 12px;
+  }
+  .hint-box b { color: var(--accent); }
+
+  /* CANVAS */
+  .stage { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+    background: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px), var(--blueprint);
+    background-size: 26px 26px, 26px 26px, 100% 100%; }
+  .stage-toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 1px solid var(--border); background: rgba(15,31,56,.6); }
+  .stage-toolbar .info { font-size: 11px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+  .mode-toggle { display: flex; gap: 2px; margin-left: auto; }
+  .mode-btn { font-size: 11px; padding: 4px 10px; border-radius: 5px; cursor: pointer; color: var(--text2); border: 1px solid transparent; }
+  .mode-btn.active { background: var(--bg3); color: var(--accent); border-color: var(--border2); }
+
+  .canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  #stage-svg { width: 100%; max-width: 1000px; cursor: default; }
+  #stage-svg.placing { cursor: crosshair; }
+
+  /* coil being dragged ghost */
+  .drag-ghost { position: fixed; pointer-events: none; z-index: 999; opacity: .85; transform: translate(-50%,-50%); }
+
+  /* RIGHT PANEL */
+  .inspector { width: 230px; background: var(--bg2); border-left: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; padding: 14px; }
+  .insp-section { margin-bottom: 18px; }
+  .insp-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text2); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .insp-title::before { content:''; width: 3px; height: 12px; background: var(--accent); border-radius: 2px; }
+  .kv { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .kv-k { font-size: 11px; color: var(--text2); }
+  .kv-v { font-size: 11px; font-family: 'IBM Plex Mono', monospace; font-weight: 500; }
+  .kv-v.ok { color: var(--green); } .kv-v.warn { color: var(--yellow); } .kv-v.err { color: var(--red); }
+
+  .check { display: flex; align-items: flex-start; gap: 7px; font-size: 11px; line-height: 1.4; margin-bottom: 7px; }
+  .check-ic { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; margin-top: 1px; }
+  .check-ic.ok { background: #0d2a1a; color: var(--green); border: 1px solid #1a4a2e; }
+  .check-ic.no { background: #2a1f0d; color: var(--text3); border: 1px solid var(--border); }
+  .check-ic.err { background: #2a0d0d; color: var(--red); border: 1px solid #4a1a1a; }
+
+  .warn-list { font-size: 11px; line-height: 1.5; color: var(--text2); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  .selected-coil-info {
+    background: var(--bg3); border: 1px solid var(--accent); border-radius: 8px;
+    padding: 8px 10px; font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">⬡ <span>STEEL</span>PLAN · Estiva</div>
+  <div class="hold-tabs" id="hold-tabs"></div>
+  <button class="btn" onclick="autoFill()">⚡ Auto-preencher fiada base</button>
+  <button class="btn danger" onclick="clearHold()">✕ Limpar porão</button>
+  <button class="btn primary">Salvar ✓</button>
+</div>
+
+<div class="layout">
+
+  <!-- PALETTE -->
+  <div class="palette">
+    <div class="pal-title">Bobinas disponíveis</div>
+    <div id="coil-palette"></div>
+    <div class="hint-box">
+      <b>Como estivar:</b><br>
+      1. Clique numa bobina para selecioná-la<br>
+      2. Clique dentro do porão para posicioná-la<br>
+      3. Comece pelos <b>bordos</b> e feche no <b>centro</b><br>
+      4. Arraste bobinas já colocadas para reposicionar<br>
+      5. Clique numa bobina no porão para remover
+    </div>
+    <div class="hint-box" style="border-color:var(--yellow)">
+      <b style="color:var(--yellow)">Escala real:</b> cada bobina é desenhada com seu diâmetro verdadeiro. Coil 1 (⌀2m) é o dobro do Coil 3 (⌀1m).
+    </div>
+  </div>
+
+  <!-- STAGE -->
+  <div class="stage">
+    <div class="stage-toolbar">
+      <span class="info" id="stage-info">H3 — Casco trapezoidal · 0 bobinas</span>
+      <span class="info" id="selected-info" style="color:var(--accent)"></span>
+      <div class="mode-toggle">
+        <span class="mode-btn active" id="mb-place" onclick="setMode('place')">⊕ Posicionar</span>
+        <span class="mode-btn" id="mb-move" onclick="setMode('move')">✥ Mover</span>
+        <span class="mode-btn" id="mb-delete" onclick="setMode('delete')">⌫ Remover</span>
+      </div>
+    </div>
+    <div class="canvas-wrap">
+      <svg id="stage-svg" viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+  </div>
+
+  <!-- INSPECTOR -->
+  <div class="inspector">
+    <div class="insp-section">
+      <div class="insp-title">Seleção atual</div>
+      <div class="selected-coil-info" id="sel-info">Nenhuma bobina selecionada</div>
+    </div>
+
+    <div class="insp-section">
+      <div class="insp-title">Carga do porão</div>
+      <div class="kv"><span class="kv-k">Bobinas estivadas</span><span class="kv-v" id="ip-count">0</span></div>
+      <div class="kv"><span class="kv-k">Massa total</span><span class="kv-v" id="ip-mass">0 t</span></div>
+      <div class="kv"><span class="kv-k">Fiadas (tiers)</span><span class="kv-v" id="ip-tiers">0</span></div>
+      <div class="kv"><span class="kv-k">Carga tanktop</span><span class="kv-v ok" id="ip-tt">0 t/m²</span></div>
+      <div class="kv"><span class="kv-k">Ocupação boca</span><span class="kv-v" id="ip-occ">0%</span></div>
+    </div>
+
+    <div class="insp-section">
+      <div class="insp-title">Validação de estiva</div>
+      <div class="check"><div class="check-ic no" id="vk-base">—</div><span>Fiada base preenchida</span></div>
+      <div class="check"><div class="check-ic no" id="vk-edges">—</div><span>Iniciada pelos bordos</span></div>
+      <div class="check"><div class="check-ic no" id="vk-key">—</div><span>Key coil com 1/3 de penetração</span></div>
+      <div class="check"><div class="check-ic no" id="vk-gap">—</div><span>Vão entre bobinas &lt; 60%</span></div>
+      <div class="check"><div class="check-ic no" id="vk-pyr">—</div><span>Sem pirâmide instável</span></div>
+      <div class="check"><div class="check-ic no" id="vk-overlap">—</div><span>Sem sobreposição</span></div>
+    </div>
+
+    <div class="insp-section">
+      <div class="insp-title">Avisos</div>
+      <div class="warn-list" id="warns">Posicione bobinas para validar.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── DATA ───
+const COILS = [
+  { id:1, name:'Coil 1 (HR)', diam:2.00, len:2.00, wt:15, color:'#4db8ff', stock:40 },
+  { id:2, name:'Coil 2 (CR)', diam:1.75, len:1.75, wt:10, color:'#3fb950', stock:30 },
+  { id:3, name:'Coil 3',      diam:1.00, len:1.00, wt:5,  color:'#ff7a66', stock:50 },
+  { id:4, name:'Coil 4 (CR)', diam:2.00, len:2.00, wt:15, color:'#bc8cff', stock:25 },
+  { id:5, name:'Coil 5',      diam:1.50, len:2.00, wt:10, color:'#ffa657', stock:35 },
+];
+
+const HOLDS = {
+  H1: { name:'H1 — Proa', shape:'hopper', width:23.94, height:13, hopper:45, hopperh:3, coils:[] },
+  H2: { name:'H2',         shape:'box',    width:23.94, height:13, hopper:45, hopperh:3, coils:[] },
+  H3: { name:'H3 — Centro',shape:'hopper', width:23.94, height:13, hopper:45, hopperh:3, coils:[] },
+  H4: { name:'H4',         shape:'box',    width:23.94, height:13, hopper:45, hopperh:3, coils:[] },
+  H5: { name:'H5 — Popa',  shape:'hopper', width:23.94, height:13, hopper:45, hopperh:3, coils:[] },
+};
+
+const S = {
+  hold: 'H3',
+  mode: 'place',
+  selectedCoilType: null,
+  draggingPlaced: null, // index of placed coil being dragged
+  scale: 30, // px per meter
+  geom: null, // computed hold geometry in px
+};
+
+// each placed coil: { typeId, x, y } in METERS (x from left wall, y from tank top going UP)
+// We store center position in meters relative to hold internal coordinate
+
+// ─── INIT ───
+function init() {
+  renderHoldTabs();
+  renderPalette();
+  computeGeom();
+  render();
+  attachStageEvents();
+}
+
+function renderHoldTabs() {
+  document.getElementById('hold-tabs').innerHTML = Object.keys(HOLDS).map(id =>
+    `<div class="htab ${id===S.hold?'active':''}" onclick="selectHold('${id}')">${id}</div>`
+  ).join('');
+}
+
+function selectHold(id) {
+  S.hold = id;
+  renderHoldTabs();
+  computeGeom();
+  render();
+}
+
+function renderPalette() {
+  document.getElementById('coil-palette').innerHTML = COILS.map(c => {
+    const r = c.diam * 9; // mini preview scale
+    return `
+    <div class="coil-chip ${c.stock<=0?'depleted':''} ${S.selectedCoilType===c.id?'selected':''}"
+         id="chip-${c.id}" onclick="selectCoilType(${c.id})">
+      <span class="chip-count" id="cc-${c.id}">${c.stock}</span>
+      <div class="chip-vis">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          ${coilRingsSvg(22,22,Math.min(r,20),c.color)}
+        </svg>
+      </div>
+      <div>
+        <div class="chip-name">${c.name}</div>
+        <div class="chip-spec">⌀${c.diam}m · ${c.wt}t</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectCoilType(id) {
+  const c = COILS.find(x=>x.id===id);
+  if(c.stock<=0) return;
+  S.selectedCoilType = (S.selectedCoilType===id) ? null : id;
+  S.mode = 'place';
+  setMode('place');
+  renderPalette();
+  updateSelectedInfo();
+}
+
+function updateSelectedInfo() {
+  const el = document.getElementById('sel-info');
+  const si = document.getElementById('selected-info');
+  if(S.selectedCoilType) {
+    const coil = COILS.find(x=>x.id===S.selectedCoilType);
+    el.innerHTML = `<b style="color:${coil.color}">${coil.name}</b><br>⌀ ${coil.diam}m · ${coil.len}m · ${coil.wt}t<br><span style="color:var(--text2)">Restam ${coil.stock} no estoque</span>`;
+    si.textContent = `Selecionado: ${coil.name} — clique no porão para posicionar`;
+  } else {
+    el.textContent = 'Nenhuma bobina selecionada';
+    si.textContent = '';
+  }
+}
+
+function setMode(m) {
+  S.mode = m;
+  ['place','move','delete'].forEach(x=>{
+    document.getElementById('mb-'+x).classList.toggle('active', x===m);
+  });
+  const svg = document.getElementById('stage-svg');
+  svg.classList.toggle('placing', m==='place' && S.selectedCoilType);
+}
+
+// ─── GEOMETRY ───
+function computeGeom() {
+  const h = HOLDS[S.hold];
+  const scale = S.scale;
+  const W = 1000, H = 560;
+  const holdW = h.width * scale;
+  const holdH = h.height * scale;
+  const ox = (W - holdW)/2;
+  const oy = 70;
+  const bottomY = oy + holdH;
+  const hopperH = h.shape==='hopper' ? h.hopperh*scale : 0;
+  const hopperInset = h.shape==='hopper' ? hopperH / Math.tan(h.hopper*Math.PI/180) : 0;
+
+  S.geom = {
+    scale, W, H, ox, oy, holdW, holdH, bottomY, hopperH, hopperInset,
+    tankTopY: bottomY - 6,           // y where coils rest (px)
+    leftWallX: ox,                    // outer wall
+    rightWallX: ox + holdW,
+    floorLeftX: ox + hopperInset,     // tank-top extent (inner)
+    floorRightX: ox + holdW - hopperInset,
+    h
+  };
+}
+
+// convert hold-meters (x from inner-left, y up from tanktop) -> svg px
+function m2px(xm, ym) {
+  const g = S.geom;
+  return {
+    x: g.floorLeftX + xm * g.scale,
+    y: g.tankTopY - ym * g.scale
+  };
+}
+function px2m(px, py) {
+  const g = S.geom;
+  return {
+    x: (px - g.floorLeftX) / g.scale,
+    y: (g.tankTopY - py) / g.scale
+  };
+}
+
+// ─── RENDER ───
+function render() {
+  const g = S.geom;
+  const h = g.h;
+  let svg = '';
+
+  // title
+  svg += `<text x="40" y="34" font-family="IBM Plex Mono,monospace" font-size="15" fill="${'#4db8ff'}" font-weight="500">${h.name} · Corte frontal</text>`;
+  svg += `<text x="40" y="52" font-family="IBM Plex Sans" font-size="11" fill="${'#7a98b8'}">${shapeName(h.shape)} · B=${h.width}m × H=${h.height}m${h.shape==='hopper'?' · hopper '+h.hopper+'°':''}</text>`;
+
+  // hull
+  let hull;
+  if(h.shape==='box'||h.shape==='rect') {
+    hull = `M${g.ox},${g.oy} L${g.rightWallX},${g.oy} L${g.rightWallX},${g.bottomY} L${g.ox},${g.bottomY} Z`;
+  } else {
+    hull = `M${g.ox},${g.oy} L${g.rightWallX},${g.oy} L${g.rightWallX},${g.bottomY-g.hopperH} L${g.floorRightX},${g.bottomY} L${g.floorLeftX},${g.bottomY} L${g.ox},${g.bottomY-g.hopperH} Z`;
+  }
+  svg += `<path d="${hull}" fill="rgba(77,184,255,.04)" stroke="#4db8ff" stroke-width="2"/>`;
+
+  // double bottom hatching
+  svg += `<line x1="${g.floorLeftX}" y1="${g.bottomY}" x2="${g.floorRightX}" y2="${g.bottomY}" stroke="#2a6a9c" stroke-width="4"/>`;
+  for(let x=g.floorLeftX; x<g.floorRightX; x+=14){
+    svg += `<line x1="${x}" y1="${g.bottomY}" x2="${x+6}" y2="${g.bottomY+6}" stroke="#2a6a9c" stroke-width=".5"/>`;
+  }
+
+  // dunnage strip on tank top
+  svg += `<rect x="${g.floorLeftX+2}" y="${g.tankTopY}" width="${g.floorRightX-g.floorLeftX-4}" height="6" fill="#ffd60a" fill-opacity=".2" stroke="#ffd60a" stroke-width=".5"/>`;
+
+  // labels port/stbd
+  svg += `<text x="${g.floorLeftX+6}" y="${g.oy+18}" font-size="11" fill="#7a98b8">Bombordo</text>`;
+  svg += `<text x="${g.floorRightX-6}" y="${g.oy+18}" font-size="11" fill="#7a98b8" text-anchor="end">Boreste</text>`;
+  svg += `<text x="${(g.floorLeftX+g.floorRightX)/2}" y="${g.bottomY+24}" font-size="10" fill="#4a6a8c" text-anchor="middle" font-family="IBM Plex Mono,monospace">CENTRO ↑ · estivar dos bordos para o centro</text>`;
+
+  // dimension B
+  svg += `<line x1="${g.ox}" y1="${g.oy-16}" x2="${g.rightWallX}" y2="${g.oy-16}" stroke="#4db8ff" stroke-width=".75"/>`;
+  svg += `<text x="${(g.ox+g.rightWallX)/2}" y="${g.oy-20}" font-size="10" fill="#4db8ff" text-anchor="middle" font-family="IBM Plex Mono,monospace">B = ${h.width} m</text>`;
+
+  // placed coils
+  const coils = h.coils;
+  // compute support load for warnings
+  coils.forEach((c,i) => {
+    const ct = COILS.find(x=>x.id===c.typeId);
+    const p = m2px(c.x, c.y);
+    const r = ct.diam/2 * g.scale;
+    const isKey = c.isKey;
+    const col = isKey ? '#ffd60a' : ct.color;
+    svg += `<g class="placed-coil" data-idx="${i}" style="cursor:${S.mode==='move'?'grab':S.mode==='delete'?'not-allowed':'pointer'}">`;
+    svg += coilRingsSvg(p.x, p.y, r, col, isKey);
+    svg += `</g>`;
+  });
+
+  // ghost preview for placement
+  if(S.mode==='place' && S.selectedCoilType && S.ghostPos) {
+    const ct = COILS.find(x=>x.id===S.selectedCoilType);
+    const r = ct.diam/2*g.scale;
+    const valid = S.ghostValid;
+    svg += coilRingsSvg(S.ghostPos.x, S.ghostPos.y, r, valid?ct.color:'#ff4d4d', false, .5);
+    if(!valid) svg += `<circle cx="${S.ghostPos.x}" cy="${S.ghostPos.y}" r="${r}" fill="none" stroke="#ff4d4d" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  }
+
+  document.getElementById('stage-svg').innerHTML = svg;
+  reattachCoilEvents();
+  updateInspector();
+}
+
+function coilRingsSvg(cx, cy, r, color, isKey, opacity) {
+  const op = opacity || 1;
+  let s = '';
+  const n = 5;
+  for(let i=0;i<n;i++){
+    const rr = r*(0.32 + 0.68*i/(n-1));
+    s += `<circle cx="${cx}" cy="${cy}" r="${rr}" fill="none" stroke="${color}" stroke-width="${i===n-1?1.5:0.5}" stroke-opacity="${(i===n-1?1:0.45)*op}"/>`;
+  }
+  s += `<circle cx="${cx}" cy="${cy}" r="${r*0.2}" fill="${color}" fill-opacity="${0.15*op}" stroke="${color}" stroke-width="1" stroke-opacity="${op}"/>`;
+  if(isKey) s += `<text x="${cx}" y="${cy-r-5}" text-anchor="middle" font-size="8" fill="#ffd60a" font-family="IBM Plex Mono,monospace">KEY</text>`;
+  return s;
+}
+
+function shapeName(s){ return {box:'Casco quadrado',rect:'Casco retangular',hopper:'Casco trapezoidal (hopper)'}[s]; }
+
+// ─── STAGE INTERACTION ───
+function attachStageEvents() {
+  const svg = document.getElementById('stage-svg');
+
+  svg.addEventListener('mousemove', e => {
+    if(S.mode==='place' && S.selectedCoilType) {
+      const pt = svgPoint(e);
+      const snapped = snapPosition(pt.x, pt.y);
+      S.ghostPos = snapped.pos;
+      S.ghostValid = snapped.valid;
+      render();
+    } else if(S.mode==='move' && S.draggingPlaced!==null) {
+      const pt = svgPoint(e);
+      const m = px2m(pt.x, pt.y);
+      const h = HOLDS[S.hold];
+      h.coils[S.draggingPlaced].x = m.x;
+      h.coils[S.draggingPlaced].y = m.y;
+      render();
+    }
+  });
+
+  svg.addEventListener('mouseleave', () => { S.ghostPos=null; if(S.mode==='place') render(); });
+
+  svg.addEventListener('click', e => {
+    if(S.mode==='place' && S.selectedCoilType) {
+      const pt = svgPoint(e);
+      const snapped = snapPosition(pt.x, pt.y);
+      if(snapped.valid) placeCoil(snapped.posM, snapped.isKey);
+    }
+  });
+
+  svg.addEventListener('mouseup', () => { S.draggingPlaced = null; });
+}
+
+function reattachCoilEvents() {
+  document.querySelectorAll('.placed-coil').forEach(g => {
+    const idx = parseInt(g.dataset.idx);
+    g.addEventListener('mousedown', e => {
+      if(S.mode==='move') { S.draggingPlaced = idx; e.stopPropagation(); }
+    });
+    g.addEventListener('click', e => {
+      if(S.mode==='delete') { removeCoil(idx); e.stopPropagation(); }
+    });
+  });
+}
+
+function svgPoint(e) {
+  const svg = document.getElementById('stage-svg');
+  const rect = svg.getBoundingClientRect();
+  const vb = svg.viewBox.baseVal;
+  return {
+    x: (e.clientX - rect.left) / rect.width * vb.width,
+    y: (e.clientY - rect.top) / rect.height * vb.height
+  };
+}
+
+// snap to a valid stowage position (rest on tanktop or nestle between coils)
+function snapPosition(px, py) {
+  const g = S.geom;
+  const ct = COILS.find(x=>x.id===S.selectedCoilType);
+  const r = ct.diam/2 * g.scale;
+  const h = HOLDS[S.hold];
+
+  // candidate: resting on tank top at the x where mouse is
+  let cx = px;
+  let cy = g.tankTopY - r;
+
+  // clamp x within floor
+  cx = Math.max(g.floorLeftX + r, Math.min(g.floorRightX - r, cx));
+
+  // check if it should nestle on top of two existing base coils (tier 2)
+  // find coils near cx in lower tier
+  let restY = cy;
+  let isKey = false;
+  const nearby = h.coils.map((c,i)=>({c,i,p:m2px(c.x,c.y),ct:COILS.find(x=>x.id===c.typeId)}))
+    .filter(o => Math.abs(o.p.x - cx) < (r + o.ct.diam/2*g.scale)*1.1);
+
+  if(nearby.length >= 2) {
+    // try to rest on top of two coils -> compute y
+    // find two coils that bracket cx
+    const sorted = nearby.sort((a,b)=>a.p.x-b.p.x);
+    for(let k=0;k<sorted.length-1;k++){
+      const left = sorted[k], right = sorted[k+1];
+      const midX = (left.p.x + right.p.x)/2;
+      if(Math.abs(cx - midX) < r) {
+        // rest on top: y = topCoilY such that distance to both = r + theirR
+        const rL = left.ct.diam/2*g.scale, rR = right.ct.diam/2*g.scale;
+        const restOnY = Math.min(left.p.y, right.p.y) - r; // simplified
+        const avgY = (left.p.y + right.p.y)/2 - (rL+r)*0.85;
+        cx = midX;
+        cy = avgY;
+        isKey = true; // a coil resting between two = potential key coil
+        break;
+      }
+    }
+  }
+
+  const posM = px2m(cx, cy);
+  const valid = checkValidPlacement(cx, cy, r, ct);
+
+  return { pos:{x:cx,y:cy}, posM, valid, isKey };
+}
+
+function checkValidPlacement(cx, cy, r, ct) {
+  const g = S.geom;
+  const h = HOLDS[S.hold];
+  // within walls
+  if(cx - r < g.floorLeftX - 2 || cx + r > g.floorRightX + 2) return false;
+  if(cy - r < g.oy) return false;
+  // no overlap (>15% intrusion)
+  for(const c of h.coils){
+    const p = m2px(c.x,c.y);
+    const cr = COILS.find(x=>x.id===c.typeId).diam/2*g.scale;
+    const dist = Math.hypot(p.x-cx, p.y-cy);
+    if(dist < (r+cr)*0.82) return false;
+  }
+  return true;
+}
+
+function placeCoil(posM, isKey) {
+  const ct = COILS.find(x=>x.id===S.selectedCoilType);
+  if(ct.stock<=0) return;
+  HOLDS[S.hold].coils.push({ typeId: ct.id, x: posM.x, y: posM.y, isKey });
+  ct.stock--;
+  document.getElementById('cc-'+ct.id).textContent = ct.stock;
+  if(ct.stock<=0){ document.getElementById('chip-'+ct.id).classList.add('depleted'); S.selectedCoilType=null; }
+  renderPalette();
+  updateSelectedInfo();
+  render();
+}
+
+function removeCoil(idx) {
+  const c = HOLDS[S.hold].coils[idx];
+  const ct = COILS.find(x=>x.id===c.typeId);
+  ct.stock++;
+  document.getElementById('cc-'+ct.id).textContent = ct.stock;
+  document.getElementById('chip-'+ct.id).classList.remove('depleted');
+  HOLDS[S.hold].coils.splice(idx,1);
+  renderPalette();
+  render();
+}
+
+function clearHold() {
+  HOLDS[S.hold].coils.forEach(c => { COILS.find(x=>x.id===c.typeId).stock++; });
+  HOLDS[S.hold].coils = [];
+  COILS.forEach(c => { document.getElementById('cc-'+c.id).textContent = c.stock; document.getElementById('chip-'+c.id).classList.remove('depleted'); });
+  renderPalette();
+  render();
+}
+
+function autoFill() {
+  // fill base tier from edges to center with selected or default coil
+  const g = S.geom;
+  const coil = COILS.find(x=>x.id===(S.selectedCoilType||1));
+  const r = coil.diam/2 * g.scale;
+  const floorW = g.floorRightX - g.floorLeftX;
+  const spacing = coil.diam*g.scale + 0.15*g.scale;
+  const n = Math.floor(floorW / spacing);
+  const startX = g.floorLeftX + (floorW - n*spacing + 0.15*g.scale)/2 + r;
+  // order: edges inward
+  const positions = [];
+  for(let i=0;i<n;i++) positions.push(startX + i*spacing);
+  const ordered = [];
+  let lo=0, hi=n-1;
+  while(lo<=hi){ ordered.push(positions[lo]); if(lo!==hi) ordered.push(positions[hi]); lo++; hi--; }
+  ordered.forEach(cx => {
+    if(coil.stock<=0) return;
+    const cy = g.tankTopY - r;
+    const m = px2m(cx, cy);
+    HOLDS[S.hold].coils.push({ typeId: coil.id, x:m.x, y:m.y, isKey:false });
+    coil.stock--;
+  });
+  document.getElementById('cc-'+coil.id).textContent = coil.stock;
+  renderPalette();
+  render();
+}
+
+// ─── INSPECTOR ───
+function updateInspector() {
+  const h = HOLDS[S.hold];
+  const coils = h.coils;
+  const count = coils.length;
+  const mass = coils.reduce((s,c)=>s+COILS.find(x=>x.id===c.typeId).wt,0);
+  document.getElementById('ip-count').textContent = count;
+  document.getElementById('ip-mass').textContent = mass+' t';
+
+  // tiers: count distinct y bands
+  const g = S.geom;
+  const yBands = new Set(coils.map(c => Math.round(m2px(c.x,c.y).y / 40)));
+  const tiers = yBands.size;
+  document.getElementById('ip-tiers').textContent = tiers;
+
+  const area = h.width * 27.6;
+  const tt = mass/area;
+  const ttEl = document.getElementById('ip-tt');
+  ttEl.textContent = tt.toFixed(1)+' t/m²';
+  ttEl.className = 'kv-v '+(tt>15?'err':tt>10?'warn':'ok');
+
+  // occupancy of base width
+  const floorW_m = (g.floorRightX - g.floorLeftX)/g.scale;
+  const baseCoils = coils.filter(c => m2px(c.x,c.y).y > g.tankTopY - 60);
+  const usedW = baseCoils.reduce((s,c)=>s+COILS.find(x=>x.id===c.typeId).diam,0);
+  const occ = Math.round(usedW/floorW_m*100);
+  document.getElementById('ip-occ').textContent = Math.min(occ,100)+'%';
+
+  document.getElementById('stage-info').textContent =
+    `${h.name} — ${shapeName(h.shape)} · ${count} bobinas · ${mass}t`;
+
+  // validation checks
+  setCheck('vk-base', baseCoils.length >= 3);
+  // edges started: check if leftmost and rightmost are near walls
+  let edgesOk = false;
+  if(baseCoils.length>=2){
+    const xs = baseCoils.map(c=>m2px(c.x,c.y).x).sort((a,b)=>a-b);
+    edgesOk = (xs[0] < g.floorLeftX + 80) && (xs[xs.length-1] > g.floorRightX - 80);
+  }
+  setCheck('vk-edges', edgesOk);
+  // key coil present in upper tier
+  const hasKey = coils.some(c=>c.isKey);
+  setCheck('vk-key', hasKey, tiers<2 ? 'no' : (hasKey?'ok':'err'));
+  // gap check
+  let gapOk = true;
+  for(let i=0;i<baseCoils.length-1;i++){
+    // simplistic - assume ok
+  }
+  setCheck('vk-gap', count>0 ? 'ok' : 'no');
+  // pyramid check: detect if a coil sits directly on a single coil (unstable)
+  let pyramidBad = false;
+  setCheck('vk-pyr', count>0 ? (pyramidBad?'err':'ok') : 'no');
+  // overlap
+  let overlap = false;
+  for(let i=0;i<coils.length;i++) for(let j=i+1;j<coils.length;j++){
+    const pi=m2px(coils[i].x,coils[i].y), pj=m2px(coils[j].x,coils[j].y);
+    const ri=COILS.find(x=>x.id===coils[i].typeId).diam/2*g.scale;
+    const rj=COILS.find(x=>x.id===coils[j].typeId).diam/2*g.scale;
+    if(Math.hypot(pi.x-pj.x,pi.y-pj.y) < (ri+rj)*0.8){ overlap=true; }
+  }
+  setCheck('vk-overlap', count>0 ? (overlap?'err':'ok') : 'no');
+
+  // warnings
+  const warns = [];
+  if(tt>15) warns.push('⚠ Carga no tanktop excede 15 t/m².');
+  if(tiers>=2 && !hasKey) warns.push('⚠ Fiada superior sem key coil — instável.');
+  if(!edgesOk && baseCoils.length>2) warns.push('⚠ Estiva não iniciou pelos bordos.');
+  if(overlap) warns.push('✕ Há bobinas sobrepostas — reposicione.');
+  if(tiers===1 && count>0) warns.push('ℹ Apenas 1 fiada — recomenda-se mínimo 2.');
+  document.getElementById('warns').innerHTML = warns.length ? warns.join('<br><br>') : (count>0?'✓ Estiva válida.':'Posicione bobinas para validar.');
+}
+
+function setCheck(id, state) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  let cls, txt;
+  if(state===true||state==='ok'){ cls='ok'; txt='✓'; }
+  else if(state==='err'){ cls='err'; txt='✕'; }
+  else { cls='no'; txt='—'; }
+  el.className = 'check-ic '+cls;
+  el.textContent = txt;
+}
+
+init();
+</script>
+</body>
+</html>

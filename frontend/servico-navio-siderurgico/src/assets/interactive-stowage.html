@@ -649,60 +649,52 @@ function attachStageEvents() {
       const coil = h.coils[idx];
       if(!coil) return;
       if(S.viewMode==='front' || S.viewMode==='split') {
-      let m = px2m(pt.x, pt.y);
-      // prevent going below tanktop resting center
-      const ct = COILS.find(x=>x.id===coil.typeId);
-      const restY = ct.diam/2;
-      if(m.y < restY) m.y = restY;
-      // clamp laterally within porão walls (meters)
-      const minX = (S.geom.floorLeftX + ct.diam/2 * S.geom.scale - S.geom.floorLeftX) / S.geom.scale; // simplifies to ct.diam/2
-      const maxX = (S.geom.floorRightX - ct.diam/2 * S.geom.scale - S.geom.floorLeftX) / S.geom.scale;
-      m.x = Math.max(ct.diam/2, Math.min(h.width - ct.diam/2, m.x));
-      // avoid overlaps: if proposed pos overlaps another coil, push candidate away (do not move others)
-      const scale = S.geom.scale;
-      let ppx = m2px(m.x, m.y);
+        let m = px2m(pt.x, pt.y);
+        // prevent going below tanktop resting center
+        const ct = COILS.find(x=>x.id===coil.typeId);
+        const restY = ct.diam/2;
+        if(m.y < restY) m.y = restY;
+        // clamp laterally within porão walls (meters)
+        m.x = Math.max(ct.diam/2, Math.min(h.width - ct.diam/2, m.x));
+        // check overlap: if candidate overlaps any other coil, reject and keep last valid
+        const scale = S.geom.scale;
+        const candPx = m2px(m.x, m.y);
+        const ra = ct.diam/2 * scale;
+        let overlaps = false;
         for(let i=0;i<h.coils.length;i++){
           if(i===idx) continue;
           const other = h.coils[i];
           const op = m2px(other.x, other.y);
-          const ra = ct.diam/2 * scale;
           const rb = COILS.find(x=>x.id===other.typeId).diam/2 * scale;
-          const dx = ppx.x - op.x, dy = ppx.y - op.y;
-          const d = Math.hypot(dx, dy) || 0.0001;
-          const minDist = ra + rb + 0.5;
-          if(d < minDist){
-            // move candidate along dx,dy to avoid overlap
-            const nx = dx / d, ny = dy / d;
-            const pushPx = (minDist - d);
-            ppx.x += nx * pushPx;
-            ppx.y += ny * pushPx;
-            // convert back to meters
-            const nxm = (ppx.x - S.geom.floorLeftX) / S.geom.scale;
-            const nym = (S.geom.tankTopY - ppx.y) / S.geom.scale;
-            m.x = nxm; m.y = nym;
-          }
+          if(Math.hypot(candPx.x - op.x, candPx.y - op.y) < (ra + rb - 0.1)) { overlaps = true; break; }
         }
-        // apply final candidate
-        coil.x = m.x; coil.y = m.y;
+        if(overlaps){
+          // revert to last valid position (do not move others)
+          if(coil._lastValidPos){ coil.x = coil._lastValidPos.x; coil.y = coil._lastValidPos.y; }
+        } else {
+          coil.x = m.x; coil.y = m.y;
+          coil._lastValidPos = { x: coil.x, y: coil.y, z: coil.z };
+        }
       } else {
-        // top view movement — prevent overlapping projected rectangles by simple rejection
+        // top view movement — prevent overlapping projected rectangles by rejecting invalid places
         const m = px2mTop(pt.x, pt.y);
         const nx = Math.max(0, Math.min(h.width, m.x));
         const nz = Math.max(0, Math.min(h.length, m.z));
-        // check overlap; if overlap, ignore movement beyond overlap (simple)
+        // check overlap; if overlap, revert to last valid position
         const ct = COILS.find(x=>x.id===coil.typeId);
         const wPx = ct.diam*S.geom.scale, hPx = ct.len*S.geom.scale;
         const candPx = m2pxTop(nx, nz);
-        let ok = true;
+        let overlapRect = false;
         for(let i=0;i<h.coils.length;i++){
           if(i===idx) continue;
           const other = h.coils[i];
           const op = m2pxTop(other.x, (other.z!==undefined)?other.z:1);
           const cw = COILS.find(x=>x.id===other.typeId).diam*S.geom.scale;
           const ch = COILS.find(x=>x.id===other.typeId).len*S.geom.scale;
-          if(candPx.x < op.x+cw-4 && candPx.x+wPx > op.x+4 && candPx.y-hPx/2 < op.y+ch/2-4 && candPx.y+hPx/2 > op.y-ch/2+4){ ok = false; break; }
+          if(candPx.x < op.x+cw-4 && candPx.x+wPx > op.x+4 && candPx.y-hPx/2 < op.y+ch/2-4 && candPx.y+hPx/2 > op.y-ch/2+4){ overlapRect = true; break; }
         }
-        if(ok){ coil.x = nx; coil.z = nz; }
+        if(overlapRect){ if(coil._lastValidPos){ coil.x = coil._lastValidPos.x; coil.z = coil._lastValidPos.z; } }
+        else { coil.x = nx; coil.z = nz; coil._lastValidPos = { x: coil.x, y: coil.y, z: coil.z }; }
       }
       render();
     }

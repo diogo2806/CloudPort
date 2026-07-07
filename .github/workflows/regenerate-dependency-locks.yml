@@ -1,9 +1,9 @@
 name: Regenerate dependency lockfiles
 
 on:
-  push:
+  pull_request:
     branches:
-      - chore/fix-dependabot-alerts-2026-07
+      - main
 
 permissions:
   contents: write

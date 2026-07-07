@@ -1,0 +1,36 @@
+name: Regenerate dependency lockfiles
+
+on:
+  push:
+    branches:
+      - chore/fix-dependabot-alerts-2026-07
+
+permissions:
+  contents: write
+
+jobs:
+  update-lockfiles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/fix-dependabot-alerts-2026-07
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            frontend/cloudport/package-lock.json
+            frontend/servico-navio-siderurgico/package-lock.json
+      - name: Regenerate lockfiles
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --prefix frontend/cloudport
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --prefix frontend/servico-navio-siderurgico
+      - name: Commit generated lockfiles and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/cloudport/package-lock.json frontend/servico-navio-siderurgico/package-lock.json
+          git rm .github/workflows/regenerate-dependency-locks.yml
+          git commit -m "chore(deps): regenerate lockfiles for security updates"
+          git push origin HEAD:chore/fix-dependabot-alerts-2026-07

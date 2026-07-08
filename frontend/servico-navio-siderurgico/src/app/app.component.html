@@ -6,6 +6,7 @@
     </div>
     <nav>
       <button type="button" (click)="carregarTudo()">Atualizar dados</button>
+      <button type="button" (click)="atualizarControlRoom()">Atualizar Control Room</button>
       <a href="assets/interactive-stowage.html" target="_blank" rel="noopener">Estiva legado</a>
     </nav>
   </header>
@@ -263,8 +264,8 @@
       <section class="card patio-panel">
         <div class="section-title">
           <div>
-            <h2>Navio + Patio</h2>
-            <p>Reserva, ordem, execucao, sincronizacao e divergencias operacionais.</p>
+            <h2>Navio + Patio / Control Room</h2>
+            <p>Reserva, ordem, filas operacionais, cobertura, movimentos iminentes e divergencias.</p>
           </div>
           <span class="badge" [ngClass]="resumoIntegracao.statusPredominante">{{ resumoIntegracao.statusPredominante }}</span>
         </div>
@@ -274,8 +275,29 @@
           <article class="kpi-card"><span>Com reserva</span><strong>{{ resumoIntegracao.itensComReserva }}</strong></article>
           <article class="kpi-card"><span>Com ordem</span><strong>{{ resumoIntegracao.itensComOrdem }}</strong></article>
           <article class="kpi-card"><span>Em execucao</span><strong>{{ resumoIntegracao.ordensEmExecucao }}</strong></article>
-          <article class="kpi-card blocked"><span>Alertas</span><strong>{{ resumoIntegracao.totalAlertas }}</strong></article>
+          <article class="kpi-card blocked"><span>Sem cobertura</span><strong>{{ ordensSemCobertura.length }}</strong></article>
         </section>
+
+        <div class="control-room-toolbar">
+          <label>Status ordem
+            <select name="statusOrdemFiltro" [(ngModel)]="statusOrdemFiltro">
+              <option value="">Todos</option>
+              <option *ngFor="let status of statusOrdens" [value]="status">{{ status }}</option>
+            </select>
+          </label>
+          <label>Berco/bloco/zona<input name="blocoZonaFiltro" [(ngModel)]="blocoZonaFiltro" placeholder="Ex.: B1, RP, A"></label>
+          <label>Severidade
+            <select name="severidadeFiltro" [(ngModel)]="severidadeFiltro">
+              <option value="">Todas</option>
+              <option *ngFor="let severidade of severidades" [value]="severidade">{{ severidade }}</option>
+            </select>
+          </label>
+          <button type="button" (click)="atualizarControlRoom()">Atualizar agora</button>
+          <button type="button" (click)="alternarAtualizacaoAutomatica()">
+            Auto-refresh: {{ atualizacaoAutomatica ? 'ligado' : 'desligado' }}
+          </button>
+        </div>
+        <p class="muted" *ngIf="ultimaAtualizacaoControlRoom">Ultima atualizacao: {{ ultimaAtualizacaoControlRoom | date:'dd/MM/yyyy HH:mm:ss' }}</p>
 
         <div class="actions">
           <button type="button" (click)="gerarReservasPatio()">Gerar reservas</button>
@@ -292,6 +314,56 @@
 
         <section class="grid-two">
           <article>
+            <h3>Movimentos iminentes</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Seq.</th><th>Lote</th><th>Mov.</th><th>Destino</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let ordem of movimentosIminentes()">
+                    <td>{{ ordem.sequenciaNavio || '-' }}</td>
+                    <td>{{ ordem.codigoLote }}</td>
+                    <td>{{ ordem.tipoMovimento }}</td>
+                    <td>{{ ordem.destino || ordem.posicaoPlanejada || '-' }}</td>
+                    <td><span class="badge" [ngClass]="ordem.statusOrdem">{{ ordem.statusOrdem }}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article>
+            <h3>Ordens sem cobertura</h3>
+            <div class="alert-list" *ngIf="ordensSemCobertura.length; else semSemCobertura">
+              <article *ngFor="let ordem of ordensSemCobertura">
+                <strong>{{ ordem.codigoLote }} · {{ ordem.statusOrdem }}</strong>
+                <p>Sequencia: {{ ordem.sequenciaNavio || '-' }} · Prioridade: {{ ordem.prioridadeOperacional ?? '-' }} · Destino: {{ ordem.destino || ordem.posicaoPlanejada || '-' }}</p>
+              </article>
+            </div>
+            <ng-template #semSemCobertura><p>Nenhuma ordem sem cobertura operacional.</p></ng-template>
+          </article>
+        </section>
+
+        <section class="grid-two">
+          <article>
+            <h3>Filas / POW operacionais</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Fila</th><th>Berco</th><th>Bloco/zona</th><th>Status</th><th>Ordens</th><th>Seq. inicial</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let fila of filasPatioFiltradas()">
+                    <td>{{ fila.identificador }}</td>
+                    <td>{{ fila.berco || '-' }}</td>
+                    <td>{{ fila.blocoZona || '-' }}</td>
+                    <td><span class="badge" [ngClass]="fila.status">{{ fila.status }}</span></td>
+                    <td>{{ fila.totalOrdens }}</td>
+                    <td>{{ fila.sequenciaInicial || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article>
             <h3>Reservas de patio</h3>
             <div class="table-wrap">
               <table>
@@ -307,38 +379,42 @@
               </table>
             </div>
           </article>
+        </section>
 
+        <section class="grid-two">
           <article>
             <h3>Ordens de patio</h3>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Lote</th><th>Mov.</th><th>Origem</th><th>Destino</th><th>Status</th></tr></thead>
+                <thead><tr><th>Seq.</th><th>Lote</th><th>Mov.</th><th>Origem</th><th>Destino</th><th>Prior.</th><th>Status</th></tr></thead>
                 <tbody>
-                  <tr *ngFor="let ordem of ordensPatio">
+                  <tr *ngFor="let ordem of ordensPatioFiltradas()">
+                    <td>{{ ordem.sequenciaNavio || '-' }}</td>
                     <td>{{ ordem.codigoLote }}</td>
                     <td>{{ ordem.tipoMovimento }}</td>
                     <td>{{ ordem.origem || '-' }}</td>
                     <td>{{ ordem.destino || ordem.posicaoPlanejada || '-' }}</td>
+                    <td>{{ ordem.prioridadeOperacional ?? '-' }}</td>
                     <td><span class="badge" [ngClass]="ordem.statusOrdem">{{ ordem.statusOrdem }}</span></td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </article>
-        </section>
 
-        <section class="grid-two">
           <article>
             <h3>Alertas e divergencias</h3>
-            <div class="alert-list" *ngIf="alertasIntegracao.length; else semAlertas">
-              <article *ngFor="let alerta of alertasIntegracao">
+            <div class="alert-list" *ngIf="alertasIntegracaoFiltrados().length; else semAlertas">
+              <article *ngFor="let alerta of alertasIntegracaoFiltrados()">
                 <strong>{{ alerta.severidade }} · {{ alerta.tipo }}</strong>
                 <p>{{ alerta.mensagem }} <span *ngIf="alerta.itemOperacaoNavioId">({{ nomeItem(alerta.itemOperacaoNavioId) }})</span></p>
               </article>
             </div>
             <ng-template #semAlertas><p>Sem alertas de integracao para a visita.</p></ng-template>
           </article>
+        </section>
 
+        <section class="grid-two">
           <article>
             <h3>Replanejamento</h3>
             <ng-container *ngIf="resultadoReplanejamento; else semReplanejamento">
@@ -350,11 +426,11 @@
             </ng-container>
             <ng-template #semReplanejamento><p>Nenhum replanejamento executado.</p></ng-template>
           </article>
-        </section>
 
-        <section class="validation" *ngIf="relatorioIntegrado as relatorio">
-          <h3>Relatorio operacional integrado</h3>
-          <p>{{ relatorio.itens.length }} item(ns), {{ relatorio.reservasPatio.length }} reserva(s), {{ relatorio.ordensPatio.length }} ordem(ns) e {{ relatorio.divergenciasAlertas.length }} alerta(s).</p>
+          <article class="validation" *ngIf="relatorioIntegrado as relatorio">
+            <h3>Relatorio operacional integrado</h3>
+            <p>{{ relatorio.itens.length }} item(ns), {{ relatorio.reservasPatio.length }} reserva(s), {{ relatorio.ordensPatio.length }} ordem(ns) e {{ relatorio.divergenciasAlertas.length }} alerta(s).</p>
+          </article>
         </section>
       </section>
 

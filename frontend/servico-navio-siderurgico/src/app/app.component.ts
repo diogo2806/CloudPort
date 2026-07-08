@@ -1,12 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import {
+  AlertaIntegracaoNavioPatio,
   BordoEstiva,
   EventoVisitaNavio,
   FaseVisita,
   ItemOperacaoNavio,
   NavioSiderurgico,
+  OrdemPatioDaVisita,
   PlanoEstivaNavio,
   PosicaoEstivaNavio,
+  RelatorioOperacionalIntegrado,
+  ReservaPatioNavio,
+  ResultadoGeracaoOrdensPatio,
+  ResultadoReplanejamentoPatioNavio,
+  ResumoIntegracaoNavioPatio,
   ResumoOperacionalNavio,
   SiderurgicoApiService,
   StatusItem,
@@ -27,10 +34,17 @@ export class AppComponent implements OnInit {
   visitas: VisitaNavio[] = [];
   itens: ItemOperacaoNavio[] = [];
   eventos: EventoVisitaNavio[] = [];
+  reservasPatio: ReservaPatioNavio[] = [];
+  ordensPatio: OrdemPatioDaVisita[] = [];
+  alertasIntegracao: AlertaIntegracaoNavioPatio[] = [];
   visitaSelecionada?: VisitaNavio;
   plano?: PlanoEstivaNavio;
   validacaoPlano?: ValidacaoPlanoEstiva;
   resumo: ResumoOperacionalNavio = this.resumoVazio();
+  resumoIntegracao: ResumoIntegracaoNavioPatio = this.resumoIntegracaoVazio();
+  resultadoOrdens?: ResultadoGeracaoOrdensPatio;
+  resultadoReplanejamento?: ResultadoReplanejamentoPatioNavio;
+  relatorioIntegrado?: RelatorioOperacionalIntegrado;
   carregando = false;
   erro = '';
   sucesso = '';
@@ -110,6 +124,7 @@ export class AppComponent implements OnInit {
     this.resumo = visita.id ? await this.api.obterResumo(visita.id) : this.resumoVazio();
     this.eventos = visita.id ? await this.api.listarEventos(visita.id) : [];
     await this.carregarPlanoSelecionado();
+    await this.carregarIntegracaoPatio();
     this.novoItem = this.criarItemVazio();
     this.novaPosicao = this.criarPosicaoVazia();
   }
@@ -126,6 +141,7 @@ export class AppComponent implements OnInit {
       this.itens = [...this.itens, criado];
       this.novoItem = this.criarItemVazio();
       await this.atualizarResumoEventos();
+      await this.carregarIntegracaoPatio();
       this.sucesso = 'Item de carga/descarga cadastrado.';
     } catch (erro) {
       this.erro = this.extrairErro(erro, 'Nao foi possivel cadastrar o item.');
@@ -142,6 +158,7 @@ export class AppComponent implements OnInit {
       const atualizado = await this.api.alterarStatusItem(visitaId, item.id, status);
       this.itens = this.itens.map(atual => atual.id === atualizado.id ? atualizado : atual);
       await this.atualizarResumoEventos();
+      await this.carregarIntegracaoPatio();
       this.sucesso = 'Status do item atualizado.';
     } catch (erro) {
       this.erro = this.extrairErro(erro, 'Nao foi possivel alterar o status do item.');
@@ -159,6 +176,7 @@ export class AppComponent implements OnInit {
       this.itens = this.itens.map(atual => atual.id === atualizado.id ? atualizado : atual);
       this.motivoBloqueio = '';
       await this.atualizarResumoEventos();
+      await this.carregarIntegracaoPatio();
       this.sucesso = bloquear ? 'Item bloqueado.' : 'Bloqueio removido.';
     } catch (erro) {
       this.erro = this.extrairErro(erro, 'Nao foi possivel alterar o bloqueio do item.');
@@ -239,6 +257,87 @@ export class AppComponent implements OnInit {
     }
   }
 
+  async gerarReservasPatio(): Promise<void> {
+    const visitaId = this.visitaSelecionada?.id;
+    if (!visitaId) {
+      return;
+    }
+    try {
+      this.limparMensagens();
+      this.reservasPatio = await this.api.gerarReservasPatio(visitaId);
+      this.itens = await this.api.listarItensVisita(visitaId);
+      await this.carregarIntegracaoPatio();
+      this.sucesso = 'Reservas de patio geradas.';
+    } catch (erro) {
+      this.erro = this.extrairErro(erro, 'Nao foi possivel gerar as reservas de patio.');
+    }
+  }
+
+  async gerarOrdensPatio(): Promise<void> {
+    const visitaId = this.visitaSelecionada?.id;
+    if (!visitaId) {
+      return;
+    }
+    try {
+      this.limparMensagens();
+      this.resultadoOrdens = await this.api.gerarOrdensPatio(visitaId);
+      this.itens = await this.api.listarItensVisita(visitaId);
+      await this.carregarIntegracaoPatio();
+      this.sucesso = `${this.resultadoOrdens.totalOrdensCriadas} ordem(ns) de patio gerada(s).`;
+    } catch (erro) {
+      this.erro = this.extrairErro(erro, 'Nao foi possivel gerar as ordens de patio.');
+    }
+  }
+
+  async sincronizarPatio(): Promise<void> {
+    const visitaId = this.visitaSelecionada?.id;
+    if (!visitaId) {
+      return;
+    }
+    try {
+      this.limparMensagens();
+      this.resumoIntegracao = await this.api.sincronizarStatusPatio(visitaId);
+      this.itens = await this.api.listarItensVisita(visitaId);
+      await this.atualizarResumoEventos();
+      await this.carregarIntegracaoPatio();
+      this.sucesso = 'Status do patio sincronizado com a visita.';
+    } catch (erro) {
+      this.erro = this.extrairErro(erro, 'Nao foi possivel sincronizar o patio.');
+    }
+  }
+
+  async replanejarPatio(aplicar: boolean): Promise<void> {
+    const visitaId = this.visitaSelecionada?.id;
+    if (!visitaId) {
+      return;
+    }
+    try {
+      this.limparMensagens();
+      this.resultadoReplanejamento = await this.api.replanejarPatioVisita(visitaId, aplicar);
+      if (aplicar) {
+        this.itens = await this.api.listarItensVisita(visitaId);
+      }
+      await this.carregarIntegracaoPatio();
+      this.sucesso = aplicar ? 'Replanejamento aplicado.' : 'Replanejamento simulado.';
+    } catch (erro) {
+      this.erro = this.extrairErro(erro, 'Nao foi possivel replanejar o patio.');
+    }
+  }
+
+  async carregarRelatorioIntegrado(): Promise<void> {
+    const visitaId = this.visitaSelecionada?.id;
+    if (!visitaId) {
+      return;
+    }
+    try {
+      this.limparMensagens();
+      this.relatorioIntegrado = await this.api.obterRelatorioOperacionalIntegrado(visitaId);
+      this.sucesso = 'Relatorio integrado atualizado.';
+    } catch (erro) {
+      this.erro = this.extrairErro(erro, 'Nao foi possivel carregar o relatorio integrado.');
+    }
+  }
+
   async avancarFase(fase: FaseVisita): Promise<void> {
     const visitaId = this.visitaSelecionada?.id;
     if (!visitaId) {
@@ -250,6 +349,7 @@ export class AppComponent implements OnInit {
       this.visitaSelecionada = atualizada;
       this.visitas = this.visitas.map(visita => visita.id === atualizada.id ? atualizada : visita);
       await this.atualizarResumoEventos();
+      await this.carregarIntegracaoPatio();
       this.sucesso = 'Fase da visita atualizada.';
     } catch (erro) {
       this.erro = this.extrairErro(erro, 'Nao foi possivel avancar a fase.');
@@ -276,6 +376,10 @@ export class AppComponent implements OnInit {
     return this.itens.filter(item => item.id && item.status !== 'CANCELADO');
   }
 
+  itemPorId(itemId?: number | null): ItemOperacaoNavio | undefined {
+    return this.itens.find(item => item.id === itemId);
+  }
+
   private async carregarPlanoSelecionado(): Promise<void> {
     this.plano = undefined;
     this.validacaoPlano = undefined;
@@ -291,6 +395,21 @@ export class AppComponent implements OnInit {
         this.erro = this.extrairErro(erro, 'Nao foi possivel carregar o plano de estiva.');
       }
     }
+  }
+
+  private async carregarIntegracaoPatio(): Promise<void> {
+    const visitaId = this.visitaSelecionada?.id;
+    if (!visitaId) {
+      this.resumoIntegracao = this.resumoIntegracaoVazio();
+      this.reservasPatio = [];
+      this.ordensPatio = [];
+      this.alertasIntegracao = [];
+      return;
+    }
+    this.resumoIntegracao = await this.api.obterResumoIntegracaoPatio(visitaId);
+    this.reservasPatio = await this.api.listarReservasPatio(visitaId);
+    this.ordensPatio = await this.api.listarOrdensPatio(visitaId);
+    this.alertasIntegracao = await this.api.listarAlertasIntegracaoPatio(visitaId);
   }
 
   private async atualizarResumoEventos(): Promise<void> {
@@ -350,8 +469,11 @@ export class AppComponent implements OnInit {
       posicaoReal: '',
       origemPatio: '',
       destinoPatio: '',
+      posicaoPatioPlanejada: '',
+      posicaoPatioReal: '',
       sequenciaOperacional: null,
       status: 'PLANEJADO',
+      statusIntegracaoPatio: 'NAO_GERADO',
       motivoBloqueio: '',
       observacoes: ''
     };
@@ -380,6 +502,21 @@ export class AppComponent implements OnInit {
       divergenciasPoraoPosicao: 0,
       itensBloqueados: 0,
       tempoOperacaoMinutos: null
+    };
+  }
+
+  private resumoIntegracaoVazio(): ResumoIntegracaoNavioPatio {
+    return {
+      visitaNavioId: 0,
+      totalItens: 0,
+      itensComReserva: 0,
+      itensComOrdem: 0,
+      itensSemReserva: 0,
+      itensSemOrdem: 0,
+      ordensEmExecucao: 0,
+      ordensConcluidas: 0,
+      totalAlertas: 0,
+      statusPredominante: 'NAO_GERADO'
     };
   }
 

@@ -53,6 +53,13 @@ public class OrdemTrabalhoPatioServico {
     }
 
     @Transactional(readOnly = true)
+    public List<OrdemTrabalhoPatioRespostaDto> listarOrdensPorVisitaNavio(Long visitaNavioId) {
+        return ordemRepositorio.findByVisitaNavioIdOrderBySequenciaNavioAscCriadoEmAsc(visitaNavioId).stream()
+                .map(OrdemTrabalhoPatioRespostaDto::deEntidade)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<OrdemTrabalhoPatioRespostaDto> listarOrdensOtimizadas(StatusOrdemTrabalhoPatio status) {
         List<OrdemTrabalhoPatio> ordens = status != null
                 ? ordemRepositorio.findByStatusOrdemOrderByCriadoEmAsc(status)
@@ -88,8 +95,16 @@ public class OrdemTrabalhoPatioServico {
     public OrdemTrabalhoPatioRespostaDto registrarOrdem(OrdemTrabalhoPatioRequisicaoDto dto) {
         validarCamposObrigatorios(dto);
         String codigoNormalizado = dto.getCodigoConteiner().toUpperCase(Locale.ROOT);
-        List<StatusOrdemTrabalhoPatio> ativos = List.of(StatusOrdemTrabalhoPatio.PENDENTE,
-                StatusOrdemTrabalhoPatio.EM_EXECUCAO);
+        List<StatusOrdemTrabalhoPatio> ativos = List.of(
+                StatusOrdemTrabalhoPatio.PENDENTE,
+                StatusOrdemTrabalhoPatio.EM_EXECUCAO,
+                StatusOrdemTrabalhoPatio.SUSPENSA
+        );
+        if (dto.getItemOperacaoNavioId() != null
+                && ordemRepositorio.existsByItemOperacaoNavioIdAndStatusOrdemIn(dto.getItemOperacaoNavioId(), ativos)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Já existe uma ordem ativa para este item de operação de navio.");
+        }
         if (ordemRepositorio.existsByCodigoConteinerIgnoreCaseAndStatusOrdemIn(codigoNormalizado, ativos)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Já existe uma ordem pendente ou em execução para este contêiner.");
@@ -114,6 +129,13 @@ public class OrdemTrabalhoPatioServico {
                 agora,
                 agora
         );
+        ordem.setVisitaNavioId(dto.getVisitaNavioId());
+        ordem.setItemOperacaoNavioId(dto.getItemOperacaoNavioId());
+        ordem.setPlanoEstivaNavioId(dto.getPlanoEstivaNavioId());
+        ordem.setTipoOrigem(StringUtils.hasText(dto.getTipoOrigem()) ? dto.getTipoOrigem().toUpperCase(Locale.ROOT) : null);
+        ordem.setTipoDestino(StringUtils.hasText(dto.getTipoDestino()) ? dto.getTipoDestino().toUpperCase(Locale.ROOT) : null);
+        ordem.setSequenciaNavio(dto.getSequenciaNavio());
+        ordem.setPrioridadeOperacional(dto.getPrioridadeOperacional());
         OrdemTrabalhoPatio salvo = ordemRepositorio.save(ordem);
         return OrdemTrabalhoPatioRespostaDto.deEntidade(salvo);
     }
@@ -187,6 +209,18 @@ public class OrdemTrabalhoPatioServico {
         if (statusAtual == novoStatus) {
             return;
         }
+        if (novoStatus == StatusOrdemTrabalhoPatio.CANCELADA
+                && statusAtual != StatusOrdemTrabalhoPatio.CONCLUIDA) {
+            return;
+        }
+        if (novoStatus == StatusOrdemTrabalhoPatio.BLOQUEADA
+                && statusAtual != StatusOrdemTrabalhoPatio.CONCLUIDA) {
+            return;
+        }
+        if (novoStatus == StatusOrdemTrabalhoPatio.SUSPENSA
+                && statusAtual == StatusOrdemTrabalhoPatio.EM_EXECUCAO) {
+            return;
+        }
         if (statusAtual == StatusOrdemTrabalhoPatio.PENDENTE
                 && (novoStatus == StatusOrdemTrabalhoPatio.EM_EXECUCAO
                 || novoStatus == StatusOrdemTrabalhoPatio.CONCLUIDA)) {
@@ -194,6 +228,10 @@ public class OrdemTrabalhoPatioServico {
         }
         if (statusAtual == StatusOrdemTrabalhoPatio.EM_EXECUCAO
                 && novoStatus == StatusOrdemTrabalhoPatio.CONCLUIDA) {
+            return;
+        }
+        if ((statusAtual == StatusOrdemTrabalhoPatio.SUSPENSA || statusAtual == StatusOrdemTrabalhoPatio.BLOQUEADA)
+                && novoStatus == StatusOrdemTrabalhoPatio.PENDENTE) {
             return;
         }
         throw new ResponseStatusException(HttpStatus.CONFLICT,

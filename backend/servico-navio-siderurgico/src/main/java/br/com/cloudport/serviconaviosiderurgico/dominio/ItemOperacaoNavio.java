@@ -69,6 +69,28 @@ public class ItemOperacaoNavio {
     @Column(name = "destino_patio", length = 80)
     private String destinoPatio;
 
+    @Column(name = "conteiner_patio_id")
+    private Long conteinerPatioId;
+
+    @Column(name = "carga_patio_id")
+    private Long cargaPatioId;
+
+    @Column(name = "ordem_trabalho_patio_id")
+    private Long ordemTrabalhoPatioId;
+
+    @Column(name = "movimento_patio_id")
+    private Long movimentoPatioId;
+
+    @Column(name = "posicao_patio_planejada", length = 120)
+    private String posicaoPatioPlanejada;
+
+    @Column(name = "posicao_patio_real", length = 120)
+    private String posicaoPatioReal;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_integracao_patio", nullable = false, length = 30)
+    private StatusIntegracaoPatio statusIntegracaoPatio = StatusIntegracaoPatio.NAO_GERADO;
+
     @Column(name = "sequencia_operacional")
     private Integer sequenciaOperacional;
 
@@ -93,11 +115,17 @@ public class ItemOperacaoNavio {
         LocalDateTime agora = LocalDateTime.now();
         criadoEm = agora;
         atualizadoEm = agora;
+        if (statusIntegracaoPatio == null) {
+            statusIntegracaoPatio = StatusIntegracaoPatio.NAO_GERADO;
+        }
     }
 
     @PreUpdate
     void preUpdate() {
         atualizadoEm = LocalDateTime.now();
+        if (statusIntegracaoPatio == null) {
+            statusIntegracaoPatio = StatusIntegracaoPatio.NAO_GERADO;
+        }
     }
 
     public Long getId() { return id; }
@@ -129,6 +157,20 @@ public class ItemOperacaoNavio {
     public void setOrigemPatio(String origemPatio) { this.origemPatio = origemPatio; }
     public String getDestinoPatio() { return destinoPatio; }
     public void setDestinoPatio(String destinoPatio) { this.destinoPatio = destinoPatio; }
+    public Long getConteinerPatioId() { return conteinerPatioId; }
+    public void setConteinerPatioId(Long conteinerPatioId) { this.conteinerPatioId = conteinerPatioId; }
+    public Long getCargaPatioId() { return cargaPatioId; }
+    public void setCargaPatioId(Long cargaPatioId) { this.cargaPatioId = cargaPatioId; }
+    public Long getOrdemTrabalhoPatioId() { return ordemTrabalhoPatioId; }
+    public void setOrdemTrabalhoPatioId(Long ordemTrabalhoPatioId) { this.ordemTrabalhoPatioId = ordemTrabalhoPatioId; }
+    public Long getMovimentoPatioId() { return movimentoPatioId; }
+    public void setMovimentoPatioId(Long movimentoPatioId) { this.movimentoPatioId = movimentoPatioId; }
+    public String getPosicaoPatioPlanejada() { return posicaoPatioPlanejada; }
+    public void setPosicaoPatioPlanejada(String posicaoPatioPlanejada) { this.posicaoPatioPlanejada = posicaoPatioPlanejada; }
+    public String getPosicaoPatioReal() { return posicaoPatioReal; }
+    public void setPosicaoPatioReal(String posicaoPatioReal) { this.posicaoPatioReal = posicaoPatioReal; }
+    public StatusIntegracaoPatio getStatusIntegracaoPatio() { return statusIntegracaoPatio; }
+    public void setStatusIntegracaoPatio(StatusIntegracaoPatio statusIntegracaoPatio) { this.statusIntegracaoPatio = statusIntegracaoPatio; }
     public Integer getSequenciaOperacional() { return sequenciaOperacional; }
     public void setSequenciaOperacional(Integer sequenciaOperacional) { this.sequenciaOperacional = sequenciaOperacional; }
     public StatusItemCarga getStatus() { return status; }

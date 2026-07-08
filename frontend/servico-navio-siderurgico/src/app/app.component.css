@@ -207,14 +207,19 @@ tr.selected {
 .badge.OPERADO,
 .badge.LIBERADO,
 .badge.VALIDADO,
-.badge.OPERACAO_CONCLUIDA {
+.badge.OPERACAO_CONCLUIDA,
+.badge.SINCRONIZADO,
+.badge.CONCLUIDA,
+.badge.ATIVA {
   background: #dcfce7;
   color: #166534;
 }
 
 .badge.BLOQUEADO,
 .badge.CANCELADA,
-.badge.CANCELADO {
+.badge.CANCELADO,
+.badge.ERRO,
+.badge.BLOQUEADA {
   background: #fee2e2;
   color: #991b1b;
 }
@@ -222,7 +227,9 @@ tr.selected {
 .badge.PLANEJADA,
 .badge.PLANEJADO,
 .badge.PREVISTA,
-.badge.RASCUNHO {
+.badge.RASCUNHO,
+.badge.NAO_GERADO,
+.badge.RESERVADO {
   background: #dbeafe;
   color: #1d4ed8;
 }
@@ -230,7 +237,8 @@ tr.selected {
 .badge.FUNDEADA,
 .badge.ATRACADA,
 .badge.EM_MOVIMENTO,
-.badge.EM_EXECUCAO {
+.badge.ORDEM_GERADA,
+.badge.SUSPENSA {
   background: #fef3c7;
   color: #92400e;
 }
@@ -315,6 +323,44 @@ tr.selected {
   padding-left: 18px;
 }
 
+.patio-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.section-title p {
+  margin: -6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.patio-summary {
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+}
+
+.alert-list {
+  display: grid;
+  gap: 8px;
+}
+
+.alert-list article {
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff7ed;
+}
+
+.alert-list p {
+  margin: 4px 0 0;
+}
+
 .timeline {
   display: grid;
   gap: 10px;
@@ -358,11 +404,13 @@ tr.selected {
   .grid-two.wide-left,
   .form-grid,
   .detail-grid,
-  .detail-grid.compact {
+  .detail-grid.compact,
+  .patio-summary {
     grid-template-columns: 1fr;
   }
 
-  .shell-header {
+  .shell-header,
+  .section-title {
     align-items: flex-start;
     flex-direction: column;
   }

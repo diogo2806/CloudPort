@@ -40,71 +40,53 @@ public class OrdemTrabalhoPatioRequisicaoDto {
     @NotNull
     private StatusConteiner statusConteinerDestino;
 
+    private Long visitaNavioId;
+    private Long itemOperacaoNavioId;
+    private Long planoEstivaNavioId;
+
+    @Size(max = 30)
+    private String tipoOrigem;
+
+    @Size(max = 30)
+    private String tipoDestino;
+
+    private Integer sequenciaNavio;
+    private Integer prioridadeOperacional;
+
     public OrdemTrabalhoPatioRequisicaoDto() {
     }
 
-    public String getCodigoConteiner() {
-        return codigoConteiner;
-    }
-
-    public void setCodigoConteiner(String codigoConteiner) {
-        this.codigoConteiner = ValidacaoEntradaUtil.limparTexto(codigoConteiner);
-    }
-
-    public String getTipoCarga() {
-        return tipoCarga;
-    }
-
+    public String getCodigoConteiner() { return codigoConteiner; }
+    public void setCodigoConteiner(String codigoConteiner) { this.codigoConteiner = ValidacaoEntradaUtil.limparTexto(codigoConteiner); }
+    public String getTipoCarga() { return tipoCarga; }
     public void setTipoCarga(String tipoCarga) {
         String valorLimpo = ValidacaoEntradaUtil.limparTexto(tipoCarga);
         this.tipoCarga = StringUtils.hasText(valorLimpo) ? valorLimpo : null;
     }
-
-    public String getDestino() {
-        return destino;
-    }
-
-    public void setDestino(String destino) {
-        this.destino = ValidacaoEntradaUtil.limparTexto(destino);
-    }
-
-    public Integer getLinhaDestino() {
-        return linhaDestino;
-    }
-
-    public void setLinhaDestino(Integer linhaDestino) {
-        this.linhaDestino = linhaDestino;
-    }
-
-    public Integer getColunaDestino() {
-        return colunaDestino;
-    }
-
-    public void setColunaDestino(Integer colunaDestino) {
-        this.colunaDestino = colunaDestino;
-    }
-
-    public String getCamadaDestino() {
-        return camadaDestino;
-    }
-
-    public void setCamadaDestino(String camadaDestino) {
-        this.camadaDestino = ValidacaoEntradaUtil.limparTexto(camadaDestino);
-    }
-
-    public TipoMovimentoPatio getTipoMovimento() {
-        return tipoMovimento;
-    }
-
-    public void setTipoMovimento(TipoMovimentoPatio tipoMovimento) {
-        this.tipoMovimento = tipoMovimento;
-    }
-
-    public StatusConteiner getStatusConteinerDestino() {
-        return statusConteinerDestino;
-    }
-
-    public void setStatusConteinerDestino(StatusConteiner statusConteinerDestino) {
-        this.statusConteinerDestino = statusConteinerDestino;
-    }
+    public String getDestino() { return destino; }
+    public void setDestino(String destino) { this.destino = ValidacaoEntradaUtil.limparTexto(destino); }
+    public Integer getLinhaDestino() { return linhaDestino; }
+    public void setLinhaDestino(Integer linhaDestino) { this.linhaDestino = linhaDestino; }
+    public Integer getColunaDestino() { return colunaDestino; }
+    public void setColunaDestino(Integer colunaDestino) { this.colunaDestino = colunaDestino; }
+    public String getCamadaDestino() { return camadaDestino; }
+    public void setCamadaDestino(String camadaDestino) { this.camadaDestino = ValidacaoEntradaUtil.limparTexto(camadaDestino); }
+    public TipoMovimentoPatio getTipoMovimento() { return tipoMovimento; }
+    public void setTipoMovimento(TipoMovimentoPatio tipoMovimento) { this.tipoMovimento = tipoMovimento; }
+    public StatusConteiner getStatusConteinerDestino() { return statusConteinerDestino; }
+    public void setStatusConteinerDestino(StatusConteiner statusConteinerDestino) { this.statusConteinerDestino = statusConteinerDestino; }
+    public Long getVisitaNavioId() { return visitaNavioId; }
+    public void setVisitaNavioId(Long visitaNavioId) { this.visitaNavioId = visitaNavioId; }
+    public Long getItemOperacaoNavioId() { return itemOperacaoNavioId; }
+    public void setItemOperacaoNavioId(Long itemOperacaoNavioId) { this.itemOperacaoNavioId = itemOperacaoNavioId; }
+    public Long getPlanoEstivaNavioId() { return planoEstivaNavioId; }
+    public void setPlanoEstivaNavioId(Long planoEstivaNavioId) { this.planoEstivaNavioId = planoEstivaNavioId; }
+    public String getTipoOrigem() { return tipoOrigem; }
+    public void setTipoOrigem(String tipoOrigem) { this.tipoOrigem = ValidacaoEntradaUtil.limparTexto(tipoOrigem); }
+    public String getTipoDestino() { return tipoDestino; }
+    public void setTipoDestino(String tipoDestino) { this.tipoDestino = ValidacaoEntradaUtil.limparTexto(tipoDestino); }
+    public Integer getSequenciaNavio() { return sequenciaNavio; }
+    public void setSequenciaNavio(Integer sequenciaNavio) { this.sequenciaNavio = sequenciaNavio; }
+    public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
+    public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
 }

@@ -9,6 +9,7 @@ import br.com.cloudport.serviconaviosiderurgico.dto.AtualizarStatusItemNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.BloqueioItemNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ComandoGeracaoOrdensPatioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ComandoGeracaoReservasPatioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ComandoPrioridadeOrdemPatioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ComandoReplanejamentoPatioNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.EventoVisitaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.FilaPatioDaVisitaDTO;
@@ -26,6 +27,7 @@ import br.com.cloudport.serviconaviosiderurgico.dto.ValidacaoPlanoEstivaDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.VisitaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.servico.IntegracaoNavioPatioServico;
 import br.com.cloudport.serviconaviosiderurgico.servico.ItemOperacaoNavioServico;
+import br.com.cloudport.serviconaviosiderurgico.servico.OperacaoOrdemPatioNavioServico;
 import br.com.cloudport.serviconaviosiderurgico.servico.PlanoEstivaNavioServico;
 import br.com.cloudport.serviconaviosiderurgico.servico.VisitaNavioServico;
 import java.time.LocalDateTime;
@@ -53,17 +55,20 @@ public class VisitaNavioControlador {
     private final ItemOperacaoNavioServico itemServico;
     private final PlanoEstivaNavioServico planoServico;
     private final IntegracaoNavioPatioServico integracaoNavioPatioServico;
+    private final OperacaoOrdemPatioNavioServico operacaoOrdemPatioNavioServico;
 
     public VisitaNavioControlador(
             VisitaNavioServico visitaServico,
             ItemOperacaoNavioServico itemServico,
             PlanoEstivaNavioServico planoServico,
-            IntegracaoNavioPatioServico integracaoNavioPatioServico
+            IntegracaoNavioPatioServico integracaoNavioPatioServico,
+            OperacaoOrdemPatioNavioServico operacaoOrdemPatioNavioServico
     ) {
         this.visitaServico = visitaServico;
         this.itemServico = itemServico;
         this.planoServico = planoServico;
         this.integracaoNavioPatioServico = integracaoNavioPatioServico;
+        this.operacaoOrdemPatioNavioServico = operacaoOrdemPatioNavioServico;
     }
 
     @GetMapping
@@ -198,6 +203,23 @@ public class VisitaNavioControlador {
     @GetMapping("/{id}/integracao-patio/ordens")
     public List<OrdemPatioDaVisitaDTO> listarOrdensPatio(@PathVariable Long id) {
         return integracaoNavioPatioServico.listarOrdensDaVisita(id);
+    }
+
+    @PatchMapping("/{id}/integracao-patio/ordens/{ordemId}/prioridade")
+    public OrdemPatioDaVisitaDTO atualizarPrioridadeOrdemPatio(@PathVariable Long id,
+                                                               @PathVariable Long ordemId,
+                                                               @Valid @RequestBody ComandoPrioridadeOrdemPatioDTO dto) {
+        return operacaoOrdemPatioNavioServico.atualizarPrioridade(id, ordemId, dto);
+    }
+
+    @PatchMapping("/{id}/integracao-patio/ordens/{ordemId}/suspender")
+    public OrdemPatioDaVisitaDTO suspenderOrdemPatio(@PathVariable Long id, @PathVariable Long ordemId) {
+        return operacaoOrdemPatioNavioServico.suspender(id, ordemId);
+    }
+
+    @PatchMapping("/{id}/integracao-patio/ordens/{ordemId}/retomar")
+    public OrdemPatioDaVisitaDTO retomarOrdemPatio(@PathVariable Long id, @PathVariable Long ordemId) {
+        return operacaoOrdemPatioNavioServico.retomar(id, ordemId);
     }
 
     @GetMapping("/{id}/integracao-patio/filas")

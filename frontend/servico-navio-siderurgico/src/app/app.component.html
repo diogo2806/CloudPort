@@ -2,7 +2,7 @@
   <header class="shell-header">
     <div>
       <span>CloudPort</span>
-      <strong>Modulo operacional de navios siderurgicos</strong>
+      <strong>Modulo operacional de visitas de navio</strong>
     </div>
     <nav>
       <button type="button" (click)="carregarTudo()">Atualizar dados</button>
@@ -21,20 +21,20 @@
         <strong>{{ navios.length }}</strong>
       </article>
       <article class="kpi-card">
-        <span>Operacoes/visitas</span>
-        <strong>{{ operacoes.length }}</strong>
+        <span>Visitas</span>
+        <strong>{{ visitas.length }}</strong>
       </article>
       <article class="kpi-card">
-        <span>Peso selecionado</span>
-        <strong>{{ pesoTotal() | number:'1.0-3' }} t</strong>
+        <span>Peso planejado</span>
+        <strong>{{ resumo.pesoPlanejado | number:'1.0-3' }} t</strong>
       </article>
       <article class="kpi-card">
         <span>Progresso</span>
-        <strong>{{ progressoOperacao() }}%</strong>
+        <strong>{{ resumo.percentualProgresso }}%</strong>
       </article>
       <article class="kpi-card blocked">
         <span>Itens bloqueados</span>
-        <strong>{{ itensBloqueados() }}</strong>
+        <strong>{{ resumo.itensBloqueados }}</strong>
       </article>
     </section>
 
@@ -55,58 +55,87 @@
       </article>
 
       <article class="card">
-        <h2>Cadastrar operacao/visita</h2>
-        <form class="form-grid" (ngSubmit)="cadastrarOperacao()">
+        <h2>Cadastrar visita operacional</h2>
+        <form class="form-grid" (ngSubmit)="cadastrarVisita()">
           <label>Navio
-            <select name="navioId" required [(ngModel)]="novaOperacao.navioId">
+            <select name="navioId" required [(ngModel)]="novaVisita.navioId">
               <option [ngValue]="0">Selecione</option>
-              <option *ngFor="let navio of navios" [ngValue]="navio.id">{{ navio.nome }} - {{ navio.codigoImo }}</option>
+              <option *ngFor="let navio of navios" [ngValue]="navio.id || 0">{{ navio.nome }} - {{ navio.codigoImo }}</option>
             </select>
           </label>
-          <label>Tipo operacao
-            <select name="tipoOperacao" required [(ngModel)]="novaOperacao.tipoOperacao">
-              <option *ngFor="let tipo of tiposOperacao" [value]="tipo">{{ tipo }}</option>
-            </select>
-          </label>
-          <label>Berco<input name="berco" [(ngModel)]="novaOperacao.berco"></label>
-          <label>Viagem<input name="viagem" [(ngModel)]="novaOperacao.viagem"></label>
-          <label>ETA<input name="eta" type="datetime-local" [(ngModel)]="novaOperacao.eta"></label>
-          <label>Origem<input name="origem" [(ngModel)]="novaOperacao.origem"></label>
-          <label>Destino<input name="destino" [(ngModel)]="novaOperacao.destino"></label>
-          <label>Observacoes<textarea name="observacoes" [(ngModel)]="novaOperacao.observacoes"></textarea></label>
-          <button type="submit" [disabled]="!novaOperacao.navioId">Salvar operacao</button>
+          <label>Codigo visita<input name="codigoVisita" required [(ngModel)]="novaVisita.codigoVisita"></label>
+          <label>Viagem entrada<input name="viagemEntrada" [(ngModel)]="novaVisita.viagemEntrada"></label>
+          <label>Viagem saida<input name="viagemSaida" [(ngModel)]="novaVisita.viagemSaida"></label>
+          <label>Linha/armador<input name="linhaOperadora" [(ngModel)]="novaVisita.linhaOperadora"></label>
+          <label>Terminal/facility<input name="terminalFacility" [(ngModel)]="novaVisita.terminalFacility"></label>
+          <label>Berco previsto<input name="bercoPrevisto" [(ngModel)]="novaVisita.bercoPrevisto"></label>
+          <label>Berco atual<input name="bercoAtual" [(ngModel)]="novaVisita.bercoAtual"></label>
+          <label>ETA<input name="eta" type="datetime-local" [(ngModel)]="novaVisita.eta"></label>
+          <label>ETB<input name="etb" type="datetime-local" [(ngModel)]="novaVisita.etb"></label>
+          <label>ETD<input name="etd" type="datetime-local" [(ngModel)]="novaVisita.etd"></label>
+          <label>Cutoff<input name="cutoff" type="datetime-local" [(ngModel)]="novaVisita.cutoffOperacional"></label>
+          <label>Observacoes<textarea name="observacoes" [(ngModel)]="novaVisita.observacoes"></textarea></label>
+          <button type="submit" [disabled]="!novaVisita.navioId">Salvar visita</button>
         </form>
       </article>
     </section>
 
-    <section class="grid-two">
+    <section class="grid-two wide-left">
       <article class="card">
-        <h2>Operacoes/visitas</h2>
+        <h2>Visitas de navio</h2>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Navio</th><th>Tipo</th><th>Berco</th><th>Viagem</th><th>Status</th><th></th></tr>
+              <tr><th>Codigo</th><th>Navio</th><th>Berco</th><th>ETA</th><th>Fase</th><th></th></tr>
             </thead>
             <tbody>
-              <tr *ngFor="let operacao of operacoes" [class.selected]="operacao.id === operacaoSelecionada?.id">
-                <td>{{ operacao.navioNome }}</td>
-                <td>{{ operacao.tipoOperacao }}</td>
-                <td>{{ operacao.berco || '-' }}</td>
-                <td>{{ operacao.viagem || '-' }}</td>
-                <td><span class="badge" [ngClass]="operacao.status">{{ operacao.status }}</span></td>
-                <td><button type="button" (click)="selecionarOperacao(operacao)">Abrir</button></td>
+              <tr *ngFor="let visita of visitas" [class.selected]="visita.id === visitaSelecionada?.id">
+                <td>{{ visita.codigoVisita }}</td>
+                <td>{{ visita.navioNome }}</td>
+                <td>{{ visita.bercoAtual || visita.bercoPrevisto || '-' }}</td>
+                <td>{{ visita.eta ? (visita.eta | date:'dd/MM HH:mm') : '-' }}</td>
+                <td><span class="badge" [ngClass]="visita.fase || ''">{{ visita.fase }}</span></td>
+                <td><button type="button" (click)="selecionarVisita(visita)">Abrir</button></td>
               </tr>
             </tbody>
           </table>
         </div>
       </article>
 
-      <article class="card">
-        <h2>Itens de carga/descarga</h2>
-        <p *ngIf="!operacaoSelecionada">Selecione uma operacao para visualizar ou cadastrar itens.</p>
-        <ng-container *ngIf="operacaoSelecionada">
-          <h3>{{ operacaoSelecionada.navioNome }} · {{ operacaoSelecionada.tipoOperacao }} · {{ operacaoSelecionada.berco || '-' }}</h3>
+      <article class="card" *ngIf="visitaSelecionada as visita">
+        <h2>Detalhe da visita</h2>
+        <div class="detail-grid">
+          <p><span>Navio</span><strong>{{ visita.navioNome }}</strong></p>
+          <p><span>Codigo</span><strong>{{ visita.codigoVisita }}</strong></p>
+          <p><span>Viagens</span><strong>{{ visita.viagemEntrada || '-' }} / {{ visita.viagemSaida || '-' }}</strong></p>
+          <p><span>Berco</span><strong>{{ visita.bercoAtual || visita.bercoPrevisto || '-' }}</strong></p>
+          <p><span>ETA/ETB/ETD</span><strong>{{ visita.eta ? (visita.eta | date:'dd/MM HH:mm') : '-' }} · {{ visita.etb ? (visita.etb | date:'dd/MM HH:mm') : '-' }} · {{ visita.etd ? (visita.etd | date:'dd/MM HH:mm') : '-' }}</strong></p>
+          <p><span>Tempo operacao</span><strong>{{ resumo.tempoOperacaoMinutos === null || resumo.tempoOperacaoMinutos === undefined ? '-' : (resumo.tempoOperacaoMinutos + ' min') }}</strong></p>
+        </div>
+
+        <div class="progress-box">
+          <div class="progress-line"><span [style.width.%]="resumo.percentualProgresso"></span></div>
+          <strong>{{ resumo.totalItensOperados }} de {{ resumo.totalItensPlanejados }} itens operados</strong>
+          <small>{{ resumo.pesoOperado | number:'1.0-3' }} t de {{ resumo.pesoPlanejado | number:'1.0-3' }} t</small>
+        </div>
+
+        <div class="actions" *ngIf="faseSeguinte(visita.fase) as proxima">
+          <button type="button" (click)="avancarFase(proxima)">Avancar para {{ proxima }}</button>
+          <button type="button" class="danger" (click)="avancarFase('CANCELADA')">Cancelar visita</button>
+        </div>
+      </article>
+    </section>
+
+    <ng-container *ngIf="visitaSelecionada as visita">
+      <section class="grid-two">
+        <article class="card">
+          <h2>Carga / descarga da visita</h2>
           <form class="form-grid" (ngSubmit)="cadastrarItem()">
+            <label>Movimento
+              <select name="tipoMovimento" required [(ngModel)]="novoItem.tipoMovimento">
+                <option *ngFor="let tipo of tiposMovimento" [value]="tipo">{{ tipo }}</option>
+              </select>
+            </label>
             <label>Lote<input name="codigoLote" required [(ngModel)]="novoItem.codigoLote"></label>
             <label>Tipo carga
               <select name="tipoCarga" required [(ngModel)]="novoItem.tipoCarga">
@@ -115,32 +144,128 @@
             </label>
             <label>Produto<input name="produto" required [(ngModel)]="novoItem.produto"></label>
             <label>Quantidade<input name="quantidade" type="number" min="1" required [(ngModel)]="novoItem.quantidade"></label>
-            <label>Peso unitario t<input name="pesoUnitario" type="number" step="0.001" [(ngModel)]="novoItem.pesoUnitarioToneladas"></label>
             <label>Peso total t<input name="pesoTotal" type="number" min="0.001" step="0.001" required [(ngModel)]="novoItem.pesoTotalToneladas"></label>
-            <label>Porao<input name="porao" type="number" min="1" [(ngModel)]="novoItem.porao"></label>
-            <label>Posicao bordo<input name="posicaoBordo" [(ngModel)]="novoItem.posicaoBordo"></label>
+            <label>Porao planejado<input name="poraoPlanejado" type="number" min="1" [(ngModel)]="novoItem.poraoPlanejado"></label>
+            <label>Posicao planejada<input name="posicaoPlanejada" [(ngModel)]="novoItem.posicaoPlanejada"></label>
             <label>Origem patio<input name="origemPatio" [(ngModel)]="novoItem.origemPatio"></label>
             <label>Destino patio<input name="destinoPatio" [(ngModel)]="novoItem.destinoPatio"></label>
             <button type="submit">Adicionar item</button>
           </form>
+        </article>
 
+        <article class="card">
+          <h2>Itens operacionais</h2>
+          <label>Motivo para bloqueio<input name="motivoBloqueio" [(ngModel)]="motivoBloqueio"></label>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Lote</th><th>Produto</th><th>Tipo</th><th>Peso</th><th>Porao</th><th>Status</th></tr></thead>
+              <thead><tr><th>Lote</th><th>Mov.</th><th>Produto</th><th>Peso</th><th>Porao</th><th>Status</th><th>Acoes</th></tr></thead>
               <tbody>
                 <tr *ngFor="let item of itens">
                   <td>{{ item.codigoLote }}</td>
+                  <td>{{ item.tipoMovimento }}</td>
                   <td>{{ item.produto }}</td>
-                  <td>{{ item.tipoCarga }}</td>
                   <td>{{ item.pesoTotalToneladas }} t</td>
-                  <td>{{ item.porao || '-' }}</td>
-                  <td><span class="badge" [ngClass]="item.status">{{ item.status }}</span></td>
+                  <td>{{ item.poraoPlanejado || '-' }}</td>
+                  <td><span class="badge" [ngClass]="item.status || ''">{{ item.status }}</span></td>
+                  <td class="actions inline">
+                    <button type="button" (click)="alterarStatusItem(item, 'LIBERADO')">Liberar</button>
+                    <button type="button" (click)="alterarStatusItem(item, 'EM_MOVIMENTO')">Mover</button>
+                    <button type="button" (click)="alterarStatusItem(item, 'OPERADO')">Operar</button>
+                    <button type="button" class="danger" (click)="alterarBloqueio(item, true)">Bloquear</button>
+                    <button type="button" (click)="alterarBloqueio(item, false)">Desbloquear</button>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </ng-container>
-      </article>
-    </section>
+        </article>
+      </section>
+
+      <section class="grid-two">
+        <article class="card">
+          <h2>Plano de estiva</h2>
+          <p *ngIf="!plano">Nenhum plano criado para esta visita.</p>
+          <button type="button" *ngIf="!plano" (click)="criarPlanoEstiva()">Criar plano</button>
+
+          <ng-container *ngIf="plano as planoAtual">
+            <div class="detail-grid compact">
+              <p><span>Versao</span><strong>{{ planoAtual.versao }}</strong></p>
+              <p><span>Status</span><strong>{{ planoAtual.status }}</strong></p>
+              <p><span>Peso planejado</span><strong>{{ planoAtual.pesoTotalPlanejado || 0 | number:'1.0-3' }} t</strong></p>
+              <p><span>Peso realizado</span><strong>{{ planoAtual.pesoTotalRealizado || 0 | number:'1.0-3' }} t</strong></p>
+            </div>
+
+            <form class="form-grid" (ngSubmit)="adicionarPosicao()">
+              <label>Item
+                <select name="itemOperacaoId" required [(ngModel)]="novaPosicao.itemOperacaoId">
+                  <option [ngValue]="0">Selecione</option>
+                  <option *ngFor="let item of itensPlanejaveis()" [ngValue]="item.id || 0">{{ item.codigoLote }} - {{ item.produto }}</option>
+                </select>
+              </label>
+              <label>Porao<input name="planoPorao" type="number" min="1" required [(ngModel)]="novaPosicao.porao"></label>
+              <label>Camada<input name="planoCamada" type="number" min="1" required [(ngModel)]="novaPosicao.camada"></label>
+              <label>Coluna<input name="planoColuna" type="number" min="1" required [(ngModel)]="novaPosicao.coluna"></label>
+              <label>Bordo
+                <select name="bordo" required [(ngModel)]="novaPosicao.bordo">
+                  <option *ngFor="let bordo of bordos" [value]="bordo">{{ bordo }}</option>
+                </select>
+              </label>
+              <label>Sequencia<input name="sequencia" type="number" min="1" required [(ngModel)]="novaPosicao.sequencia"></label>
+              <label>Peso t<input name="pesoToneladas" type="number" min="0.001" step="0.001" required [(ngModel)]="novaPosicao.pesoToneladas"></label>
+              <button type="submit" [disabled]="!novaPosicao.itemOperacaoId">Adicionar posicao</button>
+            </form>
+
+            <div class="actions">
+              <button type="button" (click)="validarPlano()">Validar plano</button>
+            </div>
+          </ng-container>
+        </article>
+
+        <article class="card" *ngIf="plano as planoAtual">
+          <h2>Posicoes de estiva</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Lote</th><th>Porao</th><th>Camada</th><th>Coluna</th><th>Bordo</th><th>Seq.</th><th>Peso</th><th></th></tr></thead>
+              <tbody>
+                <tr *ngFor="let posicao of planoAtual.posicoes; let i = index">
+                  <td>{{ posicao.codigoLote || nomeItem(posicao.itemOperacaoId) }}</td>
+                  <td>{{ posicao.porao }}</td>
+                  <td>{{ posicao.camada }}</td>
+                  <td>{{ posicao.coluna }}</td>
+                  <td>{{ posicao.bordo }}</td>
+                  <td>{{ posicao.sequencia }}</td>
+                  <td>{{ posicao.pesoToneladas }} t</td>
+                  <td><button type="button" class="danger" (click)="removerPosicao(i)">Remover</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <section class="validation" *ngIf="validacaoPlano as validacao">
+            <h3>Resultado da validacao</h3>
+            <div *ngIf="validacao.erros.length">
+              <strong>Erros</strong>
+              <ul><li *ngFor="let erroPlano of validacao.erros">{{ erroPlano }}</li></ul>
+            </div>
+            <div *ngIf="validacao.alertas.length">
+              <strong>Alertas</strong>
+              <ul><li *ngFor="let alerta of validacao.alertas">{{ alerta }}</li></ul>
+            </div>
+            <p *ngIf="!validacao.erros.length && !validacao.alertas.length">Plano sem erros ou alertas.</p>
+          </section>
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>Eventos da visita</h2>
+        <div class="timeline">
+          <article *ngFor="let evento of eventos">
+            <strong>{{ evento.tipoEvento }}</strong>
+            <span>{{ evento.criadoEm | date:'dd/MM/yyyy HH:mm' }} · {{ evento.usuario }}</span>
+            <p>{{ evento.descricao }}</p>
+          </article>
+        </div>
+      </section>
+    </ng-container>
   </section>
 </main>

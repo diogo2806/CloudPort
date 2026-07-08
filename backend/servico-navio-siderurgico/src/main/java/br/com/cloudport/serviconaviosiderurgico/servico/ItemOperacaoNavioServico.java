@@ -1,6 +1,7 @@
 package br.com.cloudport.serviconaviosiderurgico.servico;
 
 import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
+import br.com.cloudport.serviconaviosiderurgico.dominio.StatusIntegracaoPatio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusItemCarga;
 import br.com.cloudport.serviconaviosiderurgico.dominio.TipoMovimentoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.VisitaNavio;
@@ -86,6 +87,14 @@ public class ItemOperacaoNavioServico {
         if (status != StatusItemCarga.BLOQUEADO) {
             item.setMotivoBloqueio(null);
         }
+        if (status == StatusItemCarga.OPERADO) {
+            item.setStatusIntegracaoPatio(StatusIntegracaoPatio.SINCRONIZADO);
+            item.setPosicaoPatioReal(item.getPosicaoPatioReal() == null ? item.getPosicaoPatioPlanejada() : item.getPosicaoPatioReal());
+        } else if (status == StatusItemCarga.EM_MOVIMENTO) {
+            item.setStatusIntegracaoPatio(StatusIntegracaoPatio.EM_EXECUCAO);
+        } else if (status == StatusItemCarga.CANCELADO) {
+            item.setStatusIntegracaoPatio(StatusIntegracaoPatio.CANCELADO);
+        }
         ItemOperacaoNavio salvo = repositorio.save(item);
         String descricao = observacao == null || observacao.isBlank()
                 ? "Status do item " + item.getCodigoLote() + " alterado de " + anterior + " para " + status + "."
@@ -151,6 +160,13 @@ public class ItemOperacaoNavioServico {
         item.setPosicaoReal(limpar(dto.posicaoReal()));
         item.setOrigemPatio(limpar(dto.origemPatio()));
         item.setDestinoPatio(limpar(dto.destinoPatio()));
+        item.setConteinerPatioId(dto.conteinerPatioId());
+        item.setCargaPatioId(dto.cargaPatioId());
+        item.setOrdemTrabalhoPatioId(dto.ordemTrabalhoPatioId());
+        item.setMovimentoPatioId(dto.movimentoPatioId());
+        item.setPosicaoPatioPlanejada(limpar(dto.posicaoPatioPlanejada()));
+        item.setPosicaoPatioReal(limpar(dto.posicaoPatioReal()));
+        item.setStatusIntegracaoPatio(dto.statusIntegracaoPatio() == null ? StatusIntegracaoPatio.NAO_GERADO : dto.statusIntegracaoPatio());
         item.setSequenciaOperacional(dto.sequenciaOperacional());
         item.setStatus(dto.status() == null ? StatusItemCarga.PLANEJADO : dto.status());
         item.setMotivoBloqueio(limpar(dto.motivoBloqueio()));

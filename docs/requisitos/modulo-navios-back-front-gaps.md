@@ -2,19 +2,25 @@
 
 ## Objetivo
 
-Atualizar o requisito considerando o desenvolvimento mais recente do modulo Navio + Patio e a base de conhecimento N4 Vessel, Equipment Control e Control Room.
+Atualizar o requisito considerando o desenvolvimento mais recente do modulo Navio + Patio e a base de conhecimento N4 Vessel, Equipment Control, Control Room, EVP/API e EDI.
 
-O PR `feat: integra visitas de navio com patio` ja entregou o primeiro corte de integracao: vinculos entre item de navio, reserva, ordem, movimento e posicao de patio; endpoints `/visitas-navio/{id}/integracao-patio/*`; campos de origem/destino Navio/Patio em ordens de trabalho; painel Angular Navio + Patio com KPIs, reservas, ordens, alertas, replanejamento e relatorio integrado.
+O primeiro corte ja entregou a integracao basica entre visita de navio e patio: vinculos entre item de navio, reserva, ordem, movimento e posicao de patio; endpoints `/visitas-navio/{id}/integracao-patio/*`; campos de origem/destino Navio/Patio em ordens de trabalho; painel Angular Navio + Patio com KPIs, reservas, ordens, alertas, replanejamento e relatorio integrado.
 
-Portanto, este documento deixa de tratar como pendencia a criacao basica de reservas, ordens, alertas, sincronizacao, replanejamento e painel. O que falta agora e transformar esse corte em execucao operacional real, integrada ao servico de yard, filas de trabalho, equipamentos, monitoramento e validacoes de patio.
+O corte atual acrescentou a visao operacional de filas e excecoes: o `servico-navio-siderurgico` passou a consultar o `servico-yard` para listar filas por visita e ordens sem cobertura; o frontend passou a exibir uma area Control Room com filtros de status, berco/bloco/zona, severidade, movimentos iminentes, filas/POW operacionais, ordens sem cobertura e auto-refresh por polling.
+
+Este documento remove do escopo pendente o que ja foi implementado e mantem como pendencia apenas o que ainda falta para transformar o modulo em execucao operacional real, aderente a fila de patio, controle de equipamento, monitoramento e integracoes externas.
 
 ## Base de conhecimento considerada
 
-A base N4 Vessel mostra que o fluxo de navio envolve visita, descarga, preplan, planejamento de carga, plano de guindaste e inbound stow plan. Para o CloudPort, isso significa que o requisito restante deve focar no elo entre plano do navio, sequencia operacional, descarga/carga e trabalho de patio.
+A base N4 Vessel mostra que o fluxo de navio envolve visita, descarga, preplan, planejamento de carga, plano de guindaste e inbound stow plan. Para o CloudPort, a lacuna principal continua sendo ligar plano do navio, sequencia operacional, descarga/carga, berth/quay/crane planning e execucao real no patio.
 
-A base N4 Equipment Control mostra que a execucao depende de work queues, work instructions, job lists, CHE, pools, points of work, zone coverage, dispatch, monitoramento de progresso, cancelamento, reset, rehandle e controle de equipamento. Para o CloudPort, isso significa que a integracao Navio + Patio nao deve parar em IDs e DTOs: ela precisa gerar trabalho real para a fila de patio e acompanhar a execucao.
+A base N4 Equipment Control mostra que a execucao depende de work queues, work instructions, job lists, CHE, pools, points of work, zone coverage, dispatch, monitoramento de progresso, cancelamento, reset, rehandle e controle de equipamento. Para o CloudPort, a integracao precisa evoluir de uma ordem persistida para uma ordem executavel e monitoravel por fila, cobertura e equipamento.
 
-A base N4 Control Room mostra uma visao operacional integrada de patio, vessel information, alertas, CHE detail panel, job lists, work instructions, movimentos iminentes, Quay Monitor e RTG optimization. Para o CloudPort, isso significa que a tela atual Navio + Patio ainda precisa evoluir para uma visao operacional viva, com filtros, filas, excecoes, equipamentos e atualizacao quase em tempo real.
+A base N4 Control Room mostra uma visao operacional integrada de patio, vessel information, alertas, CHE detail panel, job lists, work instructions, movimentos iminentes, Quay Monitor, uncovered moves e RTG optimization. Para o CloudPort, o painel atual cobre uma primeira visao operacional, mas ainda nao possui WebSocket/SSE real, CHE real, job list de equipamento, dispatch, Quay Monitor completo e drill-down operacional completo.
+
+A base EVP/API indica que integracoes modernas devem expor contratos de API, filtros, paginacao, campos selecionaveis e sincronizacao por plataforma de eventos/dados, sem depender de acesso direto ao banco. Para o CloudPort, os contratos externos ainda precisam ser formalizados para consumo por TOS, BI, EDI, EVP ou sistemas parceiros.
+
+A base EDI indica que mensagens como BAPLIE, COPRAR, COARRI e fluxos SFTP/EDI sao parte natural da operacao de navio. Para o CloudPort, EDI permanece evolucao: ainda falta criar ou atualizar visita, stow plan, reservas, ordens e eventos operacionais a partir desses fluxos.
 
 ## O que nao deve voltar como pendencia
 
@@ -32,40 +38,104 @@ Nao reabrir como requisito principal:
 10. Criar painel Angular inicial Navio + Patio.
 11. Criar alertas basicos de integracao.
 12. Criar relatorio operacional integrado basico.
+13. Criar ordem real no `servico-yard` por endpoint interno `/yard/patio/ordens/navio`.
+14. Impedir ordem ativa duplicada por `visitaNavioId + itemOperacaoNavioId` no `servico-yard`.
+15. Expor no `servico-yard` filas operacionais por visita em `/yard/patio/ordens/visita-navio/{visitaNavioId}/filas`.
+16. Expor no `servico-yard` ordens sem cobertura em `/yard/patio/ordens/visita-navio/{visitaNavioId}/sem-cobertura`.
+17. Expor no `servico-navio-siderurgico` o proxy de filas em `/visitas-navio/{id}/integracao-patio/filas`.
+18. Expor no `servico-navio-siderurgico` o proxy de excecoes em `/visitas-navio/{id}/integracao-patio/sem-cobertura`.
+19. Criar contrato frontend `FilaPatioDaVisita` e consumo dos endpoints de filas/excecoes.
+20. Exibir no frontend uma primeira visao Control Room com filtros, movimentos iminentes, filas/POW, ordens sem cobertura e auto-refresh por polling.
 
-Esses itens ja foram cobertos. As pendencias abaixo sao de maturidade operacional, consistencia entre servicos e aderencia ao fluxo real de execucao.
+Esses itens ja foram cobertos. As pendencias abaixo sao de maturidade operacional, consistencia entre servicos, sincronizacao automatica, contratos externos e aderencia ao fluxo real de execucao.
+
+## Contratos de API implementados neste corte
+
+### Navio Siderurgico
+
+```text
+GET /visitas-navio/{id}/integracao-patio/filas
+```
+
+Retorna filas operacionais da visita, consumindo o `servico-yard` quando disponivel e usando agrupamento local como fallback.
+
+Contrato resumido:
+
+```json
+[
+  {
+    "identificador": "B1|A|PENDENTE",
+    "agrupamento": "VISITA_BERCO_ZONA_STATUS",
+    "visitaNavioId": 10,
+    "berco": "B1",
+    "blocoZona": "A",
+    "sequenciaInicial": 1,
+    "status": "PENDENTE",
+    "totalOrdens": 4,
+    "ordens": [
+      {
+        "id": 100,
+        "visitaNavioId": 10,
+        "itemOperacaoNavioId": 50,
+        "codigoLote": "LOTE-01",
+        "tipoMovimento": "DESCARGA",
+        "statusOrdem": "PENDENTE",
+        "origem": "NAVIO",
+        "destino": "B1",
+        "posicaoPlanejada": "1-1-A",
+        "posicaoReal": null,
+        "sequenciaNavio": 1,
+        "prioridadeOperacional": 1
+      }
+    ]
+  }
+]
+```
+
+```text
+GET /visitas-navio/{id}/integracao-patio/sem-cobertura
+```
+
+Retorna ordens da visita sem cobertura operacional minima, por exemplo sem destino/cobertura, sem prioridade ou sem sequencia.
+
+### Yard
+
+```text
+GET /yard/patio/ordens/visita-navio/{visitaNavioId}/filas
+GET /yard/patio/ordens/visita-navio/{visitaNavioId}/sem-cobertura
+PATCH /yard/patio/ordens/{id}/prioridade
+PATCH /yard/patio/ordens/{id}/suspender
+PATCH /yard/patio/ordens/{id}/retomar
+POST  /yard/patio/ordens/navio
+```
+
+Esses contratos ja existem ou foram integrados no fluxo Navio + Patio. O requisito restante deve evoluir a semantica dessas APIs, nao recria-las.
+
+## Telas de frontend implementadas neste corte
+
+### Painel Navio + Patio / Control Room
+
+A tela Angular `frontend/servico-navio-siderurgico/src/app/app.component.html` passou a exibir:
+
+- KPIs de itens, reservas, ordens, execucao e ordens sem cobertura.
+- Filtro por status da ordem.
+- Filtro por berco/bloco/zona.
+- Filtro por severidade de alerta.
+- Botao de atualizacao manual.
+- Auto-refresh por polling.
+- Movimentos iminentes ordenados por sequencia operacional.
+- Filas/POW operacionais por visita.
+- Ordens sem cobertura.
+- Reservas de patio.
+- Ordens de patio com sequencia e prioridade.
+- Alertas e divergencias filtraveis.
+- Replanejamento e relatorio integrado.
+
+Esta tela ainda nao substitui um Control Room completo, pois nao tem WebSocket/SSE real, CHE detail panel real, job list por equipamento, envio de mensagem para operador, Quay Monitor real, yard view grafico ou telemetria.
 
 ## P0 - Pendencias obrigatorias restantes
 
-### 1. Trocar ordem simulada por ordem real do servico de yard
-
-O corte atual gera e exibe ordens vinculadas a visita, mas ainda pode operar com identificador sintetico ou derivado do item. A proxima entrega deve criar `OrdemTrabalhoPatio` real no `servico-yard` e persistir o ID real retornado.
-
-Regras minimas:
-
-1. `IntegracaoNavioPatioServico` deve criar ordem real no `servico-yard`, por chamada interna, evento ou client HTTP.
-2. `ItemOperacaoNavio.ordemTrabalhoPatioId` deve apontar para a ordem real criada.
-3. A criacao deve ser idempotente por `visitaNavioId + itemOperacaoNavioId`.
-4. Nao permitir duas ordens ativas para o mesmo item de visita.
-5. Em erro parcial, registrar alerta e evento, sem deixar item marcado como executavel indevidamente.
-6. A resposta de geracao deve separar ordem criada, ordem ja existente, item ignorado e item com erro.
-
-### 2. Validar reserva contra o mapa real do patio
-
-O corte atual possui reserva e posicao textual. A proxima entrega deve validar a reserva contra o modelo real do patio, ocupacao, bloqueios, tipo de carga e capacidade.
-
-Regras minimas:
-
-1. Consultar posicoes reais do patio antes de reservar.
-2. Nao reservar posicao ocupada por `ConteinerPatio` ou carga equivalente.
-3. Nao reservar posicao bloqueada, interditada ou fora de area permitida.
-4. Validar tipo de carga, status, peso e altura/camada quando esses dados existirem.
-5. Diferenciar posicao inexistente, ocupada, bloqueada e sem capacidade.
-6. Consumir a reserva quando a ordem for concluida.
-7. Cancelar ou expirar reserva quando a ordem for cancelada, a visita for cancelada ou o item for replanejado.
-8. Registrar auditoria de reserva criada, consumida, cancelada e expirada.
-
-### 3. Sincronizacao real e automatica Patio -> Navio
+### 1. Sincronizacao real e automatica Patio -> Navio
 
 A sincronizacao manual existe, mas a operacao precisa reagir automaticamente quando a ordem de patio muda.
 
@@ -78,6 +148,7 @@ Regras minimas:
 5. A sincronizacao deve ser idempotente.
 6. A sincronizacao deve registrar evento na visita.
 7. Se houver falha de comunicacao entre servicos, deve existir reconciliacao por job agendado.
+8. Criar contrato de callback, evento interno ou fila para evitar depender apenas do botao manual.
 
 Eventos sugeridos:
 
@@ -90,22 +161,39 @@ MovimentoPatioConfirmado
 DivergenciaNavioPatioDetectada
 ```
 
-### 4. Work queues, POW e agrupamento operacional
+### 2. Validar e reservar contra o mapa real do patio em todo o ciclo
 
-A base Equipment Control usa work queues, work instructions, job lists, CHE, pools, POW e zone coverage. O CloudPort precisa transformar a integracao Navio + Patio em filas de trabalho operacionais.
+A ordem real no yard ja valida destino contra posicao real quando origem e navio. Ainda falta fechar o ciclo completo de reserva, consumo, cancelamento, expiracao e auditoria entre `ReservaPosicaoPatioNavio`, ocupacao real, bloqueios e movimento concluido.
+
+Regras minimas:
+
+1. Consultar posicoes reais do patio antes de reservar.
+2. Nao reservar posicao ocupada por `ConteinerPatio` ou carga equivalente.
+3. Nao reservar posicao bloqueada, interditada ou fora de area permitida.
+4. Validar tipo de carga, status, peso e altura/camada quando esses dados existirem.
+5. Diferenciar posicao inexistente, ocupada, bloqueada e sem capacidade.
+6. Consumir a reserva quando a ordem for concluida.
+7. Cancelar ou expirar reserva quando a ordem for cancelada, a visita for cancelada ou o item for replanejado.
+8. Registrar auditoria de reserva criada, consumida, cancelada e expirada.
+9. Impedir que replanejamento aplique reserva textual que nao exista no mapa real.
+
+### 3. Work queues, POW, CHE e cobertura operacional real
+
+O corte atual exibe agrupamentos de fila e ordens sem cobertura, mas ainda nao modela CHE real, pool, POW, zona, dispatch ou job list executavel.
 
 Requisito minimo:
 
-- Criar agrupamento de ordens por visita.
-- Criar agrupamento por berco/cais.
-- Criar agrupamento por porao ou sequencia do plano de estiva.
-- Criar agrupamento por bloco/zona de patio.
+- Criar entidade ou contrato de `WorkQueuePatio` quando o agrupamento deixar de ser apenas derivado.
+- Associar fila a visita, berco/cais, porao, sequencia do plano de estiva e bloco/zona de patio.
+- Associar fila a POW e pool operacional.
+- Associar cobertura de equipamento/CHE quando o modulo de equipamentos existir.
 - Permitir prioridade operacional da ordem.
 - Permitir marcar ordem como prioridade de busca/fetch.
 - Permitir listar ordens descobertas, sem equipamento/cobertura definida.
 - Permitir filtro por `PENDENTE`, `EM_EXECUCAO`, `BLOQUEADA`, `SUSPENSA`, `CONCLUIDA` e `CANCELADA`.
+- Criar historico de dispatch, suspensao, retomada, bloqueio e conclusao.
 
-Endpoints sugeridos:
+Endpoints a manter/evoluir:
 
 ```text
 GET  /yard/patio/ordens/visita-navio/{visitaNavioId}/filas
@@ -115,9 +203,24 @@ PATCH /yard/patio/ordens/{id}/suspender
 PATCH /yard/patio/ordens/{id}/retomar
 ```
 
-### 5. Replanejamento usando otimizacao real de patio
+Endpoints ainda pendentes:
 
-O replanejamento atual deve deixar de sugerir posicoes artificiais e passar a usar o motor real de patio, considerando ocupacao, distancia, rehandle, sequencia de navio e disponibilidade operacional.
+```text
+GET  /yard/patio/work-queues?visitaNavioId={id}
+POST /yard/patio/work-queues
+PATCH /yard/patio/work-queues/{id}/ativar
+PATCH /yard/patio/work-queues/{id}/desativar
+PATCH /yard/patio/work-queues/{id}/pow
+PATCH /yard/patio/work-queues/{id}/equipamento
+GET  /yard/patio/work-queues/{id}/job-list
+POST /yard/patio/work-queues/{id}/dispatch
+POST /yard/patio/work-instructions/{id}/reset
+POST /yard/patio/work-instructions/{id}/cancelar
+```
+
+### 4. Replanejamento usando otimizacao real de patio
+
+O replanejamento atual ainda pode sugerir posicoes artificiais no formato `RP-{visitaId}-{sequencia}`. A proxima entrega deve usar o motor real de patio, considerando ocupacao, distancia, rehandle, sequencia de navio e disponibilidade operacional.
 
 Regras minimas:
 
@@ -130,10 +233,38 @@ Regras minimas:
 7. Permitir simular antes de aplicar.
 8. Ao aplicar, cancelar reservas antigas e criar novas reservas auditadas.
 9. Nao sobrescrever execucao concluida.
+10. Nunca aplicar posicao inexistente no mapa real.
 
-### 6. Quay/berth/crane planning ligado ao patio
+Contrato pendente:
 
-A base Vessel indica plano de guindaste e planejamento de carga/descarga. A base Control Room possui Quay Monitor. Falta ligar visita, berco, recurso de cais e patio.
+```text
+POST /visitas-navio/{id}/integracao-patio/replanejar
+```
+
+Deve evoluir para retornar justificativa estruturada por item:
+
+```json
+{
+  "reservasSugeridas": [],
+  "ordensReordenadas": [],
+  "economiaEstimadaDistanciaPercentual": 12.5,
+  "riscoRehandle": "MEDIO",
+  "alertasImpeditivos": [],
+  "itensNaoReplanejados": [],
+  "justificativas": [
+    {
+      "itemOperacaoNavioId": 50,
+      "posicaoAnterior": "A-1-1-A",
+      "posicaoSugerida": "B-2-3-A",
+      "motivo": "Menor distancia ate berco e sem ocupacao conflitante"
+    }
+  ]
+}
+```
+
+### 5. Quay/berth/crane planning ligado ao patio
+
+A base Vessel indica plano de guindaste e planejamento de carga/descarga. A base Control Room possui Quay Monitor. Falta ligar visita, berco, recurso de cais, guindaste/equipamento e patio.
 
 Requisito minimo:
 
@@ -144,27 +275,90 @@ Requisito minimo:
 - Medir produtividade planejada x realizada.
 - Registrar atraso, parada e motivo.
 - Mostrar impacto do atraso no patio e nas ordens pendentes.
+- Criar visao de Quay Monitor no frontend.
 
-### 7. Control Room operacional quase em tempo real
+Contratos pendentes:
 
-O painel atual Navio + Patio e um bom primeiro corte, mas ainda nao cobre uma sala de controle operacional.
+```text
+GET  /visitas-navio/{id}/quay-monitor
+POST /visitas-navio/{id}/crane-plan
+PATCH /visitas-navio/{id}/crane-plan/{cranePlanId}/ativar
+PATCH /visitas-navio/{id}/crane-plan/{cranePlanId}/paradas
+GET  /visitas-navio/{id}/produtividade-cais
+```
+
+### 6. Control Room quase em tempo real
+
+A tela atual usa polling e cobre uma primeira visao operacional. Falta trocar por atualizacao real por evento e ampliar o drill-down operacional.
 
 Requisito minimo de frontend:
 
 - Atualizar status de visita, item, reserva e ordem sem recarregar a pagina inteira.
-- Exibir movimentos iminentes da visita.
+- Usar WebSocket ou SSE em vez de apenas polling.
+- Exibir movimentos iminentes da visita com origem do backend.
 - Exibir ordens sem cobertura de equipamento/fila.
-- Exibir alertas com severidade e responsavel.
+- Exibir alertas com severidade, responsavel e status de tratamento.
 - Permitir filtro por berco, visita, fase, status, bloco, tipo de movimento e severidade.
 - Exibir drill-down da ordem: item, reserva, posicao planejada, posicao real, eventos e divergencias.
 - Exibir quadro de execucao por fila/POW/equipamento quando houver dados.
+- Exibir CHE detail panel quando existir modulo de equipamento.
+- Exibir Quay Monitor quando existir plano de guindaste.
 
-Tecnologia sugerida:
+Tecnologia alvo:
 
 ```text
-WebSocket ou SSE para /visitas-navio/{id}/stream
-WebSocket ou SSE para /yard/patio/ordens/stream
+SSE ou WebSocket para /visitas-navio/{id}/stream
+SSE ou WebSocket para /yard/patio/ordens/stream
 ```
+
+### 7. Contratos externos de API, EVP e EDI
+
+Ainda falta formalizar contratos externos para integracao com TOS, BI, EVP, EDI ou sistemas parceiros.
+
+Contratos REST externos pendentes:
+
+```text
+GET /api/public/v1/vessel-visits
+GET /api/public/v1/vessel-visits/{id}
+GET /api/public/v1/vessel-visits/{id}/stow-plan
+GET /api/public/v1/vessel-visits/{id}/yard-orders
+GET /api/public/v1/vessel-visits/{id}/work-queues
+GET /api/public/v1/vessel-visits/{id}/events
+GET /api/public/v1/yard/orders?visitaNavioId={id}&status={status}
+GET /api/public/v1/yard/reservations?visitaNavioId={id}
+```
+
+Requisitos desses contratos:
+
+- Autenticacao e autorizacao por client/app.
+- Filtro por facility, terminal, visita, fase, status, periodo e pagina.
+- Campos selecionaveis quando fizer sentido.
+- Paginacao para listas grandes.
+- CorrelationId em chamadas e logs.
+- Contrato de erro padronizado.
+- Versionamento `/v1`.
+
+Eventos externos pendentes:
+
+```text
+VesselVisitCreated
+VesselVisitPhaseChanged
+StowPlanUpdated
+YardReservationCreated
+YardReservationConsumed
+YardOrderCreated
+YardOrderStatusChanged
+YardMoveConfirmed
+VesselYardDivergenceDetected
+```
+
+EDI pendente:
+
+- BAPLIE para inbound stowage/stow plan.
+- COPRAR para ordens/listas de carga e descarga.
+- COARRI para confirmacao de movimentos.
+- VERMAS quando houver peso verificado.
+- Contratos de importacao, validacao, rejeicao, reprocessamento e auditoria.
 
 ### 8. Testes, contratos e observabilidade
 
@@ -178,9 +372,11 @@ Testes minimos:
 4. Service test para consumir reserva ao concluir ordem.
 5. Service test para cancelar reserva ao cancelar ordem/visita.
 6. Service test para sincronizacao idempotente Patio -> Navio.
-7. Controller test para endpoints `/integracao-patio`.
-8. Contract test entre `servico-navio-siderurgico` e `servico-yard`.
-9. Frontend test para botoes de gerar reservas, gerar ordens, sincronizar e replanejar.
+7. Service test para filas operacionais por visita.
+8. Service test para ordens sem cobertura.
+9. Controller test para endpoints `/integracao-patio`.
+10. Contract test entre `servico-navio-siderurgico` e `servico-yard`.
+11. Frontend test para botoes de gerar reservas, gerar ordens, sincronizar, replanejar, filtrar filas e filtrar excecoes.
 
 Observabilidade minima:
 
@@ -188,7 +384,10 @@ Observabilidade minima:
 - metrica de ordens criadas por visita;
 - metrica de falhas de sincronizacao;
 - metrica de reservas sem consumo;
-- metrica de divergencias Navio x Patio.
+- metrica de divergencias Navio x Patio;
+- metrica de ordens sem cobertura;
+- metrica de atraso por fila/berco/bloco;
+- tracing entre `servico-navio-siderurgico` e `servico-yard`.
 
 ## P1 - Pendencias importantes apos o P0
 
@@ -214,11 +413,15 @@ Definir permissoes para:
 - suspender/retomar ordem;
 - aplicar replanejamento;
 - forcar sincronizacao;
+- alterar prioridade;
+- marcar prioridade de fetch;
+- ativar/desativar fila;
+- associar POW/equipamento;
 - encerrar visita com divergencia pendente.
 
 ### 3. Padronizacao de status entre servicos
 
-Hoje existem status de item, status de integracao e status de ordem. Falta uma matriz oficial de transicao para evitar interpretacoes divergentes.
+Hoje existem status de item, status de integracao, status de reserva e status de ordem. Falta uma matriz oficial de transicao para evitar interpretacoes divergentes.
 
 A matriz deve cobrir:
 
@@ -226,6 +429,7 @@ A matriz deve cobrir:
 - reserva de patio;
 - ordem de patio;
 - movimento de patio;
+- fila/work queue;
 - visita de navio;
 - alerta/divergencia.
 
@@ -238,24 +442,25 @@ A matriz deve cobrir:
 5. Painel Control Room completo com yard view, vessel view, CHE detail, work instructions, alerts, quay monitor e movimentos iminentes.
 6. Integracao com telemetria ou VMT real de equipamento.
 7. Controle completo de lashing, estabilidade, segregacao e restricoes estruturais cruzando plano de navio com realizacao operacional.
+8. Integracao EVP/event streaming com contratos versionados para consumidores externos.
 
 ## Criterios de aceite atualizados
 
-1. Gerar ordem de patio real no `servico-yard` a partir de item de visita.
-2. Persistir no item da visita o ID real da ordem criada no patio.
-3. Impedir ordem ativa duplicada para o mesmo item de visita.
-4. Validar reserva contra ocupacao real do patio.
-5. Impedir reserva em posicao inexistente, ocupada, bloqueada ou sem capacidade.
-6. Consumir reserva automaticamente quando ordem for concluida.
-7. Cancelar ou expirar reserva quando ordem/visita for cancelada.
-8. Sincronizar status de ordem de patio para item de navio automaticamente.
-9. Ter reconciliacao manual ou agendada para falhas de sincronizacao.
-10. Exibir ordens agrupadas por visita, berco, fila e status.
-11. Exibir ordens sem cobertura/fila/equipamento como excecao operacional.
-12. Replanejar usando mapa e otimizacao real de patio, nao posicao artificial fixa.
-13. Control Room deve atualizar status e alertas sem recarregar a pagina inteira.
+1. Sincronizar status de ordem de patio para item de navio automaticamente.
+2. Ter reconciliacao manual ou agendada para falhas de sincronizacao.
+3. Consumir reserva automaticamente quando ordem for concluida.
+4. Cancelar ou expirar reserva quando ordem/visita for cancelada.
+5. Validar reserva contra ocupacao real do patio em todos os pontos de entrada.
+6. Impedir reserva em posicao inexistente, ocupada, bloqueada ou sem capacidade.
+7. Exibir ordens agrupadas por visita, berco, fila e status.
+8. Exibir ordens sem cobertura/fila/equipamento como excecao operacional.
+9. Replanejar usando mapa e otimizacao real de patio, nao posicao artificial fixa.
+10. Control Room deve receber atualizacao por SSE/WebSocket ou mecanismo equivalente sem depender apenas de recarga manual.
+11. Quay/berth/crane planning deve impactar filas e ordens pendentes.
+12. Contratos externos `/api/public/v1` devem estar documentados e versionados.
+13. Contratos EDI devem validar, rejeitar, reprocessar e auditar mensagens.
 14. Testes de service, controller, contrato e frontend devem cobrir o fluxo Navio + Patio.
-15. Logs e metricas devem permitir rastrear visita, item, reserva, ordem e movimento.
+15. Logs e metricas devem permitir rastrear visita, item, reserva, ordem, fila e movimento.
 
 ## Fora do escopo deste corte
 
@@ -265,4 +470,4 @@ A matriz deve cobrir:
 - Controle aduaneiro/documental completo.
 - Substituicao integral de um TOS comercial.
 
-Esses pontos continuam como evolucao. O proximo corte deve priorizar a conversao da integracao atual em execucao real de yard, com fila, ordem persistida no servico de patio, sincronizacao automatica e validacao contra o mapa real.
+Esses pontos continuam como evolucao. O proximo corte deve priorizar sincronizacao automatica Patio -> Navio, consumo/cancelamento real de reservas, replanejamento com mapa real, WebSocket/SSE e contratos externos/EDI formalizados.

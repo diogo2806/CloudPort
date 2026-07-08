@@ -1,370 +1,268 @@
-# Requisito Back/Front - Somente pendencias restantes de Navio + Patio
+# Requisito Back/Front - Pendencias restantes pos-integracao Navio + Patio
 
 ## Objetivo
 
-Este requisito substitui a lista antiga de gaps do modulo de navios. O desenvolvimento recente ja entregou o fluxo operacional de visita, itens de carga/descarga/restow, plano de estiva, eventos, resumo operacional e tela Angular conectada ao backend. O patio tambem ja possui mapa, conteineres, posicoes, equipamentos, movimentacoes, ordens de trabalho, KPIs, alertas, simulador, autoplanejamento e otimizacoes.
+Atualizar o requisito considerando o desenvolvimento mais recente do modulo Navio + Patio e a base de conhecimento N4 Vessel, Equipment Control e Control Room.
 
-O que falta agora e ligar esses dois mundos: a visita de navio precisa gerar trabalho de patio, reservar posicoes, acompanhar ordens, receber confirmacao de execucao e mostrar uma visao unica Navio + Patio.
+O PR `feat: integra visitas de navio com patio` ja entregou o primeiro corte de integracao: vinculos entre item de navio, reserva, ordem, movimento e posicao de patio; endpoints `/visitas-navio/{id}/integracao-patio/*`; campos de origem/destino Navio/Patio em ordens de trabalho; painel Angular Navio + Patio com KPIs, reservas, ordens, alertas, replanejamento e relatorio integrado.
 
-## Escopo restante P0
+Portanto, este documento deixa de tratar como pendencia a criacao basica de reservas, ordens, alertas, sincronizacao, replanejamento e painel. O que falta agora e transformar esse corte em execucao operacional real, integrada ao servico de yard, filas de trabalho, equipamentos, monitoramento e validacoes de patio.
 
-### 1. Vinculo formal entre item da visita e patio
+## Base de conhecimento considerada
 
-Hoje o item da visita possui dados operacionais, e o patio possui conteineres, movimentos e ordens. Falta uma referencia persistida entre eles.
+A base N4 Vessel mostra que o fluxo de navio envolve visita, descarga, preplan, planejamento de carga, plano de guindaste e inbound stow plan. Para o CloudPort, isso significa que o requisito restante deve focar no elo entre plano do navio, sequencia operacional, descarga/carga e trabalho de patio.
 
-Alteracoes minimas:
+A base N4 Equipment Control mostra que a execucao depende de work queues, work instructions, job lists, CHE, pools, points of work, zone coverage, dispatch, monitoramento de progresso, cancelamento, reset, rehandle e controle de equipamento. Para o CloudPort, isso significa que a integracao Navio + Patio nao deve parar em IDs e DTOs: ela precisa gerar trabalho real para a fila de patio e acompanhar a execucao.
 
-- `ItemOperacaoNavio` deve guardar o vinculo com a carga/conteiner no patio, quando existir.
-- `ItemOperacaoNavio` deve guardar a ordem de patio ativa ou a ultima ordem relacionada.
-- `OrdemTrabalhoPatio` deve guardar `visitaNavioId` e `itemOperacaoNavioId`.
-- O sistema nao deve depender apenas de lote, codigo textual ou descricao para reconciliar navio e patio.
+A base N4 Control Room mostra uma visao operacional integrada de patio, vessel information, alertas, CHE detail panel, job lists, work instructions, movimentos iminentes, Quay Monitor e RTG optimization. Para o CloudPort, isso significa que a tela atual Navio + Patio ainda precisa evoluir para uma visao operacional viva, com filtros, filas, excecoes, equipamentos e atualizacao quase em tempo real.
 
-Campos sugeridos em `ItemOperacaoNavio`:
+## O que nao deve voltar como pendencia
 
-- `conteinerPatioId` ou `cargaPatioId`.
-- `ordemTrabalhoPatioId`.
-- `movimentoPatioId`.
-- `posicaoPatioPlanejada`.
-- `posicaoPatioReal`.
-- `statusIntegracaoPatio`: `NAO_GERADO`, `RESERVADO`, `ORDEM_GERADA`, `EM_EXECUCAO`, `SINCRONIZADO`, `ERRO`, `CANCELADO`.
+Nao reabrir como requisito principal:
 
-Campos sugeridos em `OrdemTrabalhoPatio`:
+1. Criar visita de navio.
+2. Criar item operacional de embarque, descarga e restow.
+3. Criar plano de estiva por visita.
+4. Criar eventos e resumo operacional da visita.
+5. Criar endpoints basicos `/visitas-navio`.
+6. Criar endpoints basicos `/visitas-navio/{id}/integracao-patio`.
+7. Criar entidade simples de reserva de patio vinculada ao item.
+8. Adicionar campos de integracao em `ItemOperacaoNavio`.
+9. Adicionar campos de visita/item/plano em `OrdemTrabalhoPatio`.
+10. Criar painel Angular inicial Navio + Patio.
+11. Criar alertas basicos de integracao.
+12. Criar relatorio operacional integrado basico.
 
-- `visitaNavioId`.
-- `itemOperacaoNavioId`.
-- `planoEstivaNavioId` opcional.
-- `tipoOrigem`: `PATIO`, `NAVIO`, `CAIS`, `AREA_TEMPORARIA`.
-- `tipoDestino`: `PATIO`, `NAVIO`, `CAIS`, `AREA_TEMPORARIA`.
-- `sequenciaNavio`.
-- `prioridadeOperacional`.
+Esses itens ja foram cobertos. As pendencias abaixo sao de maturidade operacional, consistencia entre servicos e aderencia ao fluxo real de execucao.
 
-### 2. Reserva de patio para descarga
+## P0 - Pendencias obrigatorias restantes
 
-Antes de iniciar a descarga, o sistema deve reservar posicoes de patio para os itens que descem do navio.
+### 1. Trocar ordem simulada por ordem real do servico de yard
 
-Endpoint sugerido:
-
-```text
-POST /visitas-navio/{id}/integracao-patio/reservas
-GET  /visitas-navio/{id}/integracao-patio/reservas
-```
-
-Entidade sugerida: `ReservaPosicaoPatioNavio`.
-
-Campos minimos:
-
-- `id`.
-- `visitaNavioId`.
-- `itemOperacaoNavioId`.
-- `posicaoPatioId` ou bloco/linha/coluna/camada.
-- `tipoReserva`: `TENTATIVA`, `DEFINITIVA`.
-- `status`: `ATIVA`, `CONSUMIDA`, `CANCELADA`, `EXPIRADA`.
-- `motivoCancelamento`.
-- `criadoEm`.
-- `atualizadoEm`.
+O corte atual gera e exibe ordens vinculadas a visita, mas ainda pode operar com identificador sintetico ou derivado do item. A proxima entrega deve criar `OrdemTrabalhoPatio` real no `servico-yard` e persistir o ID real retornado.
 
 Regras minimas:
 
-1. Nao reservar posicao ocupada.
-2. Nao reservar posicao bloqueada.
-3. Nao reservar fora da area permitida para tipo de carga/produto/status.
-4. Validar peso/capacidade da posicao quando houver limite.
-5. Permitir reserva tentativa e reserva definitiva.
-6. Permitir replanejar reserva ainda nao consumida.
-7. Exibir item sem posicao disponivel como excecao operacional.
+1. `IntegracaoNavioPatioServico` deve criar ordem real no `servico-yard`, por chamada interna, evento ou client HTTP.
+2. `ItemOperacaoNavio.ordemTrabalhoPatioId` deve apontar para a ordem real criada.
+3. A criacao deve ser idempotente por `visitaNavioId + itemOperacaoNavioId`.
+4. Nao permitir duas ordens ativas para o mesmo item de visita.
+5. Em erro parcial, registrar alerta e evento, sem deixar item marcado como executavel indevidamente.
+6. A resposta de geracao deve separar ordem criada, ordem ja existente, item ignorado e item com erro.
 
-### 3. Geracao de ordens de patio pela visita
+### 2. Validar reserva contra o mapa real do patio
 
-A visita de navio deve gerar ordens de patio automaticamente com base nos itens, tipo de movimento e plano de estiva.
-
-Endpoint sugerido:
-
-```text
-POST /visitas-navio/{id}/integracao-patio/gerar-ordens
-GET  /visitas-navio/{id}/integracao-patio/ordens
-```
-
-Payload sugerido:
-
-```json
-{
-  "tipoMovimento": "DESCARGA",
-  "modo": "SOMENTE_PENDENTES",
-  "usuario": "operador",
-  "gerarReservasAutomaticas": true
-}
-```
-
-Retorno minimo:
-
-- total de ordens criadas;
-- total de itens ignorados;
-- total de itens com erro;
-- erros por item;
-- alertas de capacidade, bloqueio, rehandle e falta de posicao.
+O corte atual possui reserva e posicao textual. A proxima entrega deve validar a reserva contra o modelo real do patio, ocupacao, bloqueios, tipo de carga e capacidade.
 
 Regras minimas:
 
-1. Nao duplicar ordem para item com ordem ativa.
-2. Respeitar o tipo de movimento: `EMBARQUE`, `DESCARGA` ou `RESTOW`.
-3. Respeitar a sequencia operacional do plano de estiva.
-4. Na descarga, exigir destino de patio ou gerar reserva automatica.
-5. No embarque, exigir origem de patio/carga localizada.
-6. Em restow, permitir destino temporario, patio ou nova posicao a bordo.
-7. Nao gerar ordem executavel para item bloqueado.
-8. Registrar evento na visita para cada lote de ordens gerado.
+1. Consultar posicoes reais do patio antes de reservar.
+2. Nao reservar posicao ocupada por `ConteinerPatio` ou carga equivalente.
+3. Nao reservar posicao bloqueada, interditada ou fora de area permitida.
+4. Validar tipo de carga, status, peso e altura/camada quando esses dados existirem.
+5. Diferenciar posicao inexistente, ocupada, bloqueada e sem capacidade.
+6. Consumir a reserva quando a ordem for concluida.
+7. Cancelar ou expirar reserva quando a ordem for cancelada, a visita for cancelada ou o item for replanejado.
+8. Registrar auditoria de reserva criada, consumida, cancelada e expirada.
 
-### 4. Sincronizacao de status Patio -> Navio
+### 3. Sincronizacao real e automatica Patio -> Navio
 
-Quando a ordem de patio evoluir, o item da visita deve refletir a execucao.
-
-Endpoint de reconciliacao manual:
-
-```text
-POST /visitas-navio/{id}/integracao-patio/sincronizar-status
-```
-
-Mapeamento inicial:
-
-- Ordem `PENDENTE` -> item continua `PLANEJADO` ou `LIBERADO`.
-- Ordem `EM_EXECUCAO` -> item `EM_MOVIMENTO`.
-- Ordem `CONCLUIDA` -> item `OPERADO`.
-- Ordem `CANCELADA` -> item volta para `PLANEJADO` ou fica `CANCELADO`, conforme motivo.
-- Ordem `BLOQUEADA` ou `SUSPENSA` -> item `BLOQUEADO`.
+A sincronizacao manual existe, mas a operacao precisa reagir automaticamente quando a ordem de patio muda.
 
 Regras minimas:
 
-1. Atualizacao manual deve reconciliar visita inteira.
-2. Atualizacao automatica deve ocorrer quando `OrdemTrabalhoPatioServico` mudar status de uma ordem vinculada.
-3. Toda sincronizacao deve criar evento de visita.
-4. Divergencia deve ser registrada como alerta, nao ignorada.
-5. Item ja `OPERADO` nao deve voltar de status sem confirmacao explicita.
+1. Quando `OrdemTrabalhoPatio` mudar para `EM_EXECUCAO`, atualizar o item para `EM_MOVIMENTO`.
+2. Quando `OrdemTrabalhoPatio` mudar para `CONCLUIDA`, atualizar o item para `OPERADO`, preencher posicao real e consumir reserva.
+3. Quando `OrdemTrabalhoPatio` mudar para `BLOQUEADA` ou `SUSPENSA`, refletir bloqueio operacional no item ou criar divergencia de alta severidade.
+4. Quando `OrdemTrabalhoPatio` mudar para `CANCELADA`, reabrir o item conforme regra de negocio e liberar/cancelar reserva.
+5. A sincronizacao deve ser idempotente.
+6. A sincronizacao deve registrar evento na visita.
+7. Se houver falha de comunicacao entre servicos, deve existir reconciliacao por job agendado.
 
-### 5. Alertas integrados Navio x Patio
-
-Criar alertas especificos da integracao.
-
-Endpoint sugerido:
+Eventos sugeridos:
 
 ```text
-GET /visitas-navio/{id}/integracao-patio/alertas
+OrdemPatioCriada
+StatusOrdemPatioAlterado
+ReservaPatioConsumida
+ReservaPatioCancelada
+MovimentoPatioConfirmado
+DivergenciaNavioPatioDetectada
 ```
 
-Alertas minimos:
+### 4. Work queues, POW e agrupamento operacional
 
-1. Item de descarga sem destino/reserva de patio.
-2. Item de embarque sem origem de patio.
-3. Item com ordem duplicada ativa.
-4. Ordem de patio atrasada em relacao a sequencia do navio.
-5. Posicao reservada ocupada antes da execucao.
-6. Item bloqueado com ordem ativa.
-7. Ordem concluida sem atualizar o item da visita.
-8. Item operado sem movimento de patio correspondente.
-9. Divergencia entre posicao planejada e real.
-10. Capacidade de patio insuficiente para a visita.
-11. Rehandle previsto acima do limite aceitavel.
+A base Equipment Control usa work queues, work instructions, job lists, CHE, pools, POW e zone coverage. O CloudPort precisa transformar a integracao Navio + Patio em filas de trabalho operacionais.
 
-### 6. Replanejamento de patio com contexto de navio
+Requisito minimo:
 
-A automacao/otimizacao de patio ja existe, mas deve receber contexto da visita.
+- Criar agrupamento de ordens por visita.
+- Criar agrupamento por berco/cais.
+- Criar agrupamento por porao ou sequencia do plano de estiva.
+- Criar agrupamento por bloco/zona de patio.
+- Permitir prioridade operacional da ordem.
+- Permitir marcar ordem como prioridade de busca/fetch.
+- Permitir listar ordens descobertas, sem equipamento/cobertura definida.
+- Permitir filtro por `PENDENTE`, `EM_EXECUCAO`, `BLOQUEADA`, `SUSPENSA`, `CONCLUIDA` e `CANCELADA`.
 
-Endpoint sugerido:
+Endpoints sugeridos:
 
 ```text
-POST /visitas-navio/{id}/integracao-patio/replanejar
+GET  /yard/patio/ordens/visita-navio/{visitaNavioId}/filas
+GET  /yard/patio/ordens/visita-navio/{visitaNavioId}/sem-cobertura
+PATCH /yard/patio/ordens/{id}/prioridade
+PATCH /yard/patio/ordens/{id}/suspender
+PATCH /yard/patio/ordens/{id}/retomar
 ```
 
-A otimizacao deve considerar:
+### 5. Replanejamento usando otimizacao real de patio
 
-- fase da visita;
-- ETA/ETB/ETD/cutoff;
-- berco;
-- tipo de movimento;
-- sequencia do plano de estiva;
-- peso, produto e tipo de carga;
-- origem/destino de patio;
-- risco de rehandle;
-- proximidade com cais;
-- dual-cycling quando houver embarque e descarga na mesma janela.
+O replanejamento atual deve deixar de sugerir posicoes artificiais e passar a usar o motor real de patio, considerando ocupacao, distancia, rehandle, sequencia de navio e disponibilidade operacional.
 
-Retorno minimo:
+Regras minimas:
 
-- reservas sugeridas;
-- ordens reordenadas;
-- economia estimada de distancia/tempo;
-- risco de rehandle;
-- alertas impeditivos;
-- lista de itens que nao podem ser replanejados.
+1. Replanejar apenas item nao operado e ordem nao concluida.
+2. Considerar ETA, ETB, ETD, cutoff, fase, berco e sequencia de estiva.
+3. Considerar mapa real, ocupacao, bloqueios, zonas e capacidade.
+4. Considerar dual-cycling quando houver embarque e descarga na mesma janela.
+5. Retornar justificativa por item replanejado.
+6. Retornar motivo por item nao replanejado.
+7. Permitir simular antes de aplicar.
+8. Ao aplicar, cancelar reservas antigas e criar novas reservas auditadas.
+9. Nao sobrescrever execucao concluida.
 
-Regra critica: item ja operado ou ordem concluida nao deve ser replanejado automaticamente.
+### 6. Quay/berth/crane planning ligado ao patio
 
-### 7. Tela unica Navio + Patio
+A base Vessel indica plano de guindaste e planejamento de carga/descarga. A base Control Room possui Quay Monitor. Falta ligar visita, berco, recurso de cais e patio.
 
-Criar uma aba ou rota operacional dentro da visita para mostrar patio e navio juntos.
+Requisito minimo:
 
-Rota sugerida:
+- Vincular visita a berco operacional.
+- Registrar janela planejada e realizada de trabalho no cais.
+- Associar recurso de cais, guindaste/equipamento e equipe.
+- Associar filas de patio a porao/berco/recurso.
+- Medir produtividade planejada x realizada.
+- Registrar atraso, parada e motivo.
+- Mostrar impacto do atraso no patio e nas ordens pendentes.
+
+### 7. Control Room operacional quase em tempo real
+
+O painel atual Navio + Patio e um bom primeiro corte, mas ainda nao cobre uma sala de controle operacional.
+
+Requisito minimo de frontend:
+
+- Atualizar status de visita, item, reserva e ordem sem recarregar a pagina inteira.
+- Exibir movimentos iminentes da visita.
+- Exibir ordens sem cobertura de equipamento/fila.
+- Exibir alertas com severidade e responsavel.
+- Permitir filtro por berco, visita, fase, status, bloco, tipo de movimento e severidade.
+- Exibir drill-down da ordem: item, reserva, posicao planejada, posicao real, eventos e divergencias.
+- Exibir quadro de execucao por fila/POW/equipamento quando houver dados.
+
+Tecnologia sugerida:
 
 ```text
-/visitas-navio/:id/patio
+WebSocket ou SSE para /visitas-navio/{id}/stream
+WebSocket ou SSE para /yard/patio/ordens/stream
 ```
 
-Componentes sugeridos:
+### 8. Testes, contratos e observabilidade
 
-- `OperacaoNavioPatioComponent`.
-- `PainelResumoNavioPatioComponent`.
-- `OrdensPatioDaVisitaComponent`.
-- `ReservasPatioDaVisitaComponent`.
-- `MapaPatioDaVisitaComponent`.
-- `AlertasIntegracaoNavioPatioComponent`.
-- `DivergenciasNavioPatioComponent`.
+O desenvolvimento recente informou que os testes nao foram executados localmente por limitacao de ambiente. Antes de considerar o modulo pronto, faltam testes e observabilidade.
 
-A tela deve mostrar:
+Testes minimos:
 
-- cabecalho da visita;
-- fase da visita;
-- progresso planejado x realizado;
-- mapa/lista do patio filtrado pela visita;
-- ordens de patio vinculadas;
-- reservas de patio;
-- itens sem ordem;
-- ordens sem sincronizacao;
-- alertas e divergencias;
-- botoes para gerar reservas, gerar ordens, replanejar e sincronizar status.
+1. Service test para criar ordem real de patio a partir de item de visita.
+2. Service test para impedir ordem duplicada ativa.
+3. Service test para reservar apenas posicao disponivel.
+4. Service test para consumir reserva ao concluir ordem.
+5. Service test para cancelar reserva ao cancelar ordem/visita.
+6. Service test para sincronizacao idempotente Patio -> Navio.
+7. Controller test para endpoints `/integracao-patio`.
+8. Contract test entre `servico-navio-siderurgico` e `servico-yard`.
+9. Frontend test para botoes de gerar reservas, gerar ordens, sincronizar e replanejar.
 
-### 8. Relatorio operacional integrado
+Observabilidade minima:
 
-Criar recap unico da visita com dados de navio e patio.
+- log com `visitaNavioId`, `itemOperacaoNavioId`, `ordemTrabalhoPatioId` e `correlationId`;
+- metrica de ordens criadas por visita;
+- metrica de falhas de sincronizacao;
+- metrica de reservas sem consumo;
+- metrica de divergencias Navio x Patio.
 
-Endpoint sugerido:
+## P1 - Pendencias importantes apos o P0
 
-```text
-GET /visitas-navio/{id}/relatorio-operacional-integrado
-```
+### 1. Relatorios operacionais em formato de trabalho
 
-Conteudo minimo:
+O relatorio integrado basico existe, mas faltam saidas operacionais:
 
-- dados da visita;
-- plano de estiva;
-- itens planejados x operados;
-- reservas de patio;
-- ordens de patio;
-- tempos de execucao;
-- divergencias;
-- bloqueios;
-- produtividade;
-- eventos relevantes.
+- lista de descarga por sequencia;
+- lista de embarque por sequencia;
+- work list por berco/porão/fila;
+- recap planejado x realizado;
+- divergencias de patio;
+- produtividade por janela;
+- exportacao CSV/PDF.
 
-## Backend restante
+### 2. Permissoes e auditoria operacional
 
-### Services
+Definir permissoes para:
 
-#### `IntegracaoNavioPatioServico`
+- gerar reserva;
+- gerar ordem;
+- cancelar ordem;
+- suspender/retomar ordem;
+- aplicar replanejamento;
+- forcar sincronizacao;
+- encerrar visita com divergencia pendente.
 
-Responsavel por orquestrar visita, plano, itens, reservas, ordens, alertas e sincronizacao.
+### 3. Padronizacao de status entre servicos
 
-Metodos minimos:
+Hoje existem status de item, status de integracao e status de ordem. Falta uma matriz oficial de transicao para evitar interpretacoes divergentes.
 
-- `obterResumoIntegracao(visitaId)`.
-- `gerarReservasDaVisita(visitaId, comando)`.
-- `gerarOrdensDaVisita(visitaId, comando)`.
-- `listarOrdensDaVisita(visitaId)`.
-- `listarAlertasIntegracao(visitaId)`.
-- `sincronizarStatus(visitaId)`.
-- `replanejarPatioDaVisita(visitaId, comando)`.
-- `gerarRelatorioOperacionalIntegrado(visitaId)`.
+A matriz deve cobrir:
 
-#### `ReservaPatioNavioServico`
+- item de navio;
+- reserva de patio;
+- ordem de patio;
+- movimento de patio;
+- visita de navio;
+- alerta/divergencia.
 
-Responsavel por reservar, confirmar, cancelar e consumir posicoes de patio vinculadas a itens de visita.
+## P2 - Evolucoes avancadas
 
-#### `ValidadorIntegracaoNavioPatioServico`
+1. Integracao EDI operacional: BAPLIE/COPRAR/COARRI gerando ou atualizando reservas e ordens de patio automaticamente.
+2. Otimizacao global Navio + Patio + Equipamento, considerando guindaste, fila, caminho, rehandle, bloco e capacidade.
+3. Comparacao automatica entre plano de estiva, plano de patio e execucao realizada.
+4. Previsao de gargalo por berco, porao, bloco, fila e equipamento.
+5. Painel Control Room completo com yard view, vessel view, CHE detail, work instructions, alerts, quay monitor e movimentos iminentes.
+6. Integracao com telemetria ou VMT real de equipamento.
+7. Controle completo de lashing, estabilidade, segregacao e restricoes estruturais cruzando plano de navio com realizacao operacional.
 
-Responsavel por validar posicao indisponivel, ordem duplicada, item bloqueado, item sem carga fisica, capacidade, status incoerente e divergencia planejado x real.
+## Criterios de aceite atualizados
 
-#### `SincronizadorStatusNavioPatioServico`
-
-Responsavel por refletir status/eventos entre `OrdemTrabalhoPatio`, `MovimentoPatio` e `ItemOperacaoNavio`.
-
-### Endpoints consolidados
-
-```text
-GET  /visitas-navio/{id}/integracao-patio
-POST /visitas-navio/{id}/integracao-patio/reservas
-GET  /visitas-navio/{id}/integracao-patio/reservas
-POST /visitas-navio/{id}/integracao-patio/gerar-ordens
-GET  /visitas-navio/{id}/integracao-patio/ordens
-GET  /visitas-navio/{id}/integracao-patio/alertas
-POST /visitas-navio/{id}/integracao-patio/replanejar
-POST /visitas-navio/{id}/integracao-patio/sincronizar-status
-GET  /visitas-navio/{id}/relatorio-operacional-integrado
-```
-
-### DTOs minimos
-
-- `ResumoIntegracaoNavioPatioDTO`.
-- `ComandoGeracaoReservasPatioDTO`.
-- `ComandoGeracaoOrdensPatioDTO`.
-- `ResultadoGeracaoOrdensPatioDTO`.
-- `ReservaPatioNavioDTO`.
-- `OrdemPatioDaVisitaDTO`.
-- `AlertaIntegracaoNavioPatioDTO`.
-- `ComandoReplanejamentoPatioNavioDTO`.
-- `ResultadoReplanejamentoPatioNavioDTO`.
-- `RelatorioOperacionalIntegradoDTO`.
-
-## Frontend restante
-
-### Aba `Patio` na visita
-
-A tela de detalhe da visita deve ganhar uma aba `Patio`.
-
-A aba deve permitir:
-
-- gerar reservas;
-- gerar ordens;
-- visualizar ordens da visita;
-- visualizar reservas da visita;
-- abrir mapa/lista de patio filtrado pela visita;
-- sincronizar status;
-- replanejar patio;
-- ver alertas e divergencias;
-- abrir relatorio integrado.
-
-### UX minima
-
-1. O operador deve saber quais itens da visita ainda nao viraram ordem de patio.
-2. O operador deve saber quais itens ainda nao possuem reserva de patio.
-3. O operador deve saber quais ordens estao atrasadas, bloqueadas ou divergentes.
-4. O operador deve ver posicao planejada e real de patio por item.
-5. O operador deve conseguir gerar ordens em lote, sem editar item por item.
-6. O operador deve receber erro claro quando nao houver posicao disponivel.
-7. O operador deve conseguir abrir o mapa de patio filtrado apenas pela visita.
-8. O operador deve ver divergencias entre estiva, patio e execucao.
-
-## Criterios de aceite
-
-1. Uma visita com itens de descarga deve gerar reservas de patio.
-2. Uma visita com itens de descarga deve gerar ordens de patio vinculadas aos itens.
-3. Uma visita com itens de embarque deve gerar ordens do patio para navio/cais.
-4. Uma ordem gerada pela visita deve guardar `visitaNavioId` e `itemOperacaoNavioId`.
-5. O backend deve impedir ordem duplicada ativa para o mesmo item.
-6. Ao concluir ordem de patio, o item da visita deve ser atualizado para status equivalente.
-7. Ao bloquear item da visita, a ordem vinculada deve ser bloqueada/suspensa ou apontada como divergencia.
-8. A API deve listar ordens, reservas e alertas da visita.
-9. A API deve replanejar apenas itens ainda nao operados.
-10. A API deve gerar relatorio operacional integrado.
-11. O frontend deve ter aba/tela de patio dentro da visita.
-12. A tela deve mostrar itens sem ordem, itens sem reserva, ordens sem sincronizacao e divergencias de posicao.
-13. Deve haver teste de service para reserva, geracao de ordem, sincronizacao e bloqueio.
-14. Deve haver teste de controller para os endpoints de integracao.
-15. Nenhum item operado ou ordem concluida deve ser alterado por replanejamento automatico sem confirmacao explicita.
+1. Gerar ordem de patio real no `servico-yard` a partir de item de visita.
+2. Persistir no item da visita o ID real da ordem criada no patio.
+3. Impedir ordem ativa duplicada para o mesmo item de visita.
+4. Validar reserva contra ocupacao real do patio.
+5. Impedir reserva em posicao inexistente, ocupada, bloqueada ou sem capacidade.
+6. Consumir reserva automaticamente quando ordem for concluida.
+7. Cancelar ou expirar reserva quando ordem/visita for cancelada.
+8. Sincronizar status de ordem de patio para item de navio automaticamente.
+9. Ter reconciliacao manual ou agendada para falhas de sincronizacao.
+10. Exibir ordens agrupadas por visita, berco, fila e status.
+11. Exibir ordens sem cobertura/fila/equipamento como excecao operacional.
+12. Replanejar usando mapa e otimizacao real de patio, nao posicao artificial fixa.
+13. Control Room deve atualizar status e alertas sem recarregar a pagina inteira.
+14. Testes de service, controller, contrato e frontend devem cobrir o fluxo Navio + Patio.
+15. Logs e metricas devem permitir rastrear visita, item, reserva, ordem e movimento.
 
 ## Fora do escopo deste corte
 
-- Controle real de equipamento por telemetria.
-- Integracao com hardware de guindaste, RTG ou terminal tractor.
-- Otimizacao matematica global multi-recurso.
-- EDI completo refletindo automaticamente no patio.
-- Painel control room completo em tempo real.
+- Telemetria real de guindaste, RTG, reach stacker ou terminal tractor.
+- Dispatch direto para VMT real.
+- Motor matematico global multi-recurso.
+- Controle aduaneiro/documental completo.
+- Substituicao integral de um TOS comercial.
 
-Esses itens continuam como evolucao, nao como bloqueio da proxima entrega.
+Esses pontos continuam como evolucao. O proximo corte deve priorizar a conversao da integracao atual em execucao real de yard, com fila, ordem persistida no servico de patio, sincronizacao automatica e validacao contra o mapa real.

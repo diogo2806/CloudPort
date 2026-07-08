@@ -83,8 +83,8 @@ CREATE TABLE IF NOT EXISTS posicao_estiva_navio (
 
 CREATE TABLE IF NOT EXISTS evento_visita_navio (
     id BIGSERIAL PRIMARY KEY,
-    visita_navio_id BIGINT NOT NULL REFERENCES visita_navio (id),
-    item_operacao_id BIGINT REFERENCES item_operacao_navio (id),
+    visita_navio_id BIGINT NOT NULL REFERENCES visita_navio (id) ON DELETE CASCADE,
+    item_operacao_id BIGINT REFERENCES item_operacao_navio (id) ON DELETE SET NULL,
     tipo_evento VARCHAR(80) NOT NULL,
     descricao VARCHAR(1000) NOT NULL,
     usuario VARCHAR(120) NOT NULL,

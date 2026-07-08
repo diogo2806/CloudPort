@@ -191,9 +191,13 @@ export class AppComponent implements OnInit {
       if (!this.plano?.id) {
         this.plano = await this.api.criarPlanoEstiva(visitaId);
       }
+      const planoAtual = this.plano;
+      if (!planoAtual?.id) {
+        throw new Error('Plano de estiva invalido.');
+      }
       const posicao: PosicaoEstivaNavio = { ...this.novaPosicao, status: this.novaPosicao.status || 'PLANEJADO' };
-      const posicoes = [...(this.plano.posicoes || []), posicao];
-      this.plano = await this.api.salvarPosicoesPlano(visitaId, this.plano.id, posicoes);
+      const posicoes = [...(planoAtual.posicoes || []), posicao];
+      this.plano = await this.api.salvarPosicoesPlano(visitaId, planoAtual.id, posicoes);
       this.novaPosicao = this.criarPosicaoVazia();
       this.validacaoPlano = undefined;
       this.sucesso = 'Posicao adicionada ao plano.';
@@ -204,13 +208,14 @@ export class AppComponent implements OnInit {
 
   async removerPosicao(indice: number): Promise<void> {
     const visitaId = this.visitaSelecionada?.id;
-    if (!visitaId || !this.plano?.id) {
+    const planoAtual = this.plano;
+    if (!visitaId || !planoAtual?.id) {
       return;
     }
     try {
       this.limparMensagens();
-      const posicoes = this.plano.posicoes.filter((_, atual) => atual !== indice);
-      this.plano = await this.api.salvarPosicoesPlano(visitaId, this.plano.id, posicoes);
+      const posicoes = (planoAtual.posicoes || []).filter((_, atual) => atual !== indice);
+      this.plano = await this.api.salvarPosicoesPlano(visitaId, planoAtual.id, posicoes);
       this.validacaoPlano = undefined;
       this.sucesso = 'Posicao removida do plano.';
     } catch (erro) {
@@ -260,10 +265,6 @@ export class AppComponent implements OnInit {
       case 'OPERACAO_CONCLUIDA': return 'PARTIU';
       default: return undefined;
     }
-  }
-
-  navioSelecionadoDaVisita(visita: VisitaNavio): NavioSiderurgico | undefined {
-    return this.navios.find(navio => navio.id === visita.navioId);
   }
 
   nomeItem(itemId: number): string {

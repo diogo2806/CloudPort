@@ -54,6 +54,21 @@ public class ConfiguracaoSeguranca {
                 .authorizeRequests(authorize -> authorize
                         .antMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .antMatchers(HttpMethod.GET,
+                                "/",
+                                "/index.html",
+                                "/favicon.ico",
+                                "/assets/**",
+                                "/*.css",
+                                "/*.js",
+                                "/*.mjs",
+                                "/*.map",
+                                "/*.ico",
+                                "/*.png",
+                                "/*.svg",
+                                "/*.webmanifest",
+                                "/*.woff",
+                                "/*.woff2").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();

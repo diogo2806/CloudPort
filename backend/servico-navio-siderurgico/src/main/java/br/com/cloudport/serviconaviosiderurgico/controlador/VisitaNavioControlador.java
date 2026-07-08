@@ -3,16 +3,27 @@ package br.com.cloudport.serviconaviosiderurgico.controlador;
 import br.com.cloudport.serviconaviosiderurgico.dominio.FaseVisitaNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusItemCarga;
 import br.com.cloudport.serviconaviosiderurgico.dominio.TipoMovimentoNavio;
+import br.com.cloudport.serviconaviosiderurgico.dto.AlertaIntegracaoNavioPatioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.AtualizarFaseVisitaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.AtualizarStatusItemNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.BloqueioItemNavioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ComandoGeracaoOrdensPatioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ComandoGeracaoReservasPatioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ComandoReplanejamentoPatioNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.EventoVisitaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ItemOperacaoNavioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.OrdemPatioDaVisitaDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.PlanoEstivaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.PosicaoEstivaNavioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.RelatorioOperacionalIntegradoDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ReservaPatioNavioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ResultadoGeracaoOrdensPatioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ResultadoReplanejamentoPatioNavioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ResumoIntegracaoNavioPatioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ResumoOperacionalNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ValidacaoPlanoEstivaDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.VisitaNavioDTO;
+import br.com.cloudport.serviconaviosiderurgico.servico.IntegracaoNavioPatioServico;
 import br.com.cloudport.serviconaviosiderurgico.servico.ItemOperacaoNavioServico;
 import br.com.cloudport.serviconaviosiderurgico.servico.PlanoEstivaNavioServico;
 import br.com.cloudport.serviconaviosiderurgico.servico.VisitaNavioServico;
@@ -40,11 +51,18 @@ public class VisitaNavioControlador {
     private final VisitaNavioServico visitaServico;
     private final ItemOperacaoNavioServico itemServico;
     private final PlanoEstivaNavioServico planoServico;
+    private final IntegracaoNavioPatioServico integracaoNavioPatioServico;
 
-    public VisitaNavioControlador(VisitaNavioServico visitaServico, ItemOperacaoNavioServico itemServico, PlanoEstivaNavioServico planoServico) {
+    public VisitaNavioControlador(
+            VisitaNavioServico visitaServico,
+            ItemOperacaoNavioServico itemServico,
+            PlanoEstivaNavioServico planoServico,
+            IntegracaoNavioPatioServico integracaoNavioPatioServico
+    ) {
         this.visitaServico = visitaServico;
         this.itemServico = itemServico;
         this.planoServico = planoServico;
+        this.integracaoNavioPatioServico = integracaoNavioPatioServico;
     }
 
     @GetMapping
@@ -154,5 +172,50 @@ public class VisitaNavioControlador {
     @GetMapping("/{id}/eventos")
     public List<EventoVisitaNavioDTO> eventos(@PathVariable Long id) {
         return visitaServico.eventos(id);
+    }
+
+    @GetMapping("/{id}/integracao-patio")
+    public ResumoIntegracaoNavioPatioDTO resumoIntegracaoPatio(@PathVariable Long id) {
+        return integracaoNavioPatioServico.obterResumoIntegracao(id);
+    }
+
+    @PostMapping("/{id}/integracao-patio/reservas")
+    public List<ReservaPatioNavioDTO> gerarReservasPatio(@PathVariable Long id, @RequestBody(required = false) ComandoGeracaoReservasPatioDTO dto) {
+        return integracaoNavioPatioServico.gerarReservasDaVisita(id, dto);
+    }
+
+    @GetMapping("/{id}/integracao-patio/reservas")
+    public List<ReservaPatioNavioDTO> listarReservasPatio(@PathVariable Long id) {
+        return integracaoNavioPatioServico.listarReservasDaVisita(id);
+    }
+
+    @PostMapping("/{id}/integracao-patio/gerar-ordens")
+    public ResultadoGeracaoOrdensPatioDTO gerarOrdensPatio(@PathVariable Long id, @RequestBody(required = false) ComandoGeracaoOrdensPatioDTO dto) {
+        return integracaoNavioPatioServico.gerarOrdensDaVisita(id, dto);
+    }
+
+    @GetMapping("/{id}/integracao-patio/ordens")
+    public List<OrdemPatioDaVisitaDTO> listarOrdensPatio(@PathVariable Long id) {
+        return integracaoNavioPatioServico.listarOrdensDaVisita(id);
+    }
+
+    @GetMapping("/{id}/integracao-patio/alertas")
+    public List<AlertaIntegracaoNavioPatioDTO> listarAlertasIntegracaoPatio(@PathVariable Long id) {
+        return integracaoNavioPatioServico.listarAlertasIntegracao(id);
+    }
+
+    @PostMapping("/{id}/integracao-patio/sincronizar-status")
+    public ResumoIntegracaoNavioPatioDTO sincronizarStatusPatio(@PathVariable Long id) {
+        return integracaoNavioPatioServico.sincronizarStatus(id);
+    }
+
+    @PostMapping("/{id}/integracao-patio/replanejar")
+    public ResultadoReplanejamentoPatioNavioDTO replanejarPatio(@PathVariable Long id, @RequestBody(required = false) ComandoReplanejamentoPatioNavioDTO dto) {
+        return integracaoNavioPatioServico.replanejarPatioDaVisita(id, dto);
+    }
+
+    @GetMapping("/{id}/relatorio-operacional-integrado")
+    public RelatorioOperacionalIntegradoDTO relatorioOperacionalIntegrado(@PathVariable Long id) {
+        return integracaoNavioPatioServico.gerarRelatorioOperacionalIntegrado(id);
     }
 }

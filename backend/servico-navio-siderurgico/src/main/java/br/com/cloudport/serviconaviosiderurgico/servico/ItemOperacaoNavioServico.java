@@ -131,8 +131,10 @@ public class ItemOperacaoNavioServico {
         if (item.getStatus() == StatusItemCarga.EM_MOVIMENTO || item.getStatus() == StatusItemCarga.OPERADO) {
             throw new IllegalArgumentException("Nao e permitido excluir item em movimento ou ja operado.");
         }
+        VisitaNavio visita = item.getVisitaNavio();
+        String lote = item.getCodigoLote();
         repositorio.delete(item);
-        visitaServico.registrarEvento(item.getVisitaNavio(), item, "ITEM_EXCLUIDO", "Item operacional excluido: " + item.getCodigoLote() + ".", "sistema", item.getCodigoLote(), null);
+        visitaServico.registrarEvento(visita, null, "ITEM_EXCLUIDO", "Item operacional excluido: " + lote + ".", "sistema", lote, null);
     }
 
     private void preencher(ItemOperacaoNavio item, ItemOperacaoNavioDTO dto, String lote) {

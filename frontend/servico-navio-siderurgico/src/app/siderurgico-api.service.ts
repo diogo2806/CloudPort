@@ -214,6 +214,26 @@ export interface FilaPatioDaVisita {
   ordens: OrdemPatioDaVisita[];
 }
 
+export interface WorkQueuePatioDaVisita {
+  id?: number | null;
+  identificador: string;
+  agrupamento: string;
+  visitaNavioId: number;
+  berco?: string | null;
+  porao?: number | null;
+  blocoZona?: string | null;
+  sequenciaInicial?: number | null;
+  pow?: string | null;
+  poolOperacional?: string | null;
+  equipamento?: string | null;
+  status: string;
+  prioridadeOperacional?: number | null;
+  totalOrdens: number;
+  jobList: OrdemPatioDaVisita[];
+  criadoEm?: string | null;
+  atualizadoEm?: string | null;
+}
+
 export interface AlertaIntegracaoNavioPatio {
   tipo: string;
   severidade: string;
@@ -358,6 +378,10 @@ export class SiderurgicoApiService {
 
   listarFilasPatio(visitaId: number): Promise<FilaPatioDaVisita[]> {
     return firstValueFrom(this.http.get<FilaPatioDaVisita[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/filas`).pipe(timeout(5000)));
+  }
+
+  listarWorkQueuesPatio(visitaId: number): Promise<WorkQueuePatioDaVisita[]> {
+    return firstValueFrom(this.http.get<WorkQueuePatioDaVisita[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/work-queues`).pipe(timeout(5000)));
   }
 
   listarOrdensSemCoberturaPatio(visitaId: number): Promise<OrdemPatioDaVisita[]> {

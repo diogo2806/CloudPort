@@ -3,6 +3,7 @@ package br.com.cloudport.serviconaviosiderurgico.cliente;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ReservaPosicaoPatioNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.TipoMovimentoNavio;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -53,6 +54,19 @@ public class OrdemPatioYardCliente {
                 visitaNavioId
         );
         FilaOrdemPatioYardDTO[] corpo = resposta.getBody();
+        if (corpo == null) {
+            return List.of();
+        }
+        return Arrays.stream(corpo).filter(Objects::nonNull).toList();
+    }
+
+    public List<WorkQueuePatioYardDTO> listarWorkQueuesDaVisita(Long visitaNavioId) {
+        ResponseEntity<WorkQueuePatioYardDTO[]> resposta = restTemplate.getForEntity(
+                baseUrl + "/yard/patio/work-queues?visitaNavioId={visitaNavioId}",
+                WorkQueuePatioYardDTO[].class,
+                visitaNavioId
+        );
+        WorkQueuePatioYardDTO[] corpo = resposta.getBody();
         if (corpo == null) {
             return List.of();
         }
@@ -262,5 +276,60 @@ public class OrdemPatioYardCliente {
         public void setTotalOrdens(long totalOrdens) { this.totalOrdens = totalOrdens; }
         public List<OrdemPatioYardRespostaDTO> getOrdens() { return ordens; }
         public void setOrdens(List<OrdemPatioYardRespostaDTO> ordens) { this.ordens = ordens; }
+    }
+
+    public static class WorkQueuePatioYardDTO {
+        private Long id;
+        private String identificador;
+        private String agrupamento;
+        private Long visitaNavioId;
+        private String berco;
+        private Integer porao;
+        private String blocoZona;
+        private Integer sequenciaInicial;
+        private String pow;
+        private String poolOperacional;
+        private String equipamento;
+        private String status;
+        private Integer prioridadeOperacional;
+        private int totalOrdens;
+        private List<OrdemPatioYardRespostaDTO> jobList;
+        private LocalDateTime criadoEm;
+        private LocalDateTime atualizadoEm;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getIdentificador() { return identificador; }
+        public void setIdentificador(String identificador) { this.identificador = identificador; }
+        public String getAgrupamento() { return agrupamento; }
+        public void setAgrupamento(String agrupamento) { this.agrupamento = agrupamento; }
+        public Long getVisitaNavioId() { return visitaNavioId; }
+        public void setVisitaNavioId(Long visitaNavioId) { this.visitaNavioId = visitaNavioId; }
+        public String getBerco() { return berco; }
+        public void setBerco(String berco) { this.berco = berco; }
+        public Integer getPorao() { return porao; }
+        public void setPorao(Integer porao) { this.porao = porao; }
+        public String getBlocoZona() { return blocoZona; }
+        public void setBlocoZona(String blocoZona) { this.blocoZona = blocoZona; }
+        public Integer getSequenciaInicial() { return sequenciaInicial; }
+        public void setSequenciaInicial(Integer sequenciaInicial) { this.sequenciaInicial = sequenciaInicial; }
+        public String getPow() { return pow; }
+        public void setPow(String pow) { this.pow = pow; }
+        public String getPoolOperacional() { return poolOperacional; }
+        public void setPoolOperacional(String poolOperacional) { this.poolOperacional = poolOperacional; }
+        public String getEquipamento() { return equipamento; }
+        public void setEquipamento(String equipamento) { this.equipamento = equipamento; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
+        public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
+        public int getTotalOrdens() { return totalOrdens; }
+        public void setTotalOrdens(int totalOrdens) { this.totalOrdens = totalOrdens; }
+        public List<OrdemPatioYardRespostaDTO> getJobList() { return jobList; }
+        public void setJobList(List<OrdemPatioYardRespostaDTO> jobList) { this.jobList = jobList; }
+        public LocalDateTime getCriadoEm() { return criadoEm; }
+        public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
+        public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
+        public void setAtualizadoEm(LocalDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
     }
 }

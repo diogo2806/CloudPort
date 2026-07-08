@@ -154,6 +154,11 @@ textarea {
   resize: vertical;
 }
 
+.priority-input {
+  max-width: 88px;
+  padding: 6px 8px;
+}
+
 button {
   border: 0;
   border-radius: 10px;

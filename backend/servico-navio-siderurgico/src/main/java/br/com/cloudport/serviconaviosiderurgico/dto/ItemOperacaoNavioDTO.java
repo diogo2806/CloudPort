@@ -1,6 +1,7 @@
 package br.com.cloudport.serviconaviosiderurgico.dto;
 
 import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
+import br.com.cloudport.serviconaviosiderurgico.dominio.StatusIntegracaoPatio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusItemCarga;
 import br.com.cloudport.serviconaviosiderurgico.dominio.TipoCargaSiderurgica;
 import br.com.cloudport.serviconaviosiderurgico.dominio.TipoMovimentoNavio;
@@ -26,6 +27,13 @@ public record ItemOperacaoNavioDTO(
         String posicaoReal,
         String origemPatio,
         String destinoPatio,
+        Long conteinerPatioId,
+        Long cargaPatioId,
+        Long ordemTrabalhoPatioId,
+        Long movimentoPatioId,
+        String posicaoPatioPlanejada,
+        String posicaoPatioReal,
+        StatusIntegracaoPatio statusIntegracaoPatio,
         Integer sequenciaOperacional,
         StatusItemCarga status,
         String motivoBloqueio,
@@ -48,6 +56,13 @@ public record ItemOperacaoNavioDTO(
                 item.getPosicaoReal(),
                 item.getOrigemPatio(),
                 item.getDestinoPatio(),
+                item.getConteinerPatioId(),
+                item.getCargaPatioId(),
+                item.getOrdemTrabalhoPatioId(),
+                item.getMovimentoPatioId(),
+                item.getPosicaoPatioPlanejada(),
+                item.getPosicaoPatioReal(),
+                item.getStatusIntegracaoPatio(),
                 item.getSequenciaOperacional(),
                 item.getStatus(),
                 item.getMotivoBloqueio(),

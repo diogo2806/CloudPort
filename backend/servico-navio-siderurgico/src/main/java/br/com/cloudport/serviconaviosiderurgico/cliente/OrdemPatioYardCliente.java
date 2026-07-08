@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -24,7 +25,9 @@ public class OrdemPatioYardCliente {
             RestTemplateBuilder restTemplateBuilder,
             @Value("${cloudport.integracao.yard.base-url:http://localhost:8081}") String baseUrl
     ) {
-        this.restTemplate = restTemplateBuilder.build();
+        this.restTemplate = restTemplateBuilder
+                .requestFactory(HttpComponentsClientHttpRequestFactory.class)
+                .build();
         this.baseUrl = removerBarraFinal(baseUrl);
     }
 
@@ -70,6 +73,34 @@ public class OrdemPatioYardCliente {
             return List.of();
         }
         return Arrays.stream(corpo).filter(Objects::nonNull).toList();
+    }
+
+    public OrdemPatioYardRespostaDTO atualizarPrioridade(Long ordemId, Integer prioridadeOperacional, Boolean prioridadeBusca) {
+        AtualizacaoPrioridadeOrdemPatioYardDTO requisicao = new AtualizacaoPrioridadeOrdemPatioYardDTO(prioridadeOperacional, prioridadeBusca);
+        return restTemplate.patchForObject(
+                baseUrl + "/yard/patio/ordens/{ordemId}/prioridade",
+                requisicao,
+                OrdemPatioYardRespostaDTO.class,
+                ordemId
+        );
+    }
+
+    public OrdemPatioYardRespostaDTO suspender(Long ordemId) {
+        return restTemplate.patchForObject(
+                baseUrl + "/yard/patio/ordens/{ordemId}/suspender",
+                null,
+                OrdemPatioYardRespostaDTO.class,
+                ordemId
+        );
+    }
+
+    public OrdemPatioYardRespostaDTO retomar(Long ordemId) {
+        return restTemplate.patchForObject(
+                baseUrl + "/yard/patio/ordens/{ordemId}/retomar",
+                null,
+                OrdemPatioYardRespostaDTO.class,
+                ordemId
+        );
     }
 
     private String removerBarraFinal(String valor) {
@@ -184,6 +215,21 @@ public class OrdemPatioYardCliente {
         public void setSequenciaNavio(Integer sequenciaNavio) { this.sequenciaNavio = sequenciaNavio; }
         public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
         public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
+    }
+
+    public static class AtualizacaoPrioridadeOrdemPatioYardDTO {
+        private Integer prioridadeOperacional;
+        private Boolean prioridadeBusca;
+
+        public AtualizacaoPrioridadeOrdemPatioYardDTO(Integer prioridadeOperacional, Boolean prioridadeBusca) {
+            this.prioridadeOperacional = prioridadeOperacional;
+            this.prioridadeBusca = prioridadeBusca;
+        }
+
+        public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
+        public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
+        public Boolean getPrioridadeBusca() { return prioridadeBusca; }
+        public void setPrioridadeBusca(Boolean prioridadeBusca) { this.prioridadeBusca = prioridadeBusca; }
     }
 
     public static class OrdemPatioYardRespostaDTO {

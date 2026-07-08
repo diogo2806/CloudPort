@@ -376,6 +376,18 @@ export class SiderurgicoApiService {
     return firstValueFrom(this.http.get<OrdemPatioDaVisita[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/ordens`).pipe(timeout(5000)));
   }
 
+  atualizarPrioridadeOrdemPatio(visitaId: number, ordemId: number, prioridadeOperacional: number, prioridadeBusca = false): Promise<OrdemPatioDaVisita> {
+    return firstValueFrom(this.http.patch<OrdemPatioDaVisita>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/prioridade`, { prioridadeOperacional, prioridadeBusca }).pipe(timeout(5000)));
+  }
+
+  suspenderOrdemPatio(visitaId: number, ordemId: number): Promise<OrdemPatioDaVisita> {
+    return firstValueFrom(this.http.patch<OrdemPatioDaVisita>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/suspender`, {}).pipe(timeout(5000)));
+  }
+
+  retomarOrdemPatio(visitaId: number, ordemId: number): Promise<OrdemPatioDaVisita> {
+    return firstValueFrom(this.http.patch<OrdemPatioDaVisita>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/retomar`, {}).pipe(timeout(5000)));
+  }
+
   listarFilasPatio(visitaId: number): Promise<FilaPatioDaVisita[]> {
     return firstValueFrom(this.http.get<FilaPatioDaVisita[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/filas`).pipe(timeout(5000)));
   }

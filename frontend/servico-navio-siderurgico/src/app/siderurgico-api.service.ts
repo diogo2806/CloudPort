@@ -8,8 +8,11 @@ export type TipoOperacao = 'EMBARQUE' | 'DESCARGA';
 export type StatusOperacao = 'PLANEJADA' | 'EM_EXECUCAO' | 'PAUSADA' | 'CONCLUIDA' | 'CANCELADA';
 export type TipoCarga = 'BOBINA' | 'CHAPA' | 'TARUGO' | 'PLACA' | 'PERFIL' | 'VERGALHAO' | 'OUTROS';
 export type StatusItem = 'PLANEJADO' | 'LIBERADO' | 'EM_MOVIMENTO' | 'OPERADO' | 'BLOQUEADO' | 'CANCELADO';
+export type StatusIntegracaoPatio = 'NAO_GERADO' | 'RESERVADO' | 'ORDEM_GERADA' | 'EM_EXECUCAO' | 'SINCRONIZADO' | 'ERRO' | 'CANCELADO';
 export type StatusPlanoEstiva = 'RASCUNHO' | 'VALIDADO' | 'EM_EXECUCAO' | 'CONCLUIDO' | 'CANCELADO';
 export type BordoEstiva = 'BB' | 'BE' | 'CENTRO';
+export type TipoReservaPatio = 'TENTATIVA' | 'DEFINITIVA';
+export type StatusReservaPatio = 'ATIVA' | 'CONSUMIDA' | 'CANCELADA' | 'EXPIRADA';
 
 export interface ConfiguracaoRuntime {
   baseApiUrl: string;
@@ -101,6 +104,13 @@ export interface ItemOperacaoNavio {
   posicaoReal?: string | null;
   origemPatio?: string | null;
   destinoPatio?: string | null;
+  conteinerPatioId?: number | null;
+  cargaPatioId?: number | null;
+  ordemTrabalhoPatioId?: number | null;
+  movimentoPatioId?: number | null;
+  posicaoPatioPlanejada?: string | null;
+  posicaoPatioReal?: string | null;
+  statusIntegracaoPatio?: StatusIntegracaoPatio;
   sequenciaOperacional?: number | null;
   status?: StatusItem;
   motivoBloqueio?: string | null;
@@ -158,6 +168,88 @@ export interface ValidacaoPlanoEstiva {
   plano: PlanoEstivaNavio;
   erros: string[];
   alertas: string[];
+}
+
+export interface ReservaPatioNavio {
+  id?: number | null;
+  visitaNavioId: number;
+  itemOperacaoNavioId: number;
+  posicaoPatioId: string;
+  bloco?: string | null;
+  linha?: number | null;
+  coluna?: number | null;
+  camada?: string | null;
+  tipoReserva: TipoReservaPatio;
+  status: StatusReservaPatio;
+  motivoCancelamento?: string | null;
+  criadoEm?: string | null;
+  atualizadoEm?: string | null;
+}
+
+export interface OrdemPatioDaVisita {
+  id?: number | null;
+  visitaNavioId: number;
+  itemOperacaoNavioId: number;
+  codigoLote: string;
+  tipoMovimento: TipoMovimento;
+  statusOrdem: string;
+  origem?: string | null;
+  destino?: string | null;
+  posicaoPlanejada?: string | null;
+  posicaoReal?: string | null;
+  sequenciaNavio?: number | null;
+  prioridadeOperacional?: number | null;
+}
+
+export interface AlertaIntegracaoNavioPatio {
+  tipo: string;
+  severidade: string;
+  visitaNavioId: number;
+  itemOperacaoNavioId?: number | null;
+  ordemTrabalhoPatioId?: number | null;
+  mensagem: string;
+}
+
+export interface ResumoIntegracaoNavioPatio {
+  visitaNavioId: number;
+  totalItens: number;
+  itensComReserva: number;
+  itensComOrdem: number;
+  itensSemReserva: number;
+  itensSemOrdem: number;
+  ordensEmExecucao: number;
+  ordensConcluidas: number;
+  totalAlertas: number;
+  statusPredominante: StatusIntegracaoPatio;
+}
+
+export interface ResultadoGeracaoOrdensPatio {
+  totalOrdensCriadas: number;
+  totalItensIgnorados: number;
+  totalItensComErro: number;
+  errosPorItem: string[];
+  alertas: string[];
+}
+
+export interface ResultadoReplanejamentoPatioNavio {
+  reservasSugeridas: ReservaPatioNavio[];
+  ordensReordenadas: OrdemPatioDaVisita[];
+  economiaEstimadaDistanciaPercentual: number;
+  riscoRehandle: string;
+  alertasImpeditivos: string[];
+  itensNaoReplanejados: number[];
+}
+
+export interface RelatorioOperacionalIntegrado {
+  visita: VisitaNavio;
+  resumoOperacional: ResumoOperacionalNavio;
+  resumoIntegracao: ResumoIntegracaoNavioPatio;
+  planoEstiva?: PlanoEstivaNavio | null;
+  itens: ItemOperacaoNavio[];
+  reservasPatio: ReservaPatioNavio[];
+  ordensPatio: OrdemPatioDaVisita[];
+  divergenciasAlertas: AlertaIntegracaoNavioPatio[];
+  eventosRelevantes: EventoVisitaNavio[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -229,5 +321,41 @@ export class SiderurgicoApiService {
 
   validarPlano(visitaId: number, planoId: number): Promise<ValidacaoPlanoEstiva> {
     return firstValueFrom(this.http.post<ValidacaoPlanoEstiva>(`${this.baseApiUrl}/visitas-navio/${visitaId}/plano-estiva/${planoId}/validar`, {}).pipe(timeout(5000)));
+  }
+
+  obterResumoIntegracaoPatio(visitaId: number): Promise<ResumoIntegracaoNavioPatio> {
+    return firstValueFrom(this.http.get<ResumoIntegracaoNavioPatio>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio`).pipe(timeout(5000)));
+  }
+
+  gerarReservasPatio(visitaId: number, tipoReserva: TipoReservaPatio = 'TENTATIVA'): Promise<ReservaPatioNavio[]> {
+    return firstValueFrom(this.http.post<ReservaPatioNavio[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/reservas`, { tipoReserva, somentePendentes: true }).pipe(timeout(5000)));
+  }
+
+  listarReservasPatio(visitaId: number): Promise<ReservaPatioNavio[]> {
+    return firstValueFrom(this.http.get<ReservaPatioNavio[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/reservas`).pipe(timeout(5000)));
+  }
+
+  gerarOrdensPatio(visitaId: number, tipoMovimento?: TipoMovimento): Promise<ResultadoGeracaoOrdensPatio> {
+    return firstValueFrom(this.http.post<ResultadoGeracaoOrdensPatio>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/gerar-ordens`, { tipoMovimento, modo: 'SOMENTE_PENDENTES', gerarReservasAutomaticas: true }).pipe(timeout(5000)));
+  }
+
+  listarOrdensPatio(visitaId: number): Promise<OrdemPatioDaVisita[]> {
+    return firstValueFrom(this.http.get<OrdemPatioDaVisita[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/ordens`).pipe(timeout(5000)));
+  }
+
+  listarAlertasIntegracaoPatio(visitaId: number): Promise<AlertaIntegracaoNavioPatio[]> {
+    return firstValueFrom(this.http.get<AlertaIntegracaoNavioPatio[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/alertas`).pipe(timeout(5000)));
+  }
+
+  sincronizarStatusPatio(visitaId: number): Promise<ResumoIntegracaoNavioPatio> {
+    return firstValueFrom(this.http.post<ResumoIntegracaoNavioPatio>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/sincronizar-status`, {}).pipe(timeout(5000)));
+  }
+
+  replanejarPatioVisita(visitaId: number, aplicar = false): Promise<ResultadoReplanejamentoPatioNavio> {
+    return firstValueFrom(this.http.post<ResultadoReplanejamentoPatioNavio>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/replanejar`, { aplicar }).pipe(timeout(5000)));
+  }
+
+  obterRelatorioOperacionalIntegrado(visitaId: number): Promise<RelatorioOperacionalIntegrado> {
+    return firstValueFrom(this.http.get<RelatorioOperacionalIntegrado>(`${this.baseApiUrl}/visitas-navio/${visitaId}/relatorio-operacional-integrado`).pipe(timeout(5000)));
   }
 }

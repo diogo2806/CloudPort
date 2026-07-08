@@ -1,5 +1,6 @@
 package br.com.cloudport.serviconaviosiderurgico.servico;
 
+import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ModoGeracaoOrdensPatio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ReservaPosicaoPatioNavio;
@@ -30,15 +31,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
 public class IntegracaoNavioPatioServico {
-
-    private static final long OFFSET_ORDEM_PATIO_SIMULADA = 1_000_000L;
 
     private final ItemOperacaoNavioRepositorio itemRepositorio;
     private final ReservaPosicaoPatioNavioRepositorio reservaRepositorio;
@@ -47,6 +45,7 @@ public class IntegracaoNavioPatioServico {
     private final ReservaPatioNavioServico reservaPatioServico;
     private final ValidadorIntegracaoNavioPatioServico validador;
     private final SincronizadorStatusNavioPatioServico sincronizador;
+    private final OrdemPatioYardCliente ordemPatioYardCliente;
 
     public IntegracaoNavioPatioServico(
             ItemOperacaoNavioRepositorio itemRepositorio,
@@ -55,7 +54,8 @@ public class IntegracaoNavioPatioServico {
             PlanoEstivaNavioServico planoServico,
             ReservaPatioNavioServico reservaPatioServico,
             ValidadorIntegracaoNavioPatioServico validador,
-            SincronizadorStatusNavioPatioServico sincronizador
+            SincronizadorStatusNavioPatioServico sincronizador,
+            OrdemPatioYardCliente ordemPatioYardCliente
     ) {
         this.itemRepositorio = itemRepositorio;
         this.reservaRepositorio = reservaRepositorio;
@@ -64,6 +64,7 @@ public class IntegracaoNavioPatioServico {
         this.reservaPatioServico = reservaPatioServico;
         this.validador = validador;
         this.sincronizador = sincronizador;
+        this.ordemPatioYardCliente = ordemPatioYardCliente;
     }
 
     @Transactional(readOnly = true)
@@ -140,23 +141,37 @@ public class IntegracaoNavioPatioServico {
                 itemRepositorio.save(item);
                 continue;
             }
-            if (item.getTipoMovimento() == TipoMovimentoNavio.DESCARGA && !StringUtils.hasText(item.getPosicaoPatioPlanejada())) {
-                reservaRepositorio.findFirstByItemOperacaoNavioIdAndStatusInOrderByCriadoEmDesc(item.getId(), List.of(StatusReservaPatioNavio.ATIVA))
-                        .ifPresent(reserva -> item.setPosicaoPatioPlanejada(reserva.getPosicaoPatioId()));
+            ReservaPosicaoPatioNavio reservaAtiva = obterReservaAtiva(item);
+            if (item.getTipoMovimento() == TipoMovimentoNavio.DESCARGA && reservaAtiva != null) {
+                item.setPosicaoPatioPlanejada(reservaAtiva.getPosicaoPatioId());
             }
-            item.setOrdemTrabalhoPatioId(identificadorOrdemPatio(visitaId, item.getId()));
-            item.setStatusIntegracaoPatio(StatusIntegracaoPatio.ORDEM_GERADA);
-            if (item.getStatus() == StatusItemCarga.PLANEJADO) {
-                item.setStatus(StatusItemCarga.LIBERADO);
+            try {
+                boolean jaPossuiaOrdem = item.getOrdemTrabalhoPatioId() != null;
+                var ordemYard = ordemPatioYardCliente.criarOuReutilizarOrdem(item, reservaAtiva);
+                item.setOrdemTrabalhoPatioId(ordemYard.getId());
+                item.setStatusIntegracaoPatio(StatusIntegracaoPatio.ORDEM_GERADA);
+                if (item.getStatus() == StatusItemCarga.PLANEJADO) {
+                    item.setStatus(StatusItemCarga.LIBERADO);
+                }
+                itemRepositorio.save(item);
+                if (jaPossuiaOrdem) {
+                    ignoradas++;
+                } else {
+                    criadas++;
+                }
+                visitaServico.registrarEvento(visita, item, "ORDEM_PATIO_REAL_GERADA", "Ordem real de patio vinculada ao item " + item.getCodigoLote() + ".", comandoEfetivo.usuario(), null, String.valueOf(item.getOrdemTrabalhoPatioId()));
+            } catch (RuntimeException ex) {
+                comErro++;
+                erros.add("Item " + item.getCodigoLote() + ": falha ao criar ordem real no servico-yard - " + ex.getMessage());
+                item.setStatusIntegracaoPatio(StatusIntegracaoPatio.ERRO);
+                itemRepositorio.save(item);
+                visitaServico.registrarEvento(visita, item, "ORDEM_PATIO_REAL_ERRO", "Falha ao criar ordem real no servico-yard para o item " + item.getCodigoLote() + ".", comandoEfetivo.usuario(), null, ex.getMessage());
             }
-            itemRepositorio.save(item);
-            criadas++;
-            visitaServico.registrarEvento(visita, item, "ORDEM_PATIO_GERADA", "Ordem de patio gerada para o item " + item.getCodigoLote() + ".", comandoEfetivo.usuario(), null, String.valueOf(item.getOrdemTrabalhoPatioId()));
         }
 
         List<AlertaIntegracaoNavioPatioDTO> alertasIntegracao = validador.listarAlertas(visitaId, listarItens(visitaId));
         alertasIntegracao.forEach(alerta -> alertas.add(alerta.tipo() + ": " + alerta.mensagem()));
-        visitaServico.registrarEvento(visita, null, "ORDENS_PATIO_GERADAS", criadas + " ordem(ns) de patio gerada(s) pela visita.", comandoEfetivo.usuario(), null, String.valueOf(criadas));
+        visitaServico.registrarEvento(visita, null, "ORDENS_PATIO_REAIS_GERADAS", criadas + " ordem(ns) real(is) de patio vinculada(s) pela visita.", comandoEfetivo.usuario(), null, String.valueOf(criadas));
         return new ResultadoGeracaoOrdensPatioDTO(criadas, ignoradas, comErro, erros, alertas);
     }
 
@@ -263,8 +278,9 @@ public class IntegracaoNavioPatioServico {
         return itemRepositorio.findByVisitaNavioIdOrderBySequenciaOperacionalAscIdAsc(visitaId);
     }
 
-    private Long identificadorOrdemPatio(Long visitaId, Long itemId) {
-        return visitaId * OFFSET_ORDEM_PATIO_SIMULADA + itemId;
+    private ReservaPosicaoPatioNavio obterReservaAtiva(ItemOperacaoNavio item) {
+        return reservaRepositorio.findFirstByItemOperacaoNavioIdAndStatusInOrderByCriadoEmDesc(item.getId(), List.of(StatusReservaPatioNavio.ATIVA))
+                .orElse(null);
     }
 
     private StatusIntegracaoPatio statusPredominante(List<ItemOperacaoNavio> itens) {

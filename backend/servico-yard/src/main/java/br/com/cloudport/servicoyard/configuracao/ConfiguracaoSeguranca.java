@@ -57,6 +57,8 @@ public class ConfiguracaoSeguranca {
                         .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .antMatchers("/ws/patio", "/ws/patio/**", "/ws/recursos", "/ws/recursos/**").permitAll()
+                        .antMatchers(HttpMethod.POST, "/yard/patio/ordens/navio").permitAll()
+                        .antMatchers(HttpMethod.GET, "/yard/patio/ordens/visita-navio/**").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

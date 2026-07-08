@@ -1,7 +1,9 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.controlador;
 
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoPrioridadeOrdemTrabalhoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoStatusOrdemTrabalhoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.EstatisticasOtimizacaoRotaDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.FilaOrdemTrabalhoPatioDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
@@ -50,16 +52,47 @@ public class OrdemTrabalhoPatioControlador {
         return ordemTrabalhoPatioServico.listarOrdensPorVisitaNavio(visitaNavioId);
     }
 
+    @GetMapping("/visita-navio/{visitaNavioId}/filas")
+    public List<FilaOrdemTrabalhoPatioDto> listarFilasPorVisitaNavio(@PathVariable Long visitaNavioId) {
+        return ordemTrabalhoPatioServico.listarFilasPorVisitaNavio(visitaNavioId);
+    }
+
+    @GetMapping("/visita-navio/{visitaNavioId}/sem-cobertura")
+    public List<OrdemTrabalhoPatioRespostaDto> listarOrdensSemCobertura(@PathVariable Long visitaNavioId) {
+        return ordemTrabalhoPatioServico.listarOrdensSemCobertura(visitaNavioId);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrdemTrabalhoPatioRespostaDto registrarOrdem(@Valid @RequestBody OrdemTrabalhoPatioRequisicaoDto dto) {
         return ordemTrabalhoPatioServico.registrarOrdem(dto);
     }
 
+    @PostMapping("/navio")
+    public OrdemTrabalhoPatioRespostaDto registrarOuReutilizarOrdemNavio(@Valid @RequestBody OrdemTrabalhoPatioRequisicaoDto dto) {
+        return ordemTrabalhoPatioServico.registrarOuReutilizarOrdemNavio(dto);
+    }
+
     @PatchMapping("/{id}/status")
     public OrdemTrabalhoPatioRespostaDto atualizarStatus(@PathVariable("id") Long id,
                                                          @Valid @RequestBody AtualizacaoStatusOrdemTrabalhoDto dto) {
         return ordemTrabalhoPatioServico.atualizarStatus(id, dto);
+    }
+
+    @PatchMapping("/{id}/prioridade")
+    public OrdemTrabalhoPatioRespostaDto atualizarPrioridade(@PathVariable("id") Long id,
+                                                             @Valid @RequestBody AtualizacaoPrioridadeOrdemTrabalhoDto dto) {
+        return ordemTrabalhoPatioServico.atualizarPrioridade(id, dto);
+    }
+
+    @PatchMapping("/{id}/suspender")
+    public OrdemTrabalhoPatioRespostaDto suspender(@PathVariable("id") Long id) {
+        return ordemTrabalhoPatioServico.suspender(id);
+    }
+
+    @PatchMapping("/{id}/retomar")
+    public OrdemTrabalhoPatioRespostaDto retomar(@PathVariable("id") Long id) {
+        return ordemTrabalhoPatioServico.retomar(id);
     }
 
     @GetMapping("/otimizacao/nearest-neighbor")

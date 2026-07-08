@@ -386,7 +386,7 @@
             <h3>Ordens de patio</h3>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Seq.</th><th>Lote</th><th>Mov.</th><th>Origem</th><th>Destino</th><th>Prior.</th><th>Status</th></tr></thead>
+                <thead><tr><th>Seq.</th><th>Lote</th><th>Mov.</th><th>Origem</th><th>Destino</th><th>Prior.</th><th>Status</th><th>Acoes</th></tr></thead>
                 <tbody>
                   <tr *ngFor="let ordem of ordensPatioFiltradas()">
                     <td>{{ ordem.sequenciaNavio || '-' }}</td>
@@ -394,8 +394,21 @@
                     <td>{{ ordem.tipoMovimento }}</td>
                     <td>{{ ordem.origem || '-' }}</td>
                     <td>{{ ordem.destino || ordem.posicaoPlanejada || '-' }}</td>
-                    <td>{{ ordem.prioridadeOperacional ?? '-' }}</td>
+                    <td>
+                      <input
+                        class="priority-input"
+                        type="number"
+                        min="0"
+                        [name]="'prioridade-' + ordem.id"
+                        [ngModel]="prioridadeOrdem(ordem)"
+                        (ngModelChange)="definirPrioridadeOrdem(ordem, $event)">
+                    </td>
                     <td><span class="badge" [ngClass]="ordem.statusOrdem">{{ ordem.statusOrdem }}</span></td>
+                    <td class="actions inline">
+                      <button type="button" (click)="atualizarPrioridadeOrdem(ordem)" [disabled]="!ordem.id">Priorizar</button>
+                      <button type="button" class="danger" (click)="suspenderOrdemPatio(ordem)" [disabled]="!ordem.id || ordem.statusOrdem === 'SUSPENSA' || ordem.statusOrdem === 'CONCLUIDA' || ordem.statusOrdem === 'CANCELADA'">Suspender</button>
+                      <button type="button" (click)="retomarOrdemPatio(ordem)" [disabled]="!ordem.id || ordem.statusOrdem !== 'SUSPENSA'">Retomar</button>
+                    </td>
                   </tr>
                 </tbody>
               </table>

@@ -2,16 +2,145 @@
   <header class="shell-header">
     <div>
       <span>CloudPort</span>
-      <strong>Estiva Siderurgica Interativa</strong>
+      <strong>Modulo operacional de navios siderurgicos</strong>
     </div>
     <nav>
-      <a href="assets/interactive-stowage.html" target="_blank" rel="noopener">Estiva em tela cheia</a>
-      <a href="assets/steel-coil-planner.html" target="_blank" rel="noopener">Planner completo</a>
+      <button type="button" (click)="carregarTudo()">Atualizar dados</button>
+      <a href="assets/interactive-stowage.html" target="_blank" rel="noopener">Estiva legado</a>
     </nav>
   </header>
 
-  <iframe
-    title="Estiva interativa de bobinas"
-    src="assets/interactive-stowage.html">
-  </iframe>
+  <section class="workspace">
+    <p class="message" *ngIf="sucesso">{{ sucesso }}</p>
+    <p class="message error" *ngIf="erro">{{ erro }}</p>
+    <p class="message" *ngIf="carregando">Carregando dados reais do backend...</p>
+
+    <section class="summary-grid">
+      <article class="kpi-card">
+        <span>Navios</span>
+        <strong>{{ navios.length }}</strong>
+      </article>
+      <article class="kpi-card">
+        <span>Operacoes/visitas</span>
+        <strong>{{ operacoes.length }}</strong>
+      </article>
+      <article class="kpi-card">
+        <span>Peso selecionado</span>
+        <strong>{{ pesoTotal() | number:'1.0-3' }} t</strong>
+      </article>
+      <article class="kpi-card">
+        <span>Progresso</span>
+        <strong>{{ progressoOperacao() }}%</strong>
+      </article>
+      <article class="kpi-card blocked">
+        <span>Itens bloqueados</span>
+        <strong>{{ itensBloqueados() }}</strong>
+      </article>
+    </section>
+
+    <section class="grid-two">
+      <article class="card">
+        <h2>Cadastrar navio</h2>
+        <form class="form-grid" (ngSubmit)="cadastrarNavio()">
+          <label>Nome<input name="nome" required [(ngModel)]="novoNavio.nome"></label>
+          <label>IMO<input name="codigoImo" maxlength="10" required [(ngModel)]="novoNavio.codigoImo"></label>
+          <label>Bandeira<input name="paisBandeira" required [(ngModel)]="novoNavio.paisBandeira"></label>
+          <label>Armadora<input name="empresaArmadora" required [(ngModel)]="novoNavio.empresaArmadora"></label>
+          <label>Tipo<input name="tipoNavio" required [(ngModel)]="novoNavio.tipoNavio"></label>
+          <label>Qtd. poroes<input name="quantidadePoroes" type="number" min="1" required [(ngModel)]="novoNavio.quantidadePoroes"></label>
+          <label>LOA metros<input name="loaMetros" type="number" step="0.01" [(ngModel)]="novoNavio.loaMetros"></label>
+          <label>DWT toneladas<input name="dwtToneladas" type="number" step="0.01" [(ngModel)]="novoNavio.dwtToneladas"></label>
+          <button type="submit">Salvar navio</button>
+        </form>
+      </article>
+
+      <article class="card">
+        <h2>Cadastrar operacao/visita</h2>
+        <form class="form-grid" (ngSubmit)="cadastrarOperacao()">
+          <label>Navio
+            <select name="navioId" required [(ngModel)]="novaOperacao.navioId">
+              <option [ngValue]="0">Selecione</option>
+              <option *ngFor="let navio of navios" [ngValue]="navio.id">{{ navio.nome }} - {{ navio.codigoImo }}</option>
+            </select>
+          </label>
+          <label>Tipo operacao
+            <select name="tipoOperacao" required [(ngModel)]="novaOperacao.tipoOperacao">
+              <option *ngFor="let tipo of tiposOperacao" [value]="tipo">{{ tipo }}</option>
+            </select>
+          </label>
+          <label>Berco<input name="berco" [(ngModel)]="novaOperacao.berco"></label>
+          <label>Viagem<input name="viagem" [(ngModel)]="novaOperacao.viagem"></label>
+          <label>ETA<input name="eta" type="datetime-local" [(ngModel)]="novaOperacao.eta"></label>
+          <label>Origem<input name="origem" [(ngModel)]="novaOperacao.origem"></label>
+          <label>Destino<input name="destino" [(ngModel)]="novaOperacao.destino"></label>
+          <label>Observacoes<textarea name="observacoes" [(ngModel)]="novaOperacao.observacoes"></textarea></label>
+          <button type="submit" [disabled]="!novaOperacao.navioId">Salvar operacao</button>
+        </form>
+      </article>
+    </section>
+
+    <section class="grid-two">
+      <article class="card">
+        <h2>Operacoes/visitas</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Navio</th><th>Tipo</th><th>Berco</th><th>Viagem</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let operacao of operacoes" [class.selected]="operacao.id === operacaoSelecionada?.id">
+                <td>{{ operacao.navioNome }}</td>
+                <td>{{ operacao.tipoOperacao }}</td>
+                <td>{{ operacao.berco || '-' }}</td>
+                <td>{{ operacao.viagem || '-' }}</td>
+                <td><span class="badge" [ngClass]="operacao.status">{{ operacao.status }}</span></td>
+                <td><button type="button" (click)="selecionarOperacao(operacao)">Abrir</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Itens de carga/descarga</h2>
+        <p *ngIf="!operacaoSelecionada">Selecione uma operacao para visualizar ou cadastrar itens.</p>
+        <ng-container *ngIf="operacaoSelecionada">
+          <h3>{{ operacaoSelecionada.navioNome }} · {{ operacaoSelecionada.tipoOperacao }} · {{ operacaoSelecionada.berco || '-' }}</h3>
+          <form class="form-grid" (ngSubmit)="cadastrarItem()">
+            <label>Lote<input name="codigoLote" required [(ngModel)]="novoItem.codigoLote"></label>
+            <label>Tipo carga
+              <select name="tipoCarga" required [(ngModel)]="novoItem.tipoCarga">
+                <option *ngFor="let tipo of tiposCarga" [value]="tipo">{{ tipo }}</option>
+              </select>
+            </label>
+            <label>Produto<input name="produto" required [(ngModel)]="novoItem.produto"></label>
+            <label>Quantidade<input name="quantidade" type="number" min="1" required [(ngModel)]="novoItem.quantidade"></label>
+            <label>Peso unitario t<input name="pesoUnitario" type="number" step="0.001" [(ngModel)]="novoItem.pesoUnitarioToneladas"></label>
+            <label>Peso total t<input name="pesoTotal" type="number" min="0.001" step="0.001" required [(ngModel)]="novoItem.pesoTotalToneladas"></label>
+            <label>Porao<input name="porao" type="number" min="1" [(ngModel)]="novoItem.porao"></label>
+            <label>Posicao bordo<input name="posicaoBordo" [(ngModel)]="novoItem.posicaoBordo"></label>
+            <label>Origem patio<input name="origemPatio" [(ngModel)]="novoItem.origemPatio"></label>
+            <label>Destino patio<input name="destinoPatio" [(ngModel)]="novoItem.destinoPatio"></label>
+            <button type="submit">Adicionar item</button>
+          </form>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Lote</th><th>Produto</th><th>Tipo</th><th>Peso</th><th>Porao</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let item of itens">
+                  <td>{{ item.codigoLote }}</td>
+                  <td>{{ item.produto }}</td>
+                  <td>{{ item.tipoCarga }}</td>
+                  <td>{{ item.pesoTotalToneladas }} t</td>
+                  <td>{{ item.porao || '-' }}</td>
+                  <td><span class="badge" [ngClass]="item.status">{{ item.status }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+      </article>
+    </section>
+  </section>
 </main>

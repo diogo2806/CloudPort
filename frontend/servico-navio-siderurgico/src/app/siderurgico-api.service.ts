@@ -13,6 +13,7 @@ export type StatusPlanoEstiva = 'RASCUNHO' | 'VALIDADO' | 'EM_EXECUCAO' | 'CONCL
 export type BordoEstiva = 'BB' | 'BE' | 'CENTRO';
 export type TipoReservaPatio = 'TENTATIVA' | 'DEFINITIVA';
 export type StatusReservaPatio = 'ATIVA' | 'CONSUMIDA' | 'CANCELADA' | 'EXPIRADA';
+export type StatusOrdemPatio = 'PENDENTE' | 'EM_EXECUCAO' | 'BLOQUEADA' | 'SUSPENSA' | 'CONCLUIDA' | 'CANCELADA';
 
 export interface ConfiguracaoRuntime {
   baseApiUrl: string;
@@ -201,6 +202,18 @@ export interface OrdemPatioDaVisita {
   prioridadeOperacional?: number | null;
 }
 
+export interface FilaPatioDaVisita {
+  identificador: string;
+  agrupamento: string;
+  visitaNavioId: number;
+  berco?: string | null;
+  blocoZona?: string | null;
+  sequenciaInicial?: number | null;
+  status: string;
+  totalOrdens: number;
+  ordens: OrdemPatioDaVisita[];
+}
+
 export interface AlertaIntegracaoNavioPatio {
   tipo: string;
   severidade: string;
@@ -341,6 +354,14 @@ export class SiderurgicoApiService {
 
   listarOrdensPatio(visitaId: number): Promise<OrdemPatioDaVisita[]> {
     return firstValueFrom(this.http.get<OrdemPatioDaVisita[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/ordens`).pipe(timeout(5000)));
+  }
+
+  listarFilasPatio(visitaId: number): Promise<FilaPatioDaVisita[]> {
+    return firstValueFrom(this.http.get<FilaPatioDaVisita[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/filas`).pipe(timeout(5000)));
+  }
+
+  listarOrdensSemCoberturaPatio(visitaId: number): Promise<OrdemPatioDaVisita[]> {
+    return firstValueFrom(this.http.get<OrdemPatioDaVisita[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/sem-cobertura`).pipe(timeout(5000)));
   }
 
   listarAlertasIntegracaoPatio(visitaId: number): Promise<AlertaIntegracaoNavioPatio[]> {

@@ -114,10 +114,20 @@
   color: #dc2626;
 }
 
-.form-grid {
+.form-grid,
+.control-room-toolbar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.control-room-toolbar {
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  align-items: end;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  padding: 12px;
+  background: #f8fbff;
 }
 
 label {
@@ -219,7 +229,9 @@ tr.selected {
 .badge.CANCELADA,
 .badge.CANCELADO,
 .badge.ERRO,
-.badge.BLOQUEADA {
+.badge.BLOQUEADA,
+.badge.CRITICA,
+.badge.ALTA {
   background: #fee2e2;
   color: #991b1b;
 }
@@ -229,7 +241,8 @@ tr.selected {
 .badge.PREVISTA,
 .badge.RASCUNHO,
 .badge.NAO_GERADO,
-.badge.RESERVADO {
+.badge.RESERVADO,
+.badge.PENDENTE {
   background: #dbeafe;
   color: #1d4ed8;
 }
@@ -238,7 +251,8 @@ tr.selected {
 .badge.ATRACADA,
 .badge.EM_MOVIMENTO,
 .badge.ORDEM_GERADA,
-.badge.SUSPENSA {
+.badge.SUSPENSA,
+.badge.MEDIA {
   background: #fef3c7;
   color: #92400e;
 }
@@ -361,6 +375,12 @@ tr.selected {
   margin: 4px 0 0;
 }
 
+.muted {
+  margin: -8px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
 .timeline {
   display: grid;
   gap: 10px;
@@ -403,6 +423,7 @@ tr.selected {
   .grid-two,
   .grid-two.wide-left,
   .form-grid,
+  .control-room-toolbar,
   .detail-grid,
   .detail-grid.compact,
   .patio-summary {

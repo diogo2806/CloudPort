@@ -46,6 +46,32 @@ public class OrdemPatioYardCliente {
         return Arrays.stream(corpo).filter(Objects::nonNull).toList();
     }
 
+    public List<FilaOrdemPatioYardDTO> listarFilasDaVisita(Long visitaNavioId) {
+        ResponseEntity<FilaOrdemPatioYardDTO[]> resposta = restTemplate.getForEntity(
+                baseUrl + "/yard/patio/ordens/visita-navio/{visitaNavioId}/filas",
+                FilaOrdemPatioYardDTO[].class,
+                visitaNavioId
+        );
+        FilaOrdemPatioYardDTO[] corpo = resposta.getBody();
+        if (corpo == null) {
+            return List.of();
+        }
+        return Arrays.stream(corpo).filter(Objects::nonNull).toList();
+    }
+
+    public List<OrdemPatioYardRespostaDTO> listarOrdensSemCobertura(Long visitaNavioId) {
+        ResponseEntity<OrdemPatioYardRespostaDTO[]> resposta = restTemplate.getForEntity(
+                baseUrl + "/yard/patio/ordens/visita-navio/{visitaNavioId}/sem-cobertura",
+                OrdemPatioYardRespostaDTO[].class,
+                visitaNavioId
+        );
+        OrdemPatioYardRespostaDTO[] corpo = resposta.getBody();
+        if (corpo == null) {
+            return List.of();
+        }
+        return Arrays.stream(corpo).filter(Objects::nonNull).toList();
+    }
+
     private String removerBarraFinal(String valor) {
         if (!StringUtils.hasText(valor)) {
             return "http://localhost:8081";
@@ -205,5 +231,36 @@ public class OrdemPatioYardCliente {
             }
             return linhaDestino + "-" + colunaDestino + "-" + camadaDestino;
         }
+    }
+
+    public static class FilaOrdemPatioYardDTO {
+        private String identificador;
+        private String agrupamento;
+        private Long visitaNavioId;
+        private String berco;
+        private String blocoZona;
+        private Integer sequenciaInicial;
+        private String status;
+        private long totalOrdens;
+        private List<OrdemPatioYardRespostaDTO> ordens;
+
+        public String getIdentificador() { return identificador; }
+        public void setIdentificador(String identificador) { this.identificador = identificador; }
+        public String getAgrupamento() { return agrupamento; }
+        public void setAgrupamento(String agrupamento) { this.agrupamento = agrupamento; }
+        public Long getVisitaNavioId() { return visitaNavioId; }
+        public void setVisitaNavioId(Long visitaNavioId) { this.visitaNavioId = visitaNavioId; }
+        public String getBerco() { return berco; }
+        public void setBerco(String berco) { this.berco = berco; }
+        public String getBlocoZona() { return blocoZona; }
+        public void setBlocoZona(String blocoZona) { this.blocoZona = blocoZona; }
+        public Integer getSequenciaInicial() { return sequenciaInicial; }
+        public void setSequenciaInicial(Integer sequenciaInicial) { this.sequenciaInicial = sequenciaInicial; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public long getTotalOrdens() { return totalOrdens; }
+        public void setTotalOrdens(long totalOrdens) { this.totalOrdens = totalOrdens; }
+        public List<OrdemPatioYardRespostaDTO> getOrdens() { return ordens; }
+        public void setOrdens(List<OrdemPatioYardRespostaDTO> ordens) { this.ordens = ordens; }
     }
 }

@@ -1,6 +1,8 @@
 package br.com.cloudport.serviconaviosiderurgico.servico;
 
 import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente;
+import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente.FilaOrdemPatioYardDTO;
+import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente.OrdemPatioYardRespostaDTO;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ModoGeracaoOrdensPatio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ReservaPosicaoPatioNavio;
@@ -14,6 +16,7 @@ import br.com.cloudport.serviconaviosiderurgico.dto.ComandoGeracaoOrdensPatioDTO
 import br.com.cloudport.serviconaviosiderurgico.dto.ComandoGeracaoReservasPatioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ComandoReplanejamentoPatioNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.EventoVisitaNavioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.FilaPatioDaVisitaDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ItemOperacaoNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.OrdemPatioDaVisitaDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.PlanoEstivaNavioDTO;
@@ -29,8 +32,12 @@ import br.com.cloudport.serviconaviosiderurgico.repositorio.ReservaPosicaoPatioN
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -185,6 +192,32 @@ public class IntegracaoNavioPatioServico {
     }
 
     @Transactional(readOnly = true)
+    public List<FilaPatioDaVisitaDTO> listarFilasOperacionaisDaVisita(Long visitaId) {
+        visitaServico.buscarEntidade(visitaId);
+        try {
+            return ordemPatioYardCliente.listarFilasDaVisita(visitaId).stream()
+                    .map(this::converterFilaYard)
+                    .toList();
+        } catch (RuntimeException ex) {
+            return agruparFilasLocais(visitaId);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrdemPatioDaVisitaDTO> listarOrdensSemCoberturaDaVisita(Long visitaId) {
+        visitaServico.buscarEntidade(visitaId);
+        try {
+            return ordemPatioYardCliente.listarOrdensSemCobertura(visitaId).stream()
+                    .map(this::converterOrdemYard)
+                    .toList();
+        } catch (RuntimeException ex) {
+            return listarOrdensDaVisita(visitaId).stream()
+                    .filter(ordem -> ordem.prioridadeOperacional() == null || ordem.sequenciaNavio() == null || !StringUtils.hasText(ordem.destino()))
+                    .toList();
+        }
+    }
+
+    @Transactional(readOnly = true)
     public List<AlertaIntegracaoNavioPatioDTO> listarAlertasIntegracao(Long visitaId) {
         visitaServico.buscarEntidade(visitaId);
         return validador.listarAlertas(visitaId, listarItens(visitaId));
@@ -316,5 +349,91 @@ public class IntegracaoNavioPatioServico {
         } catch (RuntimeException ex) {
             return null;
         }
+    }
+
+    private FilaPatioDaVisitaDTO converterFilaYard(FilaOrdemPatioYardDTO fila) {
+        List<OrdemPatioDaVisitaDTO> ordens = Optional.ofNullable(fila.getOrdens())
+                .orElse(List.of()).stream()
+                .map(this::converterOrdemYard)
+                .toList();
+        return new FilaPatioDaVisitaDTO(
+                fila.getIdentificador(),
+                fila.getAgrupamento(),
+                fila.getVisitaNavioId(),
+                fila.getBerco(),
+                fila.getBlocoZona(),
+                fila.getSequenciaInicial(),
+                fila.getStatus(),
+                fila.getTotalOrdens(),
+                ordens
+        );
+    }
+
+    private OrdemPatioDaVisitaDTO converterOrdemYard(OrdemPatioYardRespostaDTO ordem) {
+        TipoMovimentoNavio tipoMovimento = tipoMovimentoNavio(ordem.getTipoMovimento());
+        String destinoFormatado = ordem.posicaoDestinoFormatada();
+        return new OrdemPatioDaVisitaDTO(
+                ordem.getId(),
+                ordem.getVisitaNavioId(),
+                ordem.getItemOperacaoNavioId(),
+                ordem.getCodigoConteiner(),
+                tipoMovimento,
+                ordem.getStatusOrdem(),
+                tipoMovimento == TipoMovimentoNavio.DESCARGA ? "NAVIO" : ordem.getDestino(),
+                tipoMovimento == TipoMovimentoNavio.EMBARQUE ? "NAVIO" : ordem.getDestino(),
+                destinoFormatado,
+                null,
+                ordem.getSequenciaNavio(),
+                ordem.getPrioridadeOperacional()
+        );
+    }
+
+    private TipoMovimentoNavio tipoMovimentoNavio(String tipoMovimentoPatio) {
+        if (!StringUtils.hasText(tipoMovimentoPatio)) {
+            return TipoMovimentoNavio.DESCARGA;
+        }
+        return switch (tipoMovimentoPatio.toUpperCase(Locale.ROOT)) {
+            case "TRANSFERENCIA" -> TipoMovimentoNavio.EMBARQUE;
+            case "REMANEJAMENTO" -> TipoMovimentoNavio.RESTOW;
+            default -> TipoMovimentoNavio.DESCARGA;
+        };
+    }
+
+    private List<FilaPatioDaVisitaDTO> agruparFilasLocais(Long visitaId) {
+        List<OrdemPatioDaVisitaDTO> ordens = listarOrdensDaVisita(visitaId);
+        Map<String, List<OrdemPatioDaVisitaDTO>> agrupadas = ordens.stream()
+                .collect(Collectors.groupingBy(this::chaveFilaLocal, LinkedHashMap::new, Collectors.toList()));
+        return agrupadas.entrySet().stream()
+                .map(entry -> montarFilaLocal(visitaId, entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
+    private FilaPatioDaVisitaDTO montarFilaLocal(Long visitaId, String chave, List<OrdemPatioDaVisitaDTO> ordens) {
+        String[] partes = chave.split("\\|");
+        String berco = partes.length > 0 ? partes[0] : null;
+        String blocoZona = partes.length > 1 ? partes[1] : null;
+        String status = partes.length > 2 ? partes[2] : null;
+        return new FilaPatioDaVisitaDTO(
+                chave,
+                "VISITA_BERCO_ZONA_STATUS_LOCAL",
+                visitaId,
+                berco,
+                blocoZona,
+                ordens.stream().map(OrdemPatioDaVisitaDTO::sequenciaNavio).filter(java.util.Objects::nonNull).min(Integer::compareTo).orElse(null),
+                status,
+                ordens.size(),
+                ordens
+        );
+    }
+
+    private String chaveFilaLocal(OrdemPatioDaVisitaDTO ordem) {
+        String berco = valor(ordem.destino(), "SEM_BERCO");
+        String blocoZona = valor(ordem.posicaoPlanejada(), "SEM_ZONA");
+        String status = valor(ordem.statusOrdem(), "SEM_STATUS");
+        return berco + "|" + blocoZona + "|" + status;
+    }
+
+    private String valor(String valor, String padrao) {
+        return StringUtils.hasText(valor) ? valor.trim().toUpperCase(Locale.ROOT) : padrao;
     }
 }

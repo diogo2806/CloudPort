@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
   AlertaIntegracaoNavioPatio,
   BordoEstiva,
   EventoVisitaNavio,
   FaseVisita,
+  FilaPatioDaVisita,
   ItemOperacaoNavio,
   NavioSiderurgico,
   OrdemPatioDaVisita,
@@ -29,13 +30,15 @@ import {
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   navios: NavioSiderurgico[] = [];
   visitas: VisitaNavio[] = [];
   itens: ItemOperacaoNavio[] = [];
   eventos: EventoVisitaNavio[] = [];
   reservasPatio: ReservaPatioNavio[] = [];
   ordensPatio: OrdemPatioDaVisita[] = [];
+  filasPatio: FilaPatioDaVisita[] = [];
+  ordensSemCobertura: OrdemPatioDaVisita[] = [];
   alertasIntegracao: AlertaIntegracaoNavioPatio[] = [];
   visitaSelecionada?: VisitaNavio;
   plano?: PlanoEstivaNavio;
@@ -48,11 +51,19 @@ export class AppComponent implements OnInit {
   carregando = false;
   erro = '';
   sucesso = '';
+  statusOrdemFiltro = '';
+  blocoZonaFiltro = '';
+  severidadeFiltro = '';
+  atualizacaoAutomatica = true;
+  ultimaAtualizacaoControlRoom?: Date;
+  private atualizacaoTimer?: ReturnType<typeof setInterval>;
 
   fases: FaseVisita[] = ['PREVISTA', 'FUNDEADA', 'ATRACADA', 'OPERANDO', 'OPERACAO_CONCLUIDA', 'PARTIU', 'CANCELADA'];
   tiposMovimento: TipoMovimento[] = ['EMBARQUE', 'DESCARGA', 'RESTOW'];
   tiposCarga: TipoCarga[] = ['BOBINA', 'CHAPA', 'TARUGO', 'PLACA', 'PERFIL', 'VERGALHAO', 'OUTROS'];
   statusItens: StatusItem[] = ['PLANEJADO', 'LIBERADO', 'EM_MOVIMENTO', 'OPERADO', 'BLOQUEADO', 'CANCELADO'];
+  statusOrdens = ['PENDENTE', 'EM_EXECUCAO', 'BLOQUEADA', 'SUSPENSA', 'CONCLUIDA', 'CANCELADA'];
+  severidades = ['BAIXA', 'MEDIA', 'ALTA', 'CRITICA'];
   bordos: BordoEstiva[] = ['BB', 'BE', 'CENTRO'];
 
   novoNavio: NavioSiderurgico = this.criarNavioVazio();
@@ -65,6 +76,17 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     void this.carregarTudo();
+    this.atualizacaoTimer = setInterval(() => {
+      if (this.atualizacaoAutomatica && this.visitaSelecionada?.id) {
+        void this.atualizarControlRoomSilencioso();
+      }
+    }, 30000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.atualizacaoTimer) {
+      clearInterval(this.atualizacaoTimer);
+    }
   }
 
   async carregarTudo(): Promise<void> {
@@ -306,6 +328,23 @@ export class AppComponent implements OnInit {
     }
   }
 
+  async atualizarControlRoom(): Promise<void> {
+    try {
+      this.limparMensagens();
+      await this.atualizarControlRoomSilencioso();
+      this.sucesso = 'Control Room atualizado.';
+    } catch (erro) {
+      this.erro = this.extrairErro(erro, 'Nao foi possivel atualizar a visao operacional.');
+    }
+  }
+
+  alternarAtualizacaoAutomatica(): void {
+    this.atualizacaoAutomatica = !this.atualizacaoAutomatica;
+    if (this.atualizacaoAutomatica) {
+      void this.atualizarControlRoom();
+    }
+  }
+
   async replanejarPatio(aplicar: boolean): Promise<void> {
     const visitaId = this.visitaSelecionada?.id;
     if (!visitaId) {
@@ -380,6 +419,25 @@ export class AppComponent implements OnInit {
     return this.itens.find(item => item.id === itemId);
   }
 
+  filasPatioFiltradas(): FilaPatioDaVisita[] {
+    return this.filasPatio.filter(fila => this.correspondeFiltroStatus(fila.status) && this.correspondeFiltroBloco(fila.blocoZona || fila.berco));
+  }
+
+  ordensPatioFiltradas(): OrdemPatioDaVisita[] {
+    return this.ordensPatio.filter(ordem => this.correspondeFiltroStatus(ordem.statusOrdem) && this.correspondeFiltroBloco(`${ordem.destino || ''} ${ordem.posicaoPlanejada || ''} ${ordem.origem || ''}`));
+  }
+
+  alertasIntegracaoFiltrados(): AlertaIntegracaoNavioPatio[] {
+    return this.alertasIntegracao.filter(alerta => !this.severidadeFiltro || alerta.severidade === this.severidadeFiltro);
+  }
+
+  movimentosIminentes(): OrdemPatioDaVisita[] {
+    return this.ordensPatio
+      .filter(ordem => ['PENDENTE', 'EM_EXECUCAO'].includes(ordem.statusOrdem))
+      .sort((a, b) => (a.sequenciaNavio ?? 999999) - (b.sequenciaNavio ?? 999999))
+      .slice(0, 5);
+  }
+
   private async carregarPlanoSelecionado(): Promise<void> {
     this.plano = undefined;
     this.validacaoPlano = undefined;
@@ -403,13 +461,18 @@ export class AppComponent implements OnInit {
       this.resumoIntegracao = this.resumoIntegracaoVazio();
       this.reservasPatio = [];
       this.ordensPatio = [];
+      this.filasPatio = [];
+      this.ordensSemCobertura = [];
       this.alertasIntegracao = [];
       return;
     }
     this.resumoIntegracao = await this.api.obterResumoIntegracaoPatio(visitaId);
     this.reservasPatio = await this.api.listarReservasPatio(visitaId);
     this.ordensPatio = await this.api.listarOrdensPatio(visitaId);
+    this.filasPatio = await this.api.listarFilasPatio(visitaId);
+    this.ordensSemCobertura = await this.api.listarOrdensSemCoberturaPatio(visitaId);
     this.alertasIntegracao = await this.api.listarAlertasIntegracaoPatio(visitaId);
+    this.ultimaAtualizacaoControlRoom = new Date();
   }
 
   private async atualizarResumoEventos(): Promise<void> {
@@ -419,6 +482,27 @@ export class AppComponent implements OnInit {
     }
     this.resumo = await this.api.obterResumo(visitaId);
     this.eventos = await this.api.listarEventos(visitaId);
+  }
+
+  private async atualizarControlRoomSilencioso(): Promise<void> {
+    const visitaId = this.visitaSelecionada?.id;
+    if (!visitaId) {
+      return;
+    }
+    this.itens = await this.api.listarItensVisita(visitaId);
+    await this.atualizarResumoEventos();
+    await this.carregarIntegracaoPatio();
+  }
+
+  private correspondeFiltroStatus(status?: string | null): boolean {
+    return !this.statusOrdemFiltro || status === this.statusOrdemFiltro;
+  }
+
+  private correspondeFiltroBloco(valor?: string | null): boolean {
+    if (!this.blocoZonaFiltro) {
+      return true;
+    }
+    return (valor || '').toUpperCase().includes(this.blocoZonaFiltro.trim().toUpperCase());
   }
 
   private criarNavioVazio(): NavioSiderurgico {

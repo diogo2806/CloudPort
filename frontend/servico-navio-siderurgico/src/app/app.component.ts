@@ -56,6 +56,7 @@ export class AppComponent implements OnInit, OnDestroy {
   severidadeFiltro = '';
   atualizacaoAutomatica = true;
   ultimaAtualizacaoControlRoom?: Date;
+  prioridadesOrdens: Record<number, number> = {};
   private atualizacaoTimer?: ReturnType<typeof setInterval>;
 
   fases: FaseVisita[] = ['PREVISTA', 'FUNDEADA', 'ATRACADA', 'OPERANDO', 'OPERACAO_CONCLUIDA', 'PARTIU', 'CANCELADA'];
@@ -438,6 +439,76 @@ export class AppComponent implements OnInit, OnDestroy {
       .slice(0, 5);
   }
 
+  prioridadeOrdem(ordem: OrdemPatioDaVisita): number {
+    if (!ordem.id) {
+      return ordem.prioridadeOperacional ?? ordem.sequenciaNavio ?? 0;
+    }
+    return this.prioridadesOrdens[ordem.id] ?? ordem.prioridadeOperacional ?? ordem.sequenciaNavio ?? 0;
+  }
+
+  definirPrioridadeOrdem(ordem: OrdemPatioDaVisita, prioridade: string | number): void {
+    if (!ordem.id) {
+      return;
+    }
+    const normalizada = Number(prioridade);
+    this.prioridadesOrdens[ordem.id] = Number.isFinite(normalizada) && normalizada >= 0 ? normalizada : 0;
+  }
+
+  async atualizarPrioridadeOrdem(ordem: OrdemPatioDaVisita): Promise<void> {
+    const visitaId = this.visitaSelecionada?.id;
+    if (!visitaId || !ordem.id) {
+      return;
+    }
+    const prioridade = this.prioridadeOrdem(ordem);
+    if (!Number.isFinite(prioridade) || prioridade < 0) {
+      this.erro = 'Informe uma prioridade operacional valida.';
+      return;
+    }
+    try {
+      this.limparMensagens();
+      const atualizada = await this.api.atualizarPrioridadeOrdemPatio(visitaId, ordem.id, prioridade);
+      this.substituirOrdemPatio(atualizada);
+      await this.carregarIntegracaoPatio();
+      this.sucesso = 'Prioridade da ordem atualizada no yard.';
+    } catch (erro) {
+      this.erro = this.extrairErro(erro, 'Nao foi possivel atualizar a prioridade da ordem.');
+    }
+  }
+
+  async suspenderOrdemPatio(ordem: OrdemPatioDaVisita): Promise<void> {
+    const visitaId = this.visitaSelecionada?.id;
+    if (!visitaId || !ordem.id) {
+      return;
+    }
+    try {
+      this.limparMensagens();
+      const atualizada = await this.api.suspenderOrdemPatio(visitaId, ordem.id);
+      this.substituirOrdemPatio(atualizada);
+      await this.atualizarResumoEventos();
+      await this.carregarIntegracaoPatio();
+      this.sucesso = 'Ordem suspensa no yard.';
+    } catch (erro) {
+      this.erro = this.extrairErro(erro, 'Nao foi possivel suspender a ordem.');
+    }
+  }
+
+  async retomarOrdemPatio(ordem: OrdemPatioDaVisita): Promise<void> {
+    const visitaId = this.visitaSelecionada?.id;
+    if (!visitaId || !ordem.id) {
+      return;
+    }
+    try {
+      this.limparMensagens();
+      const atualizada = await this.api.retomarOrdemPatio(visitaId, ordem.id);
+      this.substituirOrdemPatio(atualizada);
+      await this.atualizarResumoEventos();
+      await this.carregarIntegracaoPatio();
+      this.sucesso = 'Ordem retomada no yard.';
+    } catch (erro) {
+      this.erro = this.extrairErro(erro, 'Nao foi possivel retomar a ordem.');
+    }
+  }
+
   private async carregarPlanoSelecionado(): Promise<void> {
     this.plano = undefined;
     this.validacaoPlano = undefined;
@@ -464,11 +535,13 @@ export class AppComponent implements OnInit, OnDestroy {
       this.filasPatio = [];
       this.ordensSemCobertura = [];
       this.alertasIntegracao = [];
+      this.prioridadesOrdens = {};
       return;
     }
     this.resumoIntegracao = await this.api.obterResumoIntegracaoPatio(visitaId);
     this.reservasPatio = await this.api.listarReservasPatio(visitaId);
     this.ordensPatio = await this.api.listarOrdensPatio(visitaId);
+    this.sincronizarPrioridadesOrdens();
     this.filasPatio = await this.api.listarFilasPatio(visitaId);
     this.ordensSemCobertura = await this.api.listarOrdensSemCoberturaPatio(visitaId);
     this.alertasIntegracao = await this.api.listarAlertasIntegracaoPatio(visitaId);
@@ -492,6 +565,25 @@ export class AppComponent implements OnInit, OnDestroy {
     this.itens = await this.api.listarItensVisita(visitaId);
     await this.atualizarResumoEventos();
     await this.carregarIntegracaoPatio();
+  }
+
+  private substituirOrdemPatio(ordemAtualizada: OrdemPatioDaVisita): void {
+    this.ordensPatio = this.ordensPatio.map(ordem => ordem.id === ordemAtualizada.id ? ordemAtualizada : ordem);
+    this.ordensSemCobertura = this.ordensSemCobertura.map(ordem => ordem.id === ordemAtualizada.id ? ordemAtualizada : ordem);
+    this.filasPatio = this.filasPatio.map(fila => ({
+      ...fila,
+      ordens: fila.ordens.map(ordem => ordem.id === ordemAtualizada.id ? ordemAtualizada : ordem)
+    }));
+    this.sincronizarPrioridadesOrdens();
+  }
+
+  private sincronizarPrioridadesOrdens(): void {
+    this.prioridadesOrdens = this.ordensPatio.reduce<Record<number, number>>((acc, ordem) => {
+      if (ordem.id) {
+        acc[ordem.id] = ordem.prioridadeOperacional ?? ordem.sequenciaNavio ?? 0;
+      }
+      return acc;
+    }, { ...this.prioridadesOrdens });
   }
 
   private correspondeFiltroStatus(status?: string | null): boolean {

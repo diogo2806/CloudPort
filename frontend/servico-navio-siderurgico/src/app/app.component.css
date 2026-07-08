@@ -79,6 +79,10 @@
   align-items: start;
 }
 
+.grid-two.wide-left {
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+}
+
 .card,
 .kpi-card {
   background: #ffffff;
@@ -155,6 +159,10 @@ button:disabled {
   opacity: 0.55;
 }
 
+button.danger {
+  background: #dc2626;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -195,8 +203,11 @@ tr.selected {
 }
 
 .badge.EM_EXECUCAO,
+.badge.OPERANDO,
 .badge.OPERADO,
-.badge.LIBERADO {
+.badge.LIBERADO,
+.badge.VALIDADO,
+.badge.OPERACAO_CONCLUIDA {
   background: #dcfce7;
   color: #166534;
 }
@@ -209,9 +220,122 @@ tr.selected {
 }
 
 .badge.PLANEJADA,
-.badge.PLANEJADO {
+.badge.PLANEJADO,
+.badge.PREVISTA,
+.badge.RASCUNHO {
   background: #dbeafe;
   color: #1d4ed8;
+}
+
+.badge.FUNDEADA,
+.badge.ATRACADA,
+.badge.EM_MOVIMENTO,
+.badge.EM_EXECUCAO {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.detail-grid.compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.detail-grid p {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin: 0;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.detail-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.detail-grid strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.progress-box {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.progress-line {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.progress-line span {
+  display: block;
+  height: 100%;
+  background: #2563eb;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.actions.inline {
+  margin-top: 0;
+}
+
+.actions.inline button {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.validation {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.validation ul {
+  margin: 6px 0 10px;
+  padding-left: 18px;
+}
+
+.timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.timeline article {
+  border-left: 4px solid #2563eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+
+.timeline span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  margin: 2px 0 6px;
+}
+
+.timeline p {
+  margin: 0;
 }
 
 .message {
@@ -231,7 +355,10 @@ tr.selected {
 @media (max-width: 1000px) {
   .summary-grid,
   .grid-two,
-  .form-grid {
+  .grid-two.wide-left,
+  .form-grid,
+  .detail-grid,
+  .detail-grid.compact {
     grid-template-columns: 1fr;
   }
 

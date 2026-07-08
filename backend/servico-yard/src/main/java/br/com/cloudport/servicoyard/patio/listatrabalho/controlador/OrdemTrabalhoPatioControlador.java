@@ -45,6 +45,11 @@ public class OrdemTrabalhoPatioControlador {
         return ordemTrabalhoPatioServico.listarOrdens(status);
     }
 
+    @GetMapping("/visita-navio/{visitaNavioId}")
+    public List<OrdemTrabalhoPatioRespostaDto> listarOrdensPorVisitaNavio(@PathVariable Long visitaNavioId) {
+        return ordemTrabalhoPatioServico.listarOrdensPorVisitaNavio(visitaNavioId);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrdemTrabalhoPatioRespostaDto registrarOrdem(@Valid @RequestBody OrdemTrabalhoPatioRequisicaoDto dto) {

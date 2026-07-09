@@ -1,10 +1,10 @@
 # Execucao automatica CloudPort - 2026-07-09
 
-## Escopo solicitado
+## Escopo confirmado
 
-Repositorio solicitado pelo usuario: `diogo2806/claudeport`.
+Repositorio correto confirmado pelo usuario: `diogo2806/CloudPort`.
 
-Resultado da resolucao do repositorio: o conector GitHub retornou `Not Found` para `diogo2806/claudeport`. Entre os repositorios acessiveis foi encontrada a melhor correspondencia nominal `diogo2806/CloudPort`, usada nesta execucao como fallback operacional.
+Esta execucao revisa os requisitos em `docs/requisitos` relacionados a back-end e front-end, com foco na lacuna entre os contratos ja expostos de work queues e a tela Angular Control Room.
 
 ## Arquivos de requisito analisados
 
@@ -28,129 +28,26 @@ A lacuna de integracao Back x Front permanece no componente principal do fronten
 - `substituirOrdemPatio()` ainda atualiza `ordensPatio`, `ordensSemCobertura` e `filasPatio`, mas nao propaga alteracoes para `workQueuesPatio.jobList`.
 - `frontend/servico-navio-siderurgico/src/app/app.component.html` ainda renderiza a tabela antiga de `Filas / POW operacionais`, sem cards de work queue persistente com POW, pool, equipamento e job list expandivel.
 
-## Patch funcional que continua pendente
+## Patch funcional pendente
 
 ### `frontend/servico-navio-siderurgico/src/app/app.component.ts`
 
-Adicionar o tipo no import do service:
-
-```ts
-  WorkQueuePatioDaVisita,
-```
-
-Adicionar estado junto de `filasPatio`:
-
-```ts
-  workQueuesPatio: WorkQueuePatioDaVisita[] = [];
-```
-
-Adicionar filtro publico junto de `filasPatioFiltradas()`:
-
-```ts
-  workQueuesPatioFiltradas(): WorkQueuePatioDaVisita[] {
-    return this.workQueuesPatio.filter(workQueue =>
-      this.correspondeFiltroStatus(workQueue.status) &&
-      this.correspondeFiltroBloco(`${workQueue.berco || ''} ${workQueue.blocoZona || ''} ${workQueue.pow || ''} ${workQueue.poolOperacional || ''} ${workQueue.equipamento || ''}`)
-    );
-  }
-```
-
-Limpar estado quando nao houver visita:
-
-```ts
-      this.workQueuesPatio = [];
-```
-
-Carregar work queues em `carregarIntegracaoPatio()` apos `listarFilasPatio(visitaId)`:
-
-```ts
-    this.workQueuesPatio = await this.api.listarWorkQueuesPatio(visitaId);
-```
-
-Atualizar `substituirOrdemPatio()` para refletir atualizacoes na job list:
-
-```ts
-    this.workQueuesPatio = this.workQueuesPatio.map(workQueue => ({
-      ...workQueue,
-      jobList: workQueue.jobList.map(ordem => ordem.id === ordemAtualizada.id ? ordemAtualizada : ordem)
-    }));
-```
+- Importar `WorkQueuePatioDaVisita` de `./siderurgico-api.service`.
+- Adicionar `workQueuesPatio: WorkQueuePatioDaVisita[] = [];` junto de `filasPatio`.
+- Adicionar `workQueuesPatioFiltradas()` usando filtro de status e bloco/zona/berco/POW/pool/equipamento.
+- Limpar `workQueuesPatio` quando nao houver visita selecionada.
+- Chamar `this.workQueuesPatio = await this.api.listarWorkQueuesPatio(visitaId);` em `carregarIntegracaoPatio()`.
+- Atualizar `substituirOrdemPatio()` para propagar a ordem atualizada dentro de `workQueue.jobList`.
 
 ### `frontend/servico-navio-siderurgico/src/app/app.component.html`
 
-Inserir antes da tabela antiga `Filas / POW operacionais`:
-
-```html
-<section class="work-queue-grid" *ngIf="workQueuesPatioFiltradas().length; else semWorkQueuesPatio">
-  <article class="work-queue-card" *ngFor="let workQueue of workQueuesPatioFiltradas()">
-    <header>
-      <strong>{{ workQueue.identificador }}</strong>
-      <span class="badge" [ngClass]="workQueue.status">{{ workQueue.status }}</span>
-    </header>
-    <p>Berco: {{ workQueue.berco || '-' }} · Porao: {{ workQueue.porao || '-' }} · Bloco/zona: {{ workQueue.blocoZona || '-' }}</p>
-    <p>POW: {{ workQueue.pow || '-' }} · Pool: {{ workQueue.poolOperacional || '-' }} · Equipamento: {{ workQueue.equipamento || '-' }}</p>
-    <p>Prioridade: {{ workQueue.prioridadeOperacional ?? '-' }} · Ordens: {{ workQueue.totalOrdens }}</p>
-    <details>
-      <summary>Job list ({{ workQueue.jobList.length }})</summary>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Seq.</th><th>Lote</th><th>Mov.</th><th>Origem</th><th>Destino</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr *ngFor="let ordem of workQueue.jobList">
-              <td>{{ ordem.sequenciaNavio || '-' }}</td>
-              <td>{{ ordem.codigoLote }}</td>
-              <td>{{ ordem.tipoMovimento }}</td>
-              <td>{{ ordem.origem || '-' }}</td>
-              <td>{{ ordem.destino || ordem.posicaoPlanejada || '-' }}</td>
-              <td><span class="badge" [ngClass]="ordem.statusOrdem">{{ ordem.statusOrdem }}</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </details>
-  </article>
-</section>
-<ng-template #semWorkQueuesPatio><p>Nenhuma work queue persistente retornada para a visita.</p></ng-template>
-```
+- Inserir antes da tabela `Filas / POW operacionais` uma grade de cards de work queue persistente.
+- Cada card deve mostrar identificador, status, berco, porao, bloco/zona, POW, pool operacional, equipamento, prioridade e total de ordens.
+- Cada card deve expor `details/summary` com job list expandivel contendo sequencia, lote, movimento, origem, destino e status.
 
 ### `frontend/servico-navio-siderurgico/src/app/app.component.css`
 
-Adicionar estilos:
-
-```css
-.work-queue-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-}
-
-.work-queue-card {
-  border: 1px solid #d7dde8;
-  border-radius: 0.75rem;
-  padding: 1rem;
-  background: #fff;
-}
-
-.work-queue-card header {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.work-queue-card p {
-  margin: 0.5rem 0;
-}
-
-.work-queue-card details {
-  margin-top: 0.75rem;
-}
-
-.work-queue-card summary {
-  cursor: pointer;
-  font-weight: 800;
-}
-```
+- Adicionar estilos `.work-queue-grid`, `.work-queue-card`, `.work-queue-card header`, `.work-queue-card p`, `.work-queue-card details` e `.work-queue-card summary`.
 
 ## Atualizacao do requisito
 
@@ -174,19 +71,18 @@ Continuam pendentes no requisito:
 
 Validacao por leitura via conector GitHub:
 
-- O repositorio `diogo2806/claudeport` nao esta acessivel ou nao existe com esse nome.
-- O repositorio `diogo2806/CloudPort` existe e foi usado como fallback.
+- `diogo2806/CloudPort` foi confirmado como repositorio correto.
 - `docs/requisitos/modulo-navios-back-front-gaps.md` contem a pendencia de work queues no frontend.
 - `app.component.ts` ainda nao possui `workQueuesPatio` nem chamada a `listarWorkQueuesPatio(visitaId)`.
 - `app.component.html` ainda nao possui cards de work queue persistente.
 
-Nao foi possivel executar build Angular nem testes automatizados porque o clone local falhou por erro de resolucao de `github.com` no ambiente de execucao.
+Nao foi possivel executar build Angular nem testes automatizados porque o ambiente local nao conseguiu clonar o repositorio para aplicar diff e rodar validacoes.
 
 ## Bloqueio para merge automatico
 
 Este PR deve permanecer aberto, sem merge automatico, pelos seguintes motivos:
 
-1. O repositorio solicitado literalmente (`diogo2806/claudeport`) nao foi encontrado; a execucao usou `diogo2806/CloudPort` por inferencia.
-2. O patch funcional exige substituicao segura de arquivos grandes (`app.component.ts`, `app.component.html`, `app.component.css`), mas o ambiente local nao conseguiu clonar o repositorio para aplicar diff e rodar validacoes.
+1. O patch funcional exige substituicao segura de arquivos grandes (`app.component.ts`, `app.component.html`, `app.component.css`).
+2. O ambiente local nao conseguiu clonar o repositorio para aplicar diff e rodar build/testes.
 3. Sem build/testes, nao e seguro afirmar que a alteracao compila.
 4. O PR documenta o bloqueio e o patch exato para aplicacao segura em uma execucao com clone/build disponiveis.

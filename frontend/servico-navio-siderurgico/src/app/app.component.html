@@ -167,10 +167,7 @@
                   <td>{{ item.tipoMovimento }}</td>
                   <td>{{ item.produto }}</td>
                   <td>{{ item.pesoTotalToneladas }} t</td>
-                  <td>
-                    <small>{{ item.statusIntegracaoPatio || 'NAO_GERADO' }}</small><br>
-                    <small>{{ item.posicaoPatioPlanejada || item.destinoPatio || '-' }}</small>
-                  </td>
+                  <td><small>{{ item.statusIntegracaoPatio || 'NAO_GERADO' }}</small><br><small>{{ item.posicaoPatioPlanejada || item.destinoPatio || '-' }}</small></td>
                   <td><span class="badge" [ngClass]="item.status || ''">{{ item.status }}</span></td>
                   <td class="actions inline">
                     <button type="button" (click)="alterarStatusItem(item, 'LIBERADO')">Liberar</button>
@@ -219,10 +216,7 @@
               <label>Peso t<input name="pesoToneladas" type="number" min="0.001" step="0.001" required [(ngModel)]="novaPosicao.pesoToneladas"></label>
               <button type="submit" [disabled]="!novaPosicao.itemOperacaoId">Adicionar posicao</button>
             </form>
-
-            <div class="actions">
-              <button type="button" (click)="validarPlano()">Validar plano</button>
-            </div>
+            <div class="actions"><button type="button" (click)="validarPlano()">Validar plano</button></div>
           </ng-container>
         </article>
 
@@ -248,14 +242,8 @@
 
           <section class="validation" *ngIf="validacaoPlano as validacao">
             <h3>Resultado da validacao</h3>
-            <div *ngIf="validacao.erros.length">
-              <strong>Erros</strong>
-              <ul><li *ngFor="let erroPlano of validacao.erros">{{ erroPlano }}</li></ul>
-            </div>
-            <div *ngIf="validacao.alertas.length">
-              <strong>Alertas</strong>
-              <ul><li *ngFor="let alerta of validacao.alertas">{{ alerta }}</li></ul>
-            </div>
+            <div *ngIf="validacao.erros.length"><strong>Erros</strong><ul><li *ngFor="let erroPlano of validacao.erros">{{ erroPlano }}</li></ul></div>
+            <div *ngIf="validacao.alertas.length"><strong>Alertas</strong><ul><li *ngFor="let alerta of validacao.alertas">{{ alerta }}</li></ul></div>
             <p *ngIf="!validacao.erros.length && !validacao.alertas.length">Plano sem erros ou alertas.</p>
           </section>
         </article>
@@ -293,9 +281,7 @@
             </select>
           </label>
           <button type="button" (click)="atualizarControlRoom()">Atualizar agora</button>
-          <button type="button" (click)="alternarAtualizacaoAutomatica()">
-            Auto-refresh: {{ atualizacaoAutomatica ? 'ligado' : 'desligado' }}
-          </button>
+          <button type="button" (click)="alternarAtualizacaoAutomatica()">Auto-refresh: {{ atualizacaoAutomatica ? 'ligado' : 'desligado' }}</button>
         </div>
         <p class="muted" *ngIf="ultimaAtualizacaoControlRoom">Ultima atualizacao: {{ ultimaAtualizacaoControlRoom | date:'dd/MM/yyyy HH:mm:ss' }}</p>
 
@@ -308,9 +294,7 @@
           <button type="button" (click)="carregarRelatorioIntegrado()">Relatorio integrado</button>
         </div>
 
-        <p class="message" *ngIf="resultadoOrdens">
-          Ordens criadas: {{ resultadoOrdens.totalOrdensCriadas }} · ignoradas: {{ resultadoOrdens.totalItensIgnorados }} · com erro: {{ resultadoOrdens.totalItensComErro }}
-        </p>
+        <p class="message" *ngIf="resultadoOrdens">Ordens criadas: {{ resultadoOrdens.totalOrdensCriadas }} · ignoradas: {{ resultadoOrdens.totalItensIgnorados }} · com erro: {{ resultadoOrdens.totalItensComErro }}</p>
 
         <section class="grid-two">
           <article>
@@ -341,6 +325,30 @@
             </div>
             <ng-template #semSemCobertura><p>Nenhuma ordem sem cobertura operacional.</p></ng-template>
           </article>
+        </section>
+
+        <section>
+          <h3>Work queues persistentes</h3>
+          <p class="muted">{{ workQueuesPatioFiltradas().length }} fila(s) filtrada(s) · {{ totalJobListWorkQueuesPatio() }} ordem(ns) em job list/total.</p>
+          <div class="grid-two" *ngIf="workQueuesPatioFiltradas().length; else semWorkQueuesPatio">
+            <article class="validation" *ngFor="let workQueue of workQueuesPatioFiltradas()">
+              <div class="section-title">
+                <div>
+                  <h3>{{ workQueue.identificador }}</h3>
+                  <p>Berco {{ workQueue.berco || '-' }} · Porao {{ workQueue.porao || '-' }} · Bloco/zona {{ workQueue.blocoZona || '-' }}</p>
+                </div>
+                <span class="badge" [ngClass]="workQueue.status">{{ workQueue.status }}</span>
+              </div>
+              <div class="detail-grid compact">
+                <p><span>POW</span><strong>{{ workQueue.pow || '-' }}</strong></p>
+                <p><span>Pool</span><strong>{{ workQueue.poolOperacional || '-' }}</strong></p>
+                <p><span>Equipamento</span><strong>{{ workQueue.equipamento || '-' }}</strong></p>
+                <p><span>Prioridade</span><strong>{{ workQueue.prioridadeOperacional ?? '-' }}</strong></p>
+              </div>
+              <p>Total de ordens: <strong>{{ workQueue.totalOrdens || (workQueue.jobList?.length || 0) }}</strong> · Sequencia inicial: <strong>{{ workQueue.sequenciaInicial || '-' }}</strong></p>
+            </article>
+          </div>
+          <ng-template #semWorkQueuesPatio><p>Nenhuma work queue persistente para os filtros atuais.</p></ng-template>
         </section>
 
         <section class="grid-two">
@@ -394,15 +402,7 @@
                     <td>{{ ordem.tipoMovimento }}</td>
                     <td>{{ ordem.origem || '-' }}</td>
                     <td>{{ ordem.destino || ordem.posicaoPlanejada || '-' }}</td>
-                    <td>
-                      <input
-                        class="priority-input"
-                        type="number"
-                        min="0"
-                        [name]="'prioridade-' + ordem.id"
-                        [ngModel]="prioridadeOrdem(ordem)"
-                        (ngModelChange)="definirPrioridadeOrdem(ordem, $event)">
-                    </td>
+                    <td><input class="priority-input" type="number" min="0" [name]="'prioridade-' + ordem.id" [ngModel]="prioridadeOrdem(ordem)" (ngModelChange)="definirPrioridadeOrdem(ordem, $event)"></td>
                     <td><span class="badge" [ngClass]="ordem.statusOrdem">{{ ordem.statusOrdem }}</span></td>
                     <td class="actions inline">
                       <button type="button" (click)="atualizarPrioridadeOrdem(ordem)" [disabled]="!ordem.id">Priorizar</button>
@@ -433,9 +433,7 @@
             <ng-container *ngIf="resultadoReplanejamento; else semReplanejamento">
               <p>Risco de rehandle: <strong>{{ resultadoReplanejamento.riscoRehandle }}</strong></p>
               <p>Economia estimada: <strong>{{ resultadoReplanejamento.economiaEstimadaDistanciaPercentual }}%</strong></p>
-              <ul>
-                <li *ngFor="let alerta of resultadoReplanejamento.alertasImpeditivos">{{ alerta }}</li>
-              </ul>
+              <ul><li *ngFor="let alerta of resultadoReplanejamento.alertasImpeditivos">{{ alerta }}</li></ul>
             </ng-container>
             <ng-template #semReplanejamento><p>Nenhum replanejamento executado.</p></ng-template>
           </article>

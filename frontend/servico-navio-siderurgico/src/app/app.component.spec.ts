@@ -33,6 +33,37 @@ describe('AppComponent - Control Room work queues', () => {
 
     expect(component.workQueuesPatioFiltradas().length).toBe(2);
   });
+
+  it('deve controlar expansao da job list e manter edicao operacional por work queue', () => {
+    const workQueue = criarWorkQueues()[0];
+
+    expect(component.workQueueExpandida(workQueue)).toBeFalse();
+
+    component.alternarWorkQueue(workQueue);
+
+    expect(component.workQueueExpandida(workQueue)).toBeTrue();
+    expect(component.edicaoWorkQueue(workQueue)).toEqual({
+      pow: 'POW-01',
+      poolOperacional: 'POOL-RTG',
+      equipamento: 'RTG-01',
+      limiteDispatch: null
+    });
+  });
+
+  it('deve chamar API de ativacao de work queue e atualizar o estado local', async () => {
+    const workQueue = criarWorkQueues()[0];
+    const api = {
+      ativarWorkQueuePatio: jasmine.createSpy().and.resolveTo({ ...workQueue, status: 'ATIVA' })
+    } as unknown as SiderurgicoApiService;
+    component = new AppComponent(api);
+    component.workQueuesPatio = [{ ...workQueue, status: 'INATIVA' }];
+
+    await component.ativarWorkQueue(workQueue);
+
+    expect(api.ativarWorkQueuePatio).toHaveBeenCalledWith(10);
+    expect(component.workQueuesPatio[0].status).toBe('ATIVA');
+    expect(component.sucesso).toBe('Work queue ativada.');
+  });
 });
 
 function criarWorkQueues(): WorkQueuePatioDaVisita[] {

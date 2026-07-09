@@ -28,15 +28,10 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 
 ### A. Contratos existentes no back sem uso completo no front
 
-1. `GET /yard/patio/work-queues/{id}/job-list`: o backend do yard dispoe de job list por fila, mas o frontend do modulo de navio ainda precisa exibir a job list expansivel da work queue persistente no template, com linhas de work instruction/ordem e acoes permitidas.
-2. `POST /yard/patio/work-queues/{id}/dispatch`: falta botao/fluxo no frontend para despachar uma work queue e exibir o resultado do dispatch.
-3. `PATCH /yard/patio/work-queues/{id}/ativar` e `/desativar`: falta acao de ativar/desativar work queue na tela.
-4. `PATCH /yard/patio/work-queues/{id}/pow` e `/equipamento`: falta formulario de associacao/edicao de POW, pool operacional e equipamento.
-5. `POST /yard/patio/work-instructions/{id}/reset` e `/cancelar`: falta expor reset/cancelamento da work instruction no frontend.
-6. `POST /visitas-navio/{id}/plano-estiva/{planoId}/concluir`: falta acao de concluir/publicar plano de estiva no frontend.
-7. `PUT /visitas-navio/{id}` e `PUT /visitas-navio/{id}/itens/{itemId}`: falta edicao operacional completa de visita e item.
-8. `DELETE /visitas-navio/{id}` e `DELETE /visitas-navio/{id}/itens/{itemId}`: falta fluxo de exclusao/cancelamento administrativo diferenciado.
-9. `/api/public/v1/*`: falta tela de validacao/diagnostico para testar filtros, respostas, erros, `correlationId` e payloads externos.
+1. `POST /visitas-navio/{id}/plano-estiva/{planoId}/concluir`: falta acao de concluir/publicar plano de estiva no frontend.
+2. `PUT /visitas-navio/{id}` e `PUT /visitas-navio/{id}/itens/{itemId}`: falta edicao operacional completa de visita e item.
+3. `DELETE /visitas-navio/{id}` e `DELETE /visitas-navio/{id}/itens/{itemId}`: falta fluxo de exclusao/cancelamento administrativo diferenciado.
+4. `/api/public/v1/*`: falta tela de validacao/diagnostico para testar filtros, respostas, erros, `correlationId` e payloads externos.
 
 ### B. Contratos usados pelo front que ainda dependem de evolucao no back
 
@@ -52,15 +47,12 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 ## Pendencias especificas da tela Control Room
 
 1. Substituir polling de 30 segundos por SSE, WebSocket ou mecanismo equivalente para visitas, ordens e work queues.
-2. Permitir expandir job list da work queue no template com work instructions, status, sequencia, prioridade, origem/destino e acoes disponiveis.
-3. Expor acoes de work queue: ativar, desativar, associar POW, associar pool/equipamento e despachar.
-4. Expor acoes de work instruction: resetar, cancelar, suspender, retomar, marcar prioridade de fetch e visualizar historico.
-5. Adicionar drill-down de ordem/work instruction com eventos, divergencias, reserva vinculada, item de navio e movimento de patio.
-6. Separar visualmente excecoes: sem fila, sem POW, sem equipamento, sem job list, posicao invalida, reserva bloqueada e divergencia Navio x Patio.
-7. Adicionar painel de CHE/job list por equipamento, mesmo que inicialmente baseado em dados persistidos e nao telemetria real.
-8. Adicionar Quay Monitor inicial quando os contratos de berth/crane estiverem disponiveis.
-9. Adicionar feedback por acao de backend com loading por botao, erro padronizado e `correlationId` quando existir.
-10. Criar teste de componente/e2e para renderizacao visual da job list expandida, acoes de work queue e acoes de work instruction; os helpers de filtro e totalizacao ja possuem teste unitario.
+2. Adicionar drill-down de ordem/work instruction com eventos, divergencias, reserva vinculada, item de navio e movimento de patio.
+3. Separar visualmente excecoes: sem fila, sem POW, sem equipamento, sem job list, posicao invalida, reserva bloqueada e divergencia Navio x Patio.
+4. Adicionar painel de CHE/job list por equipamento, mesmo que inicialmente baseado em dados persistidos e nao telemetria real.
+5. Adicionar Quay Monitor inicial quando os contratos de berth/crane estiverem disponiveis.
+6. Adicionar feedback por acao de backend com erro padronizado contendo `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp quando existir.
+7. Criar teste de componente/e2e para renderizacao visual completa da job list expandida, acoes de work queue e acoes de work instruction; os helpers e parte das acoes ja possuem teste unitario.
 
 ## Pendencias de DTO e contrato compartilhado
 
@@ -167,8 +159,6 @@ Contratos pendentes:
 ```text
 GET  /visitas-navio/{id}/quay-monitor
 POST /visitas-navio/{id}/crane-plan
-PATCH /visitas-navio/{id}/crane-plan/{cranePlanId}/ativar
-PATCH /visitas-navio/{id}/crane-plan/{cranePlanId}/paradas
 GET  /visitas-navio/{id}/produtividade-cais
 ```
 
@@ -232,7 +222,7 @@ Testes minimos restantes:
 8. Service test para work queues, job list, ativacao/desativacao e dispatch.
 9. Controller test para endpoints `/integracao-patio`.
 10. Contract test entre `servico-navio-siderurgico` e `servico-yard`.
-11. Frontend test para botoes de gerar reservas, gerar ordens, sincronizar, replanejar, filtrar filas, filtrar excecoes, carregar work queues, expandir job list e acionar dispatch/reset/cancelamento.
+11. Frontend e2e para botoes de gerar reservas, gerar ordens, sincronizar, replanejar, filtrar filas, filtrar excecoes, carregar work queues, expandir job list, acionar dispatch/reset/cancelamento e validar feedback visual.
 
 Observabilidade minima restante:
 

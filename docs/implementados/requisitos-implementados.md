@@ -63,6 +63,10 @@ Este documento consolida os textos dos requisitos ja implementados no CloudPort 
 9. Importar `WorkQueuePatioDaVisita` no `AppComponent`, manter estado `workQueuesPatio`, carregar `listarWorkQueuesPatio(visitaId)` dentro de `carregarIntegracaoPatio()` e limpar esse estado quando nao houver visita selecionada.
 10. Disponibilizar helpers de frontend `workQueuesPatioFiltradas()` e `totalJobListWorkQueuesPatio()` para reutilizar filtros de status, berco, bloco/zona, POW, pool e equipamento.
 11. Renderizar `workQueuesPatio` na tela Control Room com cards por fila persistente, exibindo identificador, status, berco, porao, bloco/zona, POW, pool, equipamento, prioridade, total de ordens e sequencia inicial.
+12. Renderizar job list expansivel por work queue persistente no template da Control Room, com sequencia, lote, movimento, origem, destino, prioridade, status e acoes.
+13. Expor acoes operacionais de work queue no frontend: ativar, desativar, editar POW, editar pool operacional, editar equipamento e despachar.
+14. Expor acoes operacionais de work instruction no frontend: resetar e cancelar, mantendo tambem priorizar, suspender e retomar quando aplicavel.
+15. Adicionar loading por acao operacional usando chave de execucao por botao e feedback de sucesso/erro padronizado no painel.
 
 ## Work queues e contratos de patio implementados no backend
 
@@ -144,17 +148,20 @@ GET /api/public/v1/yard/reservations?visitaNavioId={id}
 1. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.ts` possui a interface `WorkQueuePatioDaVisita`.
 2. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.ts` possui o metodo `listarWorkQueuesPatio(visitaId)`.
 3. O metodo `listarWorkQueuesPatio(visitaId)` chama `GET /visitas-navio/{id}/integracao-patio/work-queues`.
-4. `frontend/servico-navio-siderurgico/src/app/app.component.ts` consome o contrato no carregamento do Control Room e mantem `workQueuesPatio` sincronizado com a visita selecionada.
-5. `frontend/servico-navio-siderurgico/src/app/app.component.html` renderiza cards basicos de work queues persistentes com filtro reaproveitado por status e berco/bloco/zona.
-
-Observacao: os cards basicos estao implementados. A job list expansivel no template, as acoes de work queue, o dispatch visual e as acoes de work instruction ainda permanecem pendentes em `docs/requisitos/modulo-navios-back-front-gaps.md`.
+4. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.ts` possui contratos TypeScript `AtualizacaoWorkQueuePow`, `AtualizacaoWorkQueueEquipamento`, `DispatchWorkQueue` e `ResultadoDispatchWorkQueue`.
+5. O frontend consome diretamente os contratos operacionais do yard para ativar/desativar work queue, editar POW/pool/equipamento, despachar work queue, resetar work instruction e cancelar work instruction.
+6. `frontend/servico-navio-siderurgico/src/app/app.component.ts` consome o contrato no carregamento do Control Room e mantem `workQueuesPatio` sincronizado com a visita selecionada.
+7. `frontend/servico-navio-siderurgico/src/app/app.component.html` renderiza cards de work queues persistentes com job list expansivel, formularios de POW/pool/equipamento e botoes de dispatch/reset/cancelamento.
+8. `frontend/servico-navio-siderurgico/src/app/app.component.css` define layout responsivo para a lista de work queues, formulario operacional compacto e tabela expandida de job list.
 
 ## Testes de contrato frontend implementados
 
 1. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.spec.ts` valida que `SiderurgicoApiService.listarWorkQueuesPatio(42)` consome `GET /visitas-navio/42/integracao-patio/work-queues` apos carregar `assets/configuracao.json`.
 2. O teste cobre o payload TypeScript `WorkQueuePatioDaVisita` com `jobList` de `OrdemPatioDaVisita`, preservando campos de berco, porao, bloco/zona, POW, pool operacional, equipamento, prioridade operacional e total de ordens.
-3. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida os helpers do Control Room que filtram work queues por status, berco/bloco/zona, POW, pool e equipamento.
-4. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida a memoria de calculo `totalJobListWorkQueuesPatio()`, somando job list real e usando `totalOrdens` quando o detalhe expandido ainda nao foi retornado.
+3. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.spec.ts` valida os contratos de `PATCH /yard/patio/work-queues/{id}/ativar`, `/desativar`, `/pow`, `/equipamento`, `POST /yard/patio/work-queues/{id}/dispatch`, `POST /yard/patio/work-instructions/{id}/reset` e `/cancelar`.
+4. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida os helpers do Control Room que filtram work queues por status, berco/bloco/zona, POW, pool e equipamento.
+5. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida a memoria de calculo `totalJobListWorkQueuesPatio()`, somando job list real e usando `totalOrdens` quando o detalhe expandido ainda nao foi retornado.
+6. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida controle de expansao de job list, estado de edicao operacional por work queue e atualizacao local apos ativacao.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -181,18 +188,19 @@ Observacao: os cards basicos estao implementados. A job list expansivel no templ
 21. Criar contrato inicial de work queues de patio no `servico-yard`.
 22. Listar work queues por visita via `GET /yard/patio/work-queues?visitaNavioId={id}`.
 23. Criar work queue por `POST /yard/patio/work-queues`.
-24. Ativar e desativar work queue pelo backend.
-25. Associar POW, pool operacional e equipamento a work queue pelo backend.
-26. Expor job list de work queue pelo backend.
-27. Executar dispatch basico de work queue pelo backend.
-28. Resetar e cancelar work instructions pelo contrato de patio.
-29. Expor work queues da visita no modulo de navio em `/visitas-navio/{id}/integracao-patio/work-queues`.
-30. Criar contratos publicos iniciais `/api/public/v1/vessel-visits`, stow plan, yard orders, work queues, events e yard reservations.
-31. Adicionar contrato TypeScript `WorkQueuePatioDaVisita` e metodo frontend para consultar work queues.
-32. Validar por teste unitario de service Angular o contrato `GET /visitas-navio/{id}/integracao-patio/work-queues`.
-33. Carregar work queues persistentes no `AppComponent` por `carregarIntegracaoPatio()` e manter estado `workQueuesPatio` para a visita selecionada.
-34. Renderizar cards basicos de work queues persistentes no Control Room.
-35. Cobrir por teste unitario de componente os helpers `workQueuesPatioFiltradas()` e `totalJobListWorkQueuesPatio()`.
+24. Ativar e desativar work queue pelo backend e frontend.
+25. Associar POW, pool operacional e equipamento a work queue pelo backend e frontend.
+26. Expor job list de work queue pelo backend e renderizar job list expansivel no frontend.
+27. Executar dispatch basico de work queue pelo backend e pelo frontend.
+28. Resetar e cancelar work instructions pelo contrato de patio e pelo frontend.
+29. Expor work queues da visita no modulo de navio.
+30. Adicionar contrato TypeScript `WorkQueuePatioDaVisita` e metodo frontend para consultar work queues.
+31. Validar por teste unitario de service Angular o contrato `GET /visitas-navio/{id}/integracao-patio/work-queues`.
+32. Carregar work queues persistentes no `AppComponent` por `carregarIntegracaoPatio()` e manter estado `workQueuesPatio` para a visita selecionada.
+33. Renderizar cards basicos de work queues persistentes no Control Room.
+34. Cobrir por teste unitario de componente os helpers `workQueuesPatioFiltradas()` e `totalJobListWorkQueuesPatio()`.
+35. Cobrir por teste unitario os contratos de ativacao, desativacao, POW, equipamento, dispatch, reset e cancelamento de work queue/work instruction.
+36. Cobrir por teste unitario a expansao de job list e a atualizacao local de status apos acao operacional de work queue.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

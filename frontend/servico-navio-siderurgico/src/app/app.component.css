@@ -130,6 +130,12 @@
   background: #f8fbff;
 }
 
+.compact-form {
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  align-items: end;
+  margin-top: 12px;
+}
+
 label {
   display: grid;
   gap: 4px;
@@ -236,7 +242,8 @@ tr.selected {
 .badge.ERRO,
 .badge.BLOQUEADA,
 .badge.CRITICA,
-.badge.ALTA {
+.badge.ALTA,
+.badge.INATIVA {
   background: #fee2e2;
   color: #991b1b;
 }
@@ -294,25 +301,6 @@ tr.selected {
   margin-top: 4px;
 }
 
-.progress-box {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.progress-line {
-  height: 10px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #e2e8f0;
-}
-
-.progress-line span {
-  display: block;
-  height: 100%;
-  background: #2563eb;
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -362,6 +350,15 @@ tr.selected {
 
 .patio-summary {
   grid-template-columns: repeat(5, minmax(120px, 1fr));
+}
+
+.work-queue-list {
+  display: grid;
+  gap: 12px;
+}
+
+.work-queue-card .table-wrap {
+  margin-top: 12px;
 }
 
 .alert-list {
@@ -429,6 +426,7 @@ tr.selected {
   .grid-two.wide-left,
   .form-grid,
   .control-room-toolbar,
+  .compact-form,
   .detail-grid,
   .detail-grid.compact,
   .patio-summary {

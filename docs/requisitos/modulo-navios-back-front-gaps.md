@@ -1,10 +1,24 @@
 # Requisitos pendentes - CloudPort
 
-## Regra desta pasta
+## Instrucoes obrigatorias para agentes de IA
 
-Esta pasta deve manter somente este arquivo Markdown: `docs/requisitos/modulo-navios-back-front-gaps.md`.
+Esta pasta deve manter um unico arquivo: `docs/requisitos/modulo-navios-back-front-gaps.md`.
 
-Tudo que ja foi implementado deve ficar consolidado no arquivo unico `docs/implementados/requisitos-implementados.md`. Nao criar relatorios de execucao automatica, historicos soltos ou novos arquivos de requisito nesta pasta. Ao concluir um item, remover daqui e registrar no arquivo unico de implementados.
+Nao criar `README.md`, `AGENTS.md`, relatorios de execucao automatica, historicos por data, rascunhos ou novos arquivos de requisito dentro de `docs/requisitos`. Este arquivo e o ponto unico de manutencao de tudo que ainda falta fazer.
+
+Todo agente de IA deve atualizar este mesmo arquivo sempre que analisar, implementar ou descobrir lacunas. Itens concluidos devem ser removidos daqui e consolidados no arquivo unico de implementados (`docs/implementados/requisitos-implementados.md`). Novas lacunas encontradas na base de conhecimento, no codigo, nas APIs, nas telas do frontend, nos contratos, nos testes, nas metricas ou nas memorias de calculo devem ser adicionadas aqui.
+
+Se existir outro arquivo dentro de `docs/requisitos`, o agente deve consolidar o conteudo util neste arquivo e remover o arquivo excedente no mesmo PR. Nao deixar conteudo duplicado entre requisitos pendentes e implementados.
+
+## Rotina obrigatoria de atualizacao
+
+1. Antes de desenvolver, ler este arquivo e `docs/implementados/requisitos-implementados.md`.
+2. Durante a analise, manter aqui somente requisitos ainda pendentes.
+3. Apos desenvolver, remover daqui tudo que foi implementado.
+4. Registrar o que foi entregue em `docs/implementados/requisitos-implementados.md`.
+5. Acrescentar aqui novas lacunas encontradas na base de conhecimento e no codigo, incluindo APIs, telas do frontend, contratos de API, testes, observabilidade e memorias de calculo.
+6. Manter nomes de endpoints, DTOs, telas, servicos, entidades e contratos alinhados ao codigo.
+7. Nao criar arquivos adicionais nesta pasta.
 
 ## Escopo deste arquivo
 

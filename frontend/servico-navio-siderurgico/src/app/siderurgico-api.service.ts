@@ -234,6 +234,28 @@ export interface WorkQueuePatioDaVisita {
   atualizadoEm?: string | null;
 }
 
+export interface AtualizacaoWorkQueuePow {
+  pow?: string | null;
+  poolOperacional?: string | null;
+}
+
+export interface AtualizacaoWorkQueueEquipamento {
+  equipamento?: string | null;
+}
+
+export interface DispatchWorkQueue {
+  limiteOrdens?: number | null;
+  operador?: string | null;
+  observacao?: string | null;
+}
+
+export interface ResultadoDispatchWorkQueue {
+  workQueueId: number;
+  totalOrdensDespachadas: number;
+  ordens: OrdemPatioDaVisita[];
+  mensagem?: string | null;
+}
+
 export interface AlertaIntegracaoNavioPatio {
   tipo: string;
   severidade: string;
@@ -394,6 +416,34 @@ export class SiderurgicoApiService {
 
   listarWorkQueuesPatio(visitaId: number): Promise<WorkQueuePatioDaVisita[]> {
     return firstValueFrom(this.http.get<WorkQueuePatioDaVisita[]>(`${this.baseApiUrl}/visitas-navio/${visitaId}/integracao-patio/work-queues`).pipe(timeout(5000)));
+  }
+
+  ativarWorkQueuePatio(workQueueId: number): Promise<WorkQueuePatioDaVisita> {
+    return firstValueFrom(this.http.patch<WorkQueuePatioDaVisita>(`${this.baseApiUrl}/yard/patio/work-queues/${workQueueId}/ativar`, {}).pipe(timeout(5000)));
+  }
+
+  desativarWorkQueuePatio(workQueueId: number): Promise<WorkQueuePatioDaVisita> {
+    return firstValueFrom(this.http.patch<WorkQueuePatioDaVisita>(`${this.baseApiUrl}/yard/patio/work-queues/${workQueueId}/desativar`, {}).pipe(timeout(5000)));
+  }
+
+  atualizarPowWorkQueuePatio(workQueueId: number, atualizacao: AtualizacaoWorkQueuePow): Promise<WorkQueuePatioDaVisita> {
+    return firstValueFrom(this.http.patch<WorkQueuePatioDaVisita>(`${this.baseApiUrl}/yard/patio/work-queues/${workQueueId}/pow`, atualizacao).pipe(timeout(5000)));
+  }
+
+  atualizarEquipamentoWorkQueuePatio(workQueueId: number, atualizacao: AtualizacaoWorkQueueEquipamento): Promise<WorkQueuePatioDaVisita> {
+    return firstValueFrom(this.http.patch<WorkQueuePatioDaVisita>(`${this.baseApiUrl}/yard/patio/work-queues/${workQueueId}/equipamento`, atualizacao).pipe(timeout(5000)));
+  }
+
+  despacharWorkQueuePatio(workQueueId: number, dispatch: DispatchWorkQueue = {}): Promise<ResultadoDispatchWorkQueue> {
+    return firstValueFrom(this.http.post<ResultadoDispatchWorkQueue>(`${this.baseApiUrl}/yard/patio/work-queues/${workQueueId}/dispatch`, dispatch).pipe(timeout(5000)));
+  }
+
+  resetarWorkInstructionPatio(workInstructionId: number): Promise<OrdemPatioDaVisita> {
+    return firstValueFrom(this.http.post<OrdemPatioDaVisita>(`${this.baseApiUrl}/yard/patio/work-instructions/${workInstructionId}/reset`, {}).pipe(timeout(5000)));
+  }
+
+  cancelarWorkInstructionPatio(workInstructionId: number): Promise<OrdemPatioDaVisita> {
+    return firstValueFrom(this.http.post<OrdemPatioDaVisita>(`${this.baseApiUrl}/yard/patio/work-instructions/${workInstructionId}/cancelar`, {}).pipe(timeout(5000)));
   }
 
   listarOrdensSemCoberturaPatio(visitaId: number): Promise<OrdemPatioDaVisita[]> {

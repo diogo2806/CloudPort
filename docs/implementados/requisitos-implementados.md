@@ -162,6 +162,8 @@ GET /api/public/v1/yard/reservations?visitaNavioId={id}
 4. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida os helpers do Control Room que filtram work queues por status, berco/bloco/zona, POW, pool e equipamento.
 5. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida a memoria de calculo `totalJobListWorkQueuesPatio()`, somando job list real e usando `totalOrdens` quando o detalhe expandido ainda nao foi retornado.
 6. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida controle de expansao de job list, estado de edicao operacional por work queue e atualizacao local apos ativacao.
+7. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida ativacao, desativacao, edicao de POW/pool, edicao de equipamento, dispatch com limite operacional, reset de work instruction e cancelamento de work instruction no estado local do Control Room.
+8. A memoria de calculo do dispatch no componente usa `totalOrdensDespachadas` do backend e faz fallback para o tamanho de `ordens` quando necessario.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -201,6 +203,7 @@ GET /api/public/v1/yard/reservations?visitaNavioId={id}
 34. Cobrir por teste unitario de componente os helpers `workQueuesPatioFiltradas()` e `totalJobListWorkQueuesPatio()`.
 35. Cobrir por teste unitario os contratos de ativacao, desativacao, POW, equipamento, dispatch, reset e cancelamento de work queue/work instruction.
 36. Cobrir por teste unitario a expansao de job list e a atualizacao local de status apos acao operacional de work queue.
+37. Cobrir por teste unitario as acoes de componente de dispatch, reset e cancelamento, incluindo payload enviado ao service e substituicao local de work instruction.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

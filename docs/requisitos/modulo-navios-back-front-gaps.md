@@ -52,7 +52,7 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 4. Adicionar painel de CHE/job list por equipamento, mesmo que inicialmente baseado em dados persistidos e nao telemetria real.
 5. Adicionar Quay Monitor inicial quando os contratos de berth/crane estiverem disponiveis.
 6. Adicionar feedback por acao de backend com erro padronizado contendo `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp quando existir.
-7. Criar teste de componente/e2e para renderizacao visual completa da job list expandida, acoes de work queue e acoes de work instruction; os helpers e parte das acoes ja possuem teste unitario.
+7. Criar teste e2e para renderizacao visual completa da job list expandida, acoes de work queue e acoes de work instruction; os fluxos principais ja possuem cobertura unitaria de componente.
 
 ## Pendencias de DTO e contrato compartilhado
 
@@ -70,7 +70,7 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 1. Testar no backend o proxy `/visitas-navio/{id}/integracao-patio/work-queues` com sucesso, falha do yard e retorno vazio controlado.
 2. Testar compatibilidade dos DTOs `WorkQueuePatioDaVisita`, `OrdemPatioDaVisita`, `ReservaPatioNavio` e `AlertaIntegracaoNavioPatio` com respostas reais do backend.
 3. Criar contract test entre `servico-navio-siderurgico` e `servico-yard` para work queues, job list, dispatch, reset e cancelamento.
-4. Criar testes e2e ou componentes para a tela Control Room: filtros integrados, event stream, expandir job list, dispatch, reset/cancelamento e exibicao de erros.
+4. Criar testes e2e para a tela Control Room: filtros integrados, event stream, expandir job list, dispatch, reset/cancelamento e exibicao de erros.
 5. Criar teste de regressao para garantir que endpoints existentes no service Angular tenham acao de tela ou estejam marcados explicitamente como API tecnica.
 6. Criar validacao de build para impedir divergencia entre endpoints documentados neste requisito e metodos do `SiderurgicoApiService`.
 
@@ -274,7 +274,7 @@ Observabilidade minima restante:
 17. Todo contrato backend usado pelo modulo Navio + Patio deve possuir consumo de frontend, teste de contrato ou justificativa de endpoint tecnico.
 18. Toda acao operacional exposta no frontend deve enviar payload completo com usuario, motivo quando aplicavel, origem da acao e `correlationId` quando existir.
 19. A tela Control Room deve diferenciar visualmente fila derivada, work queue persistente, work instruction, job list e excecao operacional.
-20. Helpers de tela que sustentam filtros e memorias de calculo do Control Room devem ter teste unitario antes de evolucoes visuais mais complexas.
+20. A tela Control Room deve manter cobertura e2e dos fluxos criticos, alem da cobertura unitaria ja existente para helpers, memorias de calculo e acoes principais de work queue/work instruction.
 
 ## Fora do escopo deste corte
 

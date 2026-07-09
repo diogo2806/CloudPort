@@ -153,7 +153,8 @@ Observacao: os cards basicos estao implementados. A job list expansivel no templ
 
 1. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.spec.ts` valida que `SiderurgicoApiService.listarWorkQueuesPatio(42)` consome `GET /visitas-navio/42/integracao-patio/work-queues` apos carregar `assets/configuracao.json`.
 2. O teste cobre o payload TypeScript `WorkQueuePatioDaVisita` com `jobList` de `OrdemPatioDaVisita`, preservando campos de berco, porao, bloco/zona, POW, pool operacional, equipamento, prioridade operacional e total de ordens.
-3. Esta entrega cobre apenas a regressao de contrato do service Angular. A renderizacao visual basica dos cards foi adicionada depois; testes de componente/e2e seguem pendentes.
+3. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida os helpers do Control Room que filtram work queues por status, berco/bloco/zona, POW, pool e equipamento.
+4. `frontend/servico-navio-siderurgico/src/app/app.component.spec.ts` valida a memoria de calculo `totalJobListWorkQueuesPatio()`, somando job list real e usando `totalOrdens` quando o detalhe expandido ainda nao foi retornado.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -191,6 +192,7 @@ Observacao: os cards basicos estao implementados. A job list expansivel no templ
 32. Validar por teste unitario de service Angular o contrato `GET /visitas-navio/{id}/integracao-patio/work-queues`.
 33. Carregar work queues persistentes no `AppComponent` por `carregarIntegracaoPatio()` e manter estado `workQueuesPatio` para a visita selecionada.
 34. Renderizar cards basicos de work queues persistentes no Control Room.
+35. Cobrir por teste unitario de componente os helpers `workQueuesPatioFiltradas()` e `totalJobListWorkQueuesPatio()`.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

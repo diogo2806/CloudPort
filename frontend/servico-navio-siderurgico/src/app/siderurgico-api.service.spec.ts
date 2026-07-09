@@ -2,7 +2,15 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 
-import { SiderurgicoApiService, WorkQueuePatioDaVisita } from './siderurgico-api.service';
+import {
+  AlertaIntegracaoNavioPatio,
+  OrdemPatioDaVisita,
+  RelatorioOperacionalIntegrado,
+  ReservaPatioNavio,
+  ResultadoReplanejamentoPatioNavio,
+  SiderurgicoApiService,
+  WorkQueuePatioDaVisita
+} from './siderurgico-api.service';
 
 describe('SiderurgicoApiService', () => {
   let service: SiderurgicoApiService;
@@ -98,6 +106,77 @@ describe('SiderurgicoApiService', () => {
     cancelarRequest.flush({ ...criarWorkQueue().jobList[0], statusOrdem: 'CANCELADA' });
     await expectAsync(cancelar).toBeResolved();
   });
+
+  it('deve validar contratos frontend de reservas, ordens, excecoes e alertas da integracao Patio', async () => {
+    await carregarConfiguracao();
+
+    const reserva = criarReserva();
+    const criarReservas = service.gerarReservasPatio(42, 'DEFINITIVA');
+    const criarReservasRequest = http.expectOne('http://localhost:8081/api/visitas-navio/42/integracao-patio/reservas');
+    expect(criarReservasRequest.request.method).toBe('POST');
+    expect(criarReservasRequest.request.body).toEqual({ tipoReserva: 'DEFINITIVA', somentePendentes: true });
+    criarReservasRequest.flush([reserva]);
+    await expectAsync(criarReservas).toBeResolvedTo([reserva]);
+
+    const listarReservas = service.listarReservasPatio(42);
+    const listarReservasRequest = http.expectOne('http://localhost:8081/api/visitas-navio/42/integracao-patio/reservas');
+    expect(listarReservasRequest.request.method).toBe('GET');
+    listarReservasRequest.flush([reserva]);
+    await expectAsync(listarReservas).toBeResolvedTo([reserva]);
+
+    const ordem = criarOrdem();
+    const listarOrdens = service.listarOrdensPatio(42);
+    const listarOrdensRequest = http.expectOne('http://localhost:8081/api/visitas-navio/42/integracao-patio/ordens');
+    expect(listarOrdensRequest.request.method).toBe('GET');
+    listarOrdensRequest.flush([ordem]);
+    await expectAsync(listarOrdens).toBeResolvedTo([ordem]);
+
+    const semCobertura = service.listarOrdensSemCoberturaPatio(42);
+    const semCoberturaRequest = http.expectOne('http://localhost:8081/api/visitas-navio/42/integracao-patio/sem-cobertura');
+    expect(semCoberturaRequest.request.method).toBe('GET');
+    semCoberturaRequest.flush([ordem]);
+    await expectAsync(semCobertura).toBeResolvedTo([ordem]);
+
+    const alerta = criarAlerta();
+    const alertas = service.listarAlertasIntegracaoPatio(42);
+    const alertasRequest = http.expectOne('http://localhost:8081/api/visitas-navio/42/integracao-patio/alertas');
+    expect(alertasRequest.request.method).toBe('GET');
+    alertasRequest.flush([alerta]);
+    await expectAsync(alertas).toBeResolvedTo([alerta]);
+  });
+
+  it('deve validar contratos frontend de geracao de ordens, sincronizacao, replanejamento e relatorio integrado', async () => {
+    await carregarConfiguracao();
+
+    const geracao = service.gerarOrdensPatio(42, 'DESCARGA');
+    const geracaoRequest = http.expectOne('http://localhost:8081/api/visitas-navio/42/integracao-patio/gerar-ordens');
+    expect(geracaoRequest.request.method).toBe('POST');
+    expect(geracaoRequest.request.body).toEqual({ tipoMovimento: 'DESCARGA', modo: 'SOMENTE_PENDENTES', gerarReservasAutomaticas: true });
+    geracaoRequest.flush({ totalOrdensCriadas: 1, totalItensIgnorados: 0, totalItensComErro: 0, errosPorItem: [], alertas: [] });
+    await expectAsync(geracao).toBeResolved();
+
+    const sincronizacao = service.sincronizarStatusPatio(42);
+    const sincronizacaoRequest = http.expectOne('http://localhost:8081/api/visitas-navio/42/integracao-patio/sincronizar-status');
+    expect(sincronizacaoRequest.request.method).toBe('POST');
+    expect(sincronizacaoRequest.request.body).toEqual({});
+    sincronizacaoRequest.flush({ visitaNavioId: 42, totalItens: 1, itensComReserva: 1, itensComOrdem: 1, itensSemReserva: 0, itensSemOrdem: 0, ordensEmExecucao: 1, ordensConcluidas: 0, totalAlertas: 0, statusPredominante: 'EM_EXECUCAO' });
+    await expectAsync(sincronizacao).toBeResolved();
+
+    const replanejamentoResposta = criarResultadoReplanejamento();
+    const replanejamento = service.replanejarPatioVisita(42, true);
+    const replanejamentoRequest = http.expectOne('http://localhost:8081/api/visitas-navio/42/integracao-patio/replanejar');
+    expect(replanejamentoRequest.request.method).toBe('POST');
+    expect(replanejamentoRequest.request.body).toEqual({ aplicar: true });
+    replanejamentoRequest.flush(replanejamentoResposta);
+    await expectAsync(replanejamento).toBeResolvedTo(replanejamentoResposta);
+
+    const relatorio = criarRelatorioIntegrado();
+    const consultaRelatorio = service.obterRelatorioOperacionalIntegrado(42);
+    const relatorioRequest = http.expectOne('http://localhost:8081/api/visitas-navio/42/relatorio-operacional-integrado');
+    expect(relatorioRequest.request.method).toBe('GET');
+    relatorioRequest.flush(relatorio);
+    await expectAsync(consultaRelatorio).toBeResolvedTo(relatorio);
+  });
 });
 
 function criarWorkQueue(): WorkQueuePatioDaVisita {
@@ -116,19 +195,98 @@ function criarWorkQueue(): WorkQueuePatioDaVisita {
     status: 'ATIVA',
     prioridadeOperacional: 1,
     totalOrdens: 1,
-    jobList: [
-      {
-        id: 99,
-        visitaNavioId: 42,
-        itemOperacaoNavioId: 7,
-        codigoLote: 'LOTE-001',
-        tipoMovimento: 'DESCARGA',
-        statusOrdem: 'PENDENTE',
-        origem: 'NAVIO',
-        destino: 'A-01-01',
-        sequenciaNavio: 1,
-        prioridadeOperacional: 1
-      }
-    ]
+    jobList: [criarOrdem()]
+  };
+}
+
+function criarOrdem(): OrdemPatioDaVisita {
+  return {
+    id: 99,
+    visitaNavioId: 42,
+    itemOperacaoNavioId: 7,
+    codigoLote: 'LOTE-001',
+    tipoMovimento: 'DESCARGA',
+    statusOrdem: 'PENDENTE',
+    origem: 'NAVIO',
+    destino: 'A-01-01',
+    sequenciaNavio: 1,
+    prioridadeOperacional: 1
+  };
+}
+
+function criarReserva(): ReservaPatioNavio {
+  return {
+    id: 20,
+    visitaNavioId: 42,
+    itemOperacaoNavioId: 7,
+    posicaoPatioId: 'A-01-01',
+    bloco: 'A',
+    linha: 1,
+    coluna: 1,
+    camada: '1',
+    tipoReserva: 'DEFINITIVA',
+    status: 'ATIVA'
+  };
+}
+
+function criarAlerta(): AlertaIntegracaoNavioPatio {
+  return {
+    tipo: 'SEM_EQUIPAMENTO',
+    severidade: 'ALTA',
+    visitaNavioId: 42,
+    itemOperacaoNavioId: 7,
+    ordemTrabalhoPatioId: 99,
+    mensagem: 'Work instruction sem CHE associado.'
+  };
+}
+
+function criarResultadoReplanejamento(): ResultadoReplanejamentoPatioNavio {
+  return {
+    reservasSugeridas: [criarReserva()],
+    ordensReordenadas: [criarOrdem()],
+    economiaEstimadaDistanciaPercentual: 12,
+    riscoRehandle: 'BAIXO',
+    alertasImpeditivos: [],
+    itensNaoReplanejados: []
+  };
+}
+
+function criarRelatorioIntegrado(): RelatorioOperacionalIntegrado {
+  return {
+    visita: {
+      id: 42,
+      navioId: 1,
+      navioNome: 'MV CloudPort',
+      codigoVisita: 'VIS-42',
+      fase: 'OPERANDO'
+    },
+    resumoOperacional: {
+      totalItensPlanejados: 1,
+      totalItensOperados: 0,
+      pesoPlanejado: 10,
+      pesoOperado: 0,
+      percentualProgresso: 0,
+      divergenciasPoraoPosicao: 0,
+      itensBloqueados: 0,
+      tempoOperacaoMinutos: null
+    },
+    resumoIntegracao: {
+      visitaNavioId: 42,
+      totalItens: 1,
+      itensComReserva: 1,
+      itensComOrdem: 1,
+      itensSemReserva: 0,
+      itensSemOrdem: 0,
+      ordensEmExecucao: 0,
+      ordensConcluidas: 0,
+      totalAlertas: 1,
+      statusPredominante: 'ORDEM_GERADA'
+    },
+    planoEstiva: null,
+    itens: [],
+    reservasPatio: [criarReserva()],
+    ordensPatio: [criarOrdem()],
+    divergenciasAlertas: [criarAlerta()],
+    eventosRelevantes: []
   };
 }

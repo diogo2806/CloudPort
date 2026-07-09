@@ -28,7 +28,7 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 
 ### A. Contratos existentes no back sem uso completo no front
 
-1. `GET /yard/patio/work-queues/{id}/job-list`: o backend do yard dispoe de job list por fila, mas o frontend do modulo de navio ainda precisa exibir a job list expansivel da work queue persistente.
+1. `GET /yard/patio/work-queues/{id}/job-list`: o backend do yard dispoe de job list por fila, mas o frontend do modulo de navio ainda precisa exibir a job list expansivel da work queue persistente no template, com linhas de work instruction/ordem e acoes permitidas.
 2. `POST /yard/patio/work-queues/{id}/dispatch`: falta botao/fluxo no frontend para despachar uma work queue e exibir o resultado do dispatch.
 3. `PATCH /yard/patio/work-queues/{id}/ativar` e `/desativar`: falta acao de ativar/desativar work queue na tela.
 4. `PATCH /yard/patio/work-queues/{id}/pow` e `/equipamento`: falta formulario de associacao/edicao de POW, pool operacional e equipamento.
@@ -52,7 +52,7 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 ## Pendencias especificas da tela Control Room
 
 1. Substituir polling de 30 segundos por SSE, WebSocket ou mecanismo equivalente para visitas, ordens e work queues.
-2. Permitir expandir job list da work queue com work instructions, status, sequencia, prioridade, origem/destino e acoes disponiveis.
+2. Permitir expandir job list da work queue no template com work instructions, status, sequencia, prioridade, origem/destino e acoes disponiveis.
 3. Expor acoes de work queue: ativar, desativar, associar POW, associar pool/equipamento e despachar.
 4. Expor acoes de work instruction: resetar, cancelar, suspender, retomar, marcar prioridade de fetch e visualizar historico.
 5. Adicionar drill-down de ordem/work instruction com eventos, divergencias, reserva vinculada, item de navio e movimento de patio.
@@ -60,6 +60,7 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 7. Adicionar painel de CHE/job list por equipamento, mesmo que inicialmente baseado em dados persistidos e nao telemetria real.
 8. Adicionar Quay Monitor inicial quando os contratos de berth/crane estiverem disponiveis.
 9. Adicionar feedback por acao de backend com loading por botao, erro padronizado e `correlationId` quando existir.
+10. Criar teste de componente/e2e para renderizacao visual da job list expandida, acoes de work queue e acoes de work instruction; os helpers de filtro e totalizacao ja possuem teste unitario.
 
 ## Pendencias de DTO e contrato compartilhado
 
@@ -75,12 +76,11 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 ## Pendencias de testes de integracao Back x Front
 
 1. Testar no backend o proxy `/visitas-navio/{id}/integracao-patio/work-queues` com sucesso, falha do yard e retorno vazio controlado.
-2. Testar no frontend que `carregarIntegracaoPatio()` chama tambem `listarWorkQueuesPatio()` e renderiza cards basicos quando o backend retorna work queues persistentes.
-3. Testar compatibilidade dos DTOs `WorkQueuePatioDaVisita`, `OrdemPatioDaVisita`, `ReservaPatioNavio` e `AlertaIntegracaoNavioPatio` com respostas reais do backend.
-4. Criar contract test entre `servico-navio-siderurgico` e `servico-yard` para work queues, job list, dispatch, reset e cancelamento.
-5. Criar testes e2e ou componentes para a tela Control Room: filtros, event stream, expandir job list, dispatch, reset/cancelamento e exibicao de erros.
-6. Criar teste de regressao para garantir que endpoints existentes no service Angular tenham acao de tela ou estejam marcados explicitamente como API tecnica.
-7. Criar validacao de build para impedir divergencia entre endpoints documentados neste requisito e metodos do `SiderurgicoApiService`.
+2. Testar compatibilidade dos DTOs `WorkQueuePatioDaVisita`, `OrdemPatioDaVisita`, `ReservaPatioNavio` e `AlertaIntegracaoNavioPatio` com respostas reais do backend.
+3. Criar contract test entre `servico-navio-siderurgico` e `servico-yard` para work queues, job list, dispatch, reset e cancelamento.
+4. Criar testes e2e ou componentes para a tela Control Room: filtros integrados, event stream, expandir job list, dispatch, reset/cancelamento e exibicao de erros.
+5. Criar teste de regressao para garantir que endpoints existentes no service Angular tenham acao de tela ou estejam marcados explicitamente como API tecnica.
+6. Criar validacao de build para impedir divergencia entre endpoints documentados neste requisito e metodos do `SiderurgicoApiService`.
 
 ## P0 - Pendencias obrigatorias restantes
 
@@ -232,7 +232,7 @@ Testes minimos restantes:
 8. Service test para work queues, job list, ativacao/desativacao e dispatch.
 9. Controller test para endpoints `/integracao-patio`.
 10. Contract test entre `servico-navio-siderurgico` e `servico-yard`.
-11. Frontend test para botoes de gerar reservas, gerar ordens, sincronizar, replanejar, filtrar filas, filtrar excecoes e carregar work queues.
+11. Frontend test para botoes de gerar reservas, gerar ordens, sincronizar, replanejar, filtrar filas, filtrar excecoes, carregar work queues, expandir job list e acionar dispatch/reset/cancelamento.
 
 Observabilidade minima restante:
 
@@ -284,6 +284,7 @@ Observabilidade minima restante:
 17. Todo contrato backend usado pelo modulo Navio + Patio deve possuir consumo de frontend, teste de contrato ou justificativa de endpoint tecnico.
 18. Toda acao operacional exposta no frontend deve enviar payload completo com usuario, motivo quando aplicavel, origem da acao e `correlationId` quando existir.
 19. A tela Control Room deve diferenciar visualmente fila derivada, work queue persistente, work instruction, job list e excecao operacional.
+20. Helpers de tela que sustentam filtros e memorias de calculo do Control Room devem ter teste unitario antes de evolucoes visuais mais complexas.
 
 ## Fora do escopo deste corte
 

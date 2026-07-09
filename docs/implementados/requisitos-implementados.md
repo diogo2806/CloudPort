@@ -1,10 +1,22 @@
 # Requisitos implementados - CloudPort
 
-## Regra desta pasta
+## Instrucoes obrigatorias para agentes de IA
 
-Esta pasta deve manter somente este arquivo Markdown: `docs/implementados/requisitos-implementados.md`.
+Esta pasta deve manter um unico arquivo: `docs/implementados/requisitos-implementados.md`.
 
-Todo requisito ja entregue deve ser consolidado aqui. Nao criar arquivos temporarios, relatorios de execucao automatica ou historicos separados nesta pasta. Quando um item pendente de `docs/requisitos/modulo-navios-back-front-gaps.md` for concluido, remover do arquivo de pendencias e registrar aqui no mesmo arquivo unico.
+Nao criar `README.md`, `AGENTS.md`, arquivos de evidencia, logs de execucao, historicos por data, rascunhos ou novos documentos dentro de `docs/implementados`. Este arquivo e o ponto unico de manutencao de tudo que ja foi implementado.
+
+Todo agente de IA deve atualizar este mesmo arquivo quando concluir qualquer requisito. O texto implementado deve sair do arquivo unico de requisitos pendentes (`docs/requisitos/modulo-navios-back-front-gaps.md`) e entrar aqui com descricao objetiva do que foi entregue, incluindo APIs, telas do frontend, contratos, DTOs, testes, metricas e memorias de calculo quando existirem.
+
+Se existir outro arquivo dentro de `docs/implementados`, o agente deve consolidar o conteudo util neste arquivo e remover o arquivo excedente no mesmo PR. Nao deixar conteudo duplicado entre implementados e requisitos pendentes.
+
+## Rotina obrigatoria de atualizacao
+
+1. Antes de desenvolver, ler este arquivo e `docs/requisitos/modulo-navios-back-front-gaps.md`.
+2. Apos desenvolver, remover de `docs/requisitos/modulo-navios-back-front-gaps.md` tudo que foi implementado.
+3. Registrar aqui a entrega sem duplicar pendencias.
+4. Manter nomes de endpoints, DTOs, telas, servicos, entidades e contratos alinhados ao codigo.
+5. Nao criar arquivos adicionais nesta pasta.
 
 ## Escopo deste arquivo
 

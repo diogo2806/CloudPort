@@ -169,6 +169,74 @@ describe('AppComponent - Control Room work queues', () => {
     expect(component.workQueuesPatio[0].jobList[1].statusOrdem).toBe('CANCELADA');
     expect(component.sucesso).toBe('Work instruction cancelada.');
   });
+
+  it('deve atualizar prioridade operacional da work instruction e recarregar integracao', async () => {
+    const workQueue = criarWorkQueues()[0];
+    const ordemPriorizada = { ...workQueue.jobList[0], prioridadeOperacional: 9 } as OrdemPatioDaVisita;
+    const carregarIntegracaoPatio = jasmine.createSpy().and.resolveTo(undefined);
+    const api = {
+      atualizarPrioridadeOrdemPatio: jasmine.createSpy().and.resolveTo(ordemPriorizada)
+    } as unknown as SiderurgicoApiService;
+    component = new AppComponent(api);
+    (component as unknown as { carregarIntegracaoPatio: () => Promise<void> }).carregarIntegracaoPatio = carregarIntegracaoPatio;
+    component.visitaSelecionada = { id: 42 } as any;
+    component.workQueuesPatio = [workQueue];
+    component.ordensPatio = [...workQueue.jobList];
+    component.definirPrioridadeOrdem(workQueue.jobList[0], 9);
+
+    await component.atualizarPrioridadeOrdem(workQueue.jobList[0]);
+
+    expect(api.atualizarPrioridadeOrdemPatio).toHaveBeenCalledWith(42, 99, 9);
+    expect(carregarIntegracaoPatio).toHaveBeenCalled();
+    expect(component.ordensPatio[0].prioridadeOperacional).toBe(9);
+    expect(component.workQueuesPatio[0].jobList[0].prioridadeOperacional).toBe(9);
+    expect(component.sucesso).toBe('Prioridade da ordem atualizada no yard.');
+  });
+
+  it('deve suspender work instruction e atualizar a job list expandida', async () => {
+    const workQueue = criarWorkQueues()[0];
+    const ordemSuspensa = { ...workQueue.jobList[0], statusOrdem: 'SUSPENSA' } as OrdemPatioDaVisita;
+    const carregarIntegracaoPatio = jasmine.createSpy().and.resolveTo(undefined);
+    const api = {
+      suspenderOrdemPatio: jasmine.createSpy().and.resolveTo(ordemSuspensa)
+    } as unknown as SiderurgicoApiService;
+    component = new AppComponent(api);
+    (component as unknown as { carregarIntegracaoPatio: () => Promise<void> }).carregarIntegracaoPatio = carregarIntegracaoPatio;
+    component.visitaSelecionada = { id: 42 } as any;
+    component.workQueuesPatio = [workQueue];
+    component.ordensPatio = [...workQueue.jobList];
+
+    await component.suspenderOrdemPatio(workQueue.jobList[0]);
+
+    expect(api.suspenderOrdemPatio).toHaveBeenCalledWith(42, 99);
+    expect(carregarIntegracaoPatio).toHaveBeenCalled();
+    expect(component.ordensPatio[0].statusOrdem).toBe('SUSPENSA');
+    expect(component.workQueuesPatio[0].jobList[0].statusOrdem).toBe('SUSPENSA');
+    expect(component.sucesso).toBe('Ordem suspensa no yard.');
+  });
+
+  it('deve retomar work instruction suspensa e atualizar a job list expandida', async () => {
+    const workQueue = criarWorkQueues()[0];
+    const ordemSuspensa = { ...workQueue.jobList[0], statusOrdem: 'SUSPENSA' } as OrdemPatioDaVisita;
+    const ordemRetomada = { ...ordemSuspensa, statusOrdem: 'PENDENTE' } as OrdemPatioDaVisita;
+    const carregarIntegracaoPatio = jasmine.createSpy().and.resolveTo(undefined);
+    const api = {
+      retomarOrdemPatio: jasmine.createSpy().and.resolveTo(ordemRetomada)
+    } as unknown as SiderurgicoApiService;
+    component = new AppComponent(api);
+    (component as unknown as { carregarIntegracaoPatio: () => Promise<void> }).carregarIntegracaoPatio = carregarIntegracaoPatio;
+    component.visitaSelecionada = { id: 42 } as any;
+    component.workQueuesPatio = [{ ...workQueue, jobList: [ordemSuspensa, workQueue.jobList[1]] }];
+    component.ordensPatio = [ordemSuspensa, workQueue.jobList[1]];
+
+    await component.retomarOrdemPatio(ordemSuspensa);
+
+    expect(api.retomarOrdemPatio).toHaveBeenCalledWith(42, 99);
+    expect(carregarIntegracaoPatio).toHaveBeenCalled();
+    expect(component.ordensPatio[0].statusOrdem).toBe('PENDENTE');
+    expect(component.workQueuesPatio[0].jobList[0].statusOrdem).toBe('PENDENTE');
+    expect(component.sucesso).toBe('Ordem retomada no yard.');
+  });
 });
 
 function criarWorkQueues(): WorkQueuePatioDaVisita[] {

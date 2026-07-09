@@ -144,6 +144,12 @@ GET /api/public/v1/yard/reservations?visitaNavioId={id}
 
 Observacao: o contrato e o metodo do service Angular estao implementados, mas o consumo visual completo no `AppComponent` e na tela Control Room ainda permanece pendente e esta registrado em `docs/requisitos/modulo-navios-back-front-gaps.md`.
 
+## Testes de contrato frontend implementados
+
+1. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.spec.ts` valida que `SiderurgicoApiService.listarWorkQueuesPatio(42)` consome `GET /visitas-navio/42/integracao-patio/work-queues` apos carregar `assets/configuracao.json`.
+2. O teste cobre o payload TypeScript `WorkQueuePatioDaVisita` com `jobList` de `OrdemPatioDaVisita`, preservando campos de berco, porao, bloco/zona, POW, pool operacional, equipamento, prioridade operacional e total de ordens.
+3. Esta entrega cobre apenas a regressao de contrato do service Angular. O estado `workQueuesPatio`, os cards persistentes no Control Room e a job list expansivel no `AppComponent` continuam pendentes em `docs/requisitos/modulo-navios-back-front-gaps.md`.
+
 ## Itens que nao devem voltar como pendencia principal
 
 1. Criar visita de navio.
@@ -177,6 +183,7 @@ Observacao: o contrato e o metodo do service Angular estao implementados, mas o 
 29. Expor work queues da visita no modulo de navio em `/visitas-navio/{id}/integracao-patio/work-queues`.
 30. Criar contratos publicos iniciais `/api/public/v1/vessel-visits`, stow plan, yard orders, work queues, events e yard reservations.
 31. Adicionar contrato TypeScript `WorkQueuePatioDaVisita` e metodo frontend para consultar work queues.
+32. Validar por teste unitario de service Angular o contrato `GET /visitas-navio/{id}/integracao-patio/work-queues`.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 
@@ -188,6 +195,7 @@ docs/requisitos/execucao-automatica-cloudport-20260708-2139.md
 docs/requisitos/execucao-automatica-cloudport-20260708-2238.md
 docs/requisitos/execucao-automatica-cloudport-20260709-0630.md
 docs/requisitos/execucao-automatica-cloudport-20260709-1030.md
+docs/requisitos/execucao-automatica-cloudport-20260709-1038.md
 docs/requisitos/execucao-automatica-cloudport-20260709-claudeport-fallback.md
 docs/requisitos/execucao-automatica-cloudport-20260709-frontend-workqueues.md
 ```

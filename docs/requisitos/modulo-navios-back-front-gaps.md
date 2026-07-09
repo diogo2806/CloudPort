@@ -1,160 +1,44 @@
-# Requisito Back/Front - Pendencias restantes pos-integracao Navio + Patio
+# Requisitos pendentes - CloudPort
 
-## Objetivo
+## Regra desta pasta
 
-Atualizar o requisito considerando o desenvolvimento mais recente do modulo Navio + Patio e a base de conhecimento N4 Vessel, Equipment Control, Control Room, EVP/API e EDI.
+Esta pasta deve manter somente este arquivo Markdown: `docs/requisitos/modulo-navios-back-front-gaps.md`.
 
-O primeiro corte entregou a integracao basica entre visita de navio e patio: vinculos entre item de navio, reserva, ordem, movimento e posicao de patio; endpoints `/visitas-navio/{id}/integracao-patio/*`; campos de origem/destino Navio/Patio em ordens de trabalho; painel Angular Navio + Patio com KPIs, reservas, ordens, alertas, replanejamento e relatorio integrado.
+Tudo que ja foi implementado deve ficar consolidado no arquivo unico `docs/implementados/requisitos-implementados.md`. Nao criar relatorios de execucao automatica, historicos soltos ou novos arquivos de requisito nesta pasta. Ao concluir um item, remover daqui e registrar no arquivo unico de implementados.
 
-O segundo corte entregou a visao operacional inicial de filas e excecoes: o `servico-navio-siderurgico` passou a consultar o `servico-yard` para listar filas por visita e ordens sem cobertura; o frontend passou a exibir uma area Control Room com filtros de status, berco/bloco/zona, severidade, movimentos iminentes, filas/POW operacionais, ordens sem cobertura e auto-refresh por polling.
+## Escopo deste arquivo
 
-O corte atual adiciona o primeiro contrato executavel de work queues no `servico-yard`, expondo filas persistentes ou derivadas por visita, job list por fila, ativacao/desativacao, associacao de POW, pool e equipamento, dispatch basico e reset/cancelamento de work instructions. Tambem adiciona proxy no modulo de navio para listar work queues da visita e contratos publicos `/api/public/v1` para visitas, stow plan, yard orders, work queues, eventos e reservas.
+Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo Navio + Patio, Control Room, contratos externos, testes e observabilidade. Itens ja entregues foram removidos desta pasta e consolidados em `docs/implementados/requisitos-implementados.md`.
 
-Este documento remove do escopo pendente o que ja foi implementado e mantem como pendencia apenas o que ainda falta para transformar o modulo em execucao operacional real aderente a fila de patio, controle de equipamento, monitoramento e integracoes externas.
-
-## Base de conhecimento considerada
-
-A base N4 Vessel mostra que o fluxo de navio envolve visita, descarga, preplan, planejamento de carga, plano de guindaste e inbound stow plan. Para o CloudPort, a lacuna principal continua sendo ligar plano do navio, sequencia operacional, descarga/carga, berth/quay/crane planning e execucao real no patio.
-
-A base N4 Equipment Control mostra que a execucao depende de work queues, work instructions, job lists, CHE, pools, points of work, zone coverage, dispatch, monitoramento de progresso, cancelamento, reset, rehandle e controle de equipamento. Para o CloudPort, o corte atual cobre o contrato inicial de work queue e job list, mas CHE real, cobertura, telemetria e historico operacional completo continuam pendentes.
-
-A base N4 Control Room mostra uma visao operacional integrada de patio, vessel information, alertas, CHE detail panel, job lists, work instructions, movimentos iminentes, Quay Monitor, uncovered moves e RTG optimization. Para o CloudPort, o painel atual cobre uma primeira visao operacional, mas ainda nao possui WebSocket/SSE real, CHE detail panel real, job list de equipamento, envio de mensagem para operador, Quay Monitor completo e drill-down operacional completo.
-
-A base EVP/API indica que integracoes modernas devem expor contratos de API, filtros, paginacao, campos selecionaveis e sincronizacao por plataforma de eventos/dados, sem depender de acesso direto ao banco. Para o CloudPort, o corte atual abriu os contratos `/api/public/v1`; ainda faltam paginacao, fields selecionaveis, autenticacao por client/app, correlationId e contrato de erro padronizado.
-
-A base EDI indica que mensagens como BAPLIE, COPRAR, COARRI e fluxos SFTP/EDI sao parte natural da operacao de navio. Para o CloudPort, EDI permanece evolucao: ainda falta criar ou atualizar visita, stow plan, reservas, ordens e eventos operacionais a partir desses fluxos.
-
-## O que nao deve voltar como pendencia
-
-Nao reabrir como requisito principal:
-
-1. Criar visita de navio.
-2. Criar item operacional de embarque, descarga e restow.
-3. Criar plano de estiva por visita.
-4. Criar eventos e resumo operacional da visita.
-5. Criar endpoints basicos `/visitas-navio`.
-6. Criar endpoints basicos `/visitas-navio/{id}/integracao-patio`.
-7. Criar entidade simples de reserva de patio vinculada ao item.
-8. Adicionar campos de integracao em `ItemOperacaoNavio`.
-9. Adicionar campos de visita/item/plano em `OrdemTrabalhoPatio`.
-10. Criar painel Angular inicial Navio + Patio.
-11. Criar alertas basicos de integracao.
-12. Criar relatorio operacional integrado basico.
-13. Criar ordem real no `servico-yard` por endpoint interno `/yard/patio/ordens/navio`.
-14. Impedir ordem ativa duplicada por `visitaNavioId + itemOperacaoNavioId` no `servico-yard`.
-15. Expor no `servico-yard` filas operacionais por visita em `/yard/patio/ordens/visita-navio/{visitaNavioId}/filas`.
-16. Expor no `servico-yard` ordens sem cobertura em `/yard/patio/ordens/visita-navio/{visitaNavioId}/sem-cobertura`.
-17. Expor no `servico-navio-siderurgico` o proxy de filas em `/visitas-navio/{id}/integracao-patio/filas`.
-18. Expor no `servico-navio-siderurgico` o proxy de excecoes em `/visitas-navio/{id}/integracao-patio/sem-cobertura`.
-19. Criar contrato frontend `FilaPatioDaVisita` e consumo dos endpoints de filas/excecoes.
-20. Exibir no frontend uma primeira visao Control Room com filtros, movimentos iminentes, filas/POW, ordens sem cobertura e auto-refresh por polling.
-21. Criar contrato inicial de work queues de patio no `servico-yard`.
-22. Listar work queues por visita via `GET /yard/patio/work-queues?visitaNavioId={id}`.
-23. Criar work queue por `POST /yard/patio/work-queues`.
-24. Ativar e desativar work queue.
-25. Associar POW, pool operacional e equipamento a work queue.
-26. Expor job list de work queue.
-27. Executar dispatch basico de work queue para ordens pendentes.
-28. Resetar e cancelar work instructions pelo contrato de patio.
-29. Expor work queues da visita no modulo de navio em `/visitas-navio/{id}/integracao-patio/work-queues`.
-30. Criar contratos publicos iniciais `/api/public/v1/vessel-visits`, stow plan, yard orders, work queues, events e yard reservations.
-31. Adicionar contrato TypeScript `WorkQueuePatioDaVisita` e metodo frontend para consultar work queues.
-
-## Contratos de API implementados neste corte
-
-### Yard
-
-```text
-GET  /yard/patio/work-queues?visitaNavioId={id}
-POST /yard/patio/work-queues
-PATCH /yard/patio/work-queues/{id}/ativar
-PATCH /yard/patio/work-queues/{id}/desativar
-PATCH /yard/patio/work-queues/{id}/pow
-PATCH /yard/patio/work-queues/{id}/equipamento
-GET  /yard/patio/work-queues/{id}/job-list
-POST /yard/patio/work-queues/{id}/dispatch
-POST /yard/patio/work-instructions/{id}/reset
-POST /yard/patio/work-instructions/{id}/cancelar
-```
-
-Contrato resumido de `WorkQueuePatioRespostaDto`:
-
-```json
-{
-  "id": 1,
-  "identificador": "VISITA-10|B1|A|POW-01",
-  "agrupamento": "WORK_QUEUE_PATIO",
-  "visitaNavioId": 10,
-  "berco": "B1",
-  "porao": 2,
-  "blocoZona": "A",
-  "sequenciaInicial": 1,
-  "pow": "POW-01",
-  "poolOperacional": "POOL-RTG",
-  "equipamento": "RTG-01",
-  "status": "ATIVA",
-  "prioridadeOperacional": 1,
-  "totalOrdens": 4,
-  "jobList": []
-}
-```
-
-### Navio Siderurgico
-
-```text
-GET /visitas-navio/{id}/integracao-patio/work-queues
-```
-
-Retorna work queues persistentes ou derivadas da visita, consultando o `servico-yard` quando disponivel.
-
-### Public API v1
-
-```text
-GET /api/public/v1/vessel-visits
-GET /api/public/v1/vessel-visits/{id}
-GET /api/public/v1/vessel-visits/{id}/stow-plan
-GET /api/public/v1/vessel-visits/{id}/yard-orders
-GET /api/public/v1/vessel-visits/{id}/work-queues
-GET /api/public/v1/vessel-visits/{id}/events
-GET /api/public/v1/yard/orders?visitaNavioId={id}&status={status}
-GET /api/public/v1/yard/reservations?visitaNavioId={id}
-```
-
-## Telas e contratos de frontend implementados neste corte
-
-O frontend `frontend/servico-navio-siderurgico` recebeu o contrato `WorkQueuePatioDaVisita` e o metodo `listarWorkQueuesPatio(visitaId)`, apontando para o proxy de navio. A tela Control Room continua exibindo o painel operacional de filas, movimentos iminentes, ordens, reservas, alertas e excecoes; a proxima evolucao deve trocar os agrupamentos exibidos por cards completos de work queue persistente, com POW, pool, equipamento e job list expandivel.
-
-## Levantamento atual de pendencias de integracao Back x Front
-
-Esta lista consolida as lacunas encontradas entre os contratos de backend ja expostos e o que o frontend realmente consome ou permite operar hoje. O objetivo e transformar pendencias soltas em backlog rastreavel por tela, contrato e acao de usuario.
+## Pendencias de integracao Back x Front
 
 ### A. Contratos existentes no back sem uso completo no front
 
-1. `GET /visitas-navio/{id}/integracao-patio/work-queues`: o service Angular possui o metodo `listarWorkQueuesPatio`, mas o `AppComponent` ainda nao importa `WorkQueuePatioDaVisita`, nao mantem estado `workQueuesPatio`, nao chama o metodo em `carregarIntegracaoPatio()` e nao renderiza cards de work queue persistente.
-2. `GET /yard/patio/work-queues/{id}/job-list`: o backend do yard dispoe de job list por fila, mas o frontend do modulo de navio ainda exibe apenas agrupamentos antigos de `FilaPatioDaVisita`, sem expandir a job list da work queue persistente.
-3. `POST /yard/patio/work-queues/{id}/dispatch`: o backend ja possui dispatch basico, mas nao ha botao/fluxo no frontend para despachar uma work queue nem exibir o resultado do dispatch.
-4. `PATCH /yard/patio/work-queues/{id}/ativar` e `/desativar`: o backend ja altera status da fila, mas a tela nao oferece ativar/desativar work queue.
-5. `PATCH /yard/patio/work-queues/{id}/pow` e `/equipamento`: o backend ja permite associar POW, pool e equipamento, mas a tela nao possui formulario de associacao/edicao.
-6. `POST /yard/patio/work-instructions/{id}/reset` e `/cancelar`: o backend ja possui reset/cancelamento, mas o front so opera prioridade, suspensao e retomada da ordem; falta expor reset/cancelamento da work instruction.
-7. `POST /visitas-navio/{id}/plano-estiva/{planoId}/concluir`: o backend possui conclusao de plano de estiva, mas o frontend so cria, edita posicoes e valida; falta acao de concluir/publicar plano.
-8. `PUT /visitas-navio/{id}` e `PUT /visitas-navio/{id}/itens/{itemId}`: o backend possui atualizacao completa de visita e item, mas o frontend so cria e altera status/bloqueio; falta edicao operacional completa.
-9. `DELETE /visitas-navio/{id}` e `DELETE /visitas-navio/{id}/itens/{itemId}`: o backend possui exclusao, mas o frontend nao possui fluxo de exclusao/cancelamento administrativo diferenciado.
-10. `/api/public/v1/*`: contratos publicos existem no backend para integracao externa, mas nao ha tela de validacao/diagnostico no front para testar filtros, resposta, erros, correlationId ou payloads externos.
+1. `GET /visitas-navio/{id}/integracao-patio/work-queues`: o service Angular possui `listarWorkQueuesPatio`, mas o `AppComponent` ainda precisa importar `WorkQueuePatioDaVisita`, manter estado `workQueuesPatio`, chamar o metodo em `carregarIntegracaoPatio()` e renderizar cards de work queue persistente.
+2. `GET /yard/patio/work-queues/{id}/job-list`: o backend do yard dispoe de job list por fila, mas o frontend do modulo de navio ainda precisa exibir a job list da work queue persistente.
+3. `POST /yard/patio/work-queues/{id}/dispatch`: falta botao/fluxo no frontend para despachar uma work queue e exibir o resultado do dispatch.
+4. `PATCH /yard/patio/work-queues/{id}/ativar` e `/desativar`: falta acao de ativar/desativar work queue na tela.
+5. `PATCH /yard/patio/work-queues/{id}/pow` e `/equipamento`: falta formulario de associacao/edicao de POW, pool operacional e equipamento.
+6. `POST /yard/patio/work-instructions/{id}/reset` e `/cancelar`: falta expor reset/cancelamento da work instruction no frontend.
+7. `POST /visitas-navio/{id}/plano-estiva/{planoId}/concluir`: falta acao de concluir/publicar plano de estiva no frontend.
+8. `PUT /visitas-navio/{id}` e `PUT /visitas-navio/{id}/itens/{itemId}`: falta edicao operacional completa de visita e item.
+9. `DELETE /visitas-navio/{id}` e `DELETE /visitas-navio/{id}/itens/{itemId}`: falta fluxo de exclusao/cancelamento administrativo diferenciado.
+10. `/api/public/v1/*`: falta tela de validacao/diagnostico para testar filtros, respostas, erros, `correlationId` e payloads externos.
 
 ### B. Contratos usados pelo front que ainda dependem de evolucao no back
 
-1. `POST /visitas-navio/{id}/integracao-patio/sincronizar-status`: hoje e acionado manualmente pela tela; falta evento/callback/job de reconciliacao para atualizar Navio automaticamente quando o Yard mudar status de ordem.
-2. `POST /visitas-navio/{id}/integracao-patio/replanejar`: o front permite simular/aplicar, mas o back ainda precisa garantir uso exclusivo de mapa real, bloqueios, capacidade e cancelamento/criacao auditada de reservas.
-3. `POST /visitas-navio/{id}/integracao-patio/reservas`: o front gera reservas, mas falta no back fechar consumo, cancelamento, expiracao e auditoria completa ligada ao movimento real.
-4. `POST /visitas-navio/{id}/integracao-patio/gerar-ordens`: o front gera ordens, mas falta rastrear a transicao completa da work instruction, historico de dispatch e associacao fisica a CHE/POW/pool.
-5. `PATCH /visitas-navio/{id}/integracao-patio/ordens/{ordemId}/prioridade`: o front permite priorizar, mas falta diferenciar prioridade operacional de prioridade de fetch/busca e auditar a alteracao.
-6. `PATCH /visitas-navio/{id}/integracao-patio/ordens/{ordemId}/suspender` e `/retomar`: o front opera suspensao/retomada, mas falta matriz oficial de transicao, motivo obrigatorio, usuario, auditoria e evento operacional.
-7. `GET /visitas-navio/{id}/integracao-patio/filas` e `/sem-cobertura`: o front consome, mas a separacao entre sem fila, sem POW, sem equipamento e sem job list ainda precisa vir estruturada do back.
-8. `GET /visitas-navio/{id}/relatorio-operacional-integrado`: o front apenas mostra contadores resumidos; o back ainda precisa fornecer secoes exportaveis, produtividade, divergencias detalhadas e comparativo planejado x realizado.
+1. `POST /visitas-navio/{id}/integracao-patio/sincronizar-status`: hoje e acionado manualmente; falta evento, callback ou job de reconciliacao para atualizar Navio automaticamente quando o Yard mudar status de ordem.
+2. `POST /visitas-navio/{id}/integracao-patio/replanejar`: falta garantir uso exclusivo de mapa real, bloqueios, capacidade e cancelamento/criacao auditada de reservas.
+3. `POST /visitas-navio/{id}/integracao-patio/reservas`: falta fechar consumo, cancelamento, expiracao e auditoria completa ligada ao movimento real.
+4. `POST /visitas-navio/{id}/integracao-patio/gerar-ordens`: falta rastrear transicao completa da work instruction, historico de dispatch e associacao fisica a CHE/POW/pool.
+5. `PATCH /visitas-navio/{id}/integracao-patio/ordens/{ordemId}/prioridade`: falta diferenciar prioridade operacional de prioridade de fetch/busca e auditar a alteracao.
+6. `PATCH /visitas-navio/{id}/integracao-patio/ordens/{ordemId}/suspender` e `/retomar`: falta matriz oficial de transicao, motivo obrigatorio, usuario, auditoria e evento operacional.
+7. `GET /visitas-navio/{id}/integracao-patio/filas` e `/sem-cobertura`: falta retornar separacao estruturada entre sem fila, sem POW, sem equipamento e sem job list.
+8. `GET /visitas-navio/{id}/relatorio-operacional-integrado`: falta fornecer secoes exportaveis, produtividade, divergencias detalhadas e comparativo planejado x realizado.
 
-### C. Pendencias especificas da tela Control Room
+## Pendencias especificas da tela Control Room
 
-1. Substituir o polling de 30 segundos por SSE/WebSocket ou mecanismo equivalente para visitas, ordens e work queues.
+1. Substituir polling de 30 segundos por SSE, WebSocket ou mecanismo equivalente para visitas, ordens e work queues.
 2. Criar estado e renderizacao de `workQueuesPatio` com cards por fila persistente, exibindo identificador, status, berco, porao, bloco/zona, POW, pool, equipamento, prioridade e total de ordens.
 3. Permitir expandir job list da work queue com work instructions, status, sequencia, prioridade, origem/destino e acoes disponiveis.
 4. Expor acoes de work queue: ativar, desativar, associar POW, associar pool/equipamento e despachar.
@@ -163,26 +47,26 @@ Esta lista consolida as lacunas encontradas entre os contratos de backend ja exp
 7. Separar visualmente excecoes: sem fila, sem POW, sem equipamento, sem job list, posicao invalida, reserva bloqueada e divergencia Navio x Patio.
 8. Adicionar painel de CHE/job list por equipamento, mesmo que inicialmente baseado em dados persistidos e nao telemetria real.
 9. Adicionar Quay Monitor inicial quando os contratos de berth/crane estiverem disponiveis.
-10. Adicionar feedback por acao de backend com loading por botao, erro padronizado e correlationId quando existir.
+10. Adicionar feedback por acao de backend com loading por botao, erro padronizado e `correlationId` quando existir.
 
-### D. Pendencias de DTO/contrato compartilhado
+## Pendencias de DTO e contrato compartilhado
 
 1. Criar resposta paginada padronizada para listas grandes no back e adaptar o front para pagina, tamanho, total e ordenacao.
 2. Padronizar enums entre backend e frontend para status de visita, item, ordem, reserva, work queue, severidade e alerta.
-3. Padronizar contrato de erro com codigo, mensagem, detalhes, correlationId e timestamp.
+3. Padronizar contrato de erro com codigo, mensagem, detalhes, `correlationId` e timestamp.
 4. Adicionar `usuario`, `motivo`, `origemAcao` e `correlationId` nos comandos operacionais enviados pelo frontend.
 5. Criar contratos OpenAPI para o modulo Navio + Patio e gerar/validar tipos TypeScript a partir do contrato.
 6. Evitar duplicacao de conversao de `WorkQueuePatioYardDTO` em controladores diferentes do modulo de navio, centralizando mapper/adapter.
 7. Diferenciar DTO resumido de lista e DTO detalhado de work queue/job list para reduzir payload em atualizacoes frequentes.
-8. Definir contrato de evento de frontend para SSE/WebSocket: tipo, entidade, id, visitaNavioId, payload resumido, versao e data.
+8. Definir contrato de evento de frontend para SSE/WebSocket: tipo, entidade, id, `visitaNavioId`, payload resumido, versao e data.
 
-### E. Pendencias de testes de integracao Back x Front
+## Pendencias de testes de integracao Back x Front
 
 1. Testar no backend o proxy `/visitas-navio/{id}/integracao-patio/work-queues` com sucesso, falha do yard e retorno vazio controlado.
 2. Testar no frontend que `carregarIntegracaoPatio()` chama tambem `listarWorkQueuesPatio()` quando a tela passar a renderizar work queues persistentes.
-3. Testar a compatibilidade dos DTOs `WorkQueuePatioDaVisita`, `OrdemPatioDaVisita`, `ReservaPatioNavio` e `AlertaIntegracaoNavioPatio` com respostas reais do backend.
+3. Testar compatibilidade dos DTOs `WorkQueuePatioDaVisita`, `OrdemPatioDaVisita`, `ReservaPatioNavio` e `AlertaIntegracaoNavioPatio` com respostas reais do backend.
 4. Criar contract test entre `servico-navio-siderurgico` e `servico-yard` para work queues, job list, dispatch, reset e cancelamento.
-5. Criar testes e2e ou componentes para a tela Control Room: filtros, auto-refresh/event stream, expandir job list, dispatch, reset/cancelamento e exibicao de erros.
+5. Criar testes e2e ou componentes para a tela Control Room: filtros, event stream, expandir job list, dispatch, reset/cancelamento e exibicao de erros.
 6. Criar teste de regressao para garantir que endpoints existentes no service Angular tenham acao de tela ou estejam marcados explicitamente como API tecnica.
 7. Criar validacao de build para impedir divergencia entre endpoints documentados neste requisito e metodos do `SiderurgicoApiService`.
 
@@ -190,7 +74,7 @@ Esta lista consolida as lacunas encontradas entre os contratos de backend ja exp
 
 ### 1. Sincronizacao real e automatica Patio -> Navio
 
-A sincronizacao manual existe, mas a operacao precisa reagir automaticamente quando a ordem de patio muda.
+A operacao precisa reagir automaticamente quando a ordem de patio mudar.
 
 Regras minimas:
 
@@ -216,7 +100,7 @@ DivergenciaNavioPatioDetectada
 
 ### 2. Validar e reservar contra o mapa real do patio em todo o ciclo
 
-A ordem real no yard ja valida destino contra posicao real quando origem e navio. Ainda falta fechar o ciclo completo de reserva, consumo, cancelamento, expiracao e auditoria entre `ReservaPosicaoPatioNavio`, ocupacao real, bloqueios e movimento concluido.
+Falta fechar o ciclo completo de reserva, consumo, cancelamento, expiracao e auditoria entre `ReservaPosicaoPatioNavio`, ocupacao real, bloqueios e movimento concluido.
 
 Regras minimas:
 
@@ -232,22 +116,22 @@ Regras minimas:
 
 ### 3. Work queues, POW, CHE e cobertura operacional real - segunda etapa
 
-O corte atual cria o contrato inicial de work queues, job list e dispatch. Ainda falta evoluir para cobertura operacional real com entidade de equipamento/CHE, historico detalhado e vinculo fisico com POW/pool.
+Falta evoluir para cobertura operacional real com entidade de equipamento/CHE, historico detalhado e vinculo fisico com POW/pool.
 
-Requisito restante:
+Requisitos restantes:
 
-- Persistir historico de dispatch, suspensao, retomada, bloqueio, reset, cancelamento e conclusao.
-- Associar work queue a porao, plano de guindaste e recurso de cais quando o modulo Quay/Crane existir.
-- Associar fila a CHE real quando o modulo de equipamentos existir.
-- Permitir marcar ordem como prioridade de busca/fetch de forma auditavel.
-- Distinguir ordens sem fila, sem POW, sem equipamento e sem job list.
-- Criar matriz oficial de transicao de work instruction.
-- Expor painel de job list por equipamento no frontend.
-- Permitir drill-down da work instruction com eventos e divergencias.
+1. Persistir historico de dispatch, suspensao, retomada, bloqueio, reset, cancelamento e conclusao.
+2. Associar work queue a porao, plano de guindaste e recurso de cais quando o modulo Quay/Crane existir.
+3. Associar fila a CHE real quando o modulo de equipamentos existir.
+4. Permitir marcar ordem como prioridade de busca/fetch de forma auditavel.
+5. Distinguir ordens sem fila, sem POW, sem equipamento e sem job list.
+6. Criar matriz oficial de transicao de work instruction.
+7. Expor painel de job list por equipamento no frontend.
+8. Permitir drill-down da work instruction com eventos e divergencias.
 
 ### 4. Replanejamento usando otimizacao real de patio
 
-O replanejamento atual ainda pode sugerir posicoes artificiais no formato `RP-{visitaId}-{sequencia}`. A proxima entrega deve usar o motor real de patio, considerando ocupacao, distancia, rehandle, sequencia de navio e disponibilidade operacional.
+O replanejamento deve usar o motor real de patio, considerando ocupacao, distancia, rehandle, sequencia de navio e disponibilidade operacional.
 
 Regras minimas:
 
@@ -264,7 +148,7 @@ Regras minimas:
 
 ### 5. Quay/berth/crane planning ligado ao patio
 
-A base Vessel indica plano de guindaste e planejamento de carga/descarga. A base Control Room possui Quay Monitor. Falta ligar visita, berco, recurso de cais, guindaste/equipamento e patio.
+Falta ligar visita, berco, recurso de cais, guindaste/equipamento e patio.
 
 Contratos pendentes:
 
@@ -278,8 +162,6 @@ GET  /visitas-navio/{id}/produtividade-cais
 
 ### 6. Control Room quase em tempo real
 
-A tela atual usa polling e cobre uma primeira visao operacional. Falta trocar por atualizacao real por evento e ampliar o drill-down operacional.
-
 Tecnologia alvo:
 
 ```text
@@ -290,17 +172,15 @@ SSE ou WebSocket para /yard/patio/work-queues/stream
 
 ### 7. Contratos externos de API, EVP e EDI
 
-Os contratos publicos iniciais foram criados, mas ainda falta maturidade operacional.
-
 Pendencias dos contratos `/api/public/v1`:
 
-- Autenticacao e autorizacao por client/app.
-- Filtro por facility, terminal, visita, fase, status, periodo e pagina.
-- Campos selecionaveis quando fizer sentido.
-- Paginacao para listas grandes.
-- CorrelationId em chamadas e logs.
-- Contrato de erro padronizado.
-- Documentacao OpenAPI.
+1. Autenticacao e autorizacao por client/app.
+2. Filtro por facility, terminal, visita, fase, status, periodo e pagina.
+3. Campos selecionaveis quando fizer sentido.
+4. Paginacao para listas grandes.
+5. `correlationId` em chamadas e logs.
+6. Contrato de erro padronizado.
+7. Documentacao OpenAPI.
 
 Eventos externos pendentes:
 
@@ -320,11 +200,11 @@ VesselYardDivergenceDetected
 
 EDI pendente:
 
-- BAPLIE para inbound stowage/stow plan.
-- COPRAR para ordens/listas de carga e descarga.
-- COARRI para confirmacao de movimentos.
-- VERMAS quando houver peso verificado.
-- Contratos de importacao, validacao, rejeicao, reprocessamento e auditoria.
+1. BAPLIE para inbound stowage/stow plan.
+2. COPRAR para ordens/listas de carga e descarga.
+3. COARRI para confirmacao de movimentos.
+4. VERMAS quando houver peso verificado.
+5. Contratos de importacao, validacao, rejeicao, reprocessamento e auditoria.
 
 ### 8. Testes, contratos e observabilidade
 
@@ -344,15 +224,15 @@ Testes minimos restantes:
 
 Observabilidade minima restante:
 
-- log com `visitaNavioId`, `itemOperacaoNavioId`, `ordemTrabalhoPatioId`, `workQueueId` e `correlationId`;
-- metrica de ordens criadas por visita;
-- metrica de falhas de sincronizacao;
-- metrica de reservas sem consumo;
-- metrica de divergencias Navio x Patio;
-- metrica de ordens sem cobertura;
-- metrica de dispatch por work queue;
-- metrica de atraso por fila/berco/bloco;
-- tracing entre `servico-navio-siderurgico` e `servico-yard`.
+1. Log com `visitaNavioId`, `itemOperacaoNavioId`, `ordemTrabalhoPatioId`, `workQueueId` e `correlationId`.
+2. Metrica de ordens criadas por visita.
+3. Metrica de falhas de sincronizacao.
+4. Metrica de reservas sem consumo.
+5. Metrica de divergencias Navio x Patio.
+6. Metrica de ordens sem cobertura.
+7. Metrica de dispatch por work queue.
+8. Metrica de atraso por fila/berco/bloco.
+9. Tracing entre `servico-navio-siderurgico` e `servico-yard`.
 
 ## P1 - Pendencias importantes apos o P0
 
@@ -390,15 +270,13 @@ Observabilidade minima restante:
 15. Testes de service, controller, contrato e frontend devem cobrir o fluxo Navio + Patio.
 16. Logs e metricas devem permitir rastrear visita, item, reserva, ordem, fila, work queue e movimento.
 17. Todo contrato backend usado pelo modulo Navio + Patio deve possuir consumo de frontend, teste de contrato ou justificativa de endpoint tecnico.
-18. Toda acao operacional exposta no frontend deve enviar payload completo com usuario, motivo quando aplicavel, origem da acao e correlationId quando existir.
+18. Toda acao operacional exposta no frontend deve enviar payload completo com usuario, motivo quando aplicavel, origem da acao e `correlationId` quando existir.
 19. A tela Control Room deve diferenciar visualmente fila derivada, work queue persistente, work instruction, job list e excecao operacional.
 
 ## Fora do escopo deste corte
 
-- Telemetria real de guindaste, RTG, reach stacker ou terminal tractor.
-- Dispatch direto para VMT real.
-- Motor matematico global multi-recurso.
-- Controle aduaneiro/documental completo.
-- Substituicao integral de um TOS comercial.
-
-O proximo corte deve priorizar sincronizacao automatica Patio -> Navio, consumo/cancelamento real de reservas, replanejamento com mapa real, WebSocket/SSE e drill-down completo de work queue no Control Room.
+1. Telemetria real de guindaste, RTG, reach stacker ou terminal tractor.
+2. Dispatch direto para VMT real.
+3. Motor matematico global multi-recurso.
+4. Controle aduaneiro/documental completo.
+5. Substituicao integral de um TOS comercial.

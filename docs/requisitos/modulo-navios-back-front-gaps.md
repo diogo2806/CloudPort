@@ -28,16 +28,15 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 
 ### A. Contratos existentes no back sem uso completo no front
 
-1. `GET /visitas-navio/{id}/integracao-patio/work-queues`: o service Angular possui `listarWorkQueuesPatio` e o `AppComponent` ja importa `WorkQueuePatioDaVisita`, mantem estado `workQueuesPatio`, carrega o metodo em `carregarIntegracaoPatio()` e mantem helpers de filtro/totalizacao; ainda falta renderizar cards de work queue persistente no template.
-2. `GET /yard/patio/work-queues/{id}/job-list`: o backend do yard dispoe de job list por fila, mas o frontend do modulo de navio ainda precisa exibir a job list da work queue persistente.
-3. `POST /yard/patio/work-queues/{id}/dispatch`: falta botao/fluxo no frontend para despachar uma work queue e exibir o resultado do dispatch.
-4. `PATCH /yard/patio/work-queues/{id}/ativar` e `/desativar`: falta acao de ativar/desativar work queue na tela.
-5. `PATCH /yard/patio/work-queues/{id}/pow` e `/equipamento`: falta formulario de associacao/edicao de POW, pool operacional e equipamento.
-6. `POST /yard/patio/work-instructions/{id}/reset` e `/cancelar`: falta expor reset/cancelamento da work instruction no frontend.
-7. `POST /visitas-navio/{id}/plano-estiva/{planoId}/concluir`: falta acao de concluir/publicar plano de estiva no frontend.
-8. `PUT /visitas-navio/{id}` e `PUT /visitas-navio/{id}/itens/{itemId}`: falta edicao operacional completa de visita e item.
-9. `DELETE /visitas-navio/{id}` e `DELETE /visitas-navio/{id}/itens/{itemId}`: falta fluxo de exclusao/cancelamento administrativo diferenciado.
-10. `/api/public/v1/*`: falta tela de validacao/diagnostico para testar filtros, respostas, erros, `correlationId` e payloads externos.
+1. `GET /yard/patio/work-queues/{id}/job-list`: o backend do yard dispoe de job list por fila, mas o frontend do modulo de navio ainda precisa exibir a job list expansivel da work queue persistente.
+2. `POST /yard/patio/work-queues/{id}/dispatch`: falta botao/fluxo no frontend para despachar uma work queue e exibir o resultado do dispatch.
+3. `PATCH /yard/patio/work-queues/{id}/ativar` e `/desativar`: falta acao de ativar/desativar work queue na tela.
+4. `PATCH /yard/patio/work-queues/{id}/pow` e `/equipamento`: falta formulario de associacao/edicao de POW, pool operacional e equipamento.
+5. `POST /yard/patio/work-instructions/{id}/reset` e `/cancelar`: falta expor reset/cancelamento da work instruction no frontend.
+6. `POST /visitas-navio/{id}/plano-estiva/{planoId}/concluir`: falta acao de concluir/publicar plano de estiva no frontend.
+7. `PUT /visitas-navio/{id}` e `PUT /visitas-navio/{id}/itens/{itemId}`: falta edicao operacional completa de visita e item.
+8. `DELETE /visitas-navio/{id}` e `DELETE /visitas-navio/{id}/itens/{itemId}`: falta fluxo de exclusao/cancelamento administrativo diferenciado.
+9. `/api/public/v1/*`: falta tela de validacao/diagnostico para testar filtros, respostas, erros, `correlationId` e payloads externos.
 
 ### B. Contratos usados pelo front que ainda dependem de evolucao no back
 
@@ -53,15 +52,14 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 ## Pendencias especificas da tela Control Room
 
 1. Substituir polling de 30 segundos por SSE, WebSocket ou mecanismo equivalente para visitas, ordens e work queues.
-2. Renderizar `workQueuesPatio` com cards por fila persistente, exibindo identificador, status, berco, porao, bloco/zona, POW, pool, equipamento, prioridade e total de ordens.
-3. Permitir expandir job list da work queue com work instructions, status, sequencia, prioridade, origem/destino e acoes disponiveis.
-4. Expor acoes de work queue: ativar, desativar, associar POW, associar pool/equipamento e despachar.
-5. Expor acoes de work instruction: resetar, cancelar, suspender, retomar, marcar prioridade de fetch e visualizar historico.
-6. Adicionar drill-down de ordem/work instruction com eventos, divergencias, reserva vinculada, item de navio e movimento de patio.
-7. Separar visualmente excecoes: sem fila, sem POW, sem equipamento, sem job list, posicao invalida, reserva bloqueada e divergencia Navio x Patio.
-8. Adicionar painel de CHE/job list por equipamento, mesmo que inicialmente baseado em dados persistidos e nao telemetria real.
-9. Adicionar Quay Monitor inicial quando os contratos de berth/crane estiverem disponiveis.
-10. Adicionar feedback por acao de backend com loading por botao, erro padronizado e `correlationId` quando existir.
+2. Permitir expandir job list da work queue com work instructions, status, sequencia, prioridade, origem/destino e acoes disponiveis.
+3. Expor acoes de work queue: ativar, desativar, associar POW, associar pool/equipamento e despachar.
+4. Expor acoes de work instruction: resetar, cancelar, suspender, retomar, marcar prioridade de fetch e visualizar historico.
+5. Adicionar drill-down de ordem/work instruction com eventos, divergencias, reserva vinculada, item de navio e movimento de patio.
+6. Separar visualmente excecoes: sem fila, sem POW, sem equipamento, sem job list, posicao invalida, reserva bloqueada e divergencia Navio x Patio.
+7. Adicionar painel de CHE/job list por equipamento, mesmo que inicialmente baseado em dados persistidos e nao telemetria real.
+8. Adicionar Quay Monitor inicial quando os contratos de berth/crane estiverem disponiveis.
+9. Adicionar feedback por acao de backend com loading por botao, erro padronizado e `correlationId` quando existir.
 
 ## Pendencias de DTO e contrato compartilhado
 
@@ -77,7 +75,7 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 ## Pendencias de testes de integracao Back x Front
 
 1. Testar no backend o proxy `/visitas-navio/{id}/integracao-patio/work-queues` com sucesso, falha do yard e retorno vazio controlado.
-2. Testar no frontend que `carregarIntegracaoPatio()` chama tambem `listarWorkQueuesPatio()` quando a tela passar a renderizar work queues persistentes.
+2. Testar no frontend que `carregarIntegracaoPatio()` chama tambem `listarWorkQueuesPatio()` e renderiza cards basicos quando o backend retorna work queues persistentes.
 3. Testar compatibilidade dos DTOs `WorkQueuePatioDaVisita`, `OrdemPatioDaVisita`, `ReservaPatioNavio` e `AlertaIntegracaoNavioPatio` com respostas reais do backend.
 4. Criar contract test entre `servico-navio-siderurgico` e `servico-yard` para work queues, job list, dispatch, reset e cancelamento.
 5. Criar testes e2e ou componentes para a tela Control Room: filtros, event stream, expandir job list, dispatch, reset/cancelamento e exibicao de erros.

@@ -21,7 +21,8 @@ import {
   TipoCarga,
   TipoMovimento,
   ValidacaoPlanoEstiva,
-  VisitaNavio
+  VisitaNavio,
+  WorkQueuePatioDaVisita
 } from './siderurgico-api.service';
 
 @Component({
@@ -38,6 +39,7 @@ export class AppComponent implements OnInit, OnDestroy {
   reservasPatio: ReservaPatioNavio[] = [];
   ordensPatio: OrdemPatioDaVisita[] = [];
   filasPatio: FilaPatioDaVisita[] = [];
+  workQueuesPatio: WorkQueuePatioDaVisita[] = [];
   ordensSemCobertura: OrdemPatioDaVisita[] = [];
   alertasIntegracao: AlertaIntegracaoNavioPatio[] = [];
   visitaSelecionada?: VisitaNavio;
@@ -424,6 +426,24 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.filasPatio.filter(fila => this.correspondeFiltroStatus(fila.status) && this.correspondeFiltroBloco(fila.blocoZona || fila.berco));
   }
 
+  workQueuesPatioFiltradas(): WorkQueuePatioDaVisita[] {
+    return this.workQueuesPatio.filter(workQueue => {
+      const alvoFiltro = [
+        workQueue.identificador,
+        workQueue.berco,
+        workQueue.blocoZona,
+        workQueue.pow,
+        workQueue.poolOperacional,
+        workQueue.equipamento
+      ].filter(Boolean).join(' ');
+      return this.correspondeFiltroStatus(workQueue.status) && this.correspondeFiltroBloco(alvoFiltro);
+    });
+  }
+
+  totalJobListWorkQueuesPatio(): number {
+    return this.workQueuesPatio.reduce((total, workQueue) => total + (workQueue.jobList?.length || workQueue.totalOrdens || 0), 0);
+  }
+
   ordensPatioFiltradas(): OrdemPatioDaVisita[] {
     return this.ordensPatio.filter(ordem => this.correspondeFiltroStatus(ordem.statusOrdem) && this.correspondeFiltroBloco(`${ordem.destino || ''} ${ordem.posicaoPlanejada || ''} ${ordem.origem || ''}`));
   }
@@ -533,6 +553,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.reservasPatio = [];
       this.ordensPatio = [];
       this.filasPatio = [];
+      this.workQueuesPatio = [];
       this.ordensSemCobertura = [];
       this.alertasIntegracao = [];
       this.prioridadesOrdens = {};
@@ -543,6 +564,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.ordensPatio = await this.api.listarOrdensPatio(visitaId);
     this.sincronizarPrioridadesOrdens();
     this.filasPatio = await this.api.listarFilasPatio(visitaId);
+    this.workQueuesPatio = await this.api.listarWorkQueuesPatio(visitaId);
     this.ordensSemCobertura = await this.api.listarOrdensSemCoberturaPatio(visitaId);
     this.alertasIntegracao = await this.api.listarAlertasIntegracaoPatio(visitaId);
     this.ultimaAtualizacaoControlRoom = new Date();
@@ -574,11 +596,17 @@ export class AppComponent implements OnInit, OnDestroy {
       ...fila,
       ordens: fila.ordens.map(ordem => ordem.id === ordemAtualizada.id ? ordemAtualizada : ordem)
     }));
+    this.workQueuesPatio = this.workQueuesPatio.map(workQueue => ({
+      ...workQueue,
+      jobList: (workQueue.jobList || []).map(ordem => ordem.id === ordemAtualizada.id ? ordemAtualizada : ordem)
+    }));
     this.sincronizarPrioridadesOrdens();
   }
 
   private sincronizarPrioridadesOrdens(): void {
-    this.prioridadesOrdens = this.ordensPatio.reduce<Record<number, number>>((acc, ordem) => {
+    const ordensDasWorkQueues = this.workQueuesPatio.flatMap(workQueue => workQueue.jobList || []);
+    const todasOrdens = [...this.ordensPatio, ...ordensDasWorkQueues];
+    this.prioridadesOrdens = todasOrdens.reduce<Record<number, number>>((acc, ordem) => {
       if (ordem.id) {
         acc[ordem.id] = ordem.prioridadeOperacional ?? ordem.sequenciaNavio ?? 0;
       }

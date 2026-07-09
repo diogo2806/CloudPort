@@ -61,7 +61,8 @@ Este documento consolida os textos dos requisitos ja implementados no CloudPort 
 7. Exibir reservas, ordens, alertas e excecoes no painel operacional.
 8. Permitir gerar reservas, gerar ordens, sincronizar status, replanejar, priorizar, suspender e retomar ordens no fluxo atual da tela.
 9. Importar `WorkQueuePatioDaVisita` no `AppComponent`, manter estado `workQueuesPatio`, carregar `listarWorkQueuesPatio(visitaId)` dentro de `carregarIntegracaoPatio()` e limpar esse estado quando nao houver visita selecionada.
-10. Disponibilizar helpers de frontend `workQueuesPatioFiltradas()` e `totalJobListWorkQueuesPatio()` para reutilizar filtros de status, berco, bloco/zona, POW, pool e equipamento quando a renderizacao visual de work queues for completada.
+10. Disponibilizar helpers de frontend `workQueuesPatioFiltradas()` e `totalJobListWorkQueuesPatio()` para reutilizar filtros de status, berco, bloco/zona, POW, pool e equipamento.
+11. Renderizar `workQueuesPatio` na tela Control Room com cards por fila persistente, exibindo identificador, status, berco, porao, bloco/zona, POW, pool, equipamento, prioridade, total de ordens e sequencia inicial.
 
 ## Work queues e contratos de patio implementados no backend
 
@@ -144,14 +145,15 @@ GET /api/public/v1/yard/reservations?visitaNavioId={id}
 2. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.ts` possui o metodo `listarWorkQueuesPatio(visitaId)`.
 3. O metodo `listarWorkQueuesPatio(visitaId)` chama `GET /visitas-navio/{id}/integracao-patio/work-queues`.
 4. `frontend/servico-navio-siderurgico/src/app/app.component.ts` consome o contrato no carregamento do Control Room e mantem `workQueuesPatio` sincronizado com a visita selecionada.
+5. `frontend/servico-navio-siderurgico/src/app/app.component.html` renderiza cards basicos de work queues persistentes com filtro reaproveitado por status e berco/bloco/zona.
 
-Observacao: o contrato e o carregamento do service Angular estao implementados, mas a renderizacao visual completa no template, os cards persistentes no Control Room, as acoes de work queue e a job list expansivel ainda permanecem pendentes em `docs/requisitos/modulo-navios-back-front-gaps.md`.
+Observacao: os cards basicos estao implementados. A job list expansivel no template, as acoes de work queue, o dispatch visual e as acoes de work instruction ainda permanecem pendentes em `docs/requisitos/modulo-navios-back-front-gaps.md`.
 
 ## Testes de contrato frontend implementados
 
 1. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.spec.ts` valida que `SiderurgicoApiService.listarWorkQueuesPatio(42)` consome `GET /visitas-navio/42/integracao-patio/work-queues` apos carregar `assets/configuracao.json`.
 2. O teste cobre o payload TypeScript `WorkQueuePatioDaVisita` com `jobList` de `OrdemPatioDaVisita`, preservando campos de berco, porao, bloco/zona, POW, pool operacional, equipamento, prioridade operacional e total de ordens.
-3. Esta entrega cobre apenas a regressao de contrato do service Angular. A renderizacao visual dos cards persistentes no Control Room e a job list expansivel no template continuam pendentes em `docs/requisitos/modulo-navios-back-front-gaps.md`.
+3. Esta entrega cobre apenas a regressao de contrato do service Angular. A renderizacao visual basica dos cards foi adicionada depois; testes de componente/e2e seguem pendentes.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -188,6 +190,7 @@ Observacao: o contrato e o carregamento do service Angular estao implementados, 
 31. Adicionar contrato TypeScript `WorkQueuePatioDaVisita` e metodo frontend para consultar work queues.
 32. Validar por teste unitario de service Angular o contrato `GET /visitas-navio/{id}/integracao-patio/work-queues`.
 33. Carregar work queues persistentes no `AppComponent` por `carregarIntegracaoPatio()` e manter estado `workQueuesPatio` para a visita selecionada.
+34. Renderizar cards basicos de work queues persistentes no Control Room.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

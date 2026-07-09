@@ -28,7 +28,7 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 
 ### A. Contratos existentes no back sem uso completo no front
 
-1. `GET /visitas-navio/{id}/integracao-patio/work-queues`: o service Angular possui `listarWorkQueuesPatio`, mas o `AppComponent` ainda precisa importar `WorkQueuePatioDaVisita`, manter estado `workQueuesPatio`, chamar o metodo em `carregarIntegracaoPatio()` e renderizar cards de work queue persistente.
+1. `GET /visitas-navio/{id}/integracao-patio/work-queues`: o service Angular possui `listarWorkQueuesPatio` e o `AppComponent` ja importa `WorkQueuePatioDaVisita`, mantem estado `workQueuesPatio`, carrega o metodo em `carregarIntegracaoPatio()` e mantem helpers de filtro/totalizacao; ainda falta renderizar cards de work queue persistente no template.
 2. `GET /yard/patio/work-queues/{id}/job-list`: o backend do yard dispoe de job list por fila, mas o frontend do modulo de navio ainda precisa exibir a job list da work queue persistente.
 3. `POST /yard/patio/work-queues/{id}/dispatch`: falta botao/fluxo no frontend para despachar uma work queue e exibir o resultado do dispatch.
 4. `PATCH /yard/patio/work-queues/{id}/ativar` e `/desativar`: falta acao de ativar/desativar work queue na tela.
@@ -53,7 +53,7 @@ Este documento contem apenas o que ainda falta fazer no CloudPort para o fluxo N
 ## Pendencias especificas da tela Control Room
 
 1. Substituir polling de 30 segundos por SSE, WebSocket ou mecanismo equivalente para visitas, ordens e work queues.
-2. Criar estado e renderizacao de `workQueuesPatio` com cards por fila persistente, exibindo identificador, status, berco, porao, bloco/zona, POW, pool, equipamento, prioridade e total de ordens.
+2. Renderizar `workQueuesPatio` com cards por fila persistente, exibindo identificador, status, berco, porao, bloco/zona, POW, pool, equipamento, prioridade e total de ordens.
 3. Permitir expandir job list da work queue com work instructions, status, sequencia, prioridade, origem/destino e acoes disponiveis.
 4. Expor acoes de work queue: ativar, desativar, associar POW, associar pool/equipamento e despachar.
 5. Expor acoes de work instruction: resetar, cancelar, suspender, retomar, marcar prioridade de fetch e visualizar historico.

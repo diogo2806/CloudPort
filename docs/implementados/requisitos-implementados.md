@@ -60,6 +60,8 @@ Este documento consolida os textos dos requisitos ja implementados no CloudPort 
 6. Exibir uma primeira visao Control Room com filtros, movimentos iminentes, filas/POW, ordens sem cobertura e auto-refresh por polling.
 7. Exibir reservas, ordens, alertas e excecoes no painel operacional.
 8. Permitir gerar reservas, gerar ordens, sincronizar status, replanejar, priorizar, suspender e retomar ordens no fluxo atual da tela.
+9. Importar `WorkQueuePatioDaVisita` no `AppComponent`, manter estado `workQueuesPatio`, carregar `listarWorkQueuesPatio(visitaId)` dentro de `carregarIntegracaoPatio()` e limpar esse estado quando nao houver visita selecionada.
+10. Disponibilizar helpers de frontend `workQueuesPatioFiltradas()` e `totalJobListWorkQueuesPatio()` para reutilizar filtros de status, berco, bloco/zona, POW, pool e equipamento quando a renderizacao visual de work queues for completada.
 
 ## Work queues e contratos de patio implementados no backend
 
@@ -141,14 +143,15 @@ GET /api/public/v1/yard/reservations?visitaNavioId={id}
 1. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.ts` possui a interface `WorkQueuePatioDaVisita`.
 2. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.ts` possui o metodo `listarWorkQueuesPatio(visitaId)`.
 3. O metodo `listarWorkQueuesPatio(visitaId)` chama `GET /visitas-navio/{id}/integracao-patio/work-queues`.
+4. `frontend/servico-navio-siderurgico/src/app/app.component.ts` consome o contrato no carregamento do Control Room e mantem `workQueuesPatio` sincronizado com a visita selecionada.
 
-Observacao: o contrato e o metodo do service Angular estao implementados, mas o consumo visual completo no `AppComponent` e na tela Control Room ainda permanece pendente e esta registrado em `docs/requisitos/modulo-navios-back-front-gaps.md`.
+Observacao: o contrato e o carregamento do service Angular estao implementados, mas a renderizacao visual completa no template, os cards persistentes no Control Room, as acoes de work queue e a job list expansivel ainda permanecem pendentes em `docs/requisitos/modulo-navios-back-front-gaps.md`.
 
 ## Testes de contrato frontend implementados
 
 1. `frontend/servico-navio-siderurgico/src/app/siderurgico-api.service.spec.ts` valida que `SiderurgicoApiService.listarWorkQueuesPatio(42)` consome `GET /visitas-navio/42/integracao-patio/work-queues` apos carregar `assets/configuracao.json`.
 2. O teste cobre o payload TypeScript `WorkQueuePatioDaVisita` com `jobList` de `OrdemPatioDaVisita`, preservando campos de berco, porao, bloco/zona, POW, pool operacional, equipamento, prioridade operacional e total de ordens.
-3. Esta entrega cobre apenas a regressao de contrato do service Angular. O estado `workQueuesPatio`, os cards persistentes no Control Room e a job list expansivel no `AppComponent` continuam pendentes em `docs/requisitos/modulo-navios-back-front-gaps.md`.
+3. Esta entrega cobre apenas a regressao de contrato do service Angular. A renderizacao visual dos cards persistentes no Control Room e a job list expansivel no template continuam pendentes em `docs/requisitos/modulo-navios-back-front-gaps.md`.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -184,6 +187,7 @@ Observacao: o contrato e o metodo do service Angular estao implementados, mas o 
 30. Criar contratos publicos iniciais `/api/public/v1/vessel-visits`, stow plan, yard orders, work queues, events e yard reservations.
 31. Adicionar contrato TypeScript `WorkQueuePatioDaVisita` e metodo frontend para consultar work queues.
 32. Validar por teste unitario de service Angular o contrato `GET /visitas-navio/{id}/integracao-patio/work-queues`.
+33. Carregar work queues persistentes no `AppComponent` por `carregarIntegracaoPatio()` e manter estado `workQueuesPatio` para a visita selecionada.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

@@ -22,7 +22,6 @@ describe('AppComponent - Control Room work queues', () => {
 
   it('deve totalizar job list real e usar totalOrdens quando a fila vier sem detalhe expandido', () => {
     component.workQueuesPatio = criarWorkQueues();
-
     expect(component.totalJobListWorkQueuesPatio()).toBe(5);
   });
 
@@ -30,17 +29,13 @@ describe('AppComponent - Control Room work queues', () => {
     component.workQueuesPatio = criarWorkQueues();
     component.statusOrdemFiltro = '';
     component.blocoZonaFiltro = '';
-
     expect(component.workQueuesPatioFiltradas().length).toBe(2);
   });
 
   it('deve controlar expansao da job list e manter edicao operacional por work queue', () => {
     const workQueue = criarWorkQueues()[0];
-
     expect(component.workQueueExpandida(workQueue)).toBeFalse();
-
     component.alternarWorkQueue(workQueue);
-
     expect(component.workQueueExpandida(workQueue)).toBeTrue();
     expect(component.edicaoWorkQueue(workQueue)).toEqual({
       pow: 'POW-01',
@@ -57,9 +52,7 @@ describe('AppComponent - Control Room work queues', () => {
     } as unknown as SiderurgicoApiService;
     component = new AppComponent(api);
     component.workQueuesPatio = [{ ...workQueue, status: 'INATIVA' }];
-
     await component.ativarWorkQueue(workQueue);
-
     expect(api.ativarWorkQueuePatio).toHaveBeenCalledWith(10);
     expect(component.workQueuesPatio[0].status).toBe('ATIVA');
     expect(component.sucesso).toBe('Work queue ativada.');
@@ -72,9 +65,7 @@ describe('AppComponent - Control Room work queues', () => {
     } as unknown as SiderurgicoApiService;
     component = new AppComponent(api);
     component.workQueuesPatio = [{ ...workQueue, status: 'ATIVA' }];
-
     await component.desativarWorkQueue(workQueue);
-
     expect(api.desativarWorkQueuePatio).toHaveBeenCalledWith(10);
     expect(component.workQueuesPatio[0].status).toBe('INATIVA');
     expect(component.sucesso).toBe('Work queue desativada.');
@@ -89,9 +80,7 @@ describe('AppComponent - Control Room work queues', () => {
     component.workQueuesPatio = [workQueue];
     component.edicaoWorkQueue(workQueue).pow = 'POW-09';
     component.edicaoWorkQueue(workQueue).poolOperacional = 'POOL-RS';
-
     await component.salvarPowWorkQueue(workQueue);
-
     expect(api.atualizarPowWorkQueuePatio).toHaveBeenCalledWith(10, { pow: 'POW-09', poolOperacional: 'POOL-RS' });
     expect(component.workQueuesPatio[0].pow).toBe('POW-09');
     expect(component.workQueuesPatio[0].poolOperacional).toBe('POOL-RS');
@@ -105,9 +94,7 @@ describe('AppComponent - Control Room work queues', () => {
     component = new AppComponent(api);
     component.workQueuesPatio = [workQueue];
     component.edicaoWorkQueue(workQueue).equipamento = 'RTG-09';
-
     await component.salvarEquipamentoWorkQueue(workQueue);
-
     expect(api.atualizarEquipamentoWorkQueuePatio).toHaveBeenCalledWith(10, { equipamento: 'RTG-09' });
     expect(component.workQueuesPatio[0].equipamento).toBe('RTG-09');
   });
@@ -122,10 +109,11 @@ describe('AppComponent - Control Room work queues', () => {
     (component as unknown as { carregarIntegracaoPatio: () => Promise<void> }).carregarIntegracaoPatio = carregarIntegracaoPatio;
     component.workQueuesPatio = [workQueue];
     component.edicaoWorkQueue(workQueue).limiteDispatch = 2;
-
     await component.despacharWorkQueue(workQueue);
-
-    expect(api.despacharWorkQueuePatio).toHaveBeenCalledWith(10, { limiteOrdens: 2, operador: 'CONTROL_ROOM', observacao: 'Dispatch acionado pela tela Control Room' });
+    expect(api.despacharWorkQueuePatio).toHaveBeenCalledWith(10, {
+      limiteOrdens: 2,
+      observacao: 'Dispatch acionado pela tela Control Room'
+    });
     expect(carregarIntegracaoPatio).toHaveBeenCalled();
     expect(component.sucesso).toBe('2 ordem(ns) despachada(s) na work queue.');
   });
@@ -141,9 +129,7 @@ describe('AppComponent - Control Room work queues', () => {
     (component as unknown as { carregarIntegracaoPatio: () => Promise<void> }).carregarIntegracaoPatio = carregarIntegracaoPatio;
     component.workQueuesPatio = [workQueue];
     component.ordensPatio = [...workQueue.jobList];
-
     await component.resetarWorkInstruction(workQueue.jobList[0]);
-
     expect(api.resetarWorkInstructionPatio).toHaveBeenCalledWith(99);
     expect(component.ordensPatio[0].prioridadeOperacional).toBe(5);
     expect(component.workQueuesPatio[0].jobList[0].prioridadeOperacional).toBe(5);
@@ -161,9 +147,7 @@ describe('AppComponent - Control Room work queues', () => {
     (component as unknown as { carregarIntegracaoPatio: () => Promise<void> }).carregarIntegracaoPatio = carregarIntegracaoPatio;
     component.workQueuesPatio = [workQueue];
     component.ordensPatio = [...workQueue.jobList];
-
     await component.cancelarWorkInstruction(workQueue.jobList[1]);
-
     expect(api.cancelarWorkInstructionPatio).toHaveBeenCalledWith(100);
     expect(component.ordensPatio[1].statusOrdem).toBe('CANCELADA');
     expect(component.workQueuesPatio[0].jobList[1].statusOrdem).toBe('CANCELADA');

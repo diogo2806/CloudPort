@@ -118,8 +118,14 @@ public class ConfiguracaoSeguranca {
         }
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY));
-        configuration.setExposedHeaders(Collections.singletonList("Authorization"));
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "X-Correlation-Id",
+                InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY
+        ));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "X-Correlation-Id"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

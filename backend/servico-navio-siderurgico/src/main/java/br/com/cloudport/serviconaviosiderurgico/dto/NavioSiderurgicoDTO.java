@@ -10,6 +10,7 @@ import javax.validation.constraints.Size;
 
 public record NavioSiderurgicoDTO(
         Long id,
+        Long navioCadastroId,
         @NotBlank @Size(max = 120) String nome,
         @NotBlank @Size(max = 10) String codigoImo,
         @NotBlank @Size(max = 60) String paisBandeira,
@@ -23,6 +24,7 @@ public record NavioSiderurgicoDTO(
     public static NavioSiderurgicoDTO de(NavioSiderurgico navio) {
         return new NavioSiderurgicoDTO(
                 navio.getId(),
+                navio.getNavioCadastroId(),
                 navio.getNome(),
                 navio.getCodigoImo(),
                 navio.getPaisBandeira(),

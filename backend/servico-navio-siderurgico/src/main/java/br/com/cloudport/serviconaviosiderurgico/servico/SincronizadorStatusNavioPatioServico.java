@@ -70,7 +70,9 @@ public class SincronizadorStatusNavioPatioServico {
                 visitaServico.registrarEvento(visita, item, "STATUS_PATIO_SINCRONIZADO", "Status do item sincronizado com a ordem real do patio.", "sistema", statusAnterior.name(), item.getStatus().name());
             }
         }
-        visitaServico.registrarEvento(visita, null, "SINCRONIZACAO_PATIO_NAVIO", alterados + " item(ns) reconciliado(s) entre patio e navio.", "sistema", null, String.valueOf(alterados));
+        if (alterados > 0) {
+            visitaServico.registrarEvento(visita, null, "SINCRONIZACAO_PATIO_NAVIO", alterados + " item(ns) reconciliado(s) entre patio e navio.", "sistema", null, String.valueOf(alterados));
+        }
         return alterados;
     }
 

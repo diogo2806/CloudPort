@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NavioSiderurgicoRepositorio extends JpaRepository<NavioSiderurgico, Long> {
     boolean existsByCodigoImoIgnoreCase(String codigoImo);
+    boolean existsByNavioCadastroId(Long navioCadastroId);
 }

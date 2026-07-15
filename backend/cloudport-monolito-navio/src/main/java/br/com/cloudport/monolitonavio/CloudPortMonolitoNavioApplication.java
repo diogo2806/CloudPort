@@ -35,7 +35,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
                 @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = ServicoNavioSiderurgicoApplication.class),
                 @ComponentScan.Filter(
                         type = FilterType.ASSIGNABLE_TYPE,
-                        classes = br.com.cloudport.serviconaviosiderurgico.configuracao.ConfiguracaoSeguranca.class)
+                        classes = {
+                                br.com.cloudport.serviconavio.configuracao.ConfiguracaoSeguranca.class,
+                                br.com.cloudport.serviconaviosiderurgico.configuracao.ConfiguracaoSeguranca.class
+                        })
         })
 public class CloudPortMonolitoNavioApplication {
 

@@ -104,7 +104,7 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 4. Copiar nome, IMO, bandeira, armador e LOA do cadastro canonico, mantendo localmente apenas a projecao operacional.
 5. Sincronizar periodicamente a projecao siderurgica com o cadastro canonico.
 
-## Monolito modular de Navio implementado - primeira etapa
+## Monolito modular de Navio implementado
 
 1. Criar o runtime `backend/cloudport-monolito-navio` para carregar `servico-navio` e `servico-navio-siderurgico` no mesmo processo Spring Boot.
 2. Preservar os limites de pacote, entidades e repositorios dos dois modulos durante a transicao.
@@ -115,6 +115,13 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 7. Adicionar Dockerfile do runtime unificado e configuracao para usar os schemas existentes em uma unica conexao PostgreSQL.
 8. Adicionar teste unitario da integracao local por ID e IMO.
 9. Incluir o novo runtime no workflow de compilacao e testes do CloudPort.
+10. Empacotar separadamente as migracoes dos modulos em `db/migration/navio` e `db/migration/navio-siderurgico`.
+11. Executar dois historicos Flyway independentes pelo runtime unificado, um para `cloudport_navio` e outro para `cloudport_siderurgico`.
+12. Criar automaticamente os schemas e configurar o `search_path` da conexao para os dois modulos.
+13. Centralizar JWT, roles, credencial interna, endpoints publicos e CORS em uma unica configuracao de seguranca do runtime.
+14. Liberar `X-Correlation-Id` e `X-CloudPort-Service-Key` no CORS unificado.
+15. Incluir as migracoes dos dois modulos na imagem Docker do runtime.
+16. Validar por testes a separacao dos historicos Flyway, o empacotamento das migracoes, nomes seguros de schema e o CORS combinado.
 
 ## Contratos de API implementados
 
@@ -141,6 +148,7 @@ POST  /api/scheduler/gerar-plano
 3. Testes do scheduler com dados reais, quantidades inconsistentes, conflito no mesmo berco e simultaneidade em bercos diferentes.
 4. Teste do contrato de dispatch atualizado no componente.
 5. Testes da porta local de cadastro canonico usada pelo runtime unificado de Navio.
+6. Testes da configuracao Flyway modular e da seguranca CORS do runtime unificado.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -155,6 +163,7 @@ POST  /api/scheduler/gerar-plano
 9. Scheduler baseado em dados operacionais reais e agenda persistente.
 10. Cadastro canonico como fonte dos dados comuns do navio.
 11. Primeira execucao conjunta de Navio e Navio Siderurgico com chamada local ao cadastro canonico.
+12. Execucao das migracoes dos dois schemas e configuracao de seguranca pelo runtime unificado.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

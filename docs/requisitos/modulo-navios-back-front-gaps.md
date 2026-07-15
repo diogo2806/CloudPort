@@ -40,16 +40,16 @@ Antes de desenvolver, ler os dois arquivos. Depois de desenvolver, remover daqui
 
 ## Pendencias da consolidacao em monolito modular
 
-A primeira execucao unificada de `servico-navio` e `servico-navio-siderurgico` ja existe em `backend/cloudport-monolito-navio`, e a consulta do cadastro canonico passa a ser local nesse runtime. Ainda falta:
+O runtime `backend/cloudport-monolito-navio` ja executa `servico-navio` e `servico-navio-siderurgico` no mesmo processo, usa a porta local do cadastro canonico, migra separadamente os dois schemas e possui seguranca centralizada. Ainda falta:
 
 1. Transformar os dois projetos de origem em modulos Maven reais, removendo a inclusao transitoria de diretorios de fontes pelo `build-helper-maven-plugin`.
-2. Definir um unico proprietario para as migracoes Flyway e executar as migracoes dos schemas `cloudport_navio` e `cloudport_siderurgico` pelo runtime unificado.
-3. Criar teste de inicializacao com PostgreSQL/Testcontainers cobrindo os dois schemas e todos os repositorios JPA.
-4. Atualizar Docker Compose, configuracoes de ambiente e roteamento para permitir substituir os dois deployments pelo runtime unificado.
-5. Remover os deployments legados somente depois de validar paridade dos endpoints, jobs agendados, seguranca e frontend.
-6. Substituir outras chamadas HTTP entre modulos incorporados por portas locais, mantendo adaptadores HTTP apenas durante a transicao.
-7. Criar testes de arquitetura que impeçam acesso direto indevido entre modulos e preservem os limites de dominio.
-8. Avaliar a incorporacao do Yard somente depois de estabilizar Navio + Navio Siderurgico no mesmo processo.
+2. Criar teste de inicializacao com PostgreSQL/Testcontainers cobrindo as migracoes reais, os dois schemas e todos os repositorios JPA.
+3. Atualizar Docker Compose, configuracoes de ambiente e roteamento para permitir substituir os dois deployments pelo runtime unificado.
+4. Remover os deployments legados somente depois de validar paridade dos endpoints, jobs agendados, seguranca e frontend.
+5. Substituir outras chamadas HTTP entre modulos incorporados por portas locais, mantendo adaptadores HTTP apenas durante a transicao.
+6. Criar testes de arquitetura que impecam acesso direto indevido entre modulos e preservem os limites de dominio.
+7. Avaliar a incorporacao do Yard somente depois de estabilizar Navio + Navio Siderurgico no mesmo processo.
+8. Definir estrategia de rollback e compatibilidade do historico Flyway antes de apontar ambientes existentes para o runtime unificado.
 
 ## P0 - Pendencias obrigatorias restantes
 

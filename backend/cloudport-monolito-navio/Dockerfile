@@ -6,7 +6,9 @@ WORKDIR /workspace
 COPY cloudport-monolito-navio/pom.xml cloudport-monolito-navio/pom.xml
 COPY cloudport-monolito-navio/src cloudport-monolito-navio/src
 COPY servico-navio/src/main/java servico-navio/src/main/java
+COPY servico-navio/src/main/resources/db/migration servico-navio/src/main/resources/db/migration
 COPY servico-navio-siderurgico/src/main/java servico-navio-siderurgico/src/main/java
+COPY servico-navio-siderurgico/src/main/resources/db/migration servico-navio-siderurgico/src/main/resources/db/migration
 
 WORKDIR /workspace/cloudport-monolito-navio
 RUN mvn -B -DskipTests package

@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.controlador;
 
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueEquipamentoDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueOrdensDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueuePowDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.DispatchWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRespostaDto;
@@ -64,6 +65,12 @@ public class WorkQueuePatioControlador {
     public WorkQueuePatioRespostaDto atualizarEquipamento(@PathVariable Long id,
                                                             @RequestBody AtualizacaoWorkQueueEquipamentoDto dto) {
         return workQueuePatioServico.atualizarEquipamento(id, dto);
+    }
+
+    @PatchMapping("/work-queues/{id}/ordens")
+    public WorkQueuePatioRespostaDto atualizarOrdens(@PathVariable Long id,
+                                                      @RequestBody AtualizacaoWorkQueueOrdensDto dto) {
+        return workQueuePatioServico.atualizarOrdens(id, dto == null ? List.of() : dto.getOrdemIds());
     }
 
     @GetMapping("/work-queues/{id}/job-list")

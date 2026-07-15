@@ -10,11 +10,13 @@ import br.com.cloudport.serviconaviosiderurgico.servico.VisitaNavioServico;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/visitas-navio/{visitaId}/integracao-patio/work-queues")
@@ -24,7 +26,7 @@ public class WorkQueuePatioNavioControlador {
     private final OrdemPatioYardCliente ordemPatioYardCliente;
 
     public WorkQueuePatioNavioControlador(VisitaNavioServico visitaNavioServico,
-                                          OrdemPatioYardCliente ordemPatioYardCliente) {
+                                           OrdemPatioYardCliente ordemPatioYardCliente) {
         this.visitaNavioServico = visitaNavioServico;
         this.ordemPatioYardCliente = ordemPatioYardCliente;
     }
@@ -37,7 +39,11 @@ public class WorkQueuePatioNavioControlador {
                     .map(this::converterWorkQueue)
                     .toList();
         } catch (RuntimeException ex) {
-            return List.of();
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Nao foi possivel consultar as work queues no servico-yard.",
+                    ex
+            );
         }
     }
 

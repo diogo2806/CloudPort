@@ -79,6 +79,9 @@ public class OrdemTrabalhoPatio {
     @Column(name = "prioridade_operacional")
     private Integer prioridadeOperacional;
 
+    @Column(name = "work_queue_id")
+    private Long workQueueId;
+
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
 
@@ -92,17 +95,17 @@ public class OrdemTrabalhoPatio {
     }
 
     public OrdemTrabalhoPatio(ConteinerPatio conteiner,
-                              String codigoConteiner,
-                              String tipoCarga,
-                              String destino,
-                              Integer linhaDestino,
-                              Integer colunaDestino,
-                              String camadaDestino,
-                              TipoMovimentoPatio tipoMovimento,
-                              StatusOrdemTrabalhoPatio statusOrdem,
-                              StatusConteiner statusConteinerDestino,
-                              LocalDateTime criadoEm,
-                              LocalDateTime atualizadoEm) {
+                               String codigoConteiner,
+                               String tipoCarga,
+                               String destino,
+                               Integer linhaDestino,
+                               Integer colunaDestino,
+                               String camadaDestino,
+                               TipoMovimentoPatio tipoMovimento,
+                               StatusOrdemTrabalhoPatio statusOrdem,
+                               StatusConteiner statusConteinerDestino,
+                               LocalDateTime criadoEm,
+                               LocalDateTime atualizadoEm) {
         this.conteiner = conteiner;
         this.codigoConteiner = codigoConteiner;
         this.tipoCarga = tipoCarga;
@@ -153,6 +156,8 @@ public class OrdemTrabalhoPatio {
     public void setSequenciaNavio(Integer sequenciaNavio) { this.sequenciaNavio = sequenciaNavio; }
     public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
     public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
+    public Long getWorkQueueId() { return workQueueId; }
+    public void setWorkQueueId(Long workQueueId) { this.workQueueId = workQueueId; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
     public LocalDateTime getAtualizadoEm() { return atualizadoEm; }

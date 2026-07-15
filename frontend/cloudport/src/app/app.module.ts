@@ -26,6 +26,7 @@ import { PrivacidadeComponent } from './componentes/privacidade/privacidade.comp
 import { UsuariosListaComponent } from './componentes/usuarios-lista/usuarios-lista.component';
 import { DynamicTableModule } from './componentes/dynamic-table/dynamic-table.module';
 import { TextoSeguroPipe } from './componentes/pipes/texto-seguro.pipe';
+import { NavioControlRoomComponent } from './componentes/navio/navio-control-room.component';
 
 @NgModule({ declarations: [
         AppComponent,
@@ -42,6 +43,7 @@ import { TextoSeguroPipe } from './componentes/pipes/texto-seguro.pipe';
         PrivacidadeComponent,
         UsuariosListaComponent,
         TextoSeguroPipe,
+        NavioControlRoomComponent,
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         AppRoutingModule,

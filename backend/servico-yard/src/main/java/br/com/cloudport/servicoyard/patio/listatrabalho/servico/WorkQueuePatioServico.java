@@ -16,6 +16,7 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.HistoricoOpe
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.WorkQueuePatioRepositorio;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -55,12 +56,24 @@ public class WorkQueuePatioServico {
                 : workQueueRepositorio.findByVisitaNavioIdOrderBySequenciaInicialAscCriadoEmAsc(visitaNavioId);
         if (!filas.isEmpty()) {
             vincularOrdensDeterministicas(filas, visitaNavioId);
-            return filas.stream()
+            List<WorkQueuePatioRespostaDto> resultado = new ArrayList<>(filas.stream()
                     .map(fila -> WorkQueuePatioRespostaDto.deEntidade(fila, listarJobListDaFila(fila)))
-                    .toList();
+                    .toList());
+            if (visitaNavioId != null) {
+                List<OrdemTrabalhoPatio> semFila = ordemRepositorio
+                        .findByVisitaNavioIdOrderBySequenciaNavioAscCriadoEmAsc(visitaNavioId)
+                        .stream()
+                        .filter(ordem -> ordem.getWorkQueueId() == null)
+                        .toList();
+                resultado.addAll(listarFilasDerivadas(visitaNavioId, semFila));
+            }
+            return resultado;
         }
         if (visitaNavioId != null) {
-            return listarFilasDerivadas(visitaNavioId);
+            return listarFilasDerivadas(
+                    visitaNavioId,
+                    ordemRepositorio.findByVisitaNavioIdOrderBySequenciaNavioAscCriadoEmAsc(visitaNavioId)
+            );
         }
         return List.of();
     }
@@ -306,22 +319,33 @@ public class WorkQueuePatioServico {
         if (!StringUtils.hasText(fila.getBlocoZona())) {
             return true;
         }
-        return valor(ordem.getDestino(), "").equals(valor(fila.getBlocoZona(), ""));
+        String destino = valor(ordem.getDestino(), "");
+        String zona = valor(fila.getBlocoZona(), "");
+        return destino.equals(zona)
+                || destino.startsWith(zona + "-")
+                || destino.startsWith(zona + "/")
+                || destino.startsWith(zona + " ");
     }
 
-    private List<WorkQueuePatioRespostaDto> listarFilasDerivadas(Long visitaNavioId) {
-        List<OrdemTrabalhoPatio> ordens = ordemRepositorio.findByVisitaNavioIdOrderBySequenciaNavioAscCriadoEmAsc(visitaNavioId);
+    private List<WorkQueuePatioRespostaDto> listarFilasDerivadas(Long visitaNavioId,
+                                                                  List<OrdemTrabalhoPatio> ordens) {
+        if (ordens == null || ordens.isEmpty()) {
+            return List.of();
+        }
         Map<String, List<OrdemTrabalhoPatio>> agrupadas = ordens.stream()
                 .collect(Collectors.groupingBy(this::chaveDerivada, LinkedHashMap::new, Collectors.toList()));
         return agrupadas.entrySet().stream()
-                .map(entry -> WorkQueuePatioRespostaDto.deEntidade(filaDerivada(visitaNavioId, entry.getKey(), entry.getValue()), entry.getValue()))
+                .map(entry -> WorkQueuePatioRespostaDto.deEntidade(
+                        filaDerivada(visitaNavioId, entry.getKey(), entry.getValue()),
+                        entry.getValue()
+                ))
                 .toList();
     }
 
     private WorkQueuePatio filaDerivada(Long visitaNavioId, String chave, List<OrdemTrabalhoPatio> ordens) {
         String[] partes = chave.split("\\|", -1);
         WorkQueuePatio fila = new WorkQueuePatio();
-        fila.setIdentificador("DERIVADA|" + chave);
+        fila.setIdentificador("SEM_FILA|" + chave);
         fila.setVisitaNavioId(visitaNavioId);
         fila.setBerco(null);
         fila.setBlocoZona(partes.length > 0 ? partes[0] : null);

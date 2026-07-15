@@ -104,6 +104,18 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 4. Copiar nome, IMO, bandeira, armador e LOA do cadastro canonico, mantendo localmente apenas a projecao operacional.
 5. Sincronizar periodicamente a projecao siderurgica com o cadastro canonico.
 
+## Monolito modular de Navio implementado - primeira etapa
+
+1. Criar o runtime `backend/cloudport-monolito-navio` para carregar `servico-navio` e `servico-navio-siderurgico` no mesmo processo Spring Boot.
+2. Preservar os limites de pacote, entidades e repositorios dos dois modulos durante a transicao.
+3. Extrair `CadastroNavioPorta` e `NavioCanonico` para desacoplar a regra siderurgica do transporte HTTP.
+4. Manter `NavioCadastroCliente` como adaptador HTTP para o deployment isolado do servico siderurgico.
+5. Criar `CadastroNavioLocalAdapter` para consultar `NavioServico` diretamente quando o runtime unificado estiver ativo.
+6. Desativar a chamada HTTP interna `servico-navio-siderurgico -> servico-navio` no modo local por `cloudport.modulo.navio.integracao=local`.
+7. Adicionar Dockerfile do runtime unificado e configuracao para usar os schemas existentes em uma unica conexao PostgreSQL.
+8. Adicionar teste unitario da integracao local por ID e IMO.
+9. Incluir o novo runtime no workflow de compilacao e testes do CloudPort.
+
 ## Contratos de API implementados
 
 ```text
@@ -128,6 +140,7 @@ POST  /api/scheduler/gerar-plano
 2. Testes de componente para filtros, totalizacao, expansao e acoes operacionais.
 3. Testes do scheduler com dados reais, quantidades inconsistentes, conflito no mesmo berco e simultaneidade em bercos diferentes.
 4. Teste do contrato de dispatch atualizado no componente.
+5. Testes da porta local de cadastro canonico usada pelo runtime unificado de Navio.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -141,6 +154,7 @@ POST  /api/scheduler/gerar-plano
 8. Vinculo persistente entre work queue e work instruction.
 9. Scheduler baseado em dados operacionais reais e agenda persistente.
 10. Cadastro canonico como fonte dos dados comuns do navio.
+11. Primeira execucao conjunta de Navio e Navio Siderurgico com chamada local ao cadastro canonico.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

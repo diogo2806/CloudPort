@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>br.com.cloudport</groupId>
+    <artifactId>cloudport-navio-modules</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>cloudport-navio-modules</name>
+    <description>Reator Maven dos modulos Navio, Navio Siderurgico e runtime unificado</description>
+
+    <modules>
+        <module>../servico-navio</module>
+        <module>../servico-navio-siderurgico</module>
+        <module>../cloudport-monolito-navio</module>
+    </modules>
+</project>

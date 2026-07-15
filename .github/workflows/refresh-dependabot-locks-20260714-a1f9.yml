@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - chore/dependabot-alerts-20260714-a1f9
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write

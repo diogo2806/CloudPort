@@ -4,6 +4,7 @@ import java.util.regex.Pattern;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.orm.jpa.EntityManagerFactoryDependsOnPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -33,6 +34,11 @@ public class FlywayModulosConfiguracao {
     @Bean(name = "flywayNavioSiderurgico", initMethod = "migrate")
     public Flyway flywayNavioSiderurgico() {
         return criarFlyway("classpath:db/migration/navio-siderurgico", schemaSiderurgico);
+    }
+
+    @Bean
+    public static EntityManagerFactoryDependsOnPostProcessor entityManagerFactoryDependsOnFlywayModulos() {
+        return new EntityManagerFactoryDependsOnPostProcessor("flywayNavio", "flywayNavioSiderurgico");
     }
 
     private Flyway criarFlyway(String localMigracoes, String schema) {

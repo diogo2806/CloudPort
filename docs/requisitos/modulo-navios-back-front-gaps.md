@@ -40,17 +40,16 @@ Antes de desenvolver, ler os dois arquivos. Depois de desenvolver, remover daqui
 
 ## Pendencias da consolidacao em monolito modular
 
-O runtime `backend/cloudport-monolito-navio` ja executa `servico-navio` e `servico-navio-siderurgico` no mesmo processo, consome os dois como modulos Maven reais, usa a porta local do cadastro canonico, migra separadamente os dois schemas e possui seguranca centralizada. Ainda falta:
+O runtime `backend/cloudport-monolito-navio` ja executa `servico-navio` e `servico-navio-siderurgico` no mesmo processo, consome os dois como modulos Maven reais, usa a porta local do cadastro canonico, migra separadamente os dois schemas, possui seguranca centralizada e inicia com PostgreSQL real em teste cobrindo todos os repositorios JPA. Ainda falta:
 
-1. Criar teste de inicializacao com PostgreSQL/Testcontainers cobrindo as migracoes reais, os dois schemas e todos os repositorios JPA.
-2. Remover a copia direta de migracoes a partir dos diretorios irmaos, publicando os recursos de banco como artefatos pertencentes aos respectivos modulos.
-3. Atualizar Docker Compose, configuracoes de ambiente e roteamento para permitir substituir os dois deployments pelo runtime unificado.
-4. Remover os deployments legados somente depois de validar paridade dos endpoints, jobs agendados, seguranca e frontend.
-5. Substituir outras chamadas HTTP entre modulos incorporados por portas locais, mantendo adaptadores HTTP apenas durante a transicao.
-6. Criar testes de arquitetura que impecam acesso direto indevido entre modulos e preservem os limites de dominio.
-7. Avaliar a incorporacao do Yard somente depois de estabilizar Navio + Navio Siderurgico no mesmo processo.
-8. Definir estrategia de rollback e compatibilidade do historico Flyway antes de apontar ambientes existentes para o runtime unificado.
-9. Centralizar versoes e `pluginManagement` em um parent Maven compartilhado, sem transformar os limites de dominio em dependencias ciclicas.
+1. Remover a copia direta de migracoes a partir dos diretorios irmaos, publicando os recursos de banco como artefatos pertencentes aos respectivos modulos.
+2. Atualizar Docker Compose, configuracoes de ambiente e roteamento para permitir substituir os dois deployments pelo runtime unificado.
+3. Remover os deployments legados somente depois de validar paridade dos endpoints, jobs agendados, seguranca e frontend.
+4. Substituir outras chamadas HTTP entre modulos incorporados por portas locais, mantendo adaptadores HTTP apenas durante a transicao.
+5. Criar testes de arquitetura que impecam acesso direto indevido entre modulos e preservem os limites de dominio.
+6. Avaliar a incorporacao do Yard somente depois de estabilizar Navio + Navio Siderurgico no mesmo processo.
+7. Definir estrategia de rollback e compatibilidade do historico Flyway antes de apontar ambientes existentes para o runtime unificado.
+8. Centralizar versoes e `pluginManagement` em um parent Maven compartilhado, sem transformar os limites de dominio em dependencias ciclicas.
 
 ## P0 - Pendencias obrigatorias restantes
 

@@ -39,7 +39,22 @@ jobs:
           cache: maven
       - name: Compilar e validar
         working-directory: ${{ matrix.module }}
-        run: ${{ matrix.command }}
+        run: |
+          if [ "${{ matrix.module }}" = "backend/cloudport-navio-modules" ]; then
+            set +e
+            ${{ matrix.command }} > maven-validation.log 2>&1
+            status=$?
+            tail -n 220 maven-validation.log
+            exit $status
+          fi
+          ${{ matrix.command }}
+      - name: Publicar log Maven do monolito
+        if: failure() && matrix.module == 'backend/cloudport-navio-modules'
+        uses: actions/upload-artifact@v4
+        with:
+          name: monolito-maven-log
+          path: backend/cloudport-navio-modules/maven-validation.log
+          if-no-files-found: error
 
   frontend:
     name: Frontend Angular

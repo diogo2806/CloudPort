@@ -126,6 +126,9 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 18. Permitir que `servico-navio` e `servico-navio-siderurgico` gerem JARs de biblioteca no perfil `modulo-monolito`, preservando o empacotamento executavel quando compilados isoladamente.
 19. Fazer o runtime unificado depender dos artefatos Maven dos dois modulos e remover o `build-helper-maven-plugin` que adicionava fontes externas.
 20. Atualizar a imagem Docker e o workflow para compilar os modulos pelo reator Maven.
+21. Criar teste de inicializacao completa com PostgreSQL 16 em Testcontainers.
+22. Executar as migracoes reais dos dois modulos antes da validacao do `EntityManagerFactory`.
+23. Validar a criacao dos dois schemas, os historicos Flyway e consultas em todos os 13 repositorios JPA do runtime.
 
 ## Contratos de API implementados
 
@@ -154,6 +157,7 @@ POST  /api/scheduler/gerar-plano
 5. Testes da porta local de cadastro canonico usada pelo runtime unificado de Navio.
 6. Testes da configuracao Flyway modular e da seguranca CORS do runtime unificado.
 7. Validacao do build do runtime usando dependencias Maven reais dos modulos, sem inclusao direta dos diretorios de fontes.
+8. Teste de contexto com PostgreSQL/Testcontainers, `ddl-auto=validate`, migracoes reais e exercicio de todos os repositorios JPA.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -170,6 +174,7 @@ POST  /api/scheduler/gerar-plano
 11. Primeira execucao conjunta de Navio e Navio Siderurgico com chamada local ao cadastro canonico.
 12. Execucao das migracoes dos dois schemas e configuracao de seguranca pelo runtime unificado.
 13. Consumo de `servico-navio` e `servico-navio-siderurgico` como modulos Maven reais pelo runtime unificado.
+14. Inicializacao validada contra PostgreSQL real com os dois schemas e todos os repositorios JPA.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

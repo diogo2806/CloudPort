@@ -21,6 +21,9 @@ public class NavioSiderurgico {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "navio_cadastro_id", unique = true)
+    private Long navioCadastroId;
+
     @Column(nullable = false, length = 120)
     private String nome;
 
@@ -68,6 +71,8 @@ public class NavioSiderurgico {
     }
 
     public Long getId() { return id; }
+    public Long getNavioCadastroId() { return navioCadastroId; }
+    public void setNavioCadastroId(Long navioCadastroId) { this.navioCadastroId = navioCadastroId; }
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public String getCodigoImo() { return codigoImo; }

@@ -122,6 +122,10 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 14. Liberar `X-Correlation-Id` e `X-CloudPort-Service-Key` no CORS unificado.
 15. Incluir as migracoes dos dois modulos na imagem Docker do runtime.
 16. Validar por testes a separacao dos historicos Flyway, o empacotamento das migracoes, nomes seguros de schema e o CORS combinado.
+17. Criar o reator `backend/cloudport-navio-modules` com os tres projetos como modulos Maven do mesmo build.
+18. Permitir que `servico-navio` e `servico-navio-siderurgico` gerem JARs de biblioteca no perfil `modulo-monolito`, preservando o empacotamento executavel quando compilados isoladamente.
+19. Fazer o runtime unificado depender dos artefatos Maven dos dois modulos e remover o `build-helper-maven-plugin` que adicionava fontes externas.
+20. Atualizar a imagem Docker e o workflow para compilar os modulos pelo reator Maven.
 
 ## Contratos de API implementados
 
@@ -149,6 +153,7 @@ POST  /api/scheduler/gerar-plano
 4. Teste do contrato de dispatch atualizado no componente.
 5. Testes da porta local de cadastro canonico usada pelo runtime unificado de Navio.
 6. Testes da configuracao Flyway modular e da seguranca CORS do runtime unificado.
+7. Validacao do build do runtime usando dependencias Maven reais dos modulos, sem inclusao direta dos diretorios de fontes.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -164,6 +169,7 @@ POST  /api/scheduler/gerar-plano
 10. Cadastro canonico como fonte dos dados comuns do navio.
 11. Primeira execucao conjunta de Navio e Navio Siderurgico com chamada local ao cadastro canonico.
 12. Execucao das migracoes dos dois schemas e configuracao de seguranca pelo runtime unificado.
+13. Consumo de `servico-navio` e `servico-navio-siderurgico` como modulos Maven reais pelo runtime unificado.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

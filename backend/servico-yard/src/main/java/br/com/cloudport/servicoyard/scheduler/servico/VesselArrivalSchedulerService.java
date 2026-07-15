@@ -1,19 +1,25 @@
 package br.com.cloudport.servicoyard.scheduler.servico;
 
 import br.com.cloudport.servicoyard.scheduler.dto.VesselArrivalDto;
+import br.com.cloudport.servicoyard.scheduler.modelo.VesselSchedule;
+import br.com.cloudport.servicoyard.scheduler.repositorio.VesselScheduleRepositorio;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
 public class VesselArrivalSchedulerService {
 
-    private final List<VesselScheduleEntry> agendaNavios = new ArrayList<>();
+    private final VesselScheduleRepositorio agendaRepositorio;
 
+    public VesselArrivalSchedulerService(VesselScheduleRepositorio agendaRepositorio) {
+        this.agendaRepositorio = agendaRepositorio;
+    }
+
+    @Transactional
     public synchronized LocalDateTime agendar(VesselArrivalDto navio) {
         validarNavio(navio);
         int duracaoHoras = navio.getJanelaTempoHoras();
@@ -23,17 +29,15 @@ public class VesselArrivalSchedulerService {
                 duracaoHoras
         );
 
-        VesselScheduleEntry entry = new VesselScheduleEntry(
-                navio.getCodigoNavio(),
-                navio.getNomeBerco(),
-                slotDisponivel,
-                slotDisponivel.plusHours(duracaoHoras),
-                navio.getPrioridade(),
-                calcularCapacidadeRequerida(navio)
-        );
-
-        agendaNavios.add(entry);
-        agendaNavios.sort(Comparator.comparing(VesselScheduleEntry::getTempoPrevisto));
+        VesselSchedule entry = new VesselSchedule();
+        entry.setCodigoNavio(navio.getCodigoNavio().trim());
+        entry.setNomeBerco(navio.getNomeBerco().trim());
+        entry.setTempoPrevisto(slotDisponivel);
+        entry.setTempoTermino(slotDisponivel.plusHours(duracaoHoras));
+        entry.setPrioridade(StringUtils.hasText(navio.getPrioridade()) ? navio.getPrioridade().trim() : "NORMAL");
+        entry.setCapacidadeRequerida(calcularCapacidadeRequerida(navio));
+        entry.setCriadoEm(LocalDateTime.now());
+        agendaRepositorio.save(entry);
         return slotDisponivel;
     }
 
@@ -41,29 +45,37 @@ public class VesselArrivalSchedulerService {
                                                    LocalDateTime etaChegada,
                                                    Integer duracaoHoras) {
         LocalDateTime slotProposto = etaChegada;
-        while (existeConflito(berco, slotProposto, slotProposto.plusHours(duracaoHoras))) {
+        List<VesselSchedule> agenda = agendaRepositorio.findAllByOrderByTempoPrevistoAsc();
+        while (existeConflito(agenda, berco, slotProposto, slotProposto.plusHours(duracaoHoras))) {
             slotProposto = slotProposto.plusMinutes(30);
         }
         return slotProposto;
     }
 
-    private boolean existeConflito(String berco, LocalDateTime inicio, LocalDateTime fim) {
+    private boolean existeConflito(List<VesselSchedule> agenda,
+                                   String berco,
+                                   LocalDateTime inicio,
+                                   LocalDateTime fim) {
         String bercoNormalizado = normalizarBerco(berco);
-        return agendaNavios.stream()
+        return agenda.stream()
                 .filter(entry -> normalizarBerco(entry.getNomeBerco()).equals(bercoNormalizado))
-                .anyMatch(entry -> entry.temConflito(inicio, fim));
+                .anyMatch(entry -> inicio.isBefore(entry.getTempoTermino()) && fim.isAfter(entry.getTempoPrevisto()));
     }
 
-    public synchronized List<VesselScheduleEntry> obterAgendaCompleta() {
-        return new ArrayList<>(agendaNavios);
+    @Transactional(readOnly = true)
+    public List<VesselScheduleEntry> obterAgendaCompleta() {
+        return agendaRepositorio.findAllByOrderByTempoPrevistoAsc().stream()
+                .map(VesselScheduleEntry::de)
+                .toList();
     }
 
-    public synchronized List<VesselScheduleEntry> obterAgendaProximas24Horas() {
+    @Transactional(readOnly = true)
+    public List<VesselScheduleEntry> obterAgendaProximas24Horas() {
         LocalDateTime agora = LocalDateTime.now();
-        LocalDateTime amanhaEstaHora = agora.plusHours(24);
-        return agendaNavios.stream()
-                .filter(entry -> entry.getTempoTermino().isAfter(agora)
-                        && entry.getTempoPrevisto().isBefore(amanhaEstaHora))
+        return agendaRepositorio
+                .findByTempoTerminoAfterAndTempoPrevistoBeforeOrderByTempoPrevistoAsc(agora, agora.plusHours(24))
+                .stream()
+                .map(VesselScheduleEntry::de)
                 .toList();
     }
 
@@ -88,12 +100,12 @@ public class VesselArrivalSchedulerService {
     }
 
     public static class VesselScheduleEntry {
-        private String codigoNavio;
-        private String nomeBerco;
-        private LocalDateTime tempoPrevisto;
-        private LocalDateTime tempoTermino;
-        private String prioridade;
-        private Integer capacidadeRequerida;
+        private final String codigoNavio;
+        private final String nomeBerco;
+        private final LocalDateTime tempoPrevisto;
+        private final LocalDateTime tempoTermino;
+        private final String prioridade;
+        private final Integer capacidadeRequerida;
 
         public VesselScheduleEntry(String codigoNavio,
                                    String nomeBerco,
@@ -107,6 +119,17 @@ public class VesselArrivalSchedulerService {
             this.tempoTermino = tempoTermino;
             this.prioridade = prioridade != null ? prioridade : "NORMAL";
             this.capacidadeRequerida = capacidadeRequerida == null ? 0 : capacidadeRequerida;
+        }
+
+        static VesselScheduleEntry de(VesselSchedule agenda) {
+            return new VesselScheduleEntry(
+                    agenda.getCodigoNavio(),
+                    agenda.getNomeBerco(),
+                    agenda.getTempoPrevisto(),
+                    agenda.getTempoTermino(),
+                    agenda.getPrioridade(),
+                    agenda.getCapacidadeRequerida()
+            );
         }
 
         public boolean temConflito(LocalDateTime inicio, LocalDateTime fim) {

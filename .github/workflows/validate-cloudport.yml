@@ -1,0 +1,54 @@
+name: Validar CloudPort
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend Java
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - backend/servico-yard
+          - backend/servico-navio
+          - backend/servico-navio-siderurgico
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Compilar e validar testes
+        working-directory: ${{ matrix.module }}
+        run: mvn -B -DskipTests package
+
+  frontend:
+    name: Frontend Angular
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - frontend/cloudport
+          - frontend/servico-navio-siderurgico
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.module }}/package-lock.json
+      - name: Instalar dependencias
+        working-directory: ${{ matrix.module }}
+        run: npm ci
+      - name: Compilar
+        working-directory: ${{ matrix.module }}
+        run: npm run build

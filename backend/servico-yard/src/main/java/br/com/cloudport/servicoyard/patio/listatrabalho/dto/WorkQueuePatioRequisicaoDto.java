@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.dto;
 
+import java.util.List;
 import javax.validation.constraints.NotNull;
 
 public class WorkQueuePatioRequisicaoDto {
@@ -15,6 +16,7 @@ public class WorkQueuePatioRequisicaoDto {
     private String poolOperacional;
     private String equipamento;
     private Integer prioridadeOperacional;
+    private List<Long> ordemIds;
 
     public Long getVisitaNavioId() { return visitaNavioId; }
     public void setVisitaNavioId(Long visitaNavioId) { this.visitaNavioId = visitaNavioId; }
@@ -36,4 +38,6 @@ public class WorkQueuePatioRequisicaoDto {
     public void setEquipamento(String equipamento) { this.equipamento = equipamento; }
     public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
     public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
+    public List<Long> getOrdemIds() { return ordemIds; }
+    public void setOrdemIds(List<Long> ordemIds) { this.ordemIds = ordemIds; }
 }

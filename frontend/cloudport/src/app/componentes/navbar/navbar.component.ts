@@ -64,6 +64,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     return this.obterAbasPorGrupo(this.grupoNavio);
   }
 
+  get podeAcessarControlRoomNavio(): boolean {
+    return this.servicoAutenticacao.possuiAlgumPapel('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE');
+  }
+
   openTab(tab: RegistroAba): void {
     if (tab.disabled || !this.canAccess(tab)) {
       return;
@@ -76,6 +80,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.tabService.openTab(registro, conteudo);
     const routeCommands = ['/home', ...resolveRouteSegments(normalizedId)];
     this.router.navigate(routeCommands);
+  }
+
+  abrirControlRoomNavio(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.podeAcessarControlRoomNavio) {
+      this.router.navigate(['/home/navio/control-room']);
+    }
   }
 
   handleTabSelection(event: Event, tab: RegistroAba): void {

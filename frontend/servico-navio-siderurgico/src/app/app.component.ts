@@ -63,6 +63,7 @@ export class AppComponent implements OnInit, OnDestroy {
   statusOrdens = ['PENDENTE', 'EM_EXECUCAO', 'BLOQUEADA', 'SUSPENSA', 'CONCLUIDA', 'CANCELADA'];
   severidades = ['BAIXA', 'MEDIA', 'ALTA', 'CRITICA'];
   private atualizacaoTimer?: ReturnType<typeof setInterval>;
+  private atualizacaoEmAndamento?: Promise<void>;
 
   constructor(private readonly api: SiderurgicoApiService) {}
 
@@ -70,7 +71,9 @@ export class AppComponent implements OnInit, OnDestroy {
     void this.carregarTudo();
     this.atualizacaoTimer = setInterval(() => {
       if (this.atualizacaoAutomatica && this.visitaSelecionada?.id) {
-        void this.atualizarControlRoomSilencioso();
+        void this.atualizarControlRoomSilencioso().catch(erro => {
+          this.erro = this.extrairErro(erro, 'Falha na atualização automática do Control Room.');
+        });
       }
     }, 30000);
   }
@@ -86,8 +89,12 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       this.limparMensagens();
       await this.api.carregarConfiguracao();
-      this.navios = await this.api.listarNavios();
-      this.visitas = await this.api.listarVisitas();
+      const [navios, visitas] = await Promise.all([
+        this.api.listarNavios(),
+        this.api.listarVisitas()
+      ]);
+      this.navios = navios;
+      this.visitas = visitas;
       if (this.visitas.length) {
         await this.selecionarVisita(this.visitas[0]);
       }
@@ -100,6 +107,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   async selecionarVisita(visita: VisitaNavio): Promise<void> {
     this.visitaSelecionada = visita;
+    this.atualizacaoEmAndamento = undefined;
     await this.atualizarControlRoomSilencioso();
   }
 
@@ -126,7 +134,7 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       this.limparMensagens();
       this.reservasPatio = await this.api.gerarReservasPatio(visitaId);
-      await this.atualizarControlRoomSilencioso();
+      await this.carregarIntegracaoPatio();
       this.sucesso = 'Reservas de patio geradas.';
     } catch (erro) {
       this.erro = this.extrairErro(erro, 'Nao foi possivel gerar as reservas de patio.');
@@ -139,7 +147,7 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       this.limparMensagens();
       this.resultadoOrdens = await this.api.gerarOrdensPatio(visitaId);
-      await this.atualizarControlRoomSilencioso();
+      await this.carregarIntegracaoPatio();
       this.sucesso = `${this.resultadoOrdens.totalOrdensCriadas} ordem(ns) de patio gerada(s).`;
     } catch (erro) {
       this.erro = this.extrairErro(erro, 'Nao foi possivel gerar as ordens de patio.');
@@ -371,7 +379,10 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!workQueue.id) return;
     const edicao = this.edicaoWorkQueue(workQueue);
     await this.executarAcaoWorkQueue(`dispatch-${workQueue.id}`, async () => {
-      const resultado = await this.api.despacharWorkQueuePatio(workQueue.id as number, { limiteOrdens: edicao.limiteDispatch || null, operador: 'CONTROL_ROOM', observacao: 'Dispatch acionado pela tela Control Room' });
+      const resultado = await this.api.despacharWorkQueuePatio(workQueue.id as number, {
+        limiteOrdens: edicao.limiteDispatch || null,
+        observacao: 'Dispatch acionado pela tela Control Room'
+      });
       const total = resultado.totalOrdensDespachadas ?? resultado.ordens?.length ?? 0;
       await this.carregarIntegracaoPatio();
       this.sucesso = `${total} ordem(ns) despachada(s) na work queue.`;
@@ -396,13 +407,64 @@ export class AppComponent implements OnInit, OnDestroy {
     }, 'Nao foi possivel cancelar a work instruction.');
   }
 
-  private async atualizarControlRoomSilencioso(): Promise<void> {
+  private atualizarControlRoomSilencioso(): Promise<void> {
     const visitaId = this.visitaSelecionada?.id;
-    if (!visitaId) return;
-    this.itens = await this.api.listarItensVisita(visitaId);
-    this.resumo = await this.api.obterResumo(visitaId);
-    this.eventos = await this.api.listarEventos(visitaId);
-    await this.carregarIntegracaoPatio();
+    if (!visitaId) return Promise.resolve();
+    if (this.atualizacaoEmAndamento) {
+      return this.atualizacaoEmAndamento;
+    }
+
+    const atualizacao = this.carregarSnapshotControlRoom(visitaId)
+      .finally(() => {
+        if (this.atualizacaoEmAndamento === atualizacao) {
+          this.atualizacaoEmAndamento = undefined;
+        }
+      });
+    this.atualizacaoEmAndamento = atualizacao;
+    return atualizacao;
+  }
+
+  private async carregarSnapshotControlRoom(visitaId: number): Promise<void> {
+    const [
+      itens,
+      resumo,
+      eventos,
+      resumoIntegracao,
+      reservasPatio,
+      ordensPatio,
+      filasPatio,
+      workQueuesPatio,
+      ordensSemCobertura,
+      alertasIntegracao
+    ] = await Promise.all([
+      this.api.listarItensVisita(visitaId),
+      this.api.obterResumo(visitaId),
+      this.api.listarEventos(visitaId),
+      this.api.obterResumoIntegracaoPatio(visitaId),
+      this.api.listarReservasPatio(visitaId),
+      this.api.listarOrdensPatio(visitaId),
+      this.api.listarFilasPatio(visitaId),
+      this.api.listarWorkQueuesPatio(visitaId),
+      this.api.listarOrdensSemCoberturaPatio(visitaId),
+      this.api.listarAlertasIntegracaoPatio(visitaId)
+    ]);
+
+    if (this.visitaSelecionada?.id !== visitaId) {
+      return;
+    }
+    this.itens = itens;
+    this.resumo = resumo;
+    this.eventos = eventos;
+    this.resumoIntegracao = resumoIntegracao;
+    this.reservasPatio = reservasPatio;
+    this.ordensPatio = ordensPatio;
+    this.filasPatio = filasPatio;
+    this.workQueuesPatio = workQueuesPatio;
+    this.ordensSemCobertura = ordensSemCobertura;
+    this.alertasIntegracao = alertasIntegracao;
+    this.sincronizarEdicoesWorkQueue();
+    this.sincronizarPrioridadesOrdens();
+    this.ultimaAtualizacaoControlRoom = new Date();
   }
 
   private async carregarIntegracaoPatio(): Promise<void> {
@@ -420,15 +482,29 @@ export class AppComponent implements OnInit, OnDestroy {
       this.edicoesWorkQueue = {};
       return;
     }
-    this.resumoIntegracao = await this.api.obterResumoIntegracaoPatio(visitaId);
-    this.reservasPatio = await this.api.listarReservasPatio(visitaId);
-    this.ordensPatio = await this.api.listarOrdensPatio(visitaId);
-    this.filasPatio = await this.api.listarFilasPatio(visitaId);
-    this.workQueuesPatio = await this.api.listarWorkQueuesPatio(visitaId);
+
+    const [resumo, reservas, ordens, filas, workQueues, semCobertura, alertas] = await Promise.all([
+      this.api.obterResumoIntegracaoPatio(visitaId),
+      this.api.listarReservasPatio(visitaId),
+      this.api.listarOrdensPatio(visitaId),
+      this.api.listarFilasPatio(visitaId),
+      this.api.listarWorkQueuesPatio(visitaId),
+      this.api.listarOrdensSemCoberturaPatio(visitaId),
+      this.api.listarAlertasIntegracaoPatio(visitaId)
+    ]);
+
+    if (this.visitaSelecionada?.id !== visitaId) {
+      return;
+    }
+    this.resumoIntegracao = resumo;
+    this.reservasPatio = reservas;
+    this.ordensPatio = ordens;
+    this.filasPatio = filas;
+    this.workQueuesPatio = workQueues;
+    this.ordensSemCobertura = semCobertura;
+    this.alertasIntegracao = alertas;
     this.sincronizarEdicoesWorkQueue();
     this.sincronizarPrioridadesOrdens();
-    this.ordensSemCobertura = await this.api.listarOrdensSemCoberturaPatio(visitaId);
-    this.alertasIntegracao = await this.api.listarAlertasIntegracaoPatio(visitaId);
     this.ultimaAtualizacaoControlRoom = new Date();
   }
 
@@ -465,7 +541,12 @@ export class AppComponent implements OnInit, OnDestroy {
   private sincronizarEdicoesWorkQueue(): void {
     this.workQueuesPatio.forEach(workQueue => {
       if (!workQueue.id || this.edicoesWorkQueue[workQueue.id]) return;
-      this.edicoesWorkQueue[workQueue.id] = { pow: workQueue.pow || '', poolOperacional: workQueue.poolOperacional || '', equipamento: workQueue.equipamento || '', limiteDispatch: null };
+      this.edicoesWorkQueue[workQueue.id] = {
+        pow: workQueue.pow || '',
+        poolOperacional: workQueue.poolOperacional || '',
+        equipamento: workQueue.equipamento || '',
+        limiteDispatch: null
+      };
     });
   }
 
@@ -503,8 +584,23 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private extrairErro(erro: unknown, fallback: string): string {
-    return (erro as { error?: { erro?: string; message?: string; correlationId?: string } })?.error?.erro
-      || (erro as { error?: { message?: string } })?.error?.message
+    const resposta = erro as {
+      error?: {
+        codigo?: string;
+        erro?: string;
+        mensagem?: string;
+        message?: string;
+        detalhes?: string;
+        correlationId?: string;
+      };
+    };
+    const mensagem = resposta?.error?.mensagem
+      || resposta?.error?.erro
+      || resposta?.error?.message
       || fallback;
+    const codigo = resposta?.error?.codigo ? ` [${resposta.error.codigo}]` : '';
+    const correlationId = resposta?.error?.correlationId ? ` (correlationId: ${resposta.error.correlationId})` : '';
+    const detalhes = resposta?.error?.detalhes ? ` - ${resposta.error.detalhes}` : '';
+    return `${mensagem}${codigo}${detalhes}${correlationId}`;
   }
 }

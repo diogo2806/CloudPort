@@ -1,5 +1,7 @@
 package br.com.cloudport.serviconaviosiderurgico.servico;
 
+import br.com.cloudport.serviconaviosiderurgico.cliente.PosicaoPatioYardCliente;
+import br.com.cloudport.serviconaviosiderurgico.cliente.PosicaoPatioYardCliente.PosicaoPatioYardDTO;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ReservaPosicaoPatioNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusIntegracaoPatio;
@@ -12,8 +14,11 @@ import br.com.cloudport.serviconaviosiderurgico.dto.ReservaPatioNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ItemOperacaoNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ReservaPosicaoPatioNavioRepositorio;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -24,15 +29,18 @@ public class ReservaPatioNavioServico {
     private final ReservaPosicaoPatioNavioRepositorio reservaRepositorio;
     private final ItemOperacaoNavioRepositorio itemRepositorio;
     private final VisitaNavioServico visitaServico;
+    private final PosicaoPatioYardCliente posicaoPatioYardCliente;
 
     public ReservaPatioNavioServico(
             ReservaPosicaoPatioNavioRepositorio reservaRepositorio,
             ItemOperacaoNavioRepositorio itemRepositorio,
-            VisitaNavioServico visitaServico
+            VisitaNavioServico visitaServico,
+            PosicaoPatioYardCliente posicaoPatioYardCliente
     ) {
         this.reservaRepositorio = reservaRepositorio;
         this.itemRepositorio = itemRepositorio;
         this.visitaServico = visitaServico;
+        this.posicaoPatioYardCliente = posicaoPatioYardCliente;
     }
 
     @Transactional(readOnly = true)
@@ -55,38 +63,56 @@ public class ReservaPatioNavioServico {
                 .sorted(Comparator.comparing(ItemOperacaoNavio::getSequenciaOperacional, Comparator.nullsLast(Integer::compareTo)))
                 .toList();
 
+        List<PosicaoPatioYardDTO> posicoes = posicoesDisponiveisDoYard();
+        Set<String> posicoesReservadas = posicoesReservadasAtivas();
+
         List<ReservaPatioNavioDTO> reservas = itens.stream()
                 .filter(item -> !somentePendentes || reservaAtiva(item) == null)
-                .map(item -> reservarItem(item, tipoReserva))
+                .map(item -> reservarItem(item, tipoReserva, posicoes, posicoesReservadas))
                 .map(ReservaPatioNavioDTO::de)
                 .toList();
 
         if (!reservas.isEmpty()) {
-            visitaServico.registrarEvento(visita, null, "RESERVAS_PATIO_GERADAS", reservas.size() + " reserva(s) de patio gerada(s) para descarga.", comando == null ? null : comando.usuario(), null, String.valueOf(reservas.size()));
+            visitaServico.registrarEvento(visita, null, "RESERVAS_PATIO_GERADAS",
+                    reservas.size() + " reserva(s) de patio real gerada(s) para descarga.",
+                    comando == null ? null : comando.usuario(), null, String.valueOf(reservas.size()));
         }
         return reservas;
     }
 
     @Transactional
     public ReservaPosicaoPatioNavio reservarItem(ItemOperacaoNavio item, TipoReservaPatioNavio tipoReserva) {
+        return reservarItem(item, tipoReserva, posicoesDisponiveisDoYard(), posicoesReservadasAtivas());
+    }
+
+    private ReservaPosicaoPatioNavio reservarItem(ItemOperacaoNavio item,
+                                                    TipoReservaPatioNavio tipoReserva,
+                                                    List<PosicaoPatioYardDTO> posicoes,
+                                                    Set<String> posicoesReservadas) {
         ReservaPosicaoPatioNavio reservaExistente = reservaAtiva(item);
         if (reservaExistente != null) {
             return reservaExistente;
         }
-        String posicao = posicaoPlanejada(item);
-        validarPosicaoDisponivel(posicao);
+
+        PosicaoPatioYardDTO posicao = selecionarPosicao(item, posicoes, posicoesReservadas);
+        String identificador = posicao.identificador();
+        validarPosicaoDisponivel(posicao, identificador, posicoesReservadas);
 
         ReservaPosicaoPatioNavio reserva = new ReservaPosicaoPatioNavio();
         reserva.setVisitaNavioId(item.getVisitaNavio().getId());
         reserva.setItemOperacaoNavioId(item.getId());
-        reserva.setPosicaoPatioId(posicao);
+        reserva.setPosicaoPatioId(identificador);
         reserva.setTipoReserva(tipoReserva == null ? TipoReservaPatioNavio.TENTATIVA : tipoReserva);
         reserva.setStatus(StatusReservaPatioNavio.ATIVA);
-        preencherCoordenadas(reserva, posicao);
+        reserva.setBloco(normalizarBloco(item.getDestinoPatio()));
+        reserva.setLinha(posicao.getLinha());
+        reserva.setColuna(posicao.getColuna());
+        reserva.setCamada(posicao.getCamadaOperacional());
         ReservaPosicaoPatioNavio salva = reservaRepositorio.save(reserva);
+        posicoesReservadas.add(identificador.toUpperCase(Locale.ROOT));
 
-        item.setPosicaoPatioPlanejada(posicao);
-        item.setDestinoPatio(StringUtils.hasText(item.getDestinoPatio()) ? item.getDestinoPatio() : posicao);
+        item.setPosicaoPatioPlanejada(identificador);
+        item.setDestinoPatio(StringUtils.hasText(item.getDestinoPatio()) ? item.getDestinoPatio() : identificador);
         item.setStatusIntegracaoPatio(StatusIntegracaoPatio.RESERVADO);
         itemRepositorio.save(item);
         return salva;
@@ -94,55 +120,86 @@ public class ReservaPatioNavioServico {
 
     private ReservaPosicaoPatioNavio reservaAtiva(ItemOperacaoNavio item) {
         return reservaRepositorio.findFirstByItemOperacaoNavioIdAndStatusInOrderByCriadoEmDesc(
-                item.getId(), List.of(StatusReservaPatioNavio.ATIVA))
+                        item.getId(), List.of(StatusReservaPatioNavio.ATIVA))
                 .orElse(null);
     }
 
-    private String posicaoPlanejada(ItemOperacaoNavio item) {
-        if (StringUtils.hasText(item.getPosicaoPatioPlanejada())) {
-            return item.getPosicaoPatioPlanejada().trim().toUpperCase(Locale.ROOT);
+    private List<PosicaoPatioYardDTO> posicoesDisponiveisDoYard() {
+        List<PosicaoPatioYardDTO> posicoes = posicaoPatioYardCliente.listarPosicoes().stream()
+                .filter(Objects::nonNull)
+                .filter(posicao -> posicao.getId() != null)
+                .filter(posicao -> posicao.getLinha() != null && posicao.getColuna() != null)
+                .filter(posicao -> StringUtils.hasText(posicao.getCamadaOperacional()))
+                .sorted(Comparator.comparing(PosicaoPatioYardDTO::getLinha)
+                        .thenComparing(PosicaoPatioYardDTO::getColuna)
+                        .thenComparing(PosicaoPatioYardDTO::getCamadaOperacional))
+                .toList();
+        if (posicoes.isEmpty()) {
+            throw new IllegalArgumentException("O mapa real do patio nao possui posicoes cadastradas para reserva.");
         }
-        if (StringUtils.hasText(item.getDestinoPatio())) {
-            return item.getDestinoPatio().trim().toUpperCase(Locale.ROOT);
-        }
-        int sequencia = item.getSequenciaOperacional() == null ? item.getId().intValue() : item.getSequenciaOperacional();
-        return "V" + item.getVisitaNavio().getId() + "-D-" + sequencia;
+        return posicoes;
     }
 
-    private void validarPosicaoDisponivel(String posicao) {
-        if (!StringUtils.hasText(posicao)) {
-            throw new IllegalArgumentException("Nao ha posicao de patio disponivel para reserva.");
+    private Set<String> posicoesReservadasAtivas() {
+        Set<String> reservadas = new HashSet<>();
+        reservaRepositorio.findAll().stream()
+                .filter(reserva -> reserva.getStatus() == StatusReservaPatioNavio.ATIVA)
+                .map(ReservaPosicaoPatioNavio::getPosicaoPatioId)
+                .filter(StringUtils::hasText)
+                .map(valor -> valor.trim().toUpperCase(Locale.ROOT))
+                .forEach(reservadas::add);
+        return reservadas;
+    }
+
+    private PosicaoPatioYardDTO selecionarPosicao(ItemOperacaoNavio item,
+                                                   List<PosicaoPatioYardDTO> posicoes,
+                                                   Set<String> reservadas) {
+        String preferida = normalizar(item.getPosicaoPatioPlanejada());
+        if (StringUtils.hasText(preferida)) {
+            PosicaoPatioYardDTO encontrada = posicoes.stream()
+                    .filter(posicao -> correspondePreferencia(posicao, preferida))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "A posicao planejada " + preferida + " nao existe no mapa real do patio."));
+            validarPosicaoDisponivel(encontrada, encontrada.identificador(), reservadas);
+            return encontrada;
         }
-        String normalizada = posicao.trim().toUpperCase(Locale.ROOT);
-        if (normalizada.contains("BLOQUE") || normalizada.contains("OCUP")) {
-            throw new IllegalArgumentException("Posicao de patio bloqueada ou ocupada: " + posicao + ".");
+
+        return posicoes.stream()
+                .filter(posicao -> !posicao.isOcupada())
+                .filter(posicao -> !reservadas.contains(posicao.identificador().toUpperCase(Locale.ROOT)))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Nao ha posicao real livre e sem reserva ativa no patio."));
+    }
+
+    private boolean correspondePreferencia(PosicaoPatioYardDTO posicao, String preferida) {
+        String porId = normalizar(posicao.identificador());
+        String porCoordenada = normalizar(posicao.getLinha() + "-" + posicao.getColuna() + "-" + posicao.getCamadaOperacional());
+        return preferida.equals(porId) || preferida.equals(porCoordenada);
+    }
+
+    private void validarPosicaoDisponivel(PosicaoPatioYardDTO posicao,
+                                           String identificador,
+                                           Set<String> reservadas) {
+        if (posicao == null || !StringUtils.hasText(identificador)) {
+            throw new IllegalArgumentException("Posicao de patio inexistente.");
         }
-        if (reservaRepositorio.existsByPosicaoPatioIdIgnoreCaseAndStatusIn(normalizada, List.of(StatusReservaPatioNavio.ATIVA))) {
-            throw new IllegalArgumentException("Posicao de patio ja reservada: " + posicao + ".");
+        if (posicao.isOcupada()) {
+            throw new IllegalArgumentException("Posicao de patio ocupada no mapa real: " + identificador + ".");
+        }
+        if (reservadas.contains(identificador.toUpperCase(Locale.ROOT))
+                || reservaRepositorio.existsByPosicaoPatioIdIgnoreCaseAndStatusIn(
+                        identificador, List.of(StatusReservaPatioNavio.ATIVA))) {
+            throw new IllegalArgumentException("Posicao de patio ja reservada: " + identificador + ".");
         }
     }
 
-    private void preencherCoordenadas(ReservaPosicaoPatioNavio reserva, String posicao) {
-        String[] partes = posicao.split("[-/]");
-        if (partes.length > 0) {
-            reserva.setBloco(partes[0]);
-        }
-        if (partes.length > 1) {
-            reserva.setLinha(parseInteiro(partes[1]));
-        }
-        if (partes.length > 2) {
-            reserva.setColuna(parseInteiro(partes[2]));
-        }
-        if (partes.length > 3) {
-            reserva.setCamada(partes[3]);
-        }
+    private String normalizarBloco(String valor) {
+        return StringUtils.hasText(valor) ? valor.trim().toUpperCase(Locale.ROOT) : null;
     }
 
-    private Integer parseInteiro(String valor) {
-        try {
-            return Integer.valueOf(valor.replaceAll("\\D", ""));
-        } catch (RuntimeException ex) {
-            return null;
-        }
+    private String normalizar(String valor) {
+        return StringUtils.hasText(valor) ? valor.trim().toUpperCase(Locale.ROOT) : null;
     }
 }

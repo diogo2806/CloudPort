@@ -17,9 +17,7 @@ export class ServicoAutenticacao {
         private readonly http: HttpClient,
         private readonly configuracaoAplicacao: ConfiguracaoAplicacaoService
     ) {
-        const dadosArmazenados = localStorage.getItem('usuarioAtual');
-        const usuarioArmazenado = dadosArmazenados ? JSON.parse(dadosArmazenados) : null;
-        const usuarioAtual = usuarioArmazenado ? this.mapearParaUsuario(usuarioArmazenado) : null;
+        const usuarioAtual = this.carregarUsuarioArmazenado();
         this.usuarioAtual$ = new BehaviorSubject<User | null>(usuarioAtual);
         this.usuarioAtualObservavel = this.usuarioAtual$.asObservable();
         this.statusMenu$ = new BehaviorSubject<boolean>(this.deveExibirMenu(usuarioAtual?.roles ?? []));
@@ -33,11 +31,10 @@ export class ServicoAutenticacao {
     autenticar(login: string, senha: string) {
         const url = this.configuracaoAplicacao.construirUrlApi('/auth/login');
         const loginSanitizado = this.sanitizarTextoSimples(login);
-        const senhaSanitizada = this.sanitizarTextoSimples(senha);
-        return this.http.post<any>(url, { login: loginSanitizado, senha: senhaSanitizada })
+        return this.http.post<any>(url, { login: loginSanitizado, senha })
             .pipe(map(resposta => {
                 const usuario = this.mapearParaUsuario(resposta);
-                localStorage.setItem('usuarioAtual', JSON.stringify(usuario));
+                this.persistirUsuarioSeguro(usuario);
                 this.usuarioAtual$.next(usuario);
                 this.atualizarStatusMenu(this.deveExibirMenu(usuario.roles));
                 return usuario;
@@ -58,8 +55,13 @@ export class ServicoAutenticacao {
 
     obterNomeUsuario(): string | null {
         const dadosArmazenados = localStorage.getItem('nomeUsuario');
-        const valor = dadosArmazenados ? JSON.parse(dadosArmazenados) : null;
-        return typeof valor === 'string' ? this.sanitizarTextoSimples(valor) : null;
+        try {
+            const valor = dadosArmazenados ? JSON.parse(dadosArmazenados) : null;
+            return typeof valor === 'string' ? this.sanitizarTextoSimples(valor) : null;
+        } catch {
+            localStorage.removeItem('nomeUsuario');
+            return null;
+        }
     }
 
     atualizarStatusMenu(status: boolean) {
@@ -84,6 +86,34 @@ export class ServicoAutenticacao {
 
     obterPapeisAtuais(): string[] {
         return this.usuarioAtual$.getValue()?.roles ?? [];
+    }
+
+    private carregarUsuarioArmazenado(): User | null {
+        const dadosArmazenados = localStorage.getItem('usuarioAtual');
+        if (!dadosArmazenados) {
+            return null;
+        }
+        try {
+            const dados = JSON.parse(dadosArmazenados);
+            return this.mapearParaUsuario(dados);
+        } catch {
+            localStorage.removeItem('usuarioAtual');
+            return null;
+        }
+    }
+
+    private persistirUsuarioSeguro(usuario: User): void {
+        const sessao = {
+            id: usuario.id,
+            nome: usuario.nome,
+            token: usuario.token,
+            email: usuario.email,
+            perfil: usuario.perfil,
+            roles: usuario.roles,
+            transportadoraDocumento: usuario.transportadoraDocumento,
+            transportadoraNome: usuario.transportadoraNome
+        };
+        localStorage.setItem('usuarioAtual', JSON.stringify(sessao));
     }
 
     private deveExibirMenu(papeis: string[]): boolean {
@@ -127,7 +157,7 @@ export class ServicoAutenticacao {
             nome,
             token,
             origem.email ?? dados.email ?? '',
-            origem.senha ?? dados.senha ?? '',
+            '',
             perfil,
             papeis,
             transportadoraDocumento,
@@ -147,7 +177,8 @@ export class ServicoAutenticacao {
             const cargaUtil = segmentos[1]
                 .replace(/-/g, '+')
                 .replace(/_/g, '/');
-            const payloadDecodificado = decodeURIComponent(atob(cargaUtil)
+            const padding = '='.repeat((4 - cargaUtil.length % 4) % 4);
+            const payloadDecodificado = decodeURIComponent(atob(cargaUtil + padding)
                 .split('')
                 .map(caractere => '%' + ('00' + caractere.charCodeAt(0).toString(16)).slice(-2))
                 .join(''));

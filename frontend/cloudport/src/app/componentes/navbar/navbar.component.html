@@ -85,6 +85,9 @@
         </li>
       </ul>
     </li>
+    <li *ngIf="!navioTabs.length && podeAcessarControlRoomNavio">
+      <button type="button" class="submenu-trigger" (click)="abrirControlRoomNavio($event)">Navio</button>
+    </li>
     <li *ngIf="userTabs.length" (click)="toggleSubmenu($event)">
       <button type="button" class="submenu-trigger">Usuários</button>
       <ul>

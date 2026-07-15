@@ -5,7 +5,6 @@ import { first } from 'rxjs/operators';
 import { ServicoAutenticacao } from '../service/servico-autenticacao/servico-autenticacao.service';
 import { CustomReuseStrategy } from '../tab-content/customreusestrategy';
 
-// Importações para animações
 import { trigger, state, style, animate, transition } from '@angular/animations';
 
 const ROTA_PROTEGIDA_PADRAO = '/home/role';
@@ -16,7 +15,6 @@ const ROTA_PROTEGIDA_PADRAO = '/home/role';
     styleUrls: ['./login.component.css'],
     animations: [
         trigger('routerTransition', [
-            // Defina os estados e transições aqui
             state('void', style({ opacity: 0 })),
             state('*', style({ opacity: 1 })),
             transition('void => *', animate('0.5s ease-in')),
@@ -25,7 +23,6 @@ const ROTA_PROTEGIDA_PADRAO = '/home/role';
     ],
     standalone: false
 })
-
 export class LoginComponent implements OnInit {
     formularioLogin: FormGroup = this.formBuilder.group({});
     carregando = false;
@@ -38,10 +35,8 @@ export class LoginComponent implements OnInit {
         private route: ActivatedRoute,
         private router: Router,
         private servicoAutenticacao: ServicoAutenticacao,
-        private reuseStrategy: RouteReuseStrategy // Injete a estratégia de reutilização de rota aqui
-
+        private reuseStrategy: RouteReuseStrategy
     ) {
-        // redirect to home if already logged in
         if (this.servicoAutenticacao.obterUsuarioAtual()) {
             this.router.navigateByUrl(this.rotaRetorno);
         }
@@ -54,14 +49,12 @@ export class LoginComponent implements OnInit {
             senha: ['', [Validators.required, Validators.minLength(6)]]
         });
 
-        // get return url from route parameters or default to '/'
         const requestedReturnUrl = this.route.snapshot.queryParams['returnUrl'];
         const hasCustomReturnUrl = typeof requestedReturnUrl === 'string' && requestedReturnUrl.trim().length > 0;
         this.rotaRetorno = hasCustomReturnUrl ? requestedReturnUrl : ROTA_PROTEGIDA_PADRAO;
         (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
     }
 
-    // convenience getter for easy access to form fields
     get f() {
         return this.formularioLogin.controls;
     }
@@ -69,35 +62,34 @@ export class LoginComponent implements OnInit {
     aoEnviar() {
         this.enviado = true;
 
-        // stop here if form is invalid
         if (this.formularioLogin.invalid) {
             return;
         }
 
-        const loginSanitizado = this.sanitizarCampo(this.f['login'].value);
-        const senhaSanitizada = this.sanitizarCampo(this.f['senha'].value);
-        this.formularioLogin.patchValue({ login: loginSanitizado, senha: senhaSanitizada }, { emitEvent: false, onlySelf: true });
+        const loginSanitizado = this.sanitizarLogin(this.f['login'].value);
+        const senha = typeof this.f['senha'].value === 'string' ? this.f['senha'].value : '';
+        this.formularioLogin.patchValue({ login: loginSanitizado }, { emitEvent: false, onlySelf: true });
 
         this.mensagemErro = '';
         this.carregando = true;
-        this.servicoAutenticacao.autenticar(loginSanitizado, senhaSanitizada)
+        this.servicoAutenticacao.autenticar(loginSanitizado, senha)
             .pipe(first())
-            .subscribe(
-                data => {
-
+            .subscribe({
+                next: () => {
                     this.router.navigateByUrl(this.rotaRetorno);
                     this.servicoAutenticacao.definirNomeUsuario(loginSanitizado);
-                    this.servicoAutenticacao.atualizarStatusMenu(true); // set mostrarMenu to true after successful login
+                    this.servicoAutenticacao.atualizarStatusMenu(true);
                     (this.reuseStrategy as CustomReuseStrategy).markForDestruction('login'.toLowerCase());
                     this.carregando = false;
                 },
-                error => {
+                error: (error) => {
                     this.mensagemErro = error;
                     this.carregando = false;
-                });
+                }
+            });
     }
 
-    private sanitizarCampo(valor: string): string {
+    private sanitizarLogin(valor: string): string {
         if (!valor) {
             return '';
         }

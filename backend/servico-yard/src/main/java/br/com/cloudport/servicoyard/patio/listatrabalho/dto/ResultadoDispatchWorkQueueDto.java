@@ -1,33 +1,51 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
 public class ResultadoDispatchWorkQueueDto {
 
-    private int totalDespachadas;
-    private int totalIgnoradas;
+    private Long workQueueId;
+    private int totalOrdensDespachadas;
+    private int totalOrdensIgnoradas;
     private String mensagem;
-    private List<OrdemTrabalhoPatioRespostaDto> jobList;
+    private List<OrdemTrabalhoPatioRespostaDto> ordens;
 
     public ResultadoDispatchWorkQueueDto() {
     }
 
-    public ResultadoDispatchWorkQueueDto(int totalDespachadas,
-                                         int totalIgnoradas,
-                                         String mensagem,
-                                         List<OrdemTrabalhoPatioRespostaDto> jobList) {
-        this.totalDespachadas = totalDespachadas;
-        this.totalIgnoradas = totalIgnoradas;
+    public ResultadoDispatchWorkQueueDto(Long workQueueId,
+                                          int totalOrdensDespachadas,
+                                          int totalOrdensIgnoradas,
+                                          String mensagem,
+                                          List<OrdemTrabalhoPatioRespostaDto> ordens) {
+        this.workQueueId = workQueueId;
+        this.totalOrdensDespachadas = totalOrdensDespachadas;
+        this.totalOrdensIgnoradas = totalOrdensIgnoradas;
         this.mensagem = mensagem;
-        this.jobList = jobList;
+        this.ordens = ordens;
     }
 
-    public int getTotalDespachadas() { return totalDespachadas; }
-    public void setTotalDespachadas(int totalDespachadas) { this.totalDespachadas = totalDespachadas; }
-    public int getTotalIgnoradas() { return totalIgnoradas; }
-    public void setTotalIgnoradas(int totalIgnoradas) { this.totalIgnoradas = totalIgnoradas; }
+    public Long getWorkQueueId() { return workQueueId; }
+    public void setWorkQueueId(Long workQueueId) { this.workQueueId = workQueueId; }
+    public int getTotalOrdensDespachadas() { return totalOrdensDespachadas; }
+    public void setTotalOrdensDespachadas(int totalOrdensDespachadas) { this.totalOrdensDespachadas = totalOrdensDespachadas; }
+    public int getTotalOrdensIgnoradas() { return totalOrdensIgnoradas; }
+    public void setTotalOrdensIgnoradas(int totalOrdensIgnoradas) { this.totalOrdensIgnoradas = totalOrdensIgnoradas; }
     public String getMensagem() { return mensagem; }
     public void setMensagem(String mensagem) { this.mensagem = mensagem; }
-    public List<OrdemTrabalhoPatioRespostaDto> getJobList() { return jobList; }
-    public void setJobList(List<OrdemTrabalhoPatioRespostaDto> jobList) { this.jobList = jobList; }
+    public List<OrdemTrabalhoPatioRespostaDto> getOrdens() { return ordens; }
+    public void setOrdens(List<OrdemTrabalhoPatioRespostaDto> ordens) { this.ordens = ordens; }
+
+    @Deprecated
+    @JsonIgnore
+    public int getTotalDespachadas() { return totalOrdensDespachadas; }
+
+    @Deprecated
+    @JsonIgnore
+    public int getTotalIgnoradas() { return totalOrdensIgnoradas; }
+
+    @Deprecated
+    @JsonIgnore
+    public List<OrdemTrabalhoPatioRespostaDto> getJobList() { return ordens; }
 }

@@ -8,6 +8,7 @@ import { SegurancaComponent } from './componentes/seguranca/seguranca.component'
 import { NotificacoesComponent } from './componentes/notificacoes/notificacoes.component';
 import { PrivacidadeComponent } from './componentes/privacidade/privacidade.component';
 import { UsuariosListaComponent } from './componentes/usuarios-lista/usuarios-lista.component';
+import { NavioControlRoomComponent } from './componentes/navio/navio-control-room.component';
 
 const homeChildRoutes: Routes = [
   {
@@ -34,6 +35,16 @@ const homeChildRoutes: Routes = [
   {
     path: 'lista-de-usuarios',
     component: UsuariosListaComponent
+  },
+  {
+    path: 'navio',
+    pathMatch: 'full',
+    redirectTo: 'navio/control-room'
+  },
+  {
+    path: 'navio/control-room',
+    component: NavioControlRoomComponent,
+    canActivate: [AuthGuard]
   },
   {
     path: 'gate',

@@ -27,6 +27,7 @@ import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
@@ -40,11 +41,15 @@ public class ConfiguracaoSeguranca {
 
     private final String jwtSecret;
     private final String allowedOrigins;
+    private final InternalServiceAuthenticationFilter internalServiceAuthenticationFilter;
 
-    public ConfiguracaoSeguranca(@Value("${cloudport.security.jwt.secret}") String jwtSecret,
-                                 @Value("${cloudport.security.cors.allowed-origins:http://localhost:4200}") String allowedOrigins) {
+    public ConfiguracaoSeguranca(
+            @Value("${cloudport.security.jwt.secret}") String jwtSecret,
+            @Value("${cloudport.security.cors.allowed-origins:http://localhost:4200}") String allowedOrigins,
+            InternalServiceAuthenticationFilter internalServiceAuthenticationFilter) {
         this.jwtSecret = jwtSecret;
         this.allowedOrigins = allowedOrigins;
+        this.internalServiceAuthenticationFilter = internalServiceAuthenticationFilter;
     }
 
     @Bean
@@ -62,7 +67,8 @@ public class ConfiguracaoSeguranca {
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .addFilterBefore(internalServiceAuthenticationFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 
@@ -112,8 +118,14 @@ public class ConfiguracaoSeguranca {
         }
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
-        configuration.setExposedHeaders(Collections.singletonList("Authorization"));
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "X-Correlation-Id",
+                InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY
+        ));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "X-Correlation-Id"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

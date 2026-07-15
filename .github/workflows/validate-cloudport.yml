@@ -39,7 +39,15 @@ jobs:
           cache: maven
       - name: Compilar e validar
         working-directory: ${{ matrix.module }}
-        run: ${{ matrix.command }}
+        run: |
+          if [ "${{ matrix.module }}" = "backend/cloudport-navio-modules" ]; then
+            set +e
+            ${{ matrix.command }} > maven-validation.log 2>&1
+            status=$?
+            tail -n 220 maven-validation.log
+            exit $status
+          fi
+          ${{ matrix.command }}
 
   frontend:
     name: Frontend Angular

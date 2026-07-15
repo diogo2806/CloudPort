@@ -1,10 +1,10 @@
 package br.com.cloudport.serviconaviosiderurgico.servico;
 
-import br.com.cloudport.serviconaviosiderurgico.cliente.NavioCadastroCliente;
-import br.com.cloudport.serviconaviosiderurgico.cliente.NavioCadastroCliente.NavioCanonicoDTO;
 import br.com.cloudport.serviconaviosiderurgico.dominio.NavioSiderurgico;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusNavioSiderurgico;
 import br.com.cloudport.serviconaviosiderurgico.dto.NavioSiderurgicoDTO;
+import br.com.cloudport.serviconaviosiderurgico.porta.CadastroNavioPorta;
+import br.com.cloudport.serviconaviosiderurgico.porta.NavioCanonico;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.NavioSiderurgicoRepositorio;
 import java.util.List;
 import java.util.Objects;
@@ -21,12 +21,12 @@ public class NavioSiderurgicoServico {
     private static final Logger LOGGER = LoggerFactory.getLogger(NavioSiderurgicoServico.class);
 
     private final NavioSiderurgicoRepositorio repositorio;
-    private final NavioCadastroCliente navioCadastroCliente;
+    private final CadastroNavioPorta cadastroNavioPorta;
 
     public NavioSiderurgicoServico(NavioSiderurgicoRepositorio repositorio,
-                                    NavioCadastroCliente navioCadastroCliente) {
+                                   CadastroNavioPorta cadastroNavioPorta) {
         this.repositorio = repositorio;
-        this.navioCadastroCliente = navioCadastroCliente;
+        this.cadastroNavioPorta = cadastroNavioPorta;
     }
 
     @Transactional(readOnly = true)
@@ -44,16 +44,16 @@ public class NavioSiderurgicoServico {
 
     @Transactional
     public NavioSiderurgicoDTO criar(NavioSiderurgicoDTO dto) {
-        NavioCanonicoDTO canonico = dto.navioCadastroId() == null
-                ? navioCadastroCliente.buscarPorImo(dto.codigoImo())
-                : navioCadastroCliente.buscarPorId(dto.navioCadastroId());
-        if (canonico == null || canonico.getIdentificador() == null) {
+        NavioCanonico canonico = dto.navioCadastroId() == null
+                ? cadastroNavioPorta.buscarPorImo(dto.codigoImo())
+                : cadastroNavioPorta.buscarPorId(dto.navioCadastroId());
+        if (canonico == null || canonico.identificador() == null) {
             throw new IllegalArgumentException("O navio deve existir no cadastro canônico antes de receber dados siderúrgicos.");
         }
-        if (repositorio.existsByNavioCadastroId(canonico.getIdentificador())) {
+        if (repositorio.existsByNavioCadastroId(canonico.identificador())) {
             throw new IllegalArgumentException("O navio canônico já possui extensão operacional siderúrgica.");
         }
-        if (repositorio.existsByCodigoImoIgnoreCase(canonico.getCodigoImo())) {
+        if (repositorio.existsByCodigoImoIgnoreCase(canonico.codigoImo())) {
             throw new IllegalArgumentException("Já existe navio siderúrgico com este IMO.");
         }
 
@@ -71,13 +71,13 @@ public class NavioSiderurgicoServico {
 
     private void sincronizarComTratamento(NavioSiderurgico navio) {
         try {
-            NavioCanonicoDTO canonico = navio.getNavioCadastroId() == null
-                    ? navioCadastroCliente.buscarPorImo(navio.getCodigoImo())
-                    : navioCadastroCliente.buscarPorId(navio.getNavioCadastroId());
+            NavioCanonico canonico = navio.getNavioCadastroId() == null
+                    ? cadastroNavioPorta.buscarPorImo(navio.getCodigoImo())
+                    : cadastroNavioPorta.buscarPorId(navio.getNavioCadastroId());
             if (atualizarDadosCanonicosSeNecessario(navio, canonico)) {
                 repositorio.save(navio);
                 LOGGER.info("Projeção siderúrgica do navio {} sincronizada com o cadastro canônico {}.",
-                        navio.getId(), canonico.getIdentificador());
+                        navio.getId(), canonico.identificador());
             }
         } catch (RuntimeException ex) {
             LOGGER.warn("Não foi possível sincronizar o navio siderúrgico {} com o cadastro canônico: {}",
@@ -85,26 +85,26 @@ public class NavioSiderurgicoServico {
         }
     }
 
-    private boolean atualizarDadosCanonicosSeNecessario(NavioSiderurgico navio, NavioCanonicoDTO canonico) {
-        boolean alterado = !Objects.equals(navio.getNavioCadastroId(), canonico.getIdentificador())
-                || !Objects.equals(navio.getNome(), canonico.getNome())
-                || !Objects.equals(navio.getCodigoImo(), canonico.getCodigoImo())
-                || !Objects.equals(navio.getPaisBandeira(), canonico.getPaisBandeira())
-                || !Objects.equals(navio.getEmpresaArmadora(), canonico.getEmpresaArmadora())
-                || !Objects.equals(navio.getLoaMetros(), canonico.getLoaMetros());
+    private boolean atualizarDadosCanonicosSeNecessario(NavioSiderurgico navio, NavioCanonico canonico) {
+        boolean alterado = !Objects.equals(navio.getNavioCadastroId(), canonico.identificador())
+                || !Objects.equals(navio.getNome(), canonico.nome())
+                || !Objects.equals(navio.getCodigoImo(), canonico.codigoImo())
+                || !Objects.equals(navio.getPaisBandeira(), canonico.paisBandeira())
+                || !Objects.equals(navio.getEmpresaArmadora(), canonico.empresaArmadora())
+                || !Objects.equals(navio.getLoaMetros(), canonico.loaMetros());
         if (alterado) {
             preencherDadosCanonicos(navio, canonico);
         }
         return alterado;
     }
 
-    private void preencherDadosCanonicos(NavioSiderurgico navio, NavioCanonicoDTO canonico) {
-        navio.setNavioCadastroId(canonico.getIdentificador());
-        navio.setNome(canonico.getNome().trim());
-        navio.setCodigoImo(canonico.getCodigoImo().trim().toUpperCase());
-        navio.setPaisBandeira(canonico.getPaisBandeira().trim());
-        navio.setEmpresaArmadora(canonico.getEmpresaArmadora().trim());
-        navio.setLoaMetros(canonico.getLoaMetros());
+    private void preencherDadosCanonicos(NavioSiderurgico navio, NavioCanonico canonico) {
+        navio.setNavioCadastroId(canonico.identificador());
+        navio.setNome(canonico.nome().trim());
+        navio.setCodigoImo(canonico.codigoImo().trim().toUpperCase());
+        navio.setPaisBandeira(canonico.paisBandeira().trim());
+        navio.setEmpresaArmadora(canonico.empresaArmadora().trim());
+        navio.setLoaMetros(canonico.loaMetros());
     }
 
     private void preencherDadosOperacionais(NavioSiderurgico navio, NavioSiderurgicoDTO dto) {

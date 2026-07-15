@@ -33,6 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
         properties = {
                 "spring.jpa.hibernate.ddl-auto=validate",
+                "spring.jpa.properties.hibernate.hbm2ddl.jdbc_metadata_extraction_strategy=individually",
                 "spring.jpa.open-in-view=false",
                 "spring.flyway.enabled=false",
                 "cloudport.modulo.navio.integracao=local",

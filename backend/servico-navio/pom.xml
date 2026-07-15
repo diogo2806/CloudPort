@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -23,6 +23,7 @@
         <snakeyaml.version>2.6</snakeyaml.version>
         <spring-framework.version>5.3.39</spring-framework.version>
         <spring-security.version>5.8.16</spring-security.version>
+        <spring-boot.repackage.skip>false</spring-boot.repackage.skip>
         <tomcat.version>9.0.118</tomcat.version>
         <swagger-ui.version>5.32.6</swagger-ui.version>
         <testcontainers.version>1.21.4</testcontainers.version>
@@ -213,7 +214,18 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <skip>${spring-boot.repackage.skip}</skip>
+                </configuration>
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>modulo-monolito</id>
+            <properties>
+                <spring-boot.repackage.skip>true</spring-boot.repackage.skip>
+            </properties>
+        </profile>
+    </profiles>
 </project>

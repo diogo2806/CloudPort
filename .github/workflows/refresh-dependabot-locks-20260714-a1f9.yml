@@ -1,4 +1,4 @@
-name: Diagnose Dependabot lockfiles
+name: Diagnose Angular package versions
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  diagnose-lockfile:
+  diagnose-angular-versions:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
@@ -22,20 +22,27 @@ jobs:
         with:
           node-version: 22
 
-      - name: Capture npm resolution error
+      - name: Query Angular package versions
         shell: bash
-        working-directory: frontend/cloudport
         run: |
-          set +e
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --force > ../../npm-cloudport-resolution.log 2>&1
-          status=$?
-          echo "exit_code=$status" >> ../../npm-cloudport-resolution.log
-          cat ../../npm-cloudport-resolution.log
-          exit 0
+          {
+            for package in \
+              '@angular/cdk' \
+              '@angular/material' \
+              '@angular-devkit/build-angular' \
+              '@angular/cli' \
+              '@angular/compiler-cli'; do
+              echo "=== $package ==="
+              echo "latest=$(npm view "$package" version 2>&1)"
+              echo "latest-21=$(npm view "$package@21" version 2>&1 | tail -n 1)"
+              echo "exact-21.2.17=$(npm view "$package@21.2.17" version 2>&1)"
+            done
+          } > angular-package-versions.log
+          cat angular-package-versions.log
 
-      - name: Upload diagnostic log
+      - name: Upload version report
         uses: actions/upload-artifact@v4
         with:
-          name: npm-cloudport-resolution
-          path: npm-cloudport-resolution.log
+          name: angular-package-versions
+          path: angular-package-versions.log
           if-no-files-found: error

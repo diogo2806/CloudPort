@@ -38,6 +38,19 @@ Antes de desenvolver, ler os dois arquivos. Depois de desenvolver, remover daqui
 6. Separar DTO resumido de lista e DTO detalhado de job list.
 7. Definir contrato versionado de evento para SSE/WebSocket.
 
+## Pendencias da consolidacao em monolito modular
+
+A primeira execucao unificada de `servico-navio` e `servico-navio-siderurgico` ja existe em `backend/cloudport-monolito-navio`, e a consulta do cadastro canonico passa a ser local nesse runtime. Ainda falta:
+
+1. Transformar os dois projetos de origem em modulos Maven reais, removendo a inclusao transitoria de diretorios de fontes pelo `build-helper-maven-plugin`.
+2. Definir um unico proprietario para as migracoes Flyway e executar as migracoes dos schemas `cloudport_navio` e `cloudport_siderurgico` pelo runtime unificado.
+3. Criar teste de inicializacao com PostgreSQL/Testcontainers cobrindo os dois schemas e todos os repositorios JPA.
+4. Atualizar Docker Compose, configuracoes de ambiente e roteamento para permitir substituir os dois deployments pelo runtime unificado.
+5. Remover os deployments legados somente depois de validar paridade dos endpoints, jobs agendados, seguranca e frontend.
+6. Substituir outras chamadas HTTP entre modulos incorporados por portas locais, mantendo adaptadores HTTP apenas durante a transicao.
+7. Criar testes de arquitetura que impeçam acesso direto indevido entre modulos e preservem os limites de dominio.
+8. Avaliar a incorporacao do Yard somente depois de estabilizar Navio + Navio Siderurgico no mesmo processo.
+
 ## P0 - Pendencias obrigatorias restantes
 
 ### 1. Eventos Patio -> Navio

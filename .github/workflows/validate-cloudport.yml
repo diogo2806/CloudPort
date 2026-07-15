@@ -15,10 +15,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module:
-          - backend/servico-yard
-          - backend/servico-navio
-          - backend/servico-navio-siderurgico
+        include:
+          - module: backend/servico-yard
+            command: mvn -B -DskipTests package
+          - module: backend/servico-navio
+            command: mvn -B -DskipTests package
+          - module: backend/servico-navio-siderurgico
+            command: mvn -B -DskipTests package
+          - module: backend/cloudport-monolito-navio
+            command: mvn -B test package
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -26,9 +31,9 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Compilar e validar testes
+      - name: Compilar e validar
         working-directory: ${{ matrix.module }}
-        run: mvn -B -DskipTests package
+        run: ${{ matrix.command }}
 
   frontend:
     name: Frontend Angular

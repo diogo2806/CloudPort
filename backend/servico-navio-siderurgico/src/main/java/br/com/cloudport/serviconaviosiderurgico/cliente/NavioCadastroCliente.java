@@ -1,11 +1,13 @@
 package br.com.cloudport.serviconaviosiderurgico.cliente;
 
+import br.com.cloudport.serviconaviosiderurgico.porta.CadastroNavioPorta;
+import br.com.cloudport.serviconaviosiderurgico.porta.NavioCanonico;
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -13,7 +15,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 @Component
-public class NavioCadastroCliente {
+@ConditionalOnProperty(
+        name = "cloudport.modulo.navio.integracao",
+        havingValue = "http",
+        matchIfMissing = true)
+public class NavioCadastroCliente implements CadastroNavioPorta {
 
     private final RestTemplate restTemplate;
     private final String baseUrl;
@@ -25,24 +31,36 @@ public class NavioCadastroCliente {
         this.baseUrl = removerBarraFinal(baseUrl);
     }
 
-    public NavioCanonicoDTO buscarPorId(Long id) {
+    @Override
+    public NavioCanonico buscarPorId(Long id) {
         if (id == null) {
             throw new IllegalArgumentException("O identificador do cadastro canônico deve ser informado.");
         }
-        return restTemplate.getForObject(baseUrl + "/navios/{id}", NavioCanonicoDTO.class, id);
+        NavioCanonicoResposta resposta = restTemplate.getForObject(
+                baseUrl + "/navios/{id}",
+                NavioCanonicoResposta.class,
+                id
+        );
+        if (resposta == null) {
+            throw new IllegalArgumentException("O cadastro canônico não retornou o navio " + id + ".");
+        }
+        return resposta.paraDominio();
     }
 
-    public NavioCanonicoDTO buscarPorImo(String codigoImo) {
+    @Override
+    public NavioCanonico buscarPorImo(String codigoImo) {
         String imo = normalizar(codigoImo);
-        ResponseEntity<NavioResumoCanonicoDTO[]> resposta = restTemplate.getForEntity(
+        ResponseEntity<NavioResumoCanonicoResposta[]> resposta = restTemplate.getForEntity(
                 baseUrl + "/navios",
-                NavioResumoCanonicoDTO[].class
+                NavioResumoCanonicoResposta[].class
         );
-        NavioResumoCanonicoDTO resumo = Arrays.stream(resposta.getBody() == null ? new NavioResumoCanonicoDTO[0] : resposta.getBody())
+        NavioResumoCanonicoResposta resumo = Arrays.stream(
+                        resposta.getBody() == null ? new NavioResumoCanonicoResposta[0] : resposta.getBody())
                 .filter(Objects::nonNull)
                 .filter(item -> imo.equals(normalizar(item.getCodigoImo())))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Não existe navio no cadastro canônico com o IMO " + imo + "."));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Não existe navio no cadastro canônico com o IMO " + imo + "."));
         return buscarPorId(resumo.getIdentificador());
     }
 
@@ -57,7 +75,7 @@ public class NavioCadastroCliente {
         return StringUtils.hasText(valor) ? valor.trim().toUpperCase(Locale.ROOT) : "";
     }
 
-    public static class NavioResumoCanonicoDTO {
+    public static class NavioResumoCanonicoResposta {
         private Long identificador;
         private String codigoImo;
 
@@ -67,7 +85,7 @@ public class NavioCadastroCliente {
         public void setCodigoImo(String codigoImo) { this.codigoImo = codigoImo; }
     }
 
-    public static class NavioCanonicoDTO {
+    public static class NavioCanonicoResposta {
         private Long identificador;
         private String nome;
         private String codigoImo;
@@ -77,6 +95,20 @@ public class NavioCadastroCliente {
         private BigDecimal loaMetros;
         private BigDecimal caladoMaximoMetros;
         private String callSign;
+
+        public NavioCanonico paraDominio() {
+            return new NavioCanonico(
+                    identificador,
+                    nome,
+                    codigoImo,
+                    paisBandeira,
+                    empresaArmadora,
+                    capacidadeTeu,
+                    loaMetros,
+                    caladoMaximoMetros,
+                    callSign
+            );
+        }
 
         public Long getIdentificador() { return identificador; }
         public void setIdentificador(Long identificador) { this.identificador = identificador; }

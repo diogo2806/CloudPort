@@ -1,6 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { AuthApiService } from './auth-api.service';
 import { AuthSessionService } from './auth-session.service';
+
+interface MensagemSessaoPortal {
+  type: 'CLOUDPORT_AUTH_SESSION';
+  session: {
+    token: string;
+    nome?: string;
+    roles?: string[];
+  };
+}
 
 @Component({
   selector: 'app-auth-gate',
@@ -45,17 +54,57 @@ import { AuthSessionService } from './auth-session.service';
     .logout-button { position: fixed; z-index: 50; right: 18px; bottom: 18px; box-shadow: 0 8px 24px rgba(15, 23, 42, .28); }
   `]
 })
-export class AuthGateComponent {
+export class AuthGateComponent implements OnInit {
   login = '';
   senha = '';
   carregando = false;
   erro = '';
   autenticado = this.authSession.estaAutenticado();
+  private trustedParentOrigins = new Set<string>();
 
   constructor(
     private readonly authApi: AuthApiService,
     private readonly authSession: AuthSessionService
   ) {}
+
+  async ngOnInit(): Promise<void> {
+    try {
+      const configuracao = await this.authApi.carregarConfiguracao();
+      const origens = configuracao.trustedParentOrigins ?? [];
+      this.trustedParentOrigins = new Set([
+        window.location.origin,
+        'http://localhost:4200',
+        ...origens
+      ].filter(Boolean));
+      window.parent?.postMessage({ type: 'CLOUDPORT_CONTROL_ROOM_READY' }, '*');
+    } catch (erro) {
+      this.erro = this.extrairErro(erro);
+    }
+  }
+
+  @HostListener('window:message', ['$event'])
+  receberSessaoPortal(event: MessageEvent<MensagemSessaoPortal>): void {
+    if (!this.trustedParentOrigins.has(event.origin)) {
+      return;
+    }
+    const mensagem = event.data;
+    if (mensagem?.type !== 'CLOUDPORT_AUTH_SESSION' || !mensagem.session?.token) {
+      return;
+    }
+    try {
+      this.authSession.iniciar({
+        token: mensagem.session.token,
+        nome: mensagem.session.nome,
+        roles: mensagem.session.roles ?? []
+      });
+      this.validarPermissaoOperacional();
+      this.erro = '';
+      this.autenticado = true;
+    } catch (erro) {
+      this.authSession.encerrar();
+      this.erro = this.extrairErro(erro);
+    }
+  }
 
   get nomeUsuario(): string {
     return this.authSession.obterNomeUsuario();
@@ -70,13 +119,11 @@ export class AuthGateComponent {
     try {
       const resposta = await this.authApi.autenticar(this.login, this.senha);
       this.authSession.iniciar(resposta);
-      if (!this.authSession.possuiAlgumaRole('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE')) {
-        this.authSession.encerrar();
-        throw new Error('A conta não possui permissão operacional para acessar o Control Room.');
-      }
+      this.validarPermissaoOperacional();
       this.senha = '';
       this.autenticado = true;
     } catch (erro) {
+      this.authSession.encerrar();
       this.erro = this.extrairErro(erro);
     } finally {
       this.carregando = false;
@@ -87,6 +134,12 @@ export class AuthGateComponent {
     this.authSession.encerrar();
     this.autenticado = false;
     this.senha = '';
+  }
+
+  private validarPermissaoOperacional(): void {
+    if (!this.authSession.possuiAlgumaRole('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE')) {
+      throw new Error('A conta não possui permissão operacional para acessar o Control Room.');
+    }
   }
 
   private extrairErro(erro: unknown): string {

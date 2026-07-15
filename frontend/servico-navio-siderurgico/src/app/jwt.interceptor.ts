@@ -13,8 +13,40 @@ export class JwtInterceptor implements HttpInterceptor {
     if (!token || recursoPublico) {
       return next.handle(request);
     }
+
+    const correlationId = this.criarCorrelationId();
+    const usuario = this.authSession.obterNomeUsuario();
+    const body = this.enriquecerComando(request, usuario, correlationId);
     return next.handle(request.clone({
-      setHeaders: { Authorization: `Bearer ${token}` }
+      body,
+      setHeaders: {
+        Authorization: `Bearer ${token}`,
+        'X-Correlation-Id': correlationId
+      }
     }));
+  }
+
+  private enriquecerComando(request: HttpRequest<unknown>, usuario: string, correlationId: string): unknown {
+    const metodoComComando = ['POST', 'PUT', 'PATCH'].includes(request.method.toUpperCase());
+    const rotaOperacional = request.url.includes('/visitas-navio/') || request.url.includes('/yard/patio/');
+    const body = request.body;
+    if (!metodoComComando || !rotaOperacional || !body || Array.isArray(body) || typeof body !== 'object') {
+      return body;
+    }
+    const comando = { ...(body as Record<string, unknown>) };
+    comando['usuario'] ??= usuario;
+    comando['origemAcao'] ??= 'CONTROL_ROOM_NAVIO_PATIO';
+    comando['correlationId'] ??= correlationId;
+    if (request.url.endsWith('/dispatch')) {
+      comando['operador'] = usuario;
+    }
+    return comando;
+  }
+
+  private criarCorrelationId(): string {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return `cr-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 }

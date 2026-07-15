@@ -22,8 +22,14 @@ jobs:
             command: mvn -B -DskipTests package
           - module: backend/servico-navio-siderurgico
             command: mvn -B -DskipTests package
-          - module: backend/cloudport-monolito-navio
-            command: mvn -B test package
+          - module: backend/cloudport-navio-modules
+            command: >-
+              mvn -B -Pmodulo-monolito
+              -pl :servico-navio,:servico-navio-siderurgico
+              -DskipTests install &&
+              mvn -B -Pmodulo-monolito
+              -pl :cloudport-monolito-navio
+              test package
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

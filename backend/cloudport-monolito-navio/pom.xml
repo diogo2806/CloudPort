@@ -15,10 +15,11 @@
     <artifactId>cloudport-monolito-navio</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>cloudport-monolito-navio</name>
-    <description>Primeiro runtime do monolito modular CloudPort para Navio e Navio Siderurgico</description>
+    <description>Runtime do monolito modular CloudPort para Navio e Navio Siderurgico</description>
 
     <properties>
         <java.version>17</java.version>
+        <cloudport.modules.version>0.0.1-SNAPSHOT</cloudport.modules.version>
         <jackson.version>2.21.4</jackson.version>
         <spring-framework.version>5.3.39</spring-framework.version>
         <spring-security.version>5.8.16</spring-security.version>
@@ -67,6 +68,28 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>br.com.cloudport</groupId>
+            <artifactId>servico-navio</artifactId>
+            <version>${cloudport.modules.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>br.com.cloudport</groupId>
+            <artifactId>servico-navio-siderurgico</artifactId>
+            <version>${cloudport.modules.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-log4j2</artifactId>
@@ -165,26 +188,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.6.1</version>
-                <executions>
-                    <execution>
-                        <id>adicionar-fontes-dos-modulos</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${project.basedir}/../servico-navio/src/main/java</source>
-                                <source>${project.basedir}/../servico-navio-siderurgico/src/main/java</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>

@@ -11,6 +11,7 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueuePatioSe
 import java.util.List;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/yard/patio")
+@PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','SERVICE_NAVIO')")
 public class WorkQueuePatioControlador {
 
     private final WorkQueuePatioServico workQueuePatioServico;
@@ -54,13 +56,13 @@ public class WorkQueuePatioControlador {
 
     @PatchMapping("/work-queues/{id}/pow")
     public WorkQueuePatioRespostaDto atualizarPow(@PathVariable Long id,
-                                                   @RequestBody AtualizacaoWorkQueuePowDto dto) {
+                                                    @RequestBody AtualizacaoWorkQueuePowDto dto) {
         return workQueuePatioServico.atualizarPow(id, dto);
     }
 
     @PatchMapping("/work-queues/{id}/equipamento")
     public WorkQueuePatioRespostaDto atualizarEquipamento(@PathVariable Long id,
-                                                           @RequestBody AtualizacaoWorkQueueEquipamentoDto dto) {
+                                                            @RequestBody AtualizacaoWorkQueueEquipamentoDto dto) {
         return workQueuePatioServico.atualizarEquipamento(id, dto);
     }
 
@@ -71,7 +73,7 @@ public class WorkQueuePatioControlador {
 
     @PostMapping("/work-queues/{id}/dispatch")
     public ResultadoDispatchWorkQueueDto despachar(@PathVariable Long id,
-                                                    @RequestBody(required = false) DispatchWorkQueueDto dto) {
+                                                     @RequestBody(required = false) DispatchWorkQueueDto dto) {
         return workQueuePatioServico.despachar(id, dto);
     }
 

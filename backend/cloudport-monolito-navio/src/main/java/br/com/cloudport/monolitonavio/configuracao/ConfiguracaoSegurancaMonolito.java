@@ -64,20 +64,9 @@ public class ConfiguracaoSegurancaMonolito {
                         .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .antMatchers(HttpMethod.GET,
-                                "/",
-                                "/index.html",
-                                "/favicon.ico",
-                                "/assets/**",
-                                "/*.css",
-                                "/*.js",
-                                "/*.mjs",
-                                "/*.map",
-                                "/*.ico",
-                                "/*.png",
-                                "/*.svg",
-                                "/*.webmanifest",
-                                "/*.woff",
-                                "/*.woff2").permitAll()
+                                "/", "/index.html", "/favicon.ico", "/assets/**", "/*.css", "/*.js", "/*.mjs",
+                                "/*.map", "/*.ico", "/*.png", "/*.svg", "/*.webmanifest", "/*.woff", "/*.woff2")
+                        .permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
@@ -109,7 +98,6 @@ public class ConfiguracaoSegurancaMonolito {
                         String role = jwt.getClaimAsString("role");
                         return StringUtils.hasText(role) ? Collections.singletonList(role) : Collections.emptyList();
                     });
-
             return roles.stream()
                     .filter(StringUtils::hasText)
                     .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase(Locale.ROOT))
@@ -132,16 +120,10 @@ public class ConfiguracaoSegurancaMonolito {
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "X-Correlation-Id",
-                "Last-Event-ID",
-                InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY));
+                "Authorization", "Content-Type", "Accept", "X-Correlation-Id", "X-Trace-Id", "traceparent",
+                "Last-Event-ID", InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY));
         configuration.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "X-Correlation-Id",
-                "Content-Disposition"));
+                "Authorization", "X-Correlation-Id", "X-Trace-Id", "traceparent", "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

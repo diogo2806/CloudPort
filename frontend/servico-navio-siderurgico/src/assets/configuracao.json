@@ -1,6 +1,0 @@
-{
-  "baseApiUrl": "",
-  "trustedParentOrigins": [
-    "http://localhost:4200"
-  ]
-}

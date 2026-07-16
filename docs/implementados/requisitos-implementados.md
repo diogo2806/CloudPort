@@ -132,10 +132,18 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 24. Publicar as migracoes de `servico-navio` em `cloudport/migrations/navio` dentro do proprio artefato Maven.
 25. Publicar as migracoes de `servico-navio-siderurgico` em `cloudport/migrations/navio-siderurgico` dentro do proprio artefato Maven.
 26. Remover do runtime a copia direta de recursos a partir dos diretorios irmaos dos dois servicos.
+27. Incorporar o frontend Angular do Control Room na imagem do runtime unificado.
+28. Expor `GET /assets/configuracao.json` dinamicamente para configurar API e origens confiaveis sem reconstruir o frontend.
+29. Criar Compose com perfis `monolito` e `legado` para corte, comparacao e retorno controlado.
+30. Usar no Compose uma unica instancia PostgreSQL com os schemas e historicos Flyway preservados.
+31. Apontar a configuracao local do portal para o Control Room servido pelo runtime unificado em `8086`.
+32. Validar no CI a sintaxe do Compose e a construcao completa da imagem Docker com backend e frontend.
+33. Documentar a troca de perfil, a preservacao do volume e os cuidados para evitar jobs duplicados.
 
 ## Contratos de API implementados
 
 ```text
+GET   /assets/configuracao.json
 GET   /yard/patio/work-queues?visitaNavioId={id}
 POST  /yard/patio/work-queues
 PATCH /yard/patio/work-queues/{id}/ativar
@@ -162,6 +170,8 @@ POST  /api/scheduler/gerar-plano
 7. Validacao do build do runtime usando dependencias Maven reais dos modulos, sem inclusao direta dos diretorios de fontes.
 8. Teste de contexto com PostgreSQL/Testcontainers, `ddl-auto=validate`, migracoes reais e exercicio de todos os repositorios JPA.
 9. Teste da origem classpath das migracoes, garantindo que cada recurso seja fornecido pelo artefato do modulo responsavel.
+10. Teste unitario da configuracao dinamica entregue ao frontend incorporado.
+11. Validacao CI do Docker Compose e da imagem completa do runtime unificado.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -180,6 +190,7 @@ POST  /api/scheduler/gerar-plano
 13. Consumo de `servico-navio` e `servico-navio-siderurgico` como modulos Maven reais pelo runtime unificado.
 14. Inicializacao validada contra PostgreSQL real com os dois schemas e todos os repositorios JPA.
 15. Migracoes Flyway publicadas e carregadas a partir dos artefatos Maven dos respectivos modulos.
+16. Imagem unificada com frontend incorporado, configuracao dinamica e Compose de transicao entre perfis.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

@@ -40,15 +40,14 @@ Antes de desenvolver, ler os dois arquivos. Depois de desenvolver, remover daqui
 
 ## Pendencias da consolidacao em monolito modular
 
-O runtime `backend/cloudport-monolito-navio` ja executa `servico-navio` e `servico-navio-siderurgico` no mesmo processo, consome os dois como modulos Maven reais, carrega as migracoes publicadas pelos proprios artefatos, usa a porta local do cadastro canonico, migra separadamente os dois schemas, possui seguranca centralizada e inicia com PostgreSQL real em teste cobrindo todos os repositorios JPA. Ainda falta:
+O runtime `backend/cloudport-monolito-navio` ja executa `servico-navio` e `servico-navio-siderurgico` no mesmo processo, consome os dois como modulos Maven reais, carrega as migracoes publicadas pelos proprios artefatos, incorpora o frontend Angular, expoe configuracao dinamica, possui Compose com perfis unificado e legado, usa a porta local do cadastro canonico, migra separadamente os dois schemas, possui seguranca centralizada e inicia com PostgreSQL real em teste cobrindo todos os repositorios JPA. Ainda falta:
 
-1. Atualizar Docker Compose, configuracoes de ambiente e roteamento para permitir substituir os dois deployments pelo runtime unificado.
-2. Remover os deployments legados somente depois de validar paridade dos endpoints, jobs agendados, seguranca e frontend.
-3. Substituir outras chamadas HTTP entre modulos incorporados por portas locais, mantendo adaptadores HTTP apenas durante a transicao.
-4. Criar testes de arquitetura que impecam acesso direto indevido entre modulos e preservem os limites de dominio.
-5. Avaliar a incorporacao do Yard somente depois de estabilizar Navio + Navio Siderurgico no mesmo processo.
-6. Definir estrategia de rollback e compatibilidade do historico Flyway antes de apontar ambientes existentes para o runtime unificado.
-7. Centralizar versoes e `pluginManagement` em um parent Maven compartilhado, sem transformar os limites de dominio em dependencias ciclicas.
+1. Remover os deployments legados somente depois de validar paridade dos endpoints, jobs agendados, seguranca, frontend e integracao com o Yard.
+2. Substituir outras chamadas HTTP entre modulos incorporados por portas locais, mantendo adaptadores HTTP apenas durante a transicao.
+3. Criar testes de arquitetura que impecam acesso direto indevido entre modulos e preservem os limites de dominio.
+4. Avaliar a incorporacao do Yard somente depois de estabilizar Navio + Navio Siderurgico no mesmo processo.
+5. Definir estrategia definitiva de rollback e compatibilidade do historico Flyway antes de apontar ambientes existentes para o runtime unificado.
+6. Centralizar versoes e `pluginManagement` em um parent Maven compartilhado, sem transformar os limites de dominio em dependencias ciclicas.
 
 ## P0 - Pendencias obrigatorias restantes
 
@@ -120,6 +119,7 @@ GET  /visitas-navio/{id}/produtividade-cais
 4. Testar reserva contra mapa real: inexistente, ocupada, ja reservada e mapa vazio.
 5. Criar e2e do fluxo operacional completo.
 6. Adicionar logs estruturados, metricas e tracing com visita, item, reserva, ordem, work queue e `correlationId`.
+7. Criar smoke test da imagem iniciada pelo Compose, cobrindo frontend, configuracao dinamica, autenticacao e conexao com o Yard.
 
 ## P1
 

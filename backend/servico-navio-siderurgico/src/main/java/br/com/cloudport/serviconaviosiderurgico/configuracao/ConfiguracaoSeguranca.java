@@ -55,20 +55,9 @@ public class ConfiguracaoSeguranca {
                         .antMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .antMatchers(HttpMethod.GET,
-                                "/",
-                                "/index.html",
-                                "/favicon.ico",
-                                "/assets/**",
-                                "/*.css",
-                                "/*.js",
-                                "/*.mjs",
-                                "/*.map",
-                                "/*.ico",
-                                "/*.png",
-                                "/*.svg",
-                                "/*.webmanifest",
-                                "/*.woff",
-                                "/*.woff2").permitAll()
+                                "/", "/index.html", "/favicon.ico", "/assets/**", "/*.css", "/*.js", "/*.mjs",
+                                "/*.map", "/*.ico", "/*.png", "/*.svg", "/*.webmanifest", "/*.woff", "/*.woff2")
+                        .permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
@@ -117,17 +106,9 @@ public class ConfiguracaoSeguranca {
         configuration.setAllowedOrigins(origins.isEmpty() ? Collections.singletonList("http://localhost:4201") : origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "X-Correlation-Id",
-                "Last-Event-ID"
-        ));
+                "Authorization", "Content-Type", "Accept", "X-Correlation-Id", "X-Trace-Id", "traceparent", "Last-Event-ID"));
         configuration.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "X-Correlation-Id",
-                "Content-Disposition"
-        ));
+                "Authorization", "X-Correlation-Id", "X-Trace-Id", "traceparent", "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

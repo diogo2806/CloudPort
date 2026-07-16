@@ -59,6 +59,56 @@ jobs:
         working-directory: ${{ matrix.module }}
         run: ${{ matrix.command }}
 
+  runtime-geral:
+    name: Runtime geral CloudPort
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Compilar e testar runtime geral
+        working-directory: backend/cloudport-modules
+        shell: bash
+        run: |
+          set +e
+          {
+            mvn -B -Dspring-boot.repackage.skip=true \
+              -pl :cloudport-runtime -am \
+              -DskipTests install &&
+            mvn -B -pl :cloudport-runtime test package
+          } > /tmp/cloudport-runtime.log 2>&1
+          status=$?
+          tail -n 300 /tmp/cloudport-runtime.log > /tmp/cloudport-runtime-diagnostico.log
+          cat /tmp/cloudport-runtime-diagnostico.log
+          exit $status
+      - name: Publicar diagnóstico do runtime geral
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-geral-diagnostico
+          path: /tmp/cloudport-runtime-diagnostico.log
+          if-no-files-found: error
+
+  deployment-geral:
+    name: Imagem e Compose do runtime geral
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_PASSWORD: cloudport-ci-postgres
+      RABBITMQ_PASSWORD: cloudport-ci-rabbitmq
+      JWT_SECRET: cloudport-ci-jwt-secret-with-at-least-32-bytes
+      CLOUDPORT_INTERNAL_SERVICE_KEY: cloudport-ci-service-key
+      SECURITY_CORS_ALLOWED_ORIGINS: http://localhost:4200,http://localhost:8080
+      TOS_API_BASE_URL: http://localhost:8090
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar Docker Compose
+        run: docker compose -f deploy/cloudport-runtime/docker-compose.yml config
+      - name: Construir imagem do runtime geral
+        run: docker build -f backend/cloudport-runtime/Dockerfile -t cloudport-runtime:ci .
+
   frontend:
     name: Frontend ${{ matrix.name }}
     runs-on: ubuntu-latest

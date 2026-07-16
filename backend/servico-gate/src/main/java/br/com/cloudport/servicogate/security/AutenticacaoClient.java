@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -17,6 +18,10 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
+@ConditionalOnProperty(
+        name = "cloudport.modulo.autenticacao.integracao",
+        havingValue = "http",
+        matchIfMissing = true)
 public class AutenticacaoClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AutenticacaoClient.class);
@@ -27,10 +32,10 @@ public class AutenticacaoClient {
     private final String fallbackOrientacao;
 
     public AutenticacaoClient(RestTemplate restTemplate,
-                              @Value("${cloudport.security.autenticacao.base-url}") String autenticacaoBaseUrl,
-                              IntegracaoDegradacaoHandler degradacaoHandler,
-                              @Value("${cloudport.security.autenticacao.fallback-orientacao:Validar credenciais manualmente com a equipe de segurança e registrar acessos temporários.}")
-                                      String fallbackOrientacao) {
+                               @Value("${cloudport.security.autenticacao.base-url}") String autenticacaoBaseUrl,
+                               IntegracaoDegradacaoHandler degradacaoHandler,
+                               @Value("${cloudport.security.autenticacao.fallback-orientacao:Validar credenciais manualmente com a equipe de segurança e registrar acessos temporários.}")
+                                       String fallbackOrientacao) {
         this.restTemplate = restTemplate;
         this.autenticacaoBaseUrl = autenticacaoBaseUrl;
         this.degradacaoHandler = degradacaoHandler;

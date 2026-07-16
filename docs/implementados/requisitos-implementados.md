@@ -412,14 +412,14 @@ GET   /api/v1/visibilidade/conteiners/buscar
 8. Reverter a identidade persistida quando o efeito falhar, permitindo retentativa segura.
 9. Cobrir primeira entrega, redelivery, colisão, envelope inválido e propagação de falha por testes unitários.
 
-## Processamento EDI assíncrono e idempotente implementado
+## Recepção HTTP EDI assíncrona e idempotente implementada
 
-1. Extrair e persistir identificadores `UNB` e `UNH` das mensagens EDI.
+1. Extrair e persistir identificadores `UNB` e `UNH` das mensagens EDI recebidas pela API HTTP.
 2. Derivar chave idempotente imutável por tipo, identidade do intercâmbio e referência da mensagem.
 3. Reutilizar a recepção existente quando a mesma identidade e o mesmo conteúdo forem reenviados.
 4. Rejeitar com conflito a reutilização da identidade EDI com conteúdo divergente.
 5. Persistir a recepção antes de retornar `202 Accepted` e `X-EDI-Processing-Id`.
-6. Executar BAPLIE, COPRAR, COARRI e VERMAS por worker persistente fora da requisição HTTP.
+6. Executar BAPLIE, COPRAR, COARRI e VERMAS recebidos pela API HTTP por worker persistente fora da requisição.
 7. Reivindicar mensagens pendentes com trava transacional e limitar o lote por ciclo.
 8. Aplicar retentativa com espera exponencial, recuperação de execução interrompida e limite de tentativas.
 9. Mover falhas esgotadas para `QUARENTENA` e permitir reprocessamento motivado.
@@ -437,3 +437,38 @@ GET   /api/v1/visibilidade/conteiners/buscar
 8. Restringir `ReconciliacaoNavioPatioJob` aos itens com integração pendente, em execução ou com erro.
 9. Restringir `SincronizacaoCadastroCanonicoJob` às projeções desatualizadas, em lote limitado e com tolerância configurável.
 10. Manter os jobs periódicos somente como reparo de divergências ou eventos perdidos.
+
+## ARCH10 — otimização Yard por porta local implementada
+
+1. Transformar `OtimizacaoYardCliente` em porta do módulo Navio Siderúrgico.
+2. Manter `OtimizacaoYardHttpAdapter` condicionado ao modo `http` de rollback.
+3. Registrar `OtimizacaoYardLocalAdapter` no `cloudport-runtime` para chamar `PredictiveSchedulerService` no mesmo processo.
+4. Configurar o runtime geral com `cloudport.modulo.yard.integracao=local`.
+5. Impedir ativação simultânea dos adaptadores local e HTTP pela condição de propriedade.
+
+## DATA10 — validação de crane plan contra o Yard implementada
+
+1. Criar `ConsultaWorkQueueYardPorta` e implementações local e HTTP condicionadas ao modo de integração.
+2. Consultar work queues da mesma visita antes de substituir o plano de guindastes.
+3. Validar visita, berço, porão, fila ativa, POW, pool, CHE operacional, recurso de cais e work instructions elegíveis.
+4. Impedir a reutilização da mesma work queue em duas alocações do mesmo plano.
+5. Rejeitar a gravação completa antes da remoção do plano vigente quando qualquer alocação for incompatível.
+
+## STATE10 — estado operacional de work queues implementado
+
+1. Concentrar dispatch e transições de work instruction em `WorkQueueOperacaoServico`.
+2. Validar fila ativa, POW, pool, plano de guindaste, recurso de cais e `EquipamentoPatio` operacional antes do dispatch.
+3. Aplicar uma matriz oficial de estados para suspensão, retomada, bloqueio, conclusão, reset e cancelamento.
+4. Resolver o equipamento real por ID ou identificador e preservar o vínculo da fila.
+5. Auditar motivo, usuário, origem e `correlationId` nas mutações operacionais.
+6. Fazer os endpoints compatíveis de POW e equipamento delegarem ao serviço operacional.
+7. Migrar o Control Room para recursos operacionais, dispatch robusto, transições oficiais, drill-down e job lists por equipamento.
+
+## UI20 — Quay Monitor operacional implementado
+
+1. Carregar o Quay Monitor e o plano de guindastes persistido pelo backend.
+2. Permitir criar e editar alocações com berço, guindaste, porão, work queue, sequência, janela, movimentos e produtividade.
+3. Validar work queue operacional no frontend e repetir a validação contra a fonte real do Yard no backend.
+4. Salvar o plano por `POST /visitas-navio/{id}/crane-plan` e recarregar a resposta persistida.
+5. Consumir recursos operacionais, matriz de estados, drill-down e job lists por equipamento.
+6. Executar dispatch e transições oficiais sem voltar aos caminhos legados de mutação.

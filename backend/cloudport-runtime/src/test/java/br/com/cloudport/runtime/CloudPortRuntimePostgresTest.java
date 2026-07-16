@@ -4,14 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import br.com.cloudport.runtime.integracao.AutenticacaoLocalAdapter;
+import br.com.cloudport.runtime.integracao.CadastroNavioLocalAdapter;
 import br.com.cloudport.runtime.integracao.OrdemPatioYardLocalAdapter;
 import br.com.cloudport.runtime.integracao.PosicaoPatioYardLocalAdapter;
+import br.com.cloudport.servicogate.security.AutenticacaoClient;
 import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente;
 import br.com.cloudport.serviconaviosiderurgico.cliente.PosicaoPatioYardCliente;
+import br.com.cloudport.serviconaviosiderurgico.porta.CadastroNavioPorta;
+import io.swagger.v3.oas.models.OpenAPI;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.web.SecurityFilterChain;
@@ -32,6 +38,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
                 "spring.rabbitmq.listener.direct.auto-startup=false",
                 "cloudport.runtime.jobs-enabled=false",
                 "cloudport.runtime.writes-enabled=true",
+                "cloudport.modulo.autenticacao.integracao=local",
                 "cloudport.modulo.navio.integracao=local",
                 "cloudport.modulo.yard.integracao=local",
                 "cloudport.security.jwt.secret=cloudport-runtime-test-secret-with-32-bytes",
@@ -73,20 +80,28 @@ class CloudPortRuntimePostgresTest {
     @Autowired private ApplicationContext applicationContext;
     @Autowired private OrdemPatioYardCliente ordemPatioYardCliente;
     @Autowired private PosicaoPatioYardCliente posicaoPatioYardCliente;
+    @Autowired private CadastroNavioPorta cadastroNavioPorta;
+    @Autowired private AutenticacaoClient autenticacaoClient;
+    @Autowired private CacheManager cacheManager;
 
     @Test
-    void deveInicializarTodosOsModulosComHistoricosFlywayIndependentes() {
+    void deveInicializarTodosOsModulosComInfraestruturaUnica() {
         for (String schema : SCHEMAS) {
             assertEquals(1, quantidadeSchemas(schema));
             assertTrue(quantidadeMigracoesAplicadas(schema) > 0, "Sem migracoes no schema " + schema);
         }
         assertEquals(1, applicationContext.getBeansOfType(SecurityFilterChain.class).size());
+        assertEquals(1, applicationContext.getBeansOfType(OpenAPI.class).size());
+        assertEquals("cacheManager", applicationContext.getBeanNamesForType(CacheManager.class)[0]);
+        assertTrue(cacheManager != null);
     }
 
     @Test
-    void deveUsarIntegracaoLocalEntreNavioEPatio() {
+    void deveUsarIntegracoesLocaisEntreModulosIncorporados() {
         assertInstanceOf(OrdemPatioYardLocalAdapter.class, ordemPatioYardCliente);
         assertInstanceOf(PosicaoPatioYardLocalAdapter.class, posicaoPatioYardCliente);
+        assertInstanceOf(CadastroNavioLocalAdapter.class, cadastroNavioPorta);
+        assertInstanceOf(AutenticacaoLocalAdapter.class, autenticacaoClient);
     }
 
     private int quantidadeSchemas(String schema) {

@@ -4,6 +4,7 @@ import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardClient
 import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardCliente.AplicacaoPlanoYardDTO;
 import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardCliente.CompensacaoPlanoYardDTO;
 import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardCliente.EstadoAnteriorOrdemYardDTO;
+import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardCliente.EstadoAnteriorWorkQueueYardDTO;
 import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardCliente.ResultadoAplicacaoPlanoYardDTO;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AplicacaoPlanoOtimizadoPatioDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.CompensacaoPlanoOtimizadoPatioDto;
@@ -44,7 +45,8 @@ public class PlanoOtimizadoYardLocalAdapter implements PlanoOtimizadoYardCliente
             Long visitaNavioId,
             String usuario,
             String motivo,
-            List<EstadoAnteriorOrdemYardDTO> estadosAnteriores
+            List<EstadoAnteriorOrdemYardDTO> estadosAnteriores,
+            List<EstadoAnteriorWorkQueueYardDTO> estadosAnterioresWorkQueues
     ) {
         CompensacaoPlanoYardDTO comando = new CompensacaoPlanoYardDTO();
         comando.setPlanoId(planoId);
@@ -52,6 +54,7 @@ public class PlanoOtimizadoYardLocalAdapter implements PlanoOtimizadoYardCliente
         comando.setUsuario(usuario);
         comando.setMotivo(motivo);
         comando.setEstadosAnteriores(estadosAnteriores);
+        comando.setEstadosAnterioresWorkQueues(estadosAnterioresWorkQueues);
         CompensacaoPlanoOtimizadoPatioDto comandoLocal = objectMapper.convertValue(
                 comando,
                 CompensacaoPlanoOtimizadoPatioDto.class);

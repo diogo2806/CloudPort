@@ -46,9 +46,23 @@ spring:
         jwt:
           issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080}
 
+cloudport:
+  visibilidade:
+    eventos:
+      legado:
+        exchange: ${VISIBILIDADE_EVENTOS_LEGADO_EXCHANGE:port.events}
+      yard:
+        exchange: ${VISIBILIDADE_YARD_EXCHANGE:yard.eventos}
+        routing: ${VISIBILIDADE_YARD_ROUTING:yard.movimento.registrado}
+      rail:
+        exchange: ${VISIBILIDADE_RAIL_EXCHANGE:ferrovia.eventos}
+        routing: ${VISIBILIDADE_RAIL_ROUTING:rail.movimentacao.concluida}
+
 visibilidade:
   dashboard:
     refresh-ms: ${VISIBILIDADE_DASHBOARD_REFRESH_MS:30000}
+  alertas:
+    refresh-ms: ${VISIBILIDADE_ALERTAS_REFRESH_MS:60000}
   gate:
     meta-movimentos-dia: ${VISIBILIDADE_GATE_META_MOVIMENTOS_DIA:1200}
 

@@ -3,9 +3,11 @@ package br.com.cloudport.visibilidade.listener;
 import br.com.cloudport.visibilidade.config.RabbitMQConfig;
 import br.com.cloudport.visibilidade.dto.evento.EventoMovimentacaoTremConcluidaMensagem;
 import br.com.cloudport.visibilidade.service.MovimentoConteinerService;
+import br.com.cloudport.visibilidade.service.ProcessamentoEventoIdempotenteService;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -18,9 +20,12 @@ public class RailEventListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(RailEventListener.class);
 
     private final MovimentoConteinerService movimentoConteinerService;
+    private final ProcessamentoEventoIdempotenteService processamentoEventoIdempotenteService;
 
-    public RailEventListener(MovimentoConteinerService movimentoConteinerService) {
+    public RailEventListener(MovimentoConteinerService movimentoConteinerService,
+                             ProcessamentoEventoIdempotenteService processamentoEventoIdempotenteService) {
         this.movimentoConteinerService = movimentoConteinerService;
+        this.processamentoEventoIdempotenteService = processamentoEventoIdempotenteService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.VISIBILIDADE_RAIL_QUEUE)
@@ -56,10 +61,12 @@ public class RailEventListener {
         String equipamento = primeiroTexto(event, "equipamentoId", "equipamento", "locomotivaId");
         String responsavel = primeiroTexto(event, "responsavel", "usuario", "operatorId");
 
-        movimentoConteinerService.registrarMovimentoRail(
-                containerId, origem, destino, equipamento, responsavel);
-        LOGGER.info("Movimento ferroviario legado registrado. containerId={} origem={} destino={}",
-                containerId, origem, destino);
+        processarUmaVez(event, identidadeEvento -> {
+            movimentoConteinerService.registrarMovimentoRail(
+                    identidadeEvento, containerId, origem, destino, equipamento, responsavel);
+            LOGGER.info("Movimento ferroviario legado registrado. containerId={} origem={} destino={}",
+                    containerId, origem, destino);
+        });
     }
 
     private void processarEventoOperacional(Map<String, Object> event) {
@@ -76,10 +83,20 @@ public class RailEventListener {
             return;
         }
 
-        movimentoConteinerService.registrarMovimentoFerroviario(mensagem);
-        LOGGER.info("Movimento ferroviario real registrado. containerId={} visita={} ordem={} tipo={}",
-                mensagem.getCodigoConteiner(), mensagem.getIdVisitaTrem(),
-                mensagem.getIdOrdemMovimentacao(), mensagem.getTipoMovimentacao());
+        processarUmaVez(event, identidadeEvento -> {
+            movimentoConteinerService.registrarMovimentoFerroviario(identidadeEvento, mensagem);
+            LOGGER.info("Movimento ferroviario real registrado. containerId={} visita={} ordem={} tipo={}",
+                    mensagem.getCodigoConteiner(), mensagem.getIdVisitaTrem(),
+                    mensagem.getIdOrdemMovimentacao(), mensagem.getTipoMovimentacao());
+        });
+    }
+
+    private void processarUmaVez(Map<String, Object> event, Consumer<String> processamento) {
+        boolean processado = processamentoEventoIdempotenteService.processarUmaVez(event, processamento);
+        if (!processado) {
+            LOGGER.info("Redelivery de evento ferroviario ignorada. eventType={} identidade={}",
+                    texto(event, "eventType"), primeiroTexto(event, "eventId", "messageId"));
+        }
     }
 
     private OffsetDateTime dataHora(Map<String, Object> event, String chave) {

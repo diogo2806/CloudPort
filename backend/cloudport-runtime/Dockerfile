@@ -22,8 +22,13 @@ RUN mvn -B -Dspring-boot.repackage.skip=true \
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
-RUN useradd --system --uid 10001 cloudport
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 cloudport
 COPY --from=build /workspace/cloudport-runtime/target/cloudport-runtime-*.jar app.jar
 USER cloudport
 EXPOSE 8080
+HEALTHCHECK --interval=10s --timeout=5s --retries=30 \
+    CMD curl -fsS http://localhost:8080/actuator/health/readiness || exit 1
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

@@ -4,16 +4,22 @@ import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardClient
 import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardCliente.AplicacaoPlanoYardDTO;
 import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardCliente.ItemPlanoYardDTO;
 import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardCliente.ResultadoAplicacaoPlanoYardDTO;
+import br.com.cloudport.serviconaviosiderurgico.dominio.AplicacaoPlanoOtimizadoNavioPatio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ReservaPosicaoPatioNavio;
+import br.com.cloudport.serviconaviosiderurgico.dominio.StatusAplicacaoPlanoOtimizadoNavioPatio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusItemCarga;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusReservaPatioNavio;
+import br.com.cloudport.serviconaviosiderurgico.dominio.VisitaNavio;
 import br.com.cloudport.serviconaviosiderurgico.dto.ComandoReplanejamentoPatioNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ItemPlanoOtimizadoNavioPatioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.OtimizacaoGlobalNavioPatioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ReservaPatioNavioDTO;
+import br.com.cloudport.serviconaviosiderurgico.repositorio.AplicacaoPlanoOtimizadoNavioPatioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ItemOperacaoNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ReservaPosicaoPatioNavioRepositorio;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
@@ -28,8 +34,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AplicacaoPlanoOtimizadoNavioPatioServico {
@@ -42,6 +55,11 @@ public class AplicacaoPlanoOtimizadoNavioPatioServico {
     private final ItemOperacaoNavioRepositorio itemRepositorio;
     private final ReservaPosicaoPatioNavioRepositorio reservaRepositorio;
     private final VisitaNavioServico visitaServico;
+    private final AplicacaoPlanoOtimizadoNavioPatioRepositorio aplicacaoRepositorio;
+    private final ObjectMapper objectMapper;
+    private final TransactionTemplate transactionTemplate;
+    private final TransactionTemplate requiresNewTransactionTemplate;
+    private final long timeoutAplicacaoMinutos;
 
     public AplicacaoPlanoOtimizadoNavioPatioServico(
             OtimizacaoGlobalNavioPatioServico otimizacaoServico,
@@ -49,7 +67,12 @@ public class AplicacaoPlanoOtimizadoNavioPatioServico {
             PlanoOtimizadoYardCliente planoOtimizadoYardCliente,
             ItemOperacaoNavioRepositorio itemRepositorio,
             ReservaPosicaoPatioNavioRepositorio reservaRepositorio,
-            VisitaNavioServico visitaServico
+            VisitaNavioServico visitaServico,
+            AplicacaoPlanoOtimizadoNavioPatioRepositorio aplicacaoRepositorio,
+            ObjectMapper objectMapper,
+            PlatformTransactionManager transactionManager,
+            @Value("${cloudport.integracao.yard.plano-aplicacao-timeout-minutos:30}")
+            long timeoutAplicacaoMinutos
     ) {
         this.otimizacaoServico = otimizacaoServico;
         this.persistenciaServico = persistenciaServico;
@@ -57,13 +80,19 @@ public class AplicacaoPlanoOtimizadoNavioPatioServico {
         this.itemRepositorio = itemRepositorio;
         this.reservaRepositorio = reservaRepositorio;
         this.visitaServico = visitaServico;
+        this.aplicacaoRepositorio = aplicacaoRepositorio;
+        this.objectMapper = objectMapper;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.requiresNewTransactionTemplate = new TransactionTemplate(transactionManager);
+        this.requiresNewTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.timeoutAplicacaoMinutos = Math.max(1, timeoutAplicacaoMinutos);
     }
 
     public ResultadoAplicacaoPlano replanejar(
             Long visitaId,
             ComandoReplanejamentoPatioNavioDTO comando
     ) {
-        var visita = visitaServico.buscarEntidade(visitaId);
+        VisitaNavio visita = visitaServico.buscarEntidade(visitaId);
         visitaServico.validarVisitaEditavel(visita);
         boolean aplicar = comando != null && comando.aplicarEfetivo();
         String usuario = comando == null || !StringUtils.hasText(comando.usuario())
@@ -76,27 +105,121 @@ public class AplicacaoPlanoOtimizadoNavioPatioServico {
             throw new IllegalStateException("O plano otimizado nao pode ser aplicado: "
                     + String.join(" ", plano.alertasImpeditivos()));
         }
+        if (!aplicar) {
+            return resultadoPlano(plano, reservasSugeridas(plano.itens()));
+        }
 
-        List<ReservaPatioNavioDTO> reservas;
-        if (aplicar) {
-            AplicacaoPlanoYardDTO comandoYard = montarComandoYard(visitaId, usuario, plano);
-            ResultadoAplicacaoPlanoYardDTO resultadoYard = planoOtimizadoYardCliente.aplicar(comandoYard);
+        ResultadoAplicacaoPlano resultadoAnterior = buscarOuRegistrarAplicacaoPlano(
+                visitaId,
+                plano.planoId());
+        if (resultadoAnterior != null) {
+            return resultadoAnterior;
+        }
+
+        AplicacaoPlanoYardDTO comandoYard = montarComandoYard(visitaId, usuario, plano);
+        ResultadoAplicacaoPlanoYardDTO resultadoYard;
+        try {
+            resultadoYard = planoOtimizadoYardCliente.aplicar(comandoYard);
+        } catch (RuntimeException ex) {
+            marcarFalha(visitaId, plano.planoId(), ex);
+            throw ex;
+        }
+
+        try {
+            return concluirAplicacao(visita, usuario, plano);
+        } catch (RuntimeException ex) {
             try {
-                reservas = persistenciaServico.aplicar(visitaId, plano.planoId(), plano.itens());
-            } catch (RuntimeException ex) {
-                try {
-                    planoOtimizadoYardCliente.compensar(
-                            plano.planoId(),
-                            visitaId,
-                            usuario,
-                            "Falha ao persistir reservas e itens do plano no modulo Navio: " + ex.getMessage(),
-                            resultadoYard.getEstadosAnteriores(),
-                            resultadoYard.getEstadosAnterioresWorkQueues());
-                } catch (RuntimeException compensacaoEx) {
-                    ex.addSuppressed(compensacaoEx);
-                }
-                throw ex;
+                planoOtimizadoYardCliente.compensar(
+                        plano.planoId(),
+                        visitaId,
+                        usuario,
+                        "Falha ao persistir reservas e itens do plano no modulo Navio: " + ex.getMessage(),
+                        resultadoYard.getEstadosAnteriores(),
+                        resultadoYard.getEstadosAnterioresWorkQueues());
+            } catch (RuntimeException compensacaoEx) {
+                ex.addSuppressed(compensacaoEx);
             }
+            marcarFalha(visitaId, plano.planoId(), ex);
+            throw ex;
+        }
+    }
+
+    private ResultadoAplicacaoPlano buscarOuRegistrarAplicacaoPlano(
+            Long visitaId,
+            String planoId
+    ) {
+        try {
+            return executarRegistroAplicacao(visitaId, planoId);
+        } catch (DataIntegrityViolationException ex) {
+            return executarRegistroAplicacao(visitaId, planoId);
+        }
+    }
+
+    private ResultadoAplicacaoPlano executarRegistroAplicacao(
+            Long visitaId,
+            String planoId
+    ) {
+        ResultadoAplicacaoPlano resultado = requiresNewTransactionTemplate.execute(status -> {
+            LocalDateTime agora = LocalDateTime.now();
+            AplicacaoPlanoOtimizadoNavioPatio aplicacao = aplicacaoRepositorio
+                    .findByPlanoIdAndVisitaNavioId(planoId, visitaId)
+                    .orElse(null);
+            if (aplicacao == null) {
+                AplicacaoPlanoOtimizadoNavioPatio novaAplicacao =
+                        new AplicacaoPlanoOtimizadoNavioPatio();
+                novaAplicacao.setPlanoId(planoId);
+                novaAplicacao.setVisitaNavioId(visitaId);
+                novaAplicacao.setStatus(StatusAplicacaoPlanoOtimizadoNavioPatio.EM_ANDAMENTO);
+                novaAplicacao.setCriadoEm(agora);
+                novaAplicacao.setAtualizadoEm(agora);
+                aplicacaoRepositorio.saveAndFlush(novaAplicacao);
+                return null;
+            }
+            if (aplicacao.getStatus() == StatusAplicacaoPlanoOtimizadoNavioPatio.CONCLUIDA) {
+                return desserializarResultado(aplicacao);
+            }
+            boolean emAndamentoRecente =
+                    aplicacao.getStatus() == StatusAplicacaoPlanoOtimizadoNavioPatio.EM_ANDAMENTO
+                            && aplicacao.getAtualizadoEm() != null
+                            && aplicacao.getAtualizadoEm().isAfter(
+                                    agora.minusMinutes(timeoutAplicacaoMinutos));
+            if (emAndamentoRecente) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "O plano " + planoId + " ja esta em aplicacao.");
+            }
+            aplicacao.setStatus(StatusAplicacaoPlanoOtimizadoNavioPatio.EM_ANDAMENTO);
+            aplicacao.setResultadoJson(null);
+            aplicacao.setErro(null);
+            aplicacao.setAtualizadoEm(agora);
+            aplicacaoRepositorio.save(aplicacao);
+            return null;
+        });
+        return resultado;
+    }
+
+    private ResultadoAplicacaoPlano concluirAplicacao(
+            VisitaNavio visita,
+            String usuario,
+            PlanoInterpretado plano
+    ) {
+        ResultadoAplicacaoPlano resultado = transactionTemplate.execute(status -> {
+            AplicacaoPlanoOtimizadoNavioPatio aplicacao = aplicacaoRepositorio
+                    .findByPlanoIdAndVisitaNavioId(plano.planoId(), visita.getId())
+                    .orElseThrow(() -> new IllegalStateException(
+                            "O registro idempotente do plano nao foi encontrado."));
+            if (aplicacao.getStatus() == StatusAplicacaoPlanoOtimizadoNavioPatio.CONCLUIDA) {
+                return desserializarResultado(aplicacao);
+            }
+            if (aplicacao.getStatus() != StatusAplicacaoPlanoOtimizadoNavioPatio.EM_ANDAMENTO) {
+                throw new IllegalStateException("O plano " + plano.planoId()
+                        + " nao esta disponivel para conclusao.");
+            }
+
+            List<ReservaPatioNavioDTO> reservas =
+                    persistenciaServico.aplicar(visita.getId(), plano.planoId(), plano.itens());
+            ResultadoAplicacaoPlano resultadoAplicado = resultadoPlano(plano, reservas);
+            String resultadoJson = serializarResultado(resultadoAplicado);
             visitaServico.registrarEvento(
                     visita,
                     null,
@@ -108,20 +231,79 @@ public class AplicacaoPlanoOtimizadoNavioPatioServico {
                     usuario,
                     null,
                     plano.planoId());
-        } else {
-            reservas = reservasSugeridas(plano.itens());
+            aplicacao.setStatus(StatusAplicacaoPlanoOtimizadoNavioPatio.CONCLUIDA);
+            aplicacao.setResultadoJson(resultadoJson);
+            aplicacao.setErro(null);
+            aplicacao.setAtualizadoEm(LocalDateTime.now());
+            aplicacaoRepositorio.save(aplicacao);
+            return resultadoAplicado;
+        });
+        if (resultado == null) {
+            throw new IllegalStateException("A conclusao do plano otimizado nao retornou resultado.");
         }
+        return resultado;
+    }
 
+    private void marcarFalha(Long visitaId, String planoId, RuntimeException falha) {
+        requiresNewTransactionTemplate.execute(status -> {
+            aplicacaoRepositorio.findByPlanoIdAndVisitaNavioId(planoId, visitaId)
+                    .filter(aplicacao ->
+                            aplicacao.getStatus() != StatusAplicacaoPlanoOtimizadoNavioPatio.CONCLUIDA)
+                    .ifPresent(aplicacao -> {
+                        aplicacao.setStatus(StatusAplicacaoPlanoOtimizadoNavioPatio.FALHA);
+                        aplicacao.setErro(limitar(
+                                falha.getMessage() == null
+                                        ? falha.getClass().getSimpleName()
+                                        : falha.getMessage(),
+                                2000));
+                        aplicacao.setAtualizadoEm(LocalDateTime.now());
+                        aplicacaoRepositorio.save(aplicacao);
+                    });
+            return null;
+        });
+    }
+
+    private ResultadoAplicacaoPlano resultadoPlano(
+            PlanoInterpretado plano,
+            List<ReservaPatioNavioDTO> reservas
+    ) {
         return new ResultadoAplicacaoPlano(
                 plano.planoId(),
                 VERSAO_PLANO,
-                reservas,
+                List.copyOf(reservas),
                 plano.economiaPercentual(),
                 plano.riscoRehandle(),
                 plano.alertasImpeditivos(),
                 plano.itensNaoReplanejados(),
                 plano.distanciaOriginal(),
                 plano.distanciaOtimizada());
+    }
+
+    private String serializarResultado(ResultadoAplicacaoPlano resultado) {
+        try {
+            return objectMapper.writeValueAsString(resultado);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Nao foi possivel persistir o resultado do plano otimizado.", ex);
+        }
+    }
+
+    private ResultadoAplicacaoPlano desserializarResultado(
+            AplicacaoPlanoOtimizadoNavioPatio aplicacao
+    ) {
+        if (!StringUtils.hasText(aplicacao.getResultadoJson())) {
+            throw new IllegalStateException("A aplicacao concluida do plano nao possui resultado persistido.");
+        }
+        try {
+            return objectMapper.readValue(
+                    aplicacao.getResultadoJson(),
+                    ResultadoAplicacaoPlano.class);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Nao foi possivel recuperar o resultado do plano otimizado.", ex);
+        }
+    }
+
+    private String limitar(String valor, int tamanhoMaximo) {
+        return valor.length() <= tamanhoMaximo ? valor : valor.substring(0, tamanhoMaximo);
     }
 
     private PlanoInterpretado interpretar(

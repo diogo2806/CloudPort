@@ -1,6 +1,5 @@
 package br.com.cloudport.visibilidade.service;
 
-import br.com.cloudport.visibilidade.dto.AlertaDTO;
 import br.com.cloudport.visibilidade.dto.StatusNavioDTO;
 import br.com.cloudport.visibilidade.entity.Alerta;
 import br.com.cloudport.visibilidade.entity.StatusNavio;
@@ -11,40 +10,65 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
 public class StatusNavioService {
 
-    @Autowired
-    private StatusNavioRepository statusNavioRepository;
+    private static final String STATUS_ANCORANDO = "ancorando";
 
-    @Autowired
-    private AlertaRepository alertaRepository;
+    private final StatusNavioRepository statusNavioRepository;
+    private final AlertaRepository alertaRepository;
 
+    public StatusNavioService(StatusNavioRepository statusNavioRepository,
+                              AlertaRepository alertaRepository) {
+        this.statusNavioRepository = statusNavioRepository;
+        this.alertaRepository = alertaRepository;
+    }
+
+    @Transactional(readOnly = true)
     public StatusNavioDTO getStatusNavio(String navioId) {
         StatusNavio navio = statusNavioRepository.findByNavioId(navioId)
                 .orElseThrow(() -> new IllegalArgumentException("Navio nao encontrado: " + navioId));
         return mapToDTO(navio);
     }
 
+    @Transactional(readOnly = true)
     public List<StatusNavioDTO> listarNaviosEmOperacao() {
         return statusNavioRepository.findByStatusOperacional("operando").stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public void atualizarStatusNavio(String navioId, String status, String berco) {
-        statusNavioRepository.findByNavioId(navioId).ifPresent(navio -> {
-            navio.setStatusOperacional(status);
-            if (berco != null) {
-                navio.setBercoAlocado(berco);
+        if (!StringUtils.hasText(navioId)) {
+            throw new IllegalArgumentException("navioId e obrigatorio para atualizar o status do navio.");
+        }
+
+        StatusNavio navio = statusNavioRepository.findByNavioId(navioId)
+                .orElseGet(() -> criarStatusNavio(navioId));
+
+        if (StringUtils.hasText(status)) {
+            navio.setStatusOperacional(status.trim());
+            if (STATUS_ANCORANDO.equalsIgnoreCase(status.trim()) && navio.getChegadaReal() == null) {
+                navio.setChegadaReal(LocalDateTime.now());
             }
-            navio.setDataAtualizacao(LocalDateTime.now());
-            statusNavioRepository.save(navio);
-        });
+        }
+        if (StringUtils.hasText(berco)) {
+            navio.setBercoAlocado(berco.trim());
+        }
+
+        navio.setDataAtualizacao(LocalDateTime.now());
+        statusNavioRepository.save(navio);
+    }
+
+    private StatusNavio criarStatusNavio(String navioId) {
+        StatusNavio navio = new StatusNavio();
+        navio.setNavioId(navioId.trim());
+        return navio;
     }
 
     private StatusNavioDTO mapToDTO(StatusNavio entity) {
@@ -63,19 +87,12 @@ public class StatusNavioService {
             StatusNavioDTO.BercoDTO berco = new StatusNavioDTO.BercoDTO();
             berco.setNumero(entity.getBercoAlocado());
             berco.setDataInicio(entity.getChegadaReal());
-            berco.setDataPrevistaSaida(entity.getEtaEstimado());
+            berco.setDataPrevistaSaida(null);
             dto.setBercoAlocado(berco);
         }
 
         StatusNavioDTO.OperacoesDTO operacoes = new StatusNavioDTO.OperacoesDTO();
         operacoes.setPorcentagemCompleta(entity.getPorcentagemCompleta());
-        int totalConteineres = 1000;
-        int concluido = entity.getPorcentagemCompleta() == null
-                ? 0
-                : (int) Math.round(totalConteineres * (entity.getPorcentagemCompleta() / 100.0));
-        operacoes.setConteineresADescarregar(totalConteineres);
-        operacoes.setConteineresDescarregados(concluido);
-        operacoes.setVelocidadeMov(28d);
         dto.setOperacoesEmAndamento(operacoes);
 
         dto.setEquipamentosAlocados(Collections.emptyList());
@@ -108,10 +125,12 @@ public class StatusNavioService {
         if (navio.getChegadaReal() != null) {
             timeline.add(timeline("Chegada real", navio.getChegadaReal()));
         }
-        if (StringUtils.hasText(navio.getBercoAlocado())) {
+        if (StringUtils.hasText(navio.getBercoAlocado()) && navio.getDataAtualizacao() != null) {
             timeline.add(timeline("Berco alocado", navio.getDataAtualizacao()));
         }
-        timeline.add(timeline("Status operacional", navio.getDataAtualizacao()));
+        if (StringUtils.hasText(navio.getStatusOperacional()) && navio.getDataAtualizacao() != null) {
+            timeline.add(timeline("Status operacional", navio.getDataAtualizacao()));
+        }
         return timeline;
     }
 

@@ -140,6 +140,16 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 32. Validar no CI a sintaxe do Compose e a construcao completa da imagem Docker com backend e frontend.
 33. Documentar a troca de perfil, a preservacao do volume e os cuidados para evitar jobs duplicados.
 
+## Documentacao da migracao para monolito modular implementada
+
+1. Criar `README.md` na raiz como entrada principal da documentacao do sistema.
+2. Registrar o monolito modular como arquitetura alvo e impedir a criacao indiscriminada de novos microsservicos internos.
+3. Documentar o estado atual, o estado alvo, os limites de dominio, comunicacao, persistencia, seguranca, observabilidade, build, deployment e rollback em `docs/arquitetura-monolito-modular.md`.
+4. Adicionar guia de compilacao, teste, configuracao, banco e Docker em `backend/cloudport-monolito-navio/README.md`.
+5. Atualizar o README do frontend para consumir uma unica `baseApiUrl` e nao conhecer hosts de modulos internos.
+6. Marcar `servico-gate` como deployment legado em transicao e remover referencias de documentacao inexistentes.
+7. Atualizar os requisitos pendentes com o roteiro de incorporacao de Yard, Gate, Rail, Autenticacao e Visibilidade.
+
 ## Contratos de API implementados
 
 ```text
@@ -191,6 +201,7 @@ POST  /api/scheduler/gerar-plano
 14. Inicializacao validada contra PostgreSQL real com os dois schemas e todos os repositorios JPA.
 15. Migracoes Flyway publicadas e carregadas a partir dos artefatos Maven dos respectivos modulos.
 16. Imagem unificada com frontend incorporado, configuracao dinamica e Compose de transicao entre perfis.
+17. Definicao e documentacao do monolito modular como arquitetura alvo do CloudPort.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

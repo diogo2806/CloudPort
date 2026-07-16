@@ -26,6 +26,7 @@ public class OrdemTrabalhoPatioRespostaDto {
     private String tipoDestino;
     private Integer sequenciaNavio;
     private Integer prioridadeOperacional;
+    private boolean prioridadeBusca;
     private Long workQueueId;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
@@ -53,6 +54,7 @@ public class OrdemTrabalhoPatioRespostaDto {
         dto.setTipoDestino(escapar(ordem.getTipoDestino()));
         dto.setSequenciaNavio(ordem.getSequenciaNavio());
         dto.setPrioridadeOperacional(ordem.getPrioridadeOperacional());
+        dto.setPrioridadeBusca(ordem.isPrioridadeBusca());
         dto.setWorkQueueId(ordem.getWorkQueueId());
         dto.setCriadoEm(ordem.getCriadoEm());
         dto.setAtualizadoEm(ordem.getAtualizadoEm());
@@ -101,6 +103,8 @@ public class OrdemTrabalhoPatioRespostaDto {
     public void setSequenciaNavio(Integer sequenciaNavio) { this.sequenciaNavio = sequenciaNavio; }
     public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
     public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
+    public boolean isPrioridadeBusca() { return prioridadeBusca; }
+    public void setPrioridadeBusca(boolean prioridadeBusca) { this.prioridadeBusca = prioridadeBusca; }
     public Long getWorkQueueId() { return workQueueId; }
     public void setWorkQueueId(Long workQueueId) { this.workQueueId = workQueueId; }
     public LocalDateTime getCriadoEm() { return criadoEm; }

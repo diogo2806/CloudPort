@@ -115,7 +115,7 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 7. Adicionar Dockerfile do runtime unificado e configuracao para usar os schemas existentes em uma unica conexao PostgreSQL.
 8. Adicionar teste unitario da integracao local por ID e IMO.
 9. Incluir o novo runtime no workflow de compilacao e testes do CloudPort.
-10. Empacotar separadamente as migracoes dos modulos em `db/migration/navio` e `db/migration/navio-siderurgico`.
+10. Empacotar separadamente as migracoes dos modulos em namespaces exclusivos do classpath.
 11. Executar dois historicos Flyway independentes pelo runtime unificado, um para `cloudport_navio` e outro para `cloudport_siderurgico`.
 12. Criar automaticamente os schemas e configurar o `search_path` da conexao para os dois modulos.
 13. Centralizar JWT, roles, credencial interna, endpoints publicos e CORS em uma unica configuracao de seguranca do runtime.
@@ -129,6 +129,9 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 21. Criar teste de inicializacao completa com PostgreSQL 16 em Testcontainers.
 22. Executar as migracoes reais dos dois modulos antes da validacao do `EntityManagerFactory`.
 23. Validar a criacao dos dois schemas, os historicos Flyway e consultas em todos os 13 repositorios JPA do runtime.
+24. Publicar as migracoes de `servico-navio` em `cloudport/migrations/navio` dentro do proprio artefato Maven.
+25. Publicar as migracoes de `servico-navio-siderurgico` em `cloudport/migrations/navio-siderurgico` dentro do proprio artefato Maven.
+26. Remover do runtime a copia direta de recursos a partir dos diretorios irmaos dos dois servicos.
 
 ## Contratos de API implementados
 
@@ -158,6 +161,7 @@ POST  /api/scheduler/gerar-plano
 6. Testes da configuracao Flyway modular e da seguranca CORS do runtime unificado.
 7. Validacao do build do runtime usando dependencias Maven reais dos modulos, sem inclusao direta dos diretorios de fontes.
 8. Teste de contexto com PostgreSQL/Testcontainers, `ddl-auto=validate`, migracoes reais e exercicio de todos os repositorios JPA.
+9. Teste da origem classpath das migracoes, garantindo que cada recurso seja fornecido pelo artefato do modulo responsavel.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -175,6 +179,7 @@ POST  /api/scheduler/gerar-plano
 12. Execucao das migracoes dos dois schemas e configuracao de seguranca pelo runtime unificado.
 13. Consumo de `servico-navio` e `servico-navio-siderurgico` como modulos Maven reais pelo runtime unificado.
 14. Inicializacao validada contra PostgreSQL real com os dois schemas e todos os repositorios JPA.
+15. Migracoes Flyway publicadas e carregadas a partir dos artefatos Maven dos respectivos modulos.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

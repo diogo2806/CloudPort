@@ -15,11 +15,17 @@
     <description>Servico de operacoes de navio siderurgico</description>
     <properties>
         <java.version>17</java.version>
+        <cloudport.contracts.version>0.0.1-SNAPSHOT</cloudport.contracts.version>
         <frontend.working.dir>${project.basedir}/../../frontend/servico-navio-siderurgico</frontend.working.dir>
         <frontend.output.dir>${frontend.working.dir}/dist/servico-navio-siderurgico</frontend.output.dir>
         <spring-boot.repackage.skip>false</spring-boot.repackage.skip>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>br.com.cloudport</groupId>
+            <artifactId>cloudport-contracts</artifactId>
+            <version>${cloudport.contracts.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -39,6 +45,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>

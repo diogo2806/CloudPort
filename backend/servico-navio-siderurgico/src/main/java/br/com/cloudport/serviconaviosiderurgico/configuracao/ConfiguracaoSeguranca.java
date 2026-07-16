@@ -130,10 +130,16 @@ public class ConfiguracaoSeguranca {
                 "Content-Type",
                 "Accept",
                 CorrelationIdFilter.HEADER,
+                "X-Trace-Id",
+                "traceparent",
                 PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID,
                 PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET
         ));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", CorrelationIdFilter.HEADER));
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                CorrelationIdFilter.HEADER,
+                "X-Trace-Id",
+                "traceparent"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

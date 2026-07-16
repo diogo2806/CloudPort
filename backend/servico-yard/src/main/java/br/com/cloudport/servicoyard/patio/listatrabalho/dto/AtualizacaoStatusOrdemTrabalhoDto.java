@@ -3,7 +3,7 @@ package br.com.cloudport.servicoyard.patio.listatrabalho.dto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import javax.validation.constraints.NotNull;
 
-public class AtualizacaoStatusOrdemTrabalhoDto {
+public class AtualizacaoStatusOrdemTrabalhoDto extends ComandoMotivadoDto {
 
     @NotNull
     private StatusOrdemTrabalhoPatio statusOrdem;

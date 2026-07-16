@@ -8,9 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import br.com.cloudport.runtime.integracao.AutenticacaoLocalAdapter;
 import br.com.cloudport.runtime.integracao.CadastroNavioLocalAdapter;
 import br.com.cloudport.runtime.integracao.OrdemPatioYardLocalAdapter;
+import br.com.cloudport.runtime.integracao.OtimizacaoYardLocalAdapter;
 import br.com.cloudport.runtime.integracao.PosicaoPatioYardLocalAdapter;
 import br.com.cloudport.servicogate.security.AutenticacaoClient;
 import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente;
+import br.com.cloudport.serviconaviosiderurgico.cliente.OtimizacaoYardCliente;
+import br.com.cloudport.serviconaviosiderurgico.cliente.OtimizacaoYardHttpAdapter;
 import br.com.cloudport.serviconaviosiderurgico.cliente.PosicaoPatioYardCliente;
 import br.com.cloudport.serviconaviosiderurgico.porta.CadastroNavioPorta;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -80,6 +83,7 @@ class CloudPortRuntimePostgresTest {
     @Autowired private JdbcTemplate jdbcTemplate;
     @Autowired private ApplicationContext applicationContext;
     @Autowired private OrdemPatioYardCliente ordemPatioYardCliente;
+    @Autowired private OtimizacaoYardCliente otimizacaoYardCliente;
     @Autowired private PosicaoPatioYardCliente posicaoPatioYardCliente;
     @Autowired private CadastroNavioPorta cadastroNavioPorta;
     @Autowired private AutenticacaoClient autenticacaoClient;
@@ -99,9 +103,11 @@ class CloudPortRuntimePostgresTest {
     @Test
     void deveUsarIntegracoesLocaisEntreModulosIncorporados() {
         assertInstanceOf(OrdemPatioYardLocalAdapter.class, ordemPatioYardCliente);
+        assertInstanceOf(OtimizacaoYardLocalAdapter.class, otimizacaoYardCliente);
         assertInstanceOf(PosicaoPatioYardLocalAdapter.class, posicaoPatioYardCliente);
         assertInstanceOf(CadastroNavioLocalAdapter.class, cadastroNavioPorta);
         assertInstanceOf(AutenticacaoLocalAdapter.class, autenticacaoClient);
+        assertTrue(applicationContext.getBeansOfType(OtimizacaoYardHttpAdapter.class).isEmpty());
     }
 
     private int quantidadeSchemas(String schema) {

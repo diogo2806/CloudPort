@@ -86,17 +86,21 @@ public class IntegracaoNavioPatioServico {
                 .filter(item -> item.getOrdemTrabalhoPatioId() != null)
                 .count();
         long ordensEmExecucao = itens.stream()
-                .filter(item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.EM_EXECUCAO || item.getStatus() == StatusItemCarga.EM_MOVIMENTO)
+                .filter(item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.EM_EXECUCAO
+                        || item.getStatus() == StatusItemCarga.EM_MOVIMENTO)
                 .count();
         long ordensConcluidas = itens.stream()
-                .filter(item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.SINCRONIZADO || item.getStatus() == StatusItemCarga.OPERADO)
+                .filter(item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.SINCRONIZADO
+                        || item.getStatus() == StatusItemCarga.OPERADO)
                 .count();
         return new ResumoIntegracaoNavioPatioDTO(
                 visitaId,
                 itens.size(),
                 itensComReserva,
                 itensComOrdem,
-                Math.max(0, itens.stream().filter(item -> item.getTipoMovimento() == TipoMovimentoNavio.DESCARGA).count() - itensComReserva),
+                Math.max(0, itens.stream()
+                        .filter(item -> item.getTipoMovimento() == TipoMovimentoNavio.DESCARGA)
+                        .count() - itensComReserva),
                 Math.max(0, itens.size() - itensComOrdem),
                 ordensEmExecucao,
                 ordensConcluidas,
@@ -106,7 +110,9 @@ public class IntegracaoNavioPatioServico {
     }
 
     @Transactional
-    public List<ReservaPatioNavioDTO> gerarReservasDaVisita(Long visitaId, ComandoGeracaoReservasPatioDTO comando) {
+    public List<ReservaPatioNavioDTO> gerarReservasDaVisita(
+            Long visitaId,
+            ComandoGeracaoReservasPatioDTO comando) {
         return reservaPatioServico.gerarReservasDaVisita(visitaId, comando);
     }
 
@@ -116,12 +122,21 @@ public class IntegracaoNavioPatioServico {
     }
 
     @Transactional
-    public ResultadoGeracaoOrdensPatioDTO gerarOrdensDaVisita(Long visitaId, ComandoGeracaoOrdensPatioDTO comando) {
+    public ResultadoGeracaoOrdensPatioDTO gerarOrdensDaVisita(
+            Long visitaId,
+            ComandoGeracaoOrdensPatioDTO comando) {
         var visita = visitaServico.buscarEntidade(visitaId);
         visitaServico.validarVisitaEditavel(visita);
-        ComandoGeracaoOrdensPatioDTO comandoEfetivo = comando == null ? new ComandoGeracaoOrdensPatioDTO(null, null, null, null) : comando;
+        ComandoGeracaoOrdensPatioDTO comandoEfetivo = comando == null
+                ? new ComandoGeracaoOrdensPatioDTO(null, null, null, null)
+                : comando;
         if (comandoEfetivo.gerarReservasAutomaticasEfetivo()) {
-            reservaPatioServico.gerarReservasDaVisita(visitaId, new ComandoGeracaoReservasPatioDTO(TipoReservaPatioNavio.TENTATIVA, true, comandoEfetivo.usuario()));
+            reservaPatioServico.gerarReservasDaVisita(
+                    visitaId,
+                    new ComandoGeracaoReservasPatioDTO(
+                            TipoReservaPatioNavio.TENTATIVA,
+                            true,
+                            comandoEfetivo.usuario()));
         }
         List<String> erros = new ArrayList<>();
         List<String> alertas = new ArrayList<>();
@@ -130,31 +145,39 @@ public class IntegracaoNavioPatioServico {
         int comErro = 0;
 
         List<ItemOperacaoNavio> itens = listarItens(visitaId).stream()
-                .filter(item -> comandoEfetivo.tipoMovimento() == null || item.getTipoMovimento() == comandoEfetivo.tipoMovimento())
+                .filter(item -> comandoEfetivo.tipoMovimento() == null
+                        || item.getTipoMovimento() == comandoEfetivo.tipoMovimento())
                 .filter(item -> item.getStatus() != StatusItemCarga.CANCELADO)
-                .sorted(Comparator.comparing(ItemOperacaoNavio::getSequenciaOperacional, Comparator.nullsLast(Integer::compareTo)))
+                .sorted(Comparator.comparing(
+                        ItemOperacaoNavio::getSequenciaOperacional,
+                        Comparator.nullsLast(Integer::compareTo)))
                 .toList();
 
         for (ItemOperacaoNavio item : itens) {
-            if (comandoEfetivo.modoEfetivo() == ModoGeracaoOrdensPatio.SOMENTE_PENDENTES && item.getOrdemTrabalhoPatioId() != null) {
+            if (comandoEfetivo.modoEfetivo() == ModoGeracaoOrdensPatio.SOMENTE_PENDENTES
+                    && item.getOrdemTrabalhoPatioId() != null) {
                 ignoradas++;
                 continue;
             }
             List<String> errosItem = validador.validarGeracaoOrdem(item);
             if (!errosItem.isEmpty()) {
                 comErro++;
-                errosItem.forEach(erro -> erros.add("Item " + item.getCodigoLote() + ": " + erro));
+                errosItem.forEach(erro -> erros.add(
+                        "Item " + item.getCodigoLote() + ": " + erro));
                 item.setStatusIntegracaoPatio(StatusIntegracaoPatio.ERRO);
                 itemRepositorio.save(item);
                 continue;
             }
             ReservaPosicaoPatioNavio reservaAtiva = obterReservaAtiva(item);
-            if (item.getTipoMovimento() == TipoMovimentoNavio.DESCARGA && reservaAtiva != null) {
+            if (item.getTipoMovimento() == TipoMovimentoNavio.DESCARGA
+                    && reservaAtiva != null) {
                 item.setPosicaoPatioPlanejada(reservaAtiva.getPosicaoPatioId());
             }
             try {
                 boolean jaPossuiaOrdem = item.getOrdemTrabalhoPatioId() != null;
-                var ordemYard = ordemPatioYardCliente.criarOuReutilizarOrdem(item, reservaAtiva);
+                var ordemYard = ordemPatioYardCliente.criarOuReutilizarOrdem(
+                        item,
+                        reservaAtiva);
                 item.setOrdemTrabalhoPatioId(ordemYard.getId());
                 item.setStatusIntegracaoPatio(StatusIntegracaoPatio.ORDEM_GERADA);
                 if (item.getStatus() == StatusItemCarga.PLANEJADO) {
@@ -166,20 +189,52 @@ public class IntegracaoNavioPatioServico {
                 } else {
                     criadas++;
                 }
-                visitaServico.registrarEvento(visita, item, "ORDEM_PATIO_REAL_GERADA", "Ordem real de patio vinculada ao item " + item.getCodigoLote() + ".", comandoEfetivo.usuario(), null, String.valueOf(item.getOrdemTrabalhoPatioId()));
+                visitaServico.registrarEvento(
+                        visita,
+                        item,
+                        "ORDEM_PATIO_REAL_GERADA",
+                        "Ordem real de patio vinculada ao item "
+                                + item.getCodigoLote() + ".",
+                        comandoEfetivo.usuario(),
+                        null,
+                        String.valueOf(item.getOrdemTrabalhoPatioId()));
             } catch (RuntimeException ex) {
                 comErro++;
-                erros.add("Item " + item.getCodigoLote() + ": falha ao criar ordem real no servico-yard - " + ex.getMessage());
+                erros.add("Item " + item.getCodigoLote()
+                        + ": falha ao criar ordem real no servico-yard - "
+                        + ex.getMessage());
                 item.setStatusIntegracaoPatio(StatusIntegracaoPatio.ERRO);
                 itemRepositorio.save(item);
-                visitaServico.registrarEvento(visita, item, "ORDEM_PATIO_REAL_ERRO", "Falha ao criar ordem real no servico-yard para o item " + item.getCodigoLote() + ".", comandoEfetivo.usuario(), null, ex.getMessage());
+                visitaServico.registrarEvento(
+                        visita,
+                        item,
+                        "ORDEM_PATIO_REAL_ERRO",
+                        "Falha ao criar ordem real no servico-yard para o item "
+                                + item.getCodigoLote() + ".",
+                        comandoEfetivo.usuario(),
+                        null,
+                        ex.getMessage());
             }
         }
 
-        List<AlertaIntegracaoNavioPatioDTO> alertasIntegracao = validador.listarAlertas(visitaId, listarItens(visitaId));
-        alertasIntegracao.forEach(alerta -> alertas.add(alerta.tipo() + ": " + alerta.mensagem()));
-        visitaServico.registrarEvento(visita, null, "ORDENS_PATIO_REAIS_GERADAS", criadas + " ordem(ns) real(is) de patio vinculada(s) pela visita.", comandoEfetivo.usuario(), null, String.valueOf(criadas));
-        return new ResultadoGeracaoOrdensPatioDTO(criadas, ignoradas, comErro, erros, alertas);
+        List<AlertaIntegracaoNavioPatioDTO> alertasIntegracao = validador
+                .listarAlertas(visitaId, listarItens(visitaId));
+        alertasIntegracao.forEach(alerta -> alertas.add(
+                alerta.tipo() + ": " + alerta.mensagem()));
+        visitaServico.registrarEvento(
+                visita,
+                null,
+                "ORDENS_PATIO_REAIS_GERADAS",
+                criadas + " ordem(ns) real(is) de patio vinculada(s) pela visita.",
+                comandoEfetivo.usuario(),
+                null,
+                String.valueOf(criadas));
+        return new ResultadoGeracaoOrdensPatioDTO(
+                criadas,
+                ignoradas,
+                comErro,
+                erros,
+                alertas);
     }
 
     @Transactional(readOnly = true)
@@ -212,7 +267,9 @@ public class IntegracaoNavioPatioServico {
                     .toList();
         } catch (RuntimeException ex) {
             return listarOrdensDaVisita(visitaId).stream()
-                    .filter(ordem -> ordem.prioridadeOperacional() == null || ordem.sequenciaNavio() == null || !StringUtils.hasText(ordem.destino()))
+                    .filter(ordem -> ordem.prioridadeOperacional() == null
+                            || ordem.sequenciaNavio() == null
+                            || !StringUtils.hasText(ordem.destino()))
                     .toList();
         }
     }
@@ -230,51 +287,62 @@ public class IntegracaoNavioPatioServico {
     }
 
     @Transactional
-    public ResultadoReplanejamentoPatioNavioDTO replanejarPatioDaVisita(Long visitaId, ComandoReplanejamentoPatioNavioDTO comando) {
+    public ResultadoReplanejamentoPatioNavioDTO replanejarPatioDaVisita(
+            Long visitaId,
+            ComandoReplanejamentoPatioNavioDTO comando) {
         var visita = visitaServico.buscarEntidade(visitaId);
         visitaServico.validarVisitaEditavel(visita);
         List<String> alertas = new ArrayList<>();
         List<Long> naoReplanejados = new ArrayList<>();
         boolean aplicar = comando != null && comando.aplicarEfetivo();
+        String usuario = comando == null || !StringUtils.hasText(comando.usuario())
+                ? "sistema"
+                : comando.usuario();
 
         List<ItemOperacaoNavio> itensDescarga = listarItens(visitaId).stream()
                 .filter(item -> item.getTipoMovimento() == TipoMovimentoNavio.DESCARGA)
-                .filter(item -> item.getStatus() != StatusItemCarga.OPERADO && item.getStatus() != StatusItemCarga.CANCELADO)
-                .sorted(Comparator.comparing(ItemOperacaoNavio::getSequenciaOperacional, Comparator.nullsLast(Integer::compareTo)))
+                .filter(item -> item.getStatus() != StatusItemCarga.OPERADO
+                        && item.getStatus() != StatusItemCarga.CANCELADO)
+                .sorted(Comparator.comparing(
+                        ItemOperacaoNavio::getSequenciaOperacional,
+                        Comparator.nullsLast(Integer::compareTo)))
                 .toList();
 
         List<ReservaPatioNavioDTO> reservas = new ArrayList<>();
-        int sequencia = 1;
         for (ItemOperacaoNavio item : itensDescarga) {
             if (item.getStatus() == StatusItemCarga.BLOQUEADO) {
                 naoReplanejados.add(item.getId());
-                alertas.add("Item " + item.getCodigoLote() + " bloqueado nao foi replanejado.");
+                alertas.add("Item " + item.getCodigoLote()
+                        + " bloqueado nao foi replanejado.");
                 continue;
             }
-            String posicaoSugerida = "RP-" + visitaId + "-" + sequencia;
-            ReservaPosicaoPatioNavio reserva = reservaRepositorio.findFirstByItemOperacaoNavioIdAndStatusInOrderByCriadoEmDesc(item.getId(), List.of(StatusReservaPatioNavio.ATIVA))
-                    .orElseGet(() -> novaReserva(item));
-            reserva.setPosicaoPatioId(posicaoSugerida);
-            reserva.setBloco("RP");
-            reserva.setLinha(sequencia);
-            reserva.setColuna(1);
-            reserva.setCamada("A");
-            reserva.setTipoReserva(aplicar ? TipoReservaPatioNavio.DEFINITIVA : TipoReservaPatioNavio.TENTATIVA);
-            if (aplicar) {
-                ReservaPosicaoPatioNavio salva = reservaRepositorio.save(reserva);
-                item.setPosicaoPatioPlanejada(posicaoSugerida);
-                item.setDestinoPatio(posicaoSugerida);
-                item.setStatusIntegracaoPatio(StatusIntegracaoPatio.RESERVADO);
-                itemRepositorio.save(item);
-                reservas.add(ReservaPatioNavioDTO.de(salva));
-            } else {
+            try {
+                ReservaPosicaoPatioNavio reserva = aplicar
+                        ? reservaPatioServico.replanejarItem(
+                                item,
+                                TipoReservaPatioNavio.DEFINITIVA,
+                                usuario)
+                        : reservaPatioServico.simularReplanejamentoItem(
+                                item,
+                                TipoReservaPatioNavio.TENTATIVA);
                 reservas.add(ReservaPatioNavioDTO.de(reserva));
+            } catch (RuntimeException ex) {
+                naoReplanejados.add(item.getId());
+                alertas.add("Item " + item.getCodigoLote()
+                        + " nao foi replanejado: " + ex.getMessage());
             }
-            sequencia++;
         }
 
         if (aplicar) {
-            visitaServico.registrarEvento(visita, null, "REPLANEJAMENTO_PATIO_APLICADO", reservas.size() + " reserva(s) replanejada(s) para a visita.", comando.usuario(), null, String.valueOf(reservas.size()));
+            visitaServico.registrarEvento(
+                    visita,
+                    null,
+                    "REPLANEJAMENTO_PATIO_APLICADO",
+                    reservas.size()
+                            + " reserva(s) replanejada(s) com compensacao da reserva anterior.",
+                    usuario,
+                    null,
+                    String.valueOf(reservas.size()));
         }
         return new ResultadoReplanejamentoPatioNavioDTO(
                 reservas,
@@ -292,7 +360,9 @@ public class IntegracaoNavioPatioServico {
         ResumoOperacionalNavioDTO resumoOperacional = visitaServico.resumo(visitaId);
         ResumoIntegracaoNavioPatioDTO resumoIntegracao = obterResumoIntegracao(visitaId);
         PlanoEstivaNavioDTO plano = obterPlanoSeExistir(visitaId);
-        List<ItemOperacaoNavioDTO> itens = listarItens(visitaId).stream().map(ItemOperacaoNavioDTO::de).toList();
+        List<ItemOperacaoNavioDTO> itens = listarItens(visitaId).stream()
+                .map(ItemOperacaoNavioDTO::de)
+                .toList();
         List<EventoVisitaNavioDTO> eventos = visitaServico.eventos(visitaId);
         return new RelatorioOperacionalIntegradoDTO(
                 VisitaNavioDTO.de(visita),
@@ -312,35 +382,36 @@ public class IntegracaoNavioPatioServico {
     }
 
     private ReservaPosicaoPatioNavio obterReservaAtiva(ItemOperacaoNavio item) {
-        return reservaRepositorio.findFirstByItemOperacaoNavioIdAndStatusInOrderByCriadoEmDesc(item.getId(), List.of(StatusReservaPatioNavio.ATIVA))
+        return reservaRepositorio
+                .findFirstByItemOperacaoNavioIdAndStatusInOrderByCriadoEmDesc(
+                        item.getId(),
+                        List.of(StatusReservaPatioNavio.ATIVA))
                 .orElse(null);
     }
 
     private StatusIntegracaoPatio statusPredominante(List<ItemOperacaoNavio> itens) {
-        if (itens.stream().anyMatch(item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.ERRO)) {
+        if (itens.stream().anyMatch(
+                item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.ERRO)) {
             return StatusIntegracaoPatio.ERRO;
         }
-        if (itens.stream().anyMatch(item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.EM_EXECUCAO)) {
+        if (itens.stream().anyMatch(
+                item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.EM_EXECUCAO)) {
             return StatusIntegracaoPatio.EM_EXECUCAO;
         }
-        if (!itens.isEmpty() && itens.stream().allMatch(item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.SINCRONIZADO || item.getStatus() == StatusItemCarga.OPERADO)) {
+        if (!itens.isEmpty() && itens.stream().allMatch(
+                item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.SINCRONIZADO
+                        || item.getStatus() == StatusItemCarga.OPERADO)) {
             return StatusIntegracaoPatio.SINCRONIZADO;
         }
-        if (itens.stream().anyMatch(item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.ORDEM_GERADA)) {
+        if (itens.stream().anyMatch(
+                item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.ORDEM_GERADA)) {
             return StatusIntegracaoPatio.ORDEM_GERADA;
         }
-        if (itens.stream().anyMatch(item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.RESERVADO)) {
+        if (itens.stream().anyMatch(
+                item -> item.getStatusIntegracaoPatio() == StatusIntegracaoPatio.RESERVADO)) {
             return StatusIntegracaoPatio.RESERVADO;
         }
         return StatusIntegracaoPatio.NAO_GERADO;
-    }
-
-    private ReservaPosicaoPatioNavio novaReserva(ItemOperacaoNavio item) {
-        ReservaPosicaoPatioNavio reserva = new ReservaPosicaoPatioNavio();
-        reserva.setVisitaNavioId(item.getVisitaNavio().getId());
-        reserva.setItemOperacaoNavioId(item.getId());
-        reserva.setStatus(StatusReservaPatioNavio.ATIVA);
-        return reserva;
     }
 
     private PlanoEstivaNavioDTO obterPlanoSeExistir(Long visitaId) {
@@ -379,8 +450,12 @@ public class IntegracaoNavioPatioServico {
                 ordem.getCodigoConteiner(),
                 tipoMovimento,
                 ordem.getStatusOrdem(),
-                tipoMovimento == TipoMovimentoNavio.DESCARGA ? "NAVIO" : ordem.getDestino(),
-                tipoMovimento == TipoMovimentoNavio.EMBARQUE ? "NAVIO" : ordem.getDestino(),
+                tipoMovimento == TipoMovimentoNavio.DESCARGA
+                        ? "NAVIO"
+                        : ordem.getDestino(),
+                tipoMovimento == TipoMovimentoNavio.EMBARQUE
+                        ? "NAVIO"
+                        : ordem.getDestino(),
                 destinoFormatado,
                 null,
                 ordem.getSequenciaNavio(),
@@ -402,13 +477,22 @@ public class IntegracaoNavioPatioServico {
     private List<FilaPatioDaVisitaDTO> agruparFilasLocais(Long visitaId) {
         List<OrdemPatioDaVisitaDTO> ordens = listarOrdensDaVisita(visitaId);
         Map<String, List<OrdemPatioDaVisitaDTO>> agrupadas = ordens.stream()
-                .collect(Collectors.groupingBy(this::chaveFilaLocal, LinkedHashMap::new, Collectors.toList()));
+                .collect(Collectors.groupingBy(
+                        this::chaveFilaLocal,
+                        LinkedHashMap::new,
+                        Collectors.toList()));
         return agrupadas.entrySet().stream()
-                .map(entry -> montarFilaLocal(visitaId, entry.getKey(), entry.getValue()))
+                .map(entry -> montarFilaLocal(
+                        visitaId,
+                        entry.getKey(),
+                        entry.getValue()))
                 .toList();
     }
 
-    private FilaPatioDaVisitaDTO montarFilaLocal(Long visitaId, String chave, List<OrdemPatioDaVisitaDTO> ordens) {
+    private FilaPatioDaVisitaDTO montarFilaLocal(
+            Long visitaId,
+            String chave,
+            List<OrdemPatioDaVisitaDTO> ordens) {
         String[] partes = chave.split("\\|");
         String berco = partes.length > 0 ? partes[0] : null;
         String blocoZona = partes.length > 1 ? partes[1] : null;
@@ -419,7 +503,11 @@ public class IntegracaoNavioPatioServico {
                 visitaId,
                 berco,
                 blocoZona,
-                ordens.stream().map(OrdemPatioDaVisitaDTO::sequenciaNavio).filter(java.util.Objects::nonNull).min(Integer::compareTo).orElse(null),
+                ordens.stream()
+                        .map(OrdemPatioDaVisitaDTO::sequenciaNavio)
+                        .filter(java.util.Objects::nonNull)
+                        .min(Integer::compareTo)
+                        .orElse(null),
                 status,
                 ordens.size(),
                 ordens
@@ -434,6 +522,8 @@ public class IntegracaoNavioPatioServico {
     }
 
     private String valor(String valor, String padrao) {
-        return StringUtils.hasText(valor) ? valor.trim().toUpperCase(Locale.ROOT) : padrao;
+        return StringUtils.hasText(valor)
+                ? valor.trim().toUpperCase(Locale.ROOT)
+                : padrao;
     }
 }

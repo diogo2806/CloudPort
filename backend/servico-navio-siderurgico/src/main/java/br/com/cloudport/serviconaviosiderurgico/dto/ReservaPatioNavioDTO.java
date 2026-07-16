@@ -17,6 +17,8 @@ public record ReservaPatioNavioDTO(
         TipoReservaPatioNavio tipoReserva,
         StatusReservaPatioNavio status,
         String motivoCancelamento,
+        LocalDateTime expiraEm,
+        Long reservaAnteriorId,
         LocalDateTime criadoEm,
         LocalDateTime atualizadoEm
 ) {
@@ -33,6 +35,8 @@ public record ReservaPatioNavioDTO(
                 reserva.getTipoReserva(),
                 reserva.getStatus(),
                 reserva.getMotivoCancelamento(),
+                reserva.getExpiraEm(),
+                reserva.getReservaAnteriorId(),
                 reserva.getCriadoEm(),
                 reserva.getAtualizadoEm()
         );

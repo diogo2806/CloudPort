@@ -51,6 +51,9 @@ public class ItemOperacaoNavio {
     @Column(name = "peso_total_toneladas", nullable = false, precision = 14, scale = 3)
     private BigDecimal pesoTotalToneladas;
 
+    @Column(name = "altura_carga_metros", precision = 8, scale = 3)
+    private BigDecimal alturaCargaMetros;
+
     @Column(name = "porao_planejado")
     private Integer poraoPlanejado;
 
@@ -145,6 +148,8 @@ public class ItemOperacaoNavio {
     public void setPesoUnitarioToneladas(BigDecimal pesoUnitarioToneladas) { this.pesoUnitarioToneladas = pesoUnitarioToneladas; }
     public BigDecimal getPesoTotalToneladas() { return pesoTotalToneladas; }
     public void setPesoTotalToneladas(BigDecimal pesoTotalToneladas) { this.pesoTotalToneladas = pesoTotalToneladas; }
+    public BigDecimal getAlturaCargaMetros() { return alturaCargaMetros; }
+    public void setAlturaCargaMetros(BigDecimal alturaCargaMetros) { this.alturaCargaMetros = alturaCargaMetros; }
     public Integer getPoraoPlanejado() { return poraoPlanejado; }
     public void setPoraoPlanejado(Integer poraoPlanejado) { this.poraoPlanejado = poraoPlanejado; }
     public Integer getPoraoReal() { return poraoReal; }

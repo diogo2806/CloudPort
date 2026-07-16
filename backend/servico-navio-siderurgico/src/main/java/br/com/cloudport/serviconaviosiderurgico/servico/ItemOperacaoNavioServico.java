@@ -20,10 +20,14 @@ public class ItemOperacaoNavioServico {
 
     private final ItemOperacaoNavioRepositorio repositorio;
     private final VisitaNavioServico visitaServico;
+    private final ReservaPatioNavioServico reservaPatioServico;
 
-    public ItemOperacaoNavioServico(ItemOperacaoNavioRepositorio repositorio, VisitaNavioServico visitaServico) {
+    public ItemOperacaoNavioServico(ItemOperacaoNavioRepositorio repositorio,
+                                    VisitaNavioServico visitaServico,
+                                    ReservaPatioNavioServico reservaPatioServico) {
         this.repositorio = repositorio;
         this.visitaServico = visitaServico;
+        this.reservaPatioServico = reservaPatioServico;
     }
 
     @Transactional(readOnly = true)
@@ -100,6 +104,12 @@ public class ItemOperacaoNavioServico {
                 ? "Status do item " + item.getCodigoLote() + " alterado de " + anterior + " para " + status + "."
                 : observacao.trim();
         visitaServico.registrarEvento(item.getVisitaNavio(), salvo, "ITEM_STATUS_ALTERADO", descricao, usuario, anterior.name(), status.name());
+        if (status == StatusItemCarga.CANCELADO) {
+            reservaPatioServico.cancelarReservaDoItem(
+                    salvo,
+                    "Reserva cancelada devido ao cancelamento do item: " + descricao,
+                    usuario);
+        }
         return ItemOperacaoNavioDTO.de(salvo);
     }
 
@@ -140,6 +150,10 @@ public class ItemOperacaoNavioServico {
         if (item.getStatus() == StatusItemCarga.EM_MOVIMENTO || item.getStatus() == StatusItemCarga.OPERADO) {
             throw new IllegalArgumentException("Nao e permitido excluir item em movimento ou ja operado.");
         }
+        reservaPatioServico.cancelarReservaDoItem(
+                item,
+                "Reserva cancelada devido a exclusao do item.",
+                "sistema");
         VisitaNavio visita = item.getVisitaNavio();
         String lote = item.getCodigoLote();
         repositorio.delete(item);
@@ -154,6 +168,7 @@ public class ItemOperacaoNavioServico {
         item.setQuantidade(dto.quantidade());
         item.setPesoUnitarioToneladas(dto.pesoUnitarioToneladas());
         item.setPesoTotalToneladas(dto.pesoTotalToneladas());
+        item.setAlturaCargaMetros(dto.alturaCargaMetros());
         item.setPoraoPlanejado(dto.poraoPlanejado());
         item.setPoraoReal(dto.poraoReal());
         item.setPosicaoPlanejada(limpar(dto.posicaoPlanejada()));

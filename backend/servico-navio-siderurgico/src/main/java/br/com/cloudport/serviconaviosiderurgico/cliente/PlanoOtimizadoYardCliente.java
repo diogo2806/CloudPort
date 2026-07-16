@@ -15,7 +15,8 @@ public interface PlanoOtimizadoYardCliente {
             Long visitaNavioId,
             String usuario,
             String motivo,
-            List<EstadoAnteriorOrdemYardDTO> estadosAnteriores
+            List<EstadoAnteriorOrdemYardDTO> estadosAnteriores,
+            List<EstadoAnteriorWorkQueueYardDTO> estadosAnterioresWorkQueues
     );
 
     class AplicacaoPlanoYardDTO {
@@ -67,6 +68,7 @@ public interface PlanoOtimizadoYardCliente {
         private Long visitaNavioId;
         private int ordensAtualizadas;
         private List<EstadoAnteriorOrdemYardDTO> estadosAnteriores = new ArrayList<>();
+        private List<EstadoAnteriorWorkQueueYardDTO> estadosAnterioresWorkQueues = new ArrayList<>();
 
         public String getPlanoId() { return planoId; }
         public void setPlanoId(String planoId) { this.planoId = planoId; }
@@ -76,6 +78,10 @@ public interface PlanoOtimizadoYardCliente {
         public void setOrdensAtualizadas(int ordensAtualizadas) { this.ordensAtualizadas = ordensAtualizadas; }
         public List<EstadoAnteriorOrdemYardDTO> getEstadosAnteriores() { return estadosAnteriores; }
         public void setEstadosAnteriores(List<EstadoAnteriorOrdemYardDTO> estadosAnteriores) { this.estadosAnteriores = estadosAnteriores; }
+        public List<EstadoAnteriorWorkQueueYardDTO> getEstadosAnterioresWorkQueues() { return estadosAnterioresWorkQueues; }
+        public void setEstadosAnterioresWorkQueues(List<EstadoAnteriorWorkQueueYardDTO> estadosAnterioresWorkQueues) {
+            this.estadosAnterioresWorkQueues = estadosAnterioresWorkQueues;
+        }
     }
 
     class EstadoAnteriorOrdemYardDTO {
@@ -106,12 +112,26 @@ public interface PlanoOtimizadoYardCliente {
         public void setWorkQueueId(Long workQueueId) { this.workQueueId = workQueueId; }
     }
 
+    class EstadoAnteriorWorkQueueYardDTO {
+        private Long workQueueId;
+        private Integer sequenciaInicial;
+        private Integer prioridadeOperacional;
+
+        public Long getWorkQueueId() { return workQueueId; }
+        public void setWorkQueueId(Long workQueueId) { this.workQueueId = workQueueId; }
+        public Integer getSequenciaInicial() { return sequenciaInicial; }
+        public void setSequenciaInicial(Integer sequenciaInicial) { this.sequenciaInicial = sequenciaInicial; }
+        public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
+        public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
+    }
+
     class CompensacaoPlanoYardDTO {
         private String planoId;
         private Long visitaNavioId;
         private String usuario;
         private String motivo;
         private List<EstadoAnteriorOrdemYardDTO> estadosAnteriores = new ArrayList<>();
+        private List<EstadoAnteriorWorkQueueYardDTO> estadosAnterioresWorkQueues = new ArrayList<>();
 
         public String getPlanoId() { return planoId; }
         public void setPlanoId(String planoId) { this.planoId = planoId; }
@@ -123,5 +143,9 @@ public interface PlanoOtimizadoYardCliente {
         public void setMotivo(String motivo) { this.motivo = motivo; }
         public List<EstadoAnteriorOrdemYardDTO> getEstadosAnteriores() { return estadosAnteriores; }
         public void setEstadosAnteriores(List<EstadoAnteriorOrdemYardDTO> estadosAnteriores) { this.estadosAnteriores = estadosAnteriores; }
+        public List<EstadoAnteriorWorkQueueYardDTO> getEstadosAnterioresWorkQueues() { return estadosAnterioresWorkQueues; }
+        public void setEstadosAnterioresWorkQueues(List<EstadoAnteriorWorkQueueYardDTO> estadosAnterioresWorkQueues) {
+            this.estadosAnterioresWorkQueues = estadosAnterioresWorkQueues;
+        }
     }
 }

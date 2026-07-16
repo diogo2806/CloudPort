@@ -27,12 +27,14 @@ public class TratadorExcecoes {
     private static final Logger LOGGER = LoggerFactory.getLogger(TratadorExcecoes.class);
 
     @ExceptionHandler(IllegalArgumentException.class)
-    ResponseEntity<ErroApi> tratarArgumentoInvalido(IllegalArgumentException ex, HttpServletRequest request) {
+    public ResponseEntity<ErroApi> tratarArgumentoInvalido(IllegalArgumentException ex,
+                                                            HttpServletRequest request) {
         return resposta(HttpStatus.BAD_REQUEST, "VALIDACAO_NEGOCIO", ex.getMessage(), Map.of(), request, ex, false);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<ErroApi> tratarValidacao(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<ErroApi> tratarValidacao(MethodArgumentNotValidException ex,
+                                                    HttpServletRequest request) {
         Map<String, Object> detalhes = ex.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.toMap(
                         erro -> erro.getField(),
@@ -45,7 +47,8 @@ public class TratadorExcecoes {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    ResponseEntity<ErroApi> tratarRestricao(ConstraintViolationException ex, HttpServletRequest request) {
+    public ResponseEntity<ErroApi> tratarRestricao(ConstraintViolationException ex,
+                                                    HttpServletRequest request) {
         Map<String, Object> detalhes = ex.getConstraintViolations().stream()
                 .collect(Collectors.toMap(
                         violacao -> violacao.getPropertyPath().toString(),
@@ -58,7 +61,8 @@ public class TratadorExcecoes {
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    ResponseEntity<ErroApi> tratarTipoInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+    public ResponseEntity<ErroApi> tratarTipoInvalido(MethodArgumentTypeMismatchException ex,
+                                                       HttpServletRequest request) {
         return resposta(
                 HttpStatus.BAD_REQUEST,
                 "PARAMETRO_INVALIDO",
@@ -71,7 +75,8 @@ public class TratadorExcecoes {
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    ResponseEntity<ErroApi> tratarStatus(ResponseStatusException ex, HttpServletRequest request) {
+    public ResponseEntity<ErroApi> tratarStatus(ResponseStatusException ex,
+                                                 HttpServletRequest request) {
         HttpStatus status = ex.getStatus();
         String codigo = switch (status) {
             case NOT_FOUND -> "RECURSO_NAO_ENCONTRADO";
@@ -87,7 +92,7 @@ public class TratadorExcecoes {
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ErroApi> tratarInesperado(Exception ex, HttpServletRequest request) {
+    public ResponseEntity<ErroApi> tratarInesperado(Exception ex, HttpServletRequest request) {
         return resposta(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "ERRO_INTERNO",
@@ -100,12 +105,12 @@ public class TratadorExcecoes {
     }
 
     private ResponseEntity<ErroApi> resposta(HttpStatus status,
-                                               String codigo,
-                                               String mensagem,
-                                               Map<String, Object> detalhesAdicionais,
-                                               HttpServletRequest request,
-                                               Exception ex,
-                                               boolean stackTrace) {
+                                              String codigo,
+                                              String mensagem,
+                                              Map<String, Object> detalhesAdicionais,
+                                              HttpServletRequest request,
+                                              Exception ex,
+                                              boolean stackTrace) {
         String correlationId = correlationId(request);
         String rota = request.getMethod() + " " + request.getRequestURI();
         Map<String, Object> detalhes = new LinkedHashMap<>();
@@ -121,7 +126,8 @@ public class TratadorExcecoes {
         if (stackTrace) {
             LOGGER.error("Falha inesperada. correlationId={} rota={}", correlationId, rota, ex);
         } else {
-            LOGGER.warn("Requisicao rejeitada. correlationId={} rota={} motivo={}", correlationId, rota, ex.getMessage());
+            LOGGER.warn("Requisicao rejeitada. correlationId={} rota={} motivo={}",
+                    correlationId, rota, ex.getMessage());
         }
         HttpHeaders headers = new HttpHeaders();
         headers.set(CorrelationIdFilter.HEADER, correlationId);

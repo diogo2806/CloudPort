@@ -20,6 +20,7 @@ import br.com.cloudport.serviconaviosiderurgico.dto.PlanoEstivaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.PosicaoEstivaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.RelatorioOperacionalIntegradoDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ReservaPatioNavioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ResultadoConsultaYardDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ResultadoGeracaoOrdensPatioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ResultadoReplanejamentoPatioNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ResumoIntegracaoNavioPatioDTO;
@@ -235,12 +236,14 @@ public class VisitaNavioControlador {
     }
 
     @GetMapping("/{id}/integracao-patio/filas")
-    public List<FilaPatioDaVisitaDTO> listarFilasOperacionaisPatio(@PathVariable Long id) {
+    public ResultadoConsultaYardDTO<FilaPatioDaVisitaDTO> listarFilasOperacionaisPatio(
+            @PathVariable Long id) {
         return integracaoNavioPatioServico.listarFilasOperacionaisDaVisita(id);
     }
 
     @GetMapping("/{id}/integracao-patio/sem-cobertura")
-    public List<OrdemPatioDaVisitaDTO> listarOrdensSemCoberturaPatio(@PathVariable Long id) {
+    public ResultadoConsultaYardDTO<OrdemPatioDaVisitaDTO> listarOrdensSemCoberturaPatio(
+            @PathVariable Long id) {
         return integracaoNavioPatioServico.listarOrdensSemCoberturaDaVisita(id);
     }
 

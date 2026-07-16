@@ -9,5 +9,31 @@ public record ResultadoReplanejamentoPatioNavioDTO(
         BigDecimal economiaEstimadaDistanciaPercentual,
         String riscoRehandle,
         List<String> alertasImpeditivos,
-        List<Long> itensNaoReplanejados
-) {}
+        List<Long> itensNaoReplanejados,
+        String planoOtimizacaoId,
+        Integer versaoPlano,
+        Integer distanciaOriginal,
+        Integer distanciaOtimizada
+) {
+
+    public ResultadoReplanejamentoPatioNavioDTO(
+            List<ReservaPatioNavioDTO> reservasSugeridas,
+            List<OrdemPatioDaVisitaDTO> ordensReordenadas,
+            BigDecimal economiaEstimadaDistanciaPercentual,
+            String riscoRehandle,
+            List<String> alertasImpeditivos,
+            List<Long> itensNaoReplanejados
+    ) {
+        this(
+                reservasSugeridas,
+                ordensReordenadas,
+                economiaEstimadaDistanciaPercentual,
+                riscoRehandle,
+                alertasImpeditivos,
+                itensNaoReplanejados,
+                null,
+                null,
+                null,
+                null);
+    }
+}

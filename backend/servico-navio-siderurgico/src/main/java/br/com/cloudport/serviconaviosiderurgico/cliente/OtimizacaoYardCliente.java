@@ -1,5 +1,6 @@
 package br.com.cloudport.serviconaviosiderurgico.cliente;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -31,7 +32,7 @@ public class OtimizacaoYardCliente {
         if (resposta == null) {
             throw new IllegalStateException("O scheduler do Yard nao retornou o plano otimizado.");
         }
-        return Map.copyOf(resposta);
+        return new LinkedHashMap<>(resposta);
     }
 
     private String removerBarraFinal(String valor) {

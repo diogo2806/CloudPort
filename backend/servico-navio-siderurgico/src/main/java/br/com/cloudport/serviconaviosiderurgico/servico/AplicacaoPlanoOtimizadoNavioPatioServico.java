@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -91,7 +90,8 @@ public class AplicacaoPlanoOtimizadoNavioPatioServico {
                             visitaId,
                             usuario,
                             "Falha ao persistir reservas e itens do plano no modulo Navio: " + ex.getMessage(),
-                            resultadoYard.getEstadosAnteriores());
+                            resultadoYard.getEstadosAnteriores(),
+                            resultadoYard.getEstadosAnterioresWorkQueues());
                 } catch (RuntimeException compensacaoEx) {
                     ex.addSuppressed(compensacaoEx);
                 }
@@ -413,7 +413,6 @@ public class AplicacaoPlanoOtimizadoNavioPatioServico {
         return UUID.nameUUIDFromBytes(conteudo.toString().getBytes(StandardCharsets.UTF_8)).toString();
     }
 
-    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> listaMapas(Object valor) {
         if (!(valor instanceof List<?> lista)) {
             return List.of();

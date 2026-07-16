@@ -11,7 +11,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,7 +62,6 @@ public class NavioSiderurgicoServico {
         return NavioSiderurgicoDTO.de(repositorio.save(navio));
     }
 
-    @Scheduled(fixedDelayString = "${cloudport.integracao.navio.sincronizacao-ms:300000}")
     @Transactional
     public void sincronizarCadastroCanonico() {
         repositorio.findAll().forEach(this::sincronizarComTratamento);

@@ -121,6 +121,7 @@ public class ConfiguracaoSeguranca {
                 "Content-Type",
                 "Accept",
                 "X-Correlation-Id",
+                "Last-Event-ID",
                 InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY
         ));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "X-Correlation-Id"));

@@ -1,5 +1,6 @@
 package br.com.cloudport.visibilidade.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -12,7 +13,6 @@ public class ConteinerRastreamentoDTO {
     private List<RotaDTO> rotaCompleta;
     private MetricasDTO metricas;
 
-    // Getters and Setters
     public String getContainerId() { return containerId; }
     public void setContainerId(String containerId) { this.containerId = containerId; }
 
@@ -38,7 +38,6 @@ public class ConteinerRastreamentoDTO {
         private CoordenadasDTO coordenadas;
         private LocalDateTime dataAtualizacao;
 
-        // Getters and Setters
         public String getTipo() { return tipo; }
         public void setTipo(String tipo) { this.tipo = tipo; }
         public String getZona() { return zona; }
@@ -65,7 +64,8 @@ public class ConteinerRastreamentoDTO {
         private String tipo;
         private String id;
         private String berco;
-        private LocalDateTime estimadoParaida;
+        @JsonAlias("estimadoParaida")
+        private LocalDateTime estimadoParaSaida;
 
         public String getTipo() { return tipo; }
         public void setTipo(String tipo) { this.tipo = tipo; }
@@ -73,8 +73,8 @@ public class ConteinerRastreamentoDTO {
         public void setId(String id) { this.id = id; }
         public String getBerco() { return berco; }
         public void setBerco(String berco) { this.berco = berco; }
-        public LocalDateTime getEstimadoParaida() { return estimadoParaida; }
-        public void setEstimadoParaida(LocalDateTime estimadoParaida) { this.estimadoParaida = estimadoParaida; }
+        public LocalDateTime getEstimadoParaSaida() { return estimadoParaSaida; }
+        public void setEstimadoParaSaida(LocalDateTime estimadoParaSaida) { this.estimadoParaSaida = estimadoParaSaida; }
     }
 
     public static class RotaDTO {

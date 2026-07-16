@@ -150,6 +150,26 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 6. Marcar `servico-gate` como deployment legado em transicao e remover referencias de documentacao inexistentes.
 7. Atualizar os requisitos pendentes com o roteiro de incorporacao de Yard, Gate, Rail, Autenticacao e Visibilidade.
 
+## Visibilidade operacional implementada
+
+1. Remover mapeamentos Spring MVC duplicados de conteineres, alertas e navios que impediam a inicializacao segura do servico.
+2. Consolidar rastreamento e historico de conteineres em um unico contrato e servico.
+3. Persistir eventos reais de entrada e saida no gate, armazenagem no patio e movimento ferroviario.
+4. Processar atualizacao de capacidade do patio sem exigir `containerId`.
+5. Preservar o status do navio quando o evento altera somente o berco.
+6. Criar a projecao de status quando o evento de navio chega antes do cadastro na visibilidade.
+7. Resolver alertas de atraso quando a chegada do navio for confirmada.
+8. Substituir `System.out` e injecao por campo por logging estruturado e injecao por construtor nos fluxos alterados.
+9. Remover totais, velocidades, previsoes e tempos ficticios dos DTOs de navio, gate, patio e rastreamento.
+10. Calcular throughput do gate somente com eventos `ENTRADA_GATE` e `SAIDA_GATE`, pareando ciclos reais por conteiner.
+11. Corrigir o contrato `estimadoParaida` para `estimadoParaSaida`, mantendo alias de leitura compativel.
+12. Padronizar erros da API com `codigo`, `mensagem`, `detalhes`, `correlationId` e `timestamp`.
+13. Exigir motivo para resolver alertas.
+14. Externalizar configuracoes de banco, RabbitMQ, Redis, porta, emissor JWT e meta diaria do gate.
+15. Corrigir o emissor JWT padrao da visibilidade para o servico de autenticacao na porta `8080`.
+16. Desabilitar Open Session in View no servico de visibilidade.
+17. Incluir Autenticacao, Gate, Rail e Visibilidade na matriz de validacao do backend, executando os testes de Visibilidade.
+
 ## Contratos de API implementados
 
 ```text
@@ -167,6 +187,16 @@ POST  /yard/patio/work-instructions/{id}/reset
 POST  /yard/patio/work-instructions/{id}/cancelar
 GET   /visitas-navio/{id}/integracao-patio/work-queues
 POST  /api/scheduler/gerar-plano
+GET   /api/v1/visibilidade/dashboard
+GET   /api/v1/visibilidade/navios
+GET   /api/v1/visibilidade/navios/{navioId}/detalhes
+GET   /api/v1/visibilidade/patio/ocupacao
+GET   /api/v1/visibilidade/gate/throughput
+GET   /api/v1/visibilidade/alertas
+POST  /api/v1/visibilidade/alertas/{id}/resolver
+GET   /api/v1/visibilidade/conteiners/{containerId}/track
+GET   /api/v1/visibilidade/conteiners/{containerId}/historico
+GET   /api/v1/visibilidade/conteiners/buscar
 ```
 
 ## Testes implementados
@@ -182,6 +212,11 @@ POST  /api/scheduler/gerar-plano
 9. Teste da origem classpath das migracoes, garantindo que cada recurso seja fornecido pelo artefato do modulo responsavel.
 10. Teste unitario da configuracao dinamica entregue ao frontend incorporado.
 11. Validacao CI do Docker Compose e da imagem completa do runtime unificado.
+12. Testes de persistencia da localizacao atual e do historico de movimentos de conteineres.
+13. Testes dos listeners de gate, patio, rail e navio, incluindo capacidade sem `containerId`.
+14. Testes de preservacao de status na atribuicao de berco e criacao da projecao de navio.
+15. Testes do throughput real do gate e da ausencia de tempo medio inventado sem ciclo completo.
+16. Teste de inicializacao conjunta dos controllers para impedir rotas ambiguas.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -202,6 +237,7 @@ POST  /api/scheduler/gerar-plano
 15. Migracoes Flyway publicadas e carregadas a partir dos artefatos Maven dos respectivos modulos.
 16. Imagem unificada com frontend incorporado, configuracao dinamica e Compose de transicao entre perfis.
 17. Definicao e documentacao do monolito modular como arquitetura alvo do CloudPort.
+18. Rotas unicas e metricas baseadas em eventos reais no servico de Visibilidade.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

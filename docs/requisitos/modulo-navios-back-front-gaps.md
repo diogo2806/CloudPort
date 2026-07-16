@@ -33,19 +33,29 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 3. Diferenciar visualmente sem fila, sem POW, sem equipamento, sem job list, posição inválida, reserva bloqueada e divergência Navio x Pátio.
 4. Criar painel de CHE/job list por equipamento.
 5. Criar Quay Monitor quando os contratos de berth/crane estiverem disponíveis.
-6. Padronizar no backend os erros com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp. O frontend já exibe esses campos quando recebidos.
+6. Expandir para os demais backends o contrato de erro com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp já aplicado no `servico-visibilidade`.
 7. Criar e2e para login/SSO, job list, dispatch, reset, cancelamento e indisponibilidade do Yard.
 
 ## Pendências de contratos compartilhados
 
 1. Padronizar paginação para listas grandes.
 2. Padronizar enums de visita, item, ordem, reserva, work queue, severidade e alerta.
-3. Tornar `motivo` obrigatório nos comandos de cancelamento, suspensão, retomada, reset e alterações administrativas.
+3. Tornar `motivo` obrigatório nos comandos de cancelamento, suspensão, retomada, reset e alterações administrativas. A resolução de alerta da Visibilidade já exige motivo.
 4. Gerar tipos TypeScript a partir de OpenAPI.
 5. Centralizar conversão de `WorkQueuePatioYardDTO`.
 6. Separar DTO resumido de lista e DTO detalhado de job list.
 7. Definir contrato versionado de evento para SSE/WebSocket.
 8. Publicar um OpenAPI consolidado no runtime monolítico sem duplicação de operação, schema ou configuração.
+
+## Pendências do módulo de Visibilidade
+
+1. Persistir `eventId` ou `messageId` e impedir duplicação de histórico em redelivery do RabbitMQ.
+2. Substituir buscas com `repository.findAll()` e filtros em memória por consultas paginadas no banco.
+3. Publicar atualização do dashboard imediatamente após eventos de gate, pátio, rail e navio, mantendo o agendamento apenas como reconciliação.
+4. Persistir quantidades reais de movimentos, produtividade, equipamentos alocados e previsão de saída antes de preencher esses campos nos contratos.
+5. Integrar a Visibilidade ao contrato compartilhado de enums e eventos versionados.
+6. Criar teste de contexto com PostgreSQL, RabbitMQ e mapeamentos Spring reais, além dos testes unitários atuais.
+7. Preparar o módulo para incorporação ao runtime monolítico sem manter segurança, tratamento de erros e agendamento duplicados.
 
 ## Pendências da migração para monólito modular
 
@@ -142,6 +152,7 @@ GET  /visitas-navio/{id}/produtividade-cais
 7. Criar smoke test da imagem iniciada pelo Compose, cobrindo frontend, configuração dinâmica, autenticação e conexão com o Yard.
 8. Criar testes que comprovem que jobs e consumidores não executam em duplicidade durante o corte para o monólito.
 9. Validar o OpenAPI consolidado e ausência de rotas duplicadas.
+10. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ e todos os mapeamentos de controller.
 
 ## P1
 
@@ -150,6 +161,7 @@ GET  /visitas-navio/{id}/produtividade-cais
 3. Padronizar status entre Navio, Pátio, work queue e alertas.
 4. Substituir a sincronização periódica da projeção siderúrgica do cadastro canônico por evento interno.
 5. Criar matriz de dependências permitidas entre todos os módulos do monólito.
+6. Concluir idempotência, consultas paginadas e publicação orientada a eventos no módulo de Visibilidade.
 
 ## P2
 

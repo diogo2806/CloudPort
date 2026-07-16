@@ -1,20 +1,21 @@
 server:
-  port: 8085
+  port: ${VISIBILIDADE_SERVER_PORT:8085}
 
 spring:
   application:
     name: servico-visibilidade
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/cloudport_visibilidade
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/cloudport_visibilidade}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
@@ -26,24 +27,30 @@ spring:
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
-    port: 5672
+    port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASSWORD:guest}
     listener:
       simple:
-        concurrency: 5
-        max-concurrency: 10
+        concurrency: ${RABBITMQ_LISTENER_CONCURRENCY:5}
+        max-concurrency: ${RABBITMQ_LISTENER_MAX_CONCURRENCY:10}
 
   redis:
     host: ${REDIS_HOST:localhost}
-    port: 6379
-    timeout: 60000
+    port: ${REDIS_PORT:6379}
+    timeout: ${REDIS_TIMEOUT_MS:60000}
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8081  # servico-autenticacao
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080}
+
+visibilidade:
+  dashboard:
+    refresh-ms: ${VISIBILIDADE_DASHBOARD_REFRESH_MS:30000}
+  gate:
+    meta-movimentos-dia: ${VISIBILIDADE_GATE_META_MOVIMENTOS_DIA:1200}
 
 management:
   endpoints:

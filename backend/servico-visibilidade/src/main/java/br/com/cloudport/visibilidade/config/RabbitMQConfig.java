@@ -1,27 +1,58 @@
 package br.com.cloudport.visibilidade.config;
 
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String PORT_EVENTS_EXCHANGE = "port.events";
-
-    // Queues
     public static final String VISIBILIDADE_GATE_QUEUE = "visibilidade.gate.events";
     public static final String VISIBILIDADE_YARD_QUEUE = "visibilidade.yard.events";
     public static final String VISIBILIDADE_NAVIO_QUEUE = "visibilidade.navio.events";
     public static final String VISIBILIDADE_RAIL_QUEUE = "visibilidade.rail.events";
 
-    @Bean
-    public TopicExchange portEventsExchange() {
-        return new TopicExchange(PORT_EVENTS_EXCHANGE, true, false);
+    private final String exchangeLegado;
+    private final String exchangeYard;
+    private final String routingYard;
+    private final String exchangeRail;
+    private final String routingRail;
+
+    public RabbitMQConfig(
+            @Value("${cloudport.visibilidade.eventos.legado.exchange:port.events}") String exchangeLegado,
+            @Value("${cloudport.visibilidade.eventos.yard.exchange:yard.eventos}") String exchangeYard,
+            @Value("${cloudport.visibilidade.eventos.yard.routing:yard.movimento.registrado}") String routingYard,
+            @Value("${cloudport.visibilidade.eventos.rail.exchange:ferrovia.eventos}") String exchangeRail,
+            @Value("${cloudport.visibilidade.eventos.rail.routing:rail.movimentacao.concluida}") String routingRail) {
+        this.exchangeLegado = exchangeLegado;
+        this.exchangeYard = exchangeYard;
+        this.routingYard = routingYard;
+        this.exchangeRail = exchangeRail;
+        this.routingRail = routingRail;
+    }
+
+    @Bean("eventosLegadoExchange")
+    public TopicExchange eventosLegadoExchange() {
+        return new TopicExchange(exchangeLegado, true, false);
+    }
+
+    @Bean("eventosYardExchange")
+    public TopicExchange eventosYardExchange() {
+        return new TopicExchange(exchangeYard, true, false);
+    }
+
+    @Bean("eventosRailExchange")
+    public TopicExchange eventosRailExchange() {
+        return new TopicExchange(exchangeRail, true, false);
     }
 
     @Bean
@@ -45,18 +76,39 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding gateBinding(Queue visibilidadeGateQueue, TopicExchange portEventsExchange) {
-        return BindingBuilder.bind(visibilidadeGateQueue).to(portEventsExchange).with("gate.*");
+    public Binding gateBinding(@Qualifier("visibilidadeGateQueue") Queue queue,
+                               @Qualifier("eventosLegadoExchange") TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with("gate.#");
     }
 
     @Bean
-    public Binding yardBinding(Queue visibilidadeYardQueue, TopicExchange portEventsExchange) {
-        return BindingBuilder.bind(visibilidadeYardQueue).to(portEventsExchange).with("yard.*");
+    public Binding navioBinding(@Qualifier("visibilidadeNavioQueue") Queue queue,
+                                @Qualifier("eventosLegadoExchange") TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with("navio.#");
     }
 
     @Bean
-    public Binding navioBinding(Queue visibilidadeNavioQueue, TopicExchange portEventsExchange) {
-        return BindingBuilder.bind(visibilidadeNavioQueue).to(portEventsExchange).with("navio.*");
+    public Binding yardBinding(@Qualifier("visibilidadeYardQueue") Queue queue,
+                               @Qualifier("eventosYardExchange") TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(routingYard);
+    }
+
+    @Bean
+    public Binding yardLegadoBinding(@Qualifier("visibilidadeYardQueue") Queue queue,
+                                     @Qualifier("eventosLegadoExchange") TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with("yard.#");
+    }
+
+    @Bean
+    public Binding railBinding(@Qualifier("visibilidadeRailQueue") Queue queue,
+                               @Qualifier("eventosRailExchange") TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(routingRail);
+    }
+
+    @Bean
+    public Binding railLegadoBinding(@Qualifier("visibilidadeRailQueue") Queue queue,
+                                     @Qualifier("eventosLegadoExchange") TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with("rail.#");
     }
 
     @Bean
@@ -65,17 +117,20 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
+                                         Jackson2JsonMessageConverter messageConverter) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
-        template.setMessageConverter(messageConverter());
+        template.setMessageConverter(messageConverter);
         return template;
     }
 
     @Bean
-    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory) {
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+            ConnectionFactory connectionFactory,
+            Jackson2JsonMessageConverter messageConverter) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
-        factory.setMessageConverter(messageConverter());
+        factory.setMessageConverter(messageConverter);
         factory.setConcurrentConsumers(5);
         factory.setMaxConcurrentConsumers(10);
         return factory;

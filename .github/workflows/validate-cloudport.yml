@@ -57,7 +57,21 @@ jobs:
           cache: maven
       - name: Compilar e validar
         working-directory: ${{ matrix.module }}
-        run: ${{ matrix.command }}
+        shell: bash
+        run: |
+          set +e
+          eval "${{ matrix.command }}" > /tmp/backend-java.log 2>&1
+          status=$?
+          tail -n 300 /tmp/backend-java.log > /tmp/backend-java-diagnostico.log
+          cat /tmp/backend-java-diagnostico.log
+          exit $status
+      - name: Publicar diagnóstico do módulo Java
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ strategy.job-index }}-diagnostico
+          path: /tmp/backend-java-diagnostico.log
+          if-no-files-found: error
 
   runtime-geral:
     name: Runtime geral CloudPort

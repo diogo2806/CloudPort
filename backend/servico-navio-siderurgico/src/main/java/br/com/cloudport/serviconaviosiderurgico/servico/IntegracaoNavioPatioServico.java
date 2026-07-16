@@ -3,6 +3,7 @@ package br.com.cloudport.serviconaviosiderurgico.servico;
 import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente;
 import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente.FilaOrdemPatioYardDTO;
 import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente.OrdemPatioYardRespostaDTO;
+import br.com.cloudport.serviconaviosiderurgico.comum.IntegracaoYardIndisponivelException;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ModoGeracaoOrdensPatio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ReservaPosicaoPatioNavio;
@@ -22,6 +23,7 @@ import br.com.cloudport.serviconaviosiderurgico.dto.OrdemPatioDaVisitaDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.PlanoEstivaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.RelatorioOperacionalIntegradoDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ReservaPatioNavioDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ResultadoConsultaYardDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ResultadoGeracaoOrdensPatioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ResultadoReplanejamentoPatioNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ResumoIntegracaoNavioPatioDTO;
@@ -38,12 +40,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
 public class IntegracaoNavioPatioServico {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(IntegracaoNavioPatioServico.class);
 
     private final ItemOperacaoNavioRepositorio itemRepositorio;
     private final ReservaPosicaoPatioNavioRepositorio reservaRepositorio;
@@ -53,6 +60,7 @@ public class IntegracaoNavioPatioServico {
     private final ValidadorIntegracaoNavioPatioServico validador;
     private final SincronizadorStatusNavioPatioServico sincronizador;
     private final OrdemPatioYardCliente ordemPatioYardCliente;
+    private final boolean contingenciaConsultasYardHabilitada;
 
     public IntegracaoNavioPatioServico(
             ItemOperacaoNavioRepositorio itemRepositorio,
@@ -62,7 +70,9 @@ public class IntegracaoNavioPatioServico {
             ReservaPatioNavioServico reservaPatioServico,
             ValidadorIntegracaoNavioPatioServico validador,
             SincronizadorStatusNavioPatioServico sincronizador,
-            OrdemPatioYardCliente ordemPatioYardCliente
+            OrdemPatioYardCliente ordemPatioYardCliente,
+            @Value("${cloudport.integracao.yard.contingencia-consultas-enabled:false}")
+            boolean contingenciaConsultasYardHabilitada
     ) {
         this.itemRepositorio = itemRepositorio;
         this.reservaRepositorio = reservaRepositorio;
@@ -72,6 +82,7 @@ public class IntegracaoNavioPatioServico {
         this.validador = validador;
         this.sincronizador = sincronizador;
         this.ordemPatioYardCliente = ordemPatioYardCliente;
+        this.contingenciaConsultasYardHabilitada = contingenciaConsultasYardHabilitada;
     }
 
     @Transactional(readOnly = true)
@@ -247,30 +258,60 @@ public class IntegracaoNavioPatioServico {
     }
 
     @Transactional(readOnly = true)
-    public List<FilaPatioDaVisitaDTO> listarFilasOperacionaisDaVisita(Long visitaId) {
+    public ResultadoConsultaYardDTO<FilaPatioDaVisitaDTO> listarFilasOperacionaisDaVisita(
+            Long visitaId) {
         visitaServico.buscarEntidade(visitaId);
         try {
-            return ordemPatioYardCliente.listarFilasDaVisita(visitaId).stream()
+            List<FilaPatioDaVisitaDTO> filas = ordemPatioYardCliente.listarFilasDaVisita(visitaId).stream()
                     .map(this::converterFilaYard)
                     .toList();
+            return ResultadoConsultaYardDTO.confirmada(filas);
         } catch (RuntimeException ex) {
-            return agruparFilasLocais(visitaId);
+            IntegracaoYardIndisponivelException falha = tiparFalhaConsultaYard(
+                    "a consulta de filas operacionais",
+                    ex);
+            if (!contingenciaConsultasYardHabilitada) {
+                throw falha;
+            }
+            LOGGER.warn(
+                    "Consulta de filas do Yard executada em contingencia. visitaId={} motivo={}",
+                    visitaId,
+                    falha.getReason());
+            return ResultadoConsultaYardDTO.degradada(
+                    agruparFilasLocais(visitaId),
+                    falha.getReason());
         }
     }
 
     @Transactional(readOnly = true)
-    public List<OrdemPatioDaVisitaDTO> listarOrdensSemCoberturaDaVisita(Long visitaId) {
+    public ResultadoConsultaYardDTO<OrdemPatioDaVisitaDTO> listarOrdensSemCoberturaDaVisita(
+            Long visitaId) {
         visitaServico.buscarEntidade(visitaId);
         try {
-            return ordemPatioYardCliente.listarOrdensSemCobertura(visitaId).stream()
+            List<OrdemPatioDaVisitaDTO> ordens = ordemPatioYardCliente
+                    .listarOrdensSemCobertura(visitaId).stream()
                     .map(this::converterOrdemYard)
                     .toList();
+            return ResultadoConsultaYardDTO.confirmada(ordens);
         } catch (RuntimeException ex) {
-            return listarOrdensDaVisita(visitaId).stream()
+            IntegracaoYardIndisponivelException falha = tiparFalhaConsultaYard(
+                    "a consulta de ordens sem cobertura",
+                    ex);
+            if (!contingenciaConsultasYardHabilitada) {
+                throw falha;
+            }
+            LOGGER.warn(
+                    "Consulta de cobertura do Yard executada em contingencia. visitaId={} motivo={}",
+                    visitaId,
+                    falha.getReason());
+            List<OrdemPatioDaVisitaDTO> ordensDerivadas = listarOrdensDaVisita(visitaId).stream()
                     .filter(ordem -> ordem.prioridadeOperacional() == null
                             || ordem.sequenciaNavio() == null
                             || !StringUtils.hasText(ordem.destino()))
                     .toList();
+            return ResultadoConsultaYardDTO.degradada(
+                    ordensDerivadas,
+                    falha.getReason());
         }
     }
 
@@ -472,6 +513,15 @@ public class IntegracaoNavioPatioServico {
             case "REMANEJAMENTO" -> TipoMovimentoNavio.RESTOW;
             default -> TipoMovimentoNavio.DESCARGA;
         };
+    }
+
+    private IntegracaoYardIndisponivelException tiparFalhaConsultaYard(
+            String operacao,
+            RuntimeException ex) {
+        if (ex instanceof IntegracaoYardIndisponivelException falhaTipada) {
+            return falhaTipada;
+        }
+        return new IntegracaoYardIndisponivelException(operacao, ex);
     }
 
     private List<FilaPatioDaVisitaDTO> agruparFilasLocais(Long visitaId) {

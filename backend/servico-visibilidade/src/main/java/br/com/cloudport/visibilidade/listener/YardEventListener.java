@@ -4,6 +4,7 @@ import br.com.cloudport.visibilidade.config.RabbitMQConfig;
 import br.com.cloudport.visibilidade.dto.evento.EventoMovimentoPatioMensagem;
 import br.com.cloudport.visibilidade.service.CapacidadeYardService;
 import br.com.cloudport.visibilidade.service.MovimentoConteinerService;
+import br.com.cloudport.visibilidade.service.ProcessamentoEventoIdempotenteService;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
@@ -17,46 +18,46 @@ import org.springframework.util.StringUtils;
 public class YardEventListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(YardEventListener.class);
+    private static final String ORIGEM = "YARD";
 
     private final MovimentoConteinerService movimentoConteinerService;
     private final CapacidadeYardService capacidadeYardService;
+    private final ProcessamentoEventoIdempotenteService processamentoEventoService;
 
     public YardEventListener(MovimentoConteinerService movimentoConteinerService,
-                             CapacidadeYardService capacidadeYardService) {
+                             CapacidadeYardService capacidadeYardService,
+                             ProcessamentoEventoIdempotenteService processamentoEventoService) {
         this.movimentoConteinerService = movimentoConteinerService;
         this.capacidadeYardService = capacidadeYardService;
+        this.processamentoEventoService = processamentoEventoService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.VISIBILIDADE_YARD_QUEUE)
     public void handleYardEvent(Map<String, Object> event) {
         String eventType = texto(event, "eventType");
-
-        if ("yard.container.stored".equals(eventType)) {
-            processarArmazenagem(event);
-            return;
-        }
-        if ("yard.capacity_updated".equals(eventType)) {
-            processarCapacidade(event);
-            return;
-        }
-        if ("yard.movimento.registrado".equals(eventType)
-                || StringUtils.hasText(texto(event, "codigoConteiner"))) {
-            processarMovimentoOperacional(event);
-            return;
-        }
-
         if (!StringUtils.hasText(eventType)) {
-            LOGGER.warn("Evento de patio ignorado porque nao corresponde a um contrato conhecido.");
-        } else {
-            LOGGER.debug("Evento de patio sem processador registrado. eventType={}", eventType);
+            throw new IllegalArgumentException("Evento de patio sem eventType.");
+        }
+
+        switch (eventType) {
+            case "yard.container.stored":
+                processarArmazenagem(event, eventType);
+                break;
+            case "yard.capacity_updated":
+                processarCapacidade(event, eventType);
+                break;
+            case "yard.movimento.registrado":
+                processarMovimentoOperacional(event, eventType);
+                break;
+            default:
+                LOGGER.debug("Evento de patio sem processador registrado. eventType={}", eventType);
         }
     }
 
-    private void processarArmazenagem(Map<String, Object> event) {
+    private void processarArmazenagem(Map<String, Object> event, String eventType) {
         String containerId = primeiroTexto(event, "containerId", "codigoConteiner");
         if (!StringUtils.hasText(containerId)) {
-            LOGGER.warn("Evento yard.container.stored ignorado porque containerId nao foi informado.");
-            return;
+            throw new IllegalArgumentException("Evento yard.container.stored sem containerId.");
         }
 
         String zona = texto(event, "zona");
@@ -64,13 +65,21 @@ public class YardEventListener {
         String equipamento = primeiroTexto(event, "equipamentoId", "equipamento", "cheId");
         String responsavel = primeiroTexto(event, "responsavel", "usuario", "operatorId");
 
-        movimentoConteinerService.registrarArmazenagemYard(
-                containerId, zona, posicao, equipamento, responsavel);
-        LOGGER.info("Armazenagem de conteiner registrada. containerId={} zona={} posicao={}",
-                containerId, zona, posicao);
+        boolean processado = processamentoEventoService.processarUmaVez(
+                ORIGEM,
+                eventType,
+                event,
+                eventoId -> movimentoConteinerService.registrarArmazenagemYard(
+                        eventoId, containerId, zona, posicao, equipamento, responsavel));
+        if (processado) {
+            LOGGER.info("Armazenagem de conteiner registrada. containerId={} zona={} posicao={}",
+                    containerId, zona, posicao);
+        } else {
+            LOGGER.debug("Redelivery de armazenagem ignorado. containerId={}", containerId);
+        }
     }
 
-    private void processarMovimentoOperacional(Map<String, Object> event) {
+    private void processarMovimentoOperacional(Map<String, Object> event, String eventType) {
         EventoMovimentoPatioMensagem mensagem = new EventoMovimentoPatioMensagem();
         mensagem.setCodigoConteiner(primeiroTexto(event, "codigoConteiner", "containerId"));
         mensagem.setTipoMovimento(texto(event, "tipoMovimento"));
@@ -82,34 +91,48 @@ public class YardEventListener {
         mensagem.setRegistradoEm(dataHora(event, "registradoEm"));
 
         if (!StringUtils.hasText(mensagem.getCodigoConteiner())) {
-            LOGGER.warn("Evento yard.movimento.registrado ignorado porque codigoConteiner nao foi informado.");
-            return;
+            throw new IllegalArgumentException(
+                    "Evento yard.movimento.registrado sem codigoConteiner.");
         }
 
-        movimentoConteinerService.registrarMovimentoPatio(mensagem);
-        LOGGER.info("Movimento real de patio registrado. containerId={} tipo={} linha={} coluna={} camada={}",
-                mensagem.getCodigoConteiner(), mensagem.getTipoMovimento(), mensagem.getLinha(),
-                mensagem.getColuna(), mensagem.getCamadaOperacional());
+        boolean processado = processamentoEventoService.processarUmaVez(
+                ORIGEM,
+                eventType,
+                event,
+                eventoId -> movimentoConteinerService.registrarMovimentoPatio(eventoId, mensagem));
+        if (processado) {
+            LOGGER.info("Movimento real de patio registrado. containerId={} tipo={} linha={} coluna={} camada={}",
+                    mensagem.getCodigoConteiner(), mensagem.getTipoMovimento(), mensagem.getLinha(),
+                    mensagem.getColuna(), mensagem.getCamadaOperacional());
+        } else {
+            LOGGER.debug("Redelivery de movimento de patio ignorado. containerId={}",
+                    mensagem.getCodigoConteiner());
+        }
     }
 
-    private void processarCapacidade(Map<String, Object> event) {
+    private void processarCapacidade(Map<String, Object> event, String eventType) {
         String zona = texto(event, "zona");
         Integer ocupacaoAtual = inteiro(event, "ocupacaoAtual");
 
         if (!StringUtils.hasText(zona) || ocupacaoAtual == null) {
-            LOGGER.warn("Evento yard.capacity_updated ignorado por dados invalidos. zona={} ocupacaoAtual={}",
-                    zona, event == null ? null : event.get("ocupacaoAtual"));
-            return;
+            throw new IllegalArgumentException(
+                    "Evento yard.capacity_updated sem zona ou ocupacaoAtual valida.");
         }
-
         if (ocupacaoAtual < 0) {
-            LOGGER.warn("Evento yard.capacity_updated ignorado porque ocupacaoAtual e negativa. zona={} ocupacaoAtual={}",
-                    zona, ocupacaoAtual);
-            return;
+            throw new IllegalArgumentException(
+                    "Evento yard.capacity_updated com ocupacaoAtual negativa.");
         }
 
-        capacidadeYardService.atualizarOcupacao(zona, ocupacaoAtual);
-        LOGGER.info("Ocupacao do patio atualizada. zona={} ocupacaoAtual={}", zona, ocupacaoAtual);
+        boolean processado = processamentoEventoService.processarUmaVez(
+                ORIGEM,
+                eventType,
+                event,
+                eventoId -> capacidadeYardService.atualizarOcupacao(zona, ocupacaoAtual));
+        if (processado) {
+            LOGGER.info("Ocupacao do patio atualizada. zona={} ocupacaoAtual={}", zona, ocupacaoAtual);
+        } else {
+            LOGGER.debug("Redelivery de capacidade do patio ignorado. zona={}", zona);
+        }
     }
 
     private LocalDateTime dataHora(Map<String, Object> event, String chave) {
@@ -120,8 +143,9 @@ public class YardEventListener {
         try {
             return LocalDateTime.parse(valor);
         } catch (DateTimeParseException ex) {
-            LOGGER.warn("Data invalida recebida no evento de patio. campo={} valor={}", chave, valor);
-            return null;
+            throw new IllegalArgumentException(
+                    "Data invalida recebida no evento de patio. campo=" + chave + "; valor=" + valor,
+                    ex);
         }
     }
 

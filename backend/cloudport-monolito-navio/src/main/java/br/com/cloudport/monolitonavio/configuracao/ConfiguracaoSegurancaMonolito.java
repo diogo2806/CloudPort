@@ -1,6 +1,6 @@
 package br.com.cloudport.monolitonavio.configuracao;
 
-import br.com.cloudport.serviconavio.configuracao.InternalServiceAuthenticationFilter;
+import br.com.cloudport.monolitonavio.seguranca.InternalServiceAuthenticationFilter;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;

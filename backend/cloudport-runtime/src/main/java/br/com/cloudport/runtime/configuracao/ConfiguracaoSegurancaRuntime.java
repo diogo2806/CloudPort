@@ -1,6 +1,7 @@
 package br.com.cloudport.runtime.configuracao;
 
 import br.com.cloudport.serviconavio.configuracao.InternalServiceAuthenticationFilter;
+import br.com.cloudport.serviconaviosiderurgico.configuracao.PublicApiClientAuthenticationFilter;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
@@ -47,14 +48,17 @@ public class ConfiguracaoSegurancaRuntime {
     private final String jwtSecret;
     private final String allowedOrigins;
     private final InternalServiceAuthenticationFilter internalServiceAuthenticationFilter;
+    private final PublicApiClientAuthenticationFilter publicApiClientAuthenticationFilter;
 
     public ConfiguracaoSegurancaRuntime(
             @Value("${cloudport.security.jwt.secret}") String jwtSecret,
             @Value("${cloudport.security.cors.allowed-origins:http://localhost:4200,http://localhost:8080}") String allowedOrigins,
-            InternalServiceAuthenticationFilter internalServiceAuthenticationFilter) {
+            InternalServiceAuthenticationFilter internalServiceAuthenticationFilter,
+            PublicApiClientAuthenticationFilter publicApiClientAuthenticationFilter) {
         this.jwtSecret = jwtSecret;
         this.allowedOrigins = allowedOrigins;
         this.internalServiceAuthenticationFilter = internalServiceAuthenticationFilter;
+        this.publicApiClientAuthenticationFilter = publicApiClientAuthenticationFilter;
     }
 
     @Bean
@@ -68,6 +72,7 @@ public class ConfiguracaoSegurancaRuntime {
                         .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .antMatchers(HttpMethod.POST, "/auth", "/auth/**").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .antMatchers("/api/public/v1/**").hasRole("INTEGRACAO_EXTERNA")
                         .antMatchers(HttpMethod.GET,
                                 "/",
                                 "/index.html",
@@ -86,6 +91,7 @@ public class ConfiguracaoSegurancaRuntime {
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .addFilterBefore(publicApiClientAuthenticationFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(internalServiceAuthenticationFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }
@@ -154,7 +160,9 @@ public class ConfiguracaoSegurancaRuntime {
                 "Content-Type",
                 "Accept",
                 "X-Correlation-Id",
-                InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY));
+                InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY,
+                PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID,
+                PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "X-Correlation-Id"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));

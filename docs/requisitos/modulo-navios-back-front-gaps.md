@@ -29,12 +29,9 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 
 ## Pendências do Control Room
 
-1. Substituir o polling de 30 segundos por SSE ou WebSocket. O carregamento atual já é paralelo, atômico e protegido contra sobreposição, mas continua baseado em polling.
-2. Completar o drill-down da work instruction com divergências, reserva, item de navio e movimento de pátio. A fila, o CHE real, as prioridades, a matriz de estados e a auditoria operacional já são exibidos.
-3. Diferenciar visualmente sem fila, sem POW, sem equipamento, sem job list, posição inválida, reserva bloqueada e divergência Navio x Pátio.
-4. Criar a tela de Quay Monitor consumindo os contratos de berth/crane, com linha do tempo, alertas, progresso, MPH e ETC por guindaste.
-5. Expandir para os demais backends o contrato de erro com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp já aplicado no `servico-visibilidade`.
-6. Criar e2e para login/SSO, job list, dispatch, reset, cancelamento e indisponibilidade do Yard.
+1. Criar a tela de Quay Monitor consumindo os contratos reais de berth/crane, com linha do tempo, alertas, progresso, MPH e ETC por guindaste.
+2. Expandir para os demais backends o contrato de erro com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp já aplicado no `servico-visibilidade`.
+3. Criar e2e para login/SSO, job list, dispatch, reset, cancelamento e indisponibilidade do Yard.
 
 ## Pendências de contratos compartilhados
 
@@ -59,7 +56,7 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 
 ## Pendências da migração para monólito modular
 
-O corte Navio + Navio Siderúrgico já possui paridade estrutural de controllers, segurança única, integração local do cadastro canônico, validação dos dados e históricos Flyway, bloqueio distribuído dos jobs, deployments legados em modo somente leitura, testes de arquitetura e runbook de corte/rollback. O smoke cobre inicialização, frontend, configuração dinâmica, autenticação, persistência e integração autenticada com o Yard.
+O corte Navio + Navio Siderúrgico já possui paridade estrutural de controllers, segurança única, integração local do cadastro canônico, validação dos dados e históricos Flyway, bloqueio distribuído dos jobs, deployments legados em modo somente leitura, testes de arquitetura e runbook de corte/rollback. O smoke cobre inicialização, frontend, configuração dinâmica, autenticação, persistência, cadastro canônico, visita, item, reserva em mapa real, ordem, work queue, job list, equipamento, sincronização e relatório integrado, validando também correlação e tracing na integração com o Yard.
 
 Ainda falta:
 
@@ -105,7 +102,7 @@ Ainda falta:
 
 ### 3. Work queues e cobertura operacional
 
-Já entregue: vínculo persistente `workQueueId`, atualização explícita da job list, limite real no dispatch, auditoria de criação e ações operacionais, associação a porão, plano de guindaste, recurso de cais e CHE real, separação entre prioridade de fetch e prioridade operacional, matriz oficial de estados, painel de job list por equipamento e drill-down com fila, equipamento, estados permitidos e auditoria.
+Já entregue: vínculo persistente `workQueueId`, atualização explícita da job list, limite real no dispatch, auditoria de criação e ações operacionais, associação a porão, plano de guindaste, recurso de cais e CHE real, separação entre prioridade de fetch e prioridade operacional, matriz oficial de estados, painel de job list por equipamento e drill-down com work instruction, fila, equipamento, prioridades, estados permitidos, auditoria, eventos, divergências, reserva e item de navio.
 
 Ainda falta:
 
@@ -126,14 +123,11 @@ O scheduler não gera mais equipamentos, contêineres ou coordenadas aleatórias
 ### 6. Testes e observabilidade
 
 1. Testar o proxy de work queues com sucesso, retorno vazio legítimo e falha do Yard convertida em `503` enquanto o Yard permanecer externo.
-2. Criar testes de contrato entre os módulos Navio Siderúrgico, Yard e Navio, cobrindo chamada local no monólito e adaptadores HTTP legados com `X-CloudPort-Service-Key`.
-3. Testar vínculo `workQueueId`, limite de dispatch, auditoria e autorização por perfil.
-4. Testar reserva contra mapa real: inexistente, ocupada, já reservada e mapa vazio.
-5. Criar e2e do fluxo operacional completo.
-6. Adicionar logs estruturados, métricas e tracing com módulo, visita, item, reserva, ordem, work queue e `correlationId`.
-7. Validar o OpenAPI consolidado e ausência de rotas duplicadas.
-8. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ e todos os mapeamentos de controller.
-9. Criar testes de integração do crane plan com work queues reais do Yard e testes frontend do Quay Monitor.
+2. Validar o OpenAPI consolidado e ausência de rotas duplicadas.
+3. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ e todos os mapeamentos de controller.
+4. Criar testes de integração do crane plan com work queues reais do Yard e testes frontend do Quay Monitor.
+5. Expandir logs estruturados, métricas e tracing para Gate, Rail, Autenticação e Visibilidade durante a incorporação desses módulos.
+6. Criar testes de controller e autorização para as transições, recursos e job lists por equipamento do Yard.
 
 ## P1
 
@@ -150,7 +144,7 @@ O scheduler não gera mais equipamentos, contêineres ou coordenadas aleatórias
 2. Otimização global Navio + Pátio + Equipamento.
 3. Comparação automática entre estiva, pátio e execução.
 4. Previsão de gargalos por berço, porão, bloco, fila e equipamento.
-5. Control Room completo com yard view, vessel view, CHE detail, alerts e quay monitor.
+5. Control Room completo com yard view, vessel view, CHE detail, alerts e quay monitor real.
 6. Telemetria/VMT real.
 7. Lashing, estabilidade, segregação e restrições estruturais.
 8. EVP/event streaming versionado.
@@ -160,17 +154,16 @@ O scheduler não gera mais equipamentos, contêineres ou coordenadas aleatórias
 1. Impedir reserva bloqueada, sem capacidade ou incompatível com a carga.
 2. Expirar e auditar reservas automaticamente.
 3. Replanejar usando mapa e otimização real.
-4. Atualizar o Control Room por eventos, sem polling.
-5. Validar quay/berth/crane contra work queues, ordens e recursos reais do Yard.
-6. Padronizar, versionar, paginar e proteger contratos externos.
-7. Cobrir o fluxo por testes de service, controller, contrato e frontend.
-8. Rastrear o fluxo por logs, métricas e tracing.
-9. Exigir motivo e usuário autenticado nas ações aplicáveis.
-10. Diferenciar fila derivada, work queue persistente, work instruction, job list e exceção operacional.
-11. Manter uma única origem de API para o frontend após cada corte.
-12. Garantir que módulos incorporados não realizem chamadas HTTP entre si em cada novo corte.
-13. Retirar um deployment legado somente após paridade, dados, segurança, observabilidade e rollback validados.
-14. Executar cada job, consumidor e comando de escrita em uma única instância durante cada novo corte.
+4. Validar quay/berth/crane contra work queues, ordens e recursos reais do Yard.
+5. Padronizar, versionar, paginar e proteger contratos externos.
+6. Cobrir o fluxo por testes de service, controller, contrato e frontend.
+7. Expandir logs, métricas e tracing aos módulos ainda não incorporados.
+8. Exigir motivo e usuário autenticado nas ações aplicáveis.
+9. Diferenciar fila derivada, work queue persistente, work instruction, job list e exceção operacional.
+10. Manter uma única origem de API para o frontend após cada corte.
+11. Garantir que módulos incorporados não realizem chamadas HTTP entre si em cada novo corte.
+12. Retirar um deployment legado somente após paridade, dados, segurança, observabilidade e rollback validados.
+13. Revalidar que cada job, consumidor e comando de escrita execute em uma única instância durante cada novo corte.
 
 ## Fora do escopo deste corte
 

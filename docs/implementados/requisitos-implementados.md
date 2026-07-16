@@ -411,3 +411,29 @@ GET   /api/v1/visibilidade/conteiners/buscar
 7. Vincular `HistoricoMovimento.eventoId` ao evento externo e impedir histórico duplicado por índice único.
 8. Reverter a identidade persistida quando o efeito falhar, permitindo retentativa segura.
 9. Cobrir primeira entrega, redelivery, colisão, envelope inválido e propagação de falha por testes unitários.
+
+## Processamento EDI assíncrono e idempotente implementado
+
+1. Extrair e persistir identificadores `UNB` e `UNH` das mensagens EDI.
+2. Derivar chave idempotente imutável por tipo, identidade do intercâmbio e referência da mensagem.
+3. Reutilizar a recepção existente quando a mesma identidade e o mesmo conteúdo forem reenviados.
+4. Rejeitar com conflito a reutilização da identidade EDI com conteúdo divergente.
+5. Persistir a recepção antes de retornar `202 Accepted` e `X-EDI-Processing-Id`.
+6. Executar BAPLIE, COPRAR, COARRI e VERMAS por worker persistente fora da requisição HTTP.
+7. Reivindicar mensagens pendentes com trava transacional e limitar o lote por ciclo.
+8. Aplicar retentativa com espera exponencial, recuperação de execução interrompida e limite de tentativas.
+9. Mover falhas esgotadas para `QUARENTENA` e permitir reprocessamento motivado.
+10. Manter processamento, efeito de negócio e conclusão na mesma transação.
+
+## Eventos internos e reconciliação seletiva implementados
+
+1. Criar contratos versionados `EventoOperacaoPatioV1` e `EventoCadastroNavioV1` com identidade, versão, instante e correlação.
+2. Publicar eventos de work queue e work instruction depois da persistência dos comandos operacionais do Yard.
+3. Publicar eventos de criação, alteração e remoção do cadastro canônico de navios.
+4. Consumir eventos Yard → Navio Siderúrgico para sincronizar imediatamente os itens da visita afetada.
+5. Consumir eventos Navio canônico → projeção siderúrgica para atualizar somente o navio afetado.
+6. Persistir `evento_interno_processado` e executar o efeito na mesma transação para impedir reaplicação.
+7. Cancelar a projeção siderúrgica quando o cadastro canônico correspondente for removido.
+8. Restringir `ReconciliacaoNavioPatioJob` aos itens com integração pendente, em execução ou com erro.
+9. Restringir `SincronizacaoCadastroCanonicoJob` às projeções desatualizadas, em lote limitado e com tolerância configurável.
+10. Manter os jobs periódicos somente como reparo de divergências ou eventos perdidos.

@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-16 após implementação de ASYNC10, STATE10 e DATA10.
+Status: atualizado em 2026-07-16 após implementação de ASYNC10, ASYNC20, ASYNC30, STATE10 e DATA10.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -29,28 +29,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 ## 2. Eventos, integrações e processamento assíncrono
 
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| ASYNC20 | Tornar o processamento EDI idempotente e desacoplado da requisição HTTP. | A combinação de tipo, identificadores `UNB`/`UNH` e referência possui unicidade; a recepção é persistida antes da confirmação e o processamento ocorre por worker com retentativa segura e quarentena. | ⬜ Pendente |
-| ASYNC30 | Usar eventos internos como fluxo principal de atualização Yard → Navio e Navio canônico → projeção siderúrgica. | Alterações relevantes publicam eventos no processo e atualizam os consumidores imediatamente; os jobs periódicos permanecem apenas para reconciliação de perdas, sem varrer toda a base como mecanismo principal. | ⬜ Pendente |
-
-### ASYNC20 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/modelo/ProcessamentoEdi.java` | `referenciaMensagem`, `tentativa` | A entidade armazena referência, mas não possui chave idempotente nem identificadores `UNB` e `UNH` separados. | Persistir os identificadores normalizados e uma chave idempotente imutável. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/repositorio/ProcessamentoEdiRepositorio.java` | consultas do processamento | Não existe consulta ou trava por chave natural capaz de reutilizar uma recepção já registrada. | Adicionar busca e inserção atômica por chave idempotente e tratar conflito de unicidade como redelivery, não como novo processamento. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiAuditoriaServico.java` | `processarInterno()` | Cada chamada cria um novo registro e executa a operação de negócio de forma síncrona na mesma requisição. | Separar recepção de execução: gravar `RECEBIDO`, publicar em outbox ou fila transacional, processar por worker e mover falhas esgotadas para quarentena. |
-| `backend/servico-yard/src/main/resources/db/migration/V100__edi_processamento_auditoria.sql` | tabela `edi_processamento` | A estrutura não impede mensagens equivalentes de gerar processamentos paralelos ou repetidos. | Criar migration aditiva com colunas de identidade, índice único e estado necessário à retentativa assíncrona. |
-
-### ASYNC30 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/ReconciliacaoNavioPatioJob.java` | `reconciliarVisitasAtivas()` | A cada ciclo, o job busca todas as visitas e consulta o estado do Yard para atualizar os itens. | Consumir eventos internos de criação e mudança de ordem, reserva e movimento; manter o job apenas para reparar eventos perdidos. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/SincronizacaoCadastroCanonicoJob.java` | `sincronizarCadastroCanonico()` | A projeção siderúrgica é sincronizada periodicamente, mesmo com Navio incorporado ao mesmo processo. | Publicar evento interno quando o cadastro canônico mudar e atualizar somente a projeção afetada. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueueOperacaoServico.java` | `transicionar()` e mutações de recursos | As mudanças persistem e auditam, mas não formam o fluxo interno principal de atualização do módulo Navio Siderúrgico. | Publicar eventos internos após commit com identidade e versão; consumidores devem ser idempotentes. |
-| `backend/servico-navio/src/main/java/br/com/cloudport/serviconavio` | atualização do cadastro canônico | Alterações do domínio não disparam um contrato interno consumido pela projeção siderúrgica. | Publicar evento interno versionado contendo o identificador canônico e os campos alterados. |
+Nenhuma pendência técnica permanece nesta seção após a implementação de ASYNC10, ASYNC20 e ASYNC30.
 
 ## 3. Interface e navegação operacional
 

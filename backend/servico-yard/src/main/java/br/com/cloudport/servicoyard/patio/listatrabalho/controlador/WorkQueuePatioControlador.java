@@ -1,15 +1,22 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.controlador;
 
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoPrioridadesWorkInstructionDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueEquipamentoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueOrdensDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueuePowDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueRecursosDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoWorkInstructionDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.DispatchWorkQueueDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.JobListEquipamentoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoDispatchWorkQueueDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkInstructionDrillDownDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRespostaDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueueOperacaoServico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueuePatioServico;
 import java.util.List;
+import java.util.Map;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,9 +36,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class WorkQueuePatioControlador {
 
     private final WorkQueuePatioServico workQueuePatioServico;
+    private final WorkQueueOperacaoServico workQueueOperacaoServico;
 
-    public WorkQueuePatioControlador(WorkQueuePatioServico workQueuePatioServico) {
+    public WorkQueuePatioControlador(WorkQueuePatioServico workQueuePatioServico,
+                                      WorkQueueOperacaoServico workQueueOperacaoServico) {
         this.workQueuePatioServico = workQueuePatioServico;
+        this.workQueueOperacaoServico = workQueueOperacaoServico;
     }
 
     @GetMapping("/work-queues")
@@ -67,6 +77,12 @@ public class WorkQueuePatioControlador {
         return workQueuePatioServico.atualizarEquipamento(id, dto);
     }
 
+    @PatchMapping("/work-queues/{id}/recursos-operacionais")
+    public WorkQueuePatioRespostaDto associarRecursos(@PathVariable Long id,
+                                                       @Valid @RequestBody AtualizacaoWorkQueueRecursosDto dto) {
+        return workQueueOperacaoServico.associarRecursos(id, dto);
+    }
+
     @PatchMapping("/work-queues/{id}/ordens")
     public WorkQueuePatioRespostaDto atualizarOrdens(@PathVariable Long id,
                                                       @RequestBody AtualizacaoWorkQueueOrdensDto dto) {
@@ -92,5 +108,58 @@ public class WorkQueuePatioControlador {
     @PostMapping("/work-instructions/{id}/cancelar")
     public OrdemTrabalhoPatioRespostaDto cancelarInstrucao(@PathVariable Long id) {
         return workQueuePatioServico.cancelarInstrucao(id);
+    }
+
+    @PostMapping("/work-instructions/{id}/suspender")
+    public OrdemTrabalhoPatioRespostaDto suspenderInstrucao(@PathVariable Long id,
+                                                             @Valid @RequestBody ComandoWorkInstructionDto dto) {
+        return workQueueOperacaoServico.suspender(id, dto);
+    }
+
+    @PostMapping("/work-instructions/{id}/retomar")
+    public OrdemTrabalhoPatioRespostaDto retomarInstrucao(@PathVariable Long id,
+                                                           @Valid @RequestBody ComandoWorkInstructionDto dto) {
+        return workQueueOperacaoServico.retomar(id, dto);
+    }
+
+    @PostMapping("/work-instructions/{id}/bloquear")
+    public OrdemTrabalhoPatioRespostaDto bloquearInstrucao(@PathVariable Long id,
+                                                            @Valid @RequestBody ComandoWorkInstructionDto dto) {
+        return workQueueOperacaoServico.bloquear(id, dto);
+    }
+
+    @PostMapping("/work-instructions/{id}/concluir")
+    public OrdemTrabalhoPatioRespostaDto concluirInstrucao(@PathVariable Long id,
+                                                            @Valid @RequestBody ComandoWorkInstructionDto dto) {
+        return workQueueOperacaoServico.concluir(id, dto);
+    }
+
+    @PatchMapping("/work-instructions/{id}/prioridades")
+    public OrdemTrabalhoPatioRespostaDto atualizarPrioridades(@PathVariable Long id,
+                                                               @Valid @RequestBody AtualizacaoPrioridadesWorkInstructionDto dto) {
+        return workQueueOperacaoServico.atualizarPrioridades(id, dto);
+    }
+
+    @GetMapping("/work-instructions/{id}/drill-down")
+    public WorkInstructionDrillDownDto drillDown(@PathVariable Long id) {
+        return workQueueOperacaoServico.drillDown(id);
+    }
+
+    @GetMapping("/work-instructions/matriz-estados")
+    public Map<String, List<String>> matrizEstados() {
+        return workQueueOperacaoServico.matrizOficialEstados();
+    }
+
+    @GetMapping("/equipamentos/job-lists")
+    public List<JobListEquipamentoDto> listarJobListsPorEquipamento(
+            @RequestParam(name = "visitaNavioId", required = false) Long visitaNavioId) {
+        return workQueueOperacaoServico.listarJobListsPorEquipamento(visitaNavioId);
+    }
+
+    @GetMapping("/equipamentos/{id}/job-list")
+    public JobListEquipamentoDto obterJobListEquipamento(
+            @PathVariable Long id,
+            @RequestParam(name = "visitaNavioId", required = false) Long visitaNavioId) {
+        return workQueueOperacaoServico.obterJobListEquipamento(id, visitaNavioId);
     }
 }

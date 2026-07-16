@@ -5,6 +5,7 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AplicacaoPlanoOtimiz
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.CompensacaoPlanoOtimizadoPatioDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoAplicacaoPlanoOtimizadoPatioDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoAplicacaoPlanoOtimizadoPatioDto.EstadoAnteriorOrdemDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoAplicacaoPlanoOtimizadoPatioDto.EstadoAnteriorWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.HistoricoOperacaoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -100,6 +102,7 @@ public class PlanoOtimizadoPatioServico {
         resultado.setEstadosAnteriores(alteracoes.stream()
                 .map(alteracao -> estadoAnterior(alteracao.ordem()))
                 .toList());
+        resultado.setEstadosAnterioresWorkQueues(estadosAnterioresFilas(alteracoes));
 
         Map<Long, Integer> menorPrioridadePorFila = new HashMap<>();
         LocalDateTime agora = LocalDateTime.now();
@@ -124,7 +127,7 @@ public class PlanoOtimizadoPatioServico {
             menorPrioridadePorFila.merge(
                     fila.getId(),
                     itemPlano.getPrioridadeOperacional(),
-                    Math::min);
+                    Integer::min);
             registrarHistorico(
                     fila.getId(),
                     ordem.getId(),
@@ -181,6 +184,26 @@ public class PlanoOtimizadoPatioServico {
                     estado.getWorkQueueId(),
                     ordem.getId(),
                     "PLANO_OTIMIZADO_COMPENSADO",
+                    comando.getUsuario(),
+                    "planoId=" + comando.getPlanoId() + "; motivo=" + comando.getMotivo());
+        }
+
+        for (EstadoAnteriorWorkQueueDto estadoFila : comando.getEstadosAnterioresWorkQueues()) {
+            WorkQueuePatio fila = workQueueRepositorio.findById(estadoFila.getWorkQueueId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Work queue da compensacao nao encontrada."));
+            if (!Objects.equals(comando.getVisitaNavioId(), fila.getVisitaNavioId())) {
+                throw conflito("A work queue " + fila.getId() + " nao pertence a visita da compensacao.");
+            }
+            fila.setSequenciaInicial(estadoFila.getSequenciaInicial());
+            fila.setPrioridadeOperacional(estadoFila.getPrioridadeOperacional());
+            fila.setAtualizadoEm(LocalDateTime.now());
+            workQueueRepositorio.save(fila);
+            registrarHistorico(
+                    fila.getId(),
+                    null,
+                    "WORK_QUEUE_PLANO_OTIMIZADO_COMPENSADA",
                     comando.getUsuario(),
                     "planoId=" + comando.getPlanoId() + "; motivo=" + comando.getMotivo());
         }
@@ -269,6 +292,22 @@ public class PlanoOtimizadoPatioServico {
         return estado;
     }
 
+    private List<EstadoAnteriorWorkQueueDto> estadosAnterioresFilas(
+            List<AlteracaoPlanejada> alteracoes
+    ) {
+        Map<Long, WorkQueuePatio> filas = new LinkedHashMap<>();
+        alteracoes.forEach(alteracao -> filas.putIfAbsent(
+                alteracao.fila().getId(),
+                alteracao.fila()));
+        return filas.values().stream().map(fila -> {
+            EstadoAnteriorWorkQueueDto estado = new EstadoAnteriorWorkQueueDto();
+            estado.setWorkQueueId(fila.getId());
+            estado.setSequenciaInicial(fila.getSequenciaInicial());
+            estado.setPrioridadeOperacional(fila.getPrioridadeOperacional());
+            return estado;
+        }).toList();
+    }
+
     private void registrarHistorico(
             Long workQueueId,
             Long ordemId,
@@ -288,6 +327,9 @@ public class PlanoOtimizadoPatioServico {
     }
 
     private String chavePosicao(Integer linha, Integer coluna, String camada) {
+        if (linha == null || coluna == null || !StringUtils.hasText(camada)) {
+            throw conflito("A posicao do plano deve informar linha, coluna e camada.");
+        }
         return linha + "-" + coluna + "-" + camada.trim().toUpperCase(Locale.ROOT);
     }
 

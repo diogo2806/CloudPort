@@ -6,7 +6,7 @@
   "scripts": {
     "start": "vite --host 0.0.0.0 --port 4201",
     "build": "vite build",
-    "test": "node --test src/api.test.js",
+    "test": "node --test src/*.test.js",
     "test:e2e": "playwright test",
     "generate:api-types": "openapi-typescript http://localhost:8086/api-docs -o src/generated/cloudport-api.d.ts"
   },

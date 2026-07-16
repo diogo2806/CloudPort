@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, clearSession, formatError, hasAnyRole, loadRuntimeConfig, readSession, saveSession } from './api.js';
+import VisitPlanEditor from './VisitPlanEditor.jsx';
 
 const ROLES = ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'];
 const PHASES = { PREVISTA: 'FUNDEADA', FUNDEADA: 'ATRACADA', ATRACADA: 'OPERANDO', OPERANDO: 'OPERACAO_CONCLUIDA', OPERACAO_CONCLUIDA: 'PARTIU' };
@@ -152,6 +153,7 @@ function ControlRoom({ session, onLogout }) {
   const [summary, setSummary] = useState(EMPTY_SUMMARY), [integration, setIntegration] = useState(EMPTY_INTEGRATION);
   const [items, setItems] = useState([]), [events, setEvents] = useState([]), [reservations, setReservations] = useState([]), [orders, setOrders] = useState([]), [queues, setQueues] = useState([]), [workQueues, setWorkQueues] = useState([]), [uncovered, setUncovered] = useState([]), [alerts, setAlerts] = useState([]);
   const [yardQueries, setYardQueries] = useState({ filas: null, cobertura: null });
+  const [plan, setPlan] = useState(null), [planValidation, setPlanValidation] = useState(null);
   const [statusFilter, setStatusFilter] = useState(''), [zoneFilter, setZoneFilter] = useState(''), [severityFilter, setSeverityFilter] = useState('');
   const [lastUpdate, setLastUpdate] = useState(null), [streamStatus, setStreamStatus] = useState('CONECTANDO'), [expanded, setExpanded] = useState({}), [edits, setEdits] = useState({}), [priorities, setPriorities] = useState({}), [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false), [busyKey, setBusyKey] = useState(''), [error, setError] = useState(''), [success, setSuccess] = useState(''), [result, setResult] = useState(null);
@@ -163,9 +165,22 @@ function ControlRoom({ session, onLogout }) {
     if (activeRequest.current?.visitId === id) return activeRequest.current.promise;
     const requestVersion = ++version.current;
     if (!silent) setBusy(true);
-    const promise = Promise.all([api.listarItensVisita(id), api.obterResumo(id), api.listarEventos(id), api.obterResumoIntegracaoPatio(id), api.listarReservasPatio(id), api.listarOrdensPatio(id), api.listarFilasPatio(id), api.listarWorkQueuesPatio(id), api.listarOrdensSemCoberturaPatio(id), api.listarAlertasIntegracaoPatio(id)]).then(([a, b, c, d, e, f, g, h, i, j]) => {
+    const promise = Promise.all([
+      api.listarItensVisita(id),
+      api.obterResumo(id),
+      api.listarEventos(id),
+      api.obterResumoIntegracaoPatio(id),
+      api.listarReservasPatio(id),
+      api.listarOrdensPatio(id),
+      api.listarFilasPatio(id),
+      api.listarWorkQueuesPatio(id),
+      api.listarOrdensSemCoberturaPatio(id),
+      api.listarAlertasIntegracaoPatio(id),
+      api.obterPlanoEstiva(id)
+    ]).then(([a, b, c, d, e, f, g, h, i, j, k]) => {
       if (requestVersion !== version.current) return;
-      setItems(a); setSummary(b); setEvents(c); setIntegration(d); setReservations(e); setOrders(f); setQueues(g.dados); setWorkQueues(h); setUncovered(i.dados); setAlerts(j); setYardQueries({ filas: g, cobertura: i }); setLastUpdate(new Date());
+      setItems(a); setSummary(b); setEvents(c); setIntegration(d); setReservations(e); setOrders(f); setQueues(g.dados); setWorkQueues(h); setUncovered(i.dados); setAlerts(j); setYardQueries({ filas: g, cobertura: i }); setPlan(k); setLastUpdate(new Date());
+      setPlanValidation((current) => current?.plano?.id === k?.id && current?.plano?.status === k?.status ? current : null);
       setPriorities((current) => [...f, ...h.flatMap((queue) => queue.jobList ?? [])].reduce((acc, order) => order.id ? { ...acc, [order.id]: current[order.id] ?? order.prioridadeOperacional ?? 0 } : acc, {}));
       setEdits((current) => h.reduce((acc, queue) => ({ ...acc, [queue.id]: current[queue.id] ?? { pow: queue.pow || '', poolOperacional: queue.poolOperacional || '', equipamento: queue.equipamento || '', limite: null } }), {}));
     }).finally(() => { if (activeRequest.current?.promise === promise) activeRequest.current = null; if (!silent) setBusy(false); });
@@ -181,7 +196,53 @@ function ControlRoom({ session, onLogout }) {
     connect(); return () => { stopped = true; controller.abort(); clearTimeout(timer); };
   }, [visitId, loadSnapshot]);
 
-  async function action(key, operation, message) { setBusyKey(key); setError(''); setSuccess(''); try { const response = await operation(); if (response !== undefined) setResult(response); setSuccess(message); } catch (reason) { setError(formatError(reason)); } finally { setBusyKey(''); } }
+  async function action(key, operation, message) {
+    setBusyKey(key); setError(''); setSuccess('');
+    try {
+      const response = await operation();
+      if (response !== undefined) setResult(response);
+      setSuccess(message);
+      return response;
+    } catch (reason) {
+      setError(formatError(reason));
+      return undefined;
+    } finally { setBusyKey(''); }
+  }
+
+  async function saveVisit(payload) {
+    const updated = await action('visit-update', () => api.atualizarVisita(visitId, payload), 'Visita atualizada.');
+    if (!updated) return undefined;
+    setVisits((current) => current.map((visit) => visit.id === updated.id ? updated : visit));
+    await loadSnapshot(visitId, true);
+    return updated;
+  }
+
+  async function saveItem(itemId, payload) {
+    const updated = await action(`item-update-${itemId}`, () => api.atualizarItemVisita(visitId, itemId, payload), 'Item da visita atualizado.');
+    if (!updated) return undefined;
+    setItems((current) => current.map((item) => item.id === updated.id ? updated : item));
+    await loadSnapshot(visitId, true);
+    return updated;
+  }
+
+  async function validatePlan(planId) {
+    const validation = await action('plan-validate', () => api.validarPlanoEstiva(visitId, planId), 'Validação do plano concluída.');
+    if (!validation) return undefined;
+    setPlanValidation(validation);
+    setPlan(validation.plano);
+    await loadSnapshot(visitId, true);
+    return validation;
+  }
+
+  async function concludePlan(planId) {
+    const updated = await action('plan-conclude', () => api.concluirPlanoEstiva(visitId, planId), 'Plano de estiva concluído.');
+    if (!updated) return undefined;
+    setPlan(updated);
+    setPlanValidation(null);
+    await loadSnapshot(visitId, true);
+    return updated;
+  }
+
   async function queueAction(queue, type) { const edit = edits[queue.id]; const operations = { activate: () => api.ativarWorkQueuePatio(queue.id), deactivate: () => api.desativarWorkQueuePatio(queue.id), pow: () => api.atualizarPowWorkQueuePatio(queue.id, { pow: edit.pow || null, poolOperacional: edit.poolOperacional || null }), equipment: () => api.atualizarEquipamentoWorkQueuePatio(queue.id, { equipamento: edit.equipamento || null }), dispatch: () => api.despacharWorkQueuePatio(queue.id, { limiteOrdens: edit.limite || null, observacao: 'Dispatch pelo Control Room' }) }; await action(`${type}-${queue.id}`, operations[type], 'Work queue atualizada.'); await loadSnapshot(visitId, true); }
   async function instructionAction(type, order) { await action(`${type}-${order.id}`, () => type === 'reset' ? api.resetarWorkInstructionPatio(order.id) : api.cancelarWorkInstructionPatio(order.id), type === 'reset' ? 'Work instruction resetada.' : 'Work instruction cancelada.'); await loadSnapshot(visitId, true); }
   function changePriority(order, value, persist) { setPriorities((current) => ({ ...current, [order.id]: value })); if (persist) action(`priority-${order.id}`, () => api.atualizarPrioridadeOrdemPatio(visitId, order.id, value), 'Prioridade atualizada.').then(() => loadSnapshot(visitId, true)); }
@@ -207,6 +268,7 @@ function ControlRoom({ session, onLogout }) {
     {error && <div className="message error" role="alert">{error}</div>}{success && <div className="message success">{success}</div>}
     {degradedQueries.length > 0 && <div className="message" role="status" style={{ border: '1px solid #fcd34d', background: '#fffbeb', color: '#92400e' }}><strong>Modo de contingência do Yard.</strong> Filas ou cobertura foram derivados localmente e não representam estado operacional confirmado. {degradedReason}</div>}
     <section className="panel selector"><label>Visita<select value={visitId ?? ''} onChange={(event) => setVisitId(Number(event.target.value))}>{visits.map((visit) => <option key={visit.id} value={visit.id}>{visit.codigoVisita} · {visit.navioNome || navios.find((ship) => ship.id === visit.navioId)?.nome}</option>)}</select></label><div><span className={statusClass(selectedVisit?.fase)}>{selectedVisit?.fase || 'SEM_VISITA'}</span><small>{selectedVisit?.bercoAtual || selectedVisit?.bercoPrevisto || 'sem berço'} · {dateTime(lastUpdate)}</small></div>{PHASES[selectedVisit?.fase] && <button onClick={() => action('phase', async () => { const updated = await api.alterarFaseVisita(visitId, PHASES[selectedVisit.fase]); setVisits((current) => current.map((visit) => visit.id === updated.id ? updated : visit)); }, 'Fase atualizada.')}>Avançar fase</button>}</section>
+    <VisitPlanEditor visit={selectedVisit} items={items} plan={plan} validation={planValidation} busyKey={busyKey} onSaveVisit={saveVisit} onSaveItem={saveItem} onValidatePlan={validatePlan} onConcludePlan={concludePlan} />
     <section className="metrics"><Metric label="Progresso" value={`${number(summary.percentualProgresso, 1)}%`} detail={`${summary.totalItensOperados}/${summary.totalItensPlanejados} itens`} /><Metric label="Peso operado" value={`${number(summary.pesoOperado, 1)} t`} detail={`${number(summary.pesoPlanejado, 1)} t planejadas`} /><Metric label="Ordens" value={integration.itensComOrdem} detail={`${integration.ordensEmExecucao} em execução`} /><Metric label="Alertas" value={integration.totalAlertas} detail={integration.statusPredominante} /></section>
     <section className="panel"><div className="section-head"><div><span className="eyebrow">Operação</span><h2>Ações e filtros</h2></div><StreamStatus value={streamStatus} /></div><div className="actions"><button onClick={() => action('reserve', async () => { await api.gerarReservasPatio(visitId); await loadSnapshot(visitId, true); }, 'Reservas geradas.')}>Gerar reservas</button><button onClick={() => action('orders', async () => { await api.gerarOrdensPatio(visitId); await loadSnapshot(visitId, true); }, 'Ordens geradas.')}>Gerar ordens</button><button className="secondary" onClick={() => action('sync', async () => { await api.sincronizarStatusPatio(visitId); await loadSnapshot(visitId, true); }, 'Yard sincronizado.')}>Sincronizar Yard</button><button className="secondary" onClick={() => action('simulate', () => api.replanejarPatioVisita(visitId, false), 'Simulação concluída.')}>Simular</button><button className="warning" onClick={() => action('apply', () => api.replanejarPatioVisita(visitId, true), 'Replanejamento aplicado.')}>Aplicar replanejamento</button></div><div className="filters"><label>Status<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">Todos</option>{['PENDENTE', 'EM_EXECUCAO', 'BLOQUEADA', 'SUSPENSA', 'CONCLUIDA', 'CANCELADA'].map((value) => <option key={value}>{value}</option>)}</select></label><label>Bloco/zona<input value={zoneFilter} onChange={(event) => setZoneFilter(event.target.value)} /></label><label>Severidade<select value={severityFilter} onChange={(event) => setSeverityFilter(event.target.value)}><option value="">Todas</option>{['BAIXA', 'MEDIA', 'ALTA', 'CRITICA'].map((value) => <option key={value}>{value}</option>)}</select></label></div></section>
     <section className="panel"><div className="section-head"><div><span className="eyebrow">Execução</span><h2>Movimentos iminentes</h2></div><span>{imminent.length}</span></div><div className="imminent">{imminent.map((order) => <article key={order.id} onClick={() => setSelected(order)}><span>#{order.sequenciaNavio ?? '—'}</span><strong>{order.codigoLote}</strong><small>{order.origem || '—'} → {order.destino || order.posicaoPlanejada || '—'}</small><span className={statusClass(order.statusOrdem)}>{order.statusOrdem}</span></article>)}</div></section>

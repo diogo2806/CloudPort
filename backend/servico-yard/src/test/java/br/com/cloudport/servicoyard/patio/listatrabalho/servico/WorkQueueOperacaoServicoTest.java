@@ -10,13 +10,22 @@ import static org.mockito.Mockito.when;
 
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoPrioridadesWorkInstructionDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoWorkInstructionDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.DispatchWorkQueueDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoDispatchWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.HistoricoOperacaoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
+import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusWorkQueuePatio;
+import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.WorkQueuePatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.HistoricoWorkInstructionRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.WorkQueuePatioRepositorio;
+import br.com.cloudport.servicoyard.patio.modelo.EquipamentoPatio;
+import br.com.cloudport.servicoyard.patio.modelo.StatusEquipamento;
+import br.com.cloudport.servicoyard.patio.modelo.TipoEquipamento;
 import br.com.cloudport.servicoyard.patio.repositorio.EquipamentoPatioRepositorio;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,9 +60,10 @@ class WorkQueueOperacaoServicoTest {
 
     @Test
     void deveExporMatrizOficialDeEstados() {
-        Map<String, java.util.List<String>> matriz = servico.matrizOficialEstados();
+        Map<String, List<String>> matriz = servico.matrizOficialEstados();
 
         assertTrue(matriz.get("PENDENTE").contains("EM_EXECUCAO"));
+        assertTrue(matriz.get("EM_EXECUCAO").contains("PENDENTE"));
         assertTrue(matriz.get("EM_EXECUCAO").contains("CONCLUIDA"));
         assertTrue(matriz.get("SUSPENSA").contains("PENDENTE"));
         assertTrue(matriz.get("CONCLUIDA").isEmpty());
@@ -104,12 +114,75 @@ class WorkQueueOperacaoServicoTest {
         verify(historicoRepositorio, times(2)).save(any(HistoricoOperacaoPatio.class));
     }
 
+    @Test
+    void deveBloquearDispatchSemCoberturaReal() {
+        WorkQueuePatio fila = filaOperacional(20L);
+        fila.setEquipamentoPatioId(null);
+        fila.setEquipamento("RTG-TEXTO");
+        when(workQueueRepositorio.findById(20L)).thenReturn(Optional.of(fila));
+
+        DispatchWorkQueueDto comando = dispatch("Cobertura insuficiente");
+
+        ResponseStatusException excecao = assertThrows(ResponseStatusException.class,
+                () -> servico.despachar(20L, comando));
+
+        assertTrue(excecao.getReason().contains("CHE real"));
+    }
+
+    @Test
+    void deveDespacharComCoberturaRealPelaMatrizOficial() {
+        WorkQueuePatio fila = filaOperacional(21L);
+        EquipamentoPatio equipamento = new EquipamentoPatio(
+                9L,
+                "RTG-09",
+                TipoEquipamento.RTG,
+                1,
+                1,
+                StatusEquipamento.OPERACIONAL);
+        OrdemTrabalhoPatio primeira = ordem(101L, StatusOrdemTrabalhoPatio.PENDENTE);
+        OrdemTrabalhoPatio segunda = ordem(102L, StatusOrdemTrabalhoPatio.BLOQUEADA);
+        when(workQueueRepositorio.findById(21L)).thenReturn(Optional.of(fila));
+        when(equipamentoRepositorio.findById(9L)).thenReturn(Optional.of(equipamento));
+        when(ordemRepositorio
+                .findByWorkQueueIdOrderByPrioridadeBuscaDescPrioridadeOperacionalAscSequenciaNavioAscCriadoEmAsc(21L))
+                .thenReturn(List.of(primeira, segunda));
+        when(ordemRepositorio.save(any(OrdemTrabalhoPatio.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ResultadoDispatchWorkQueueDto resultado = servico.despachar(21L, dispatch("Janela operacional"));
+
+        assertEquals(1, resultado.getTotalOrdensDespachadas());
+        assertEquals(1, resultado.getTotalOrdensIgnoradas());
+        assertEquals(StatusOrdemTrabalhoPatio.EM_EXECUCAO, primeira.getStatusOrdem());
+        assertEquals(StatusOrdemTrabalhoPatio.BLOQUEADA, segunda.getStatusOrdem());
+        verify(historicoRepositorio, times(2)).save(any(HistoricoOperacaoPatio.class));
+    }
+
+    private WorkQueuePatio filaOperacional(Long id) {
+        WorkQueuePatio fila = new WorkQueuePatio();
+        fila.setId(id);
+        fila.setIdentificador("WQ-" + id);
+        fila.setVisitaNavioId(42L);
+        fila.setStatus(StatusWorkQueuePatio.ATIVA);
+        fila.setPow("POW-1");
+        fila.setPoolOperacional("POOL-1");
+        fila.setPlanoGuindasteId(31L);
+        fila.setRecursoCaisId(44L);
+        fila.setEquipamentoPatioId(9L);
+        fila.setEquipamento("RTG-09");
+        fila.setCriadoEm(LocalDateTime.now());
+        fila.setAtualizadoEm(LocalDateTime.now());
+        return fila;
+    }
+
     private OrdemTrabalhoPatio ordem(Long id, StatusOrdemTrabalhoPatio status) {
         OrdemTrabalhoPatio ordem = new OrdemTrabalhoPatio();
         ordem.setId(id);
-        ordem.setWorkQueueId(99L);
+        ordem.setWorkQueueId(id >= 100 ? 21L : 99L);
         ordem.setCodigoConteiner("CONT-" + id);
         ordem.setStatusOrdem(status);
+        ordem.setCriadoEm(LocalDateTime.now());
+        ordem.setAtualizadoEm(LocalDateTime.now());
         return ordem;
     }
 
@@ -119,6 +192,15 @@ class WorkQueueOperacaoServicoTest {
         comando.setUsuario("operador-teste");
         comando.setOrigemAcao("TESTE");
         comando.setCorrelationId("corr-123");
+        return comando;
+    }
+
+    private DispatchWorkQueueDto dispatch(String motivo) {
+        DispatchWorkQueueDto comando = new DispatchWorkQueueDto();
+        comando.setMotivo(motivo);
+        comando.setOperador("operador-teste");
+        comando.setOrigemAcao("TESTE");
+        comando.setCorrelationId("corr-dispatch");
         return comando;
     }
 }

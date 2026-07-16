@@ -1,0 +1,32 @@
+name: Resolver conflitos do PR 240
+
+on:
+  push:
+    branches:
+      - feat/contratos-integracoes-20260716-0905
+
+permissions:
+  contents: write
+
+jobs:
+  merge-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout da branch do PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: feat/contratos-integracoes-20260716-0905
+      - name: Incorporar a main preservando a resolução da branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "A main já está incorporada."
+            exit 0
+          fi
+          git merge --no-edit -X ours origin/main
+          git push origin HEAD:feat/contratos-integracoes-20260716-0905

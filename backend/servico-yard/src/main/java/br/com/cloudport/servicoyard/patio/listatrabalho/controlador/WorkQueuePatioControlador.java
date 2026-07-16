@@ -3,11 +3,13 @@ package br.com.cloudport.servicoyard.patio.listatrabalho.controlador;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueEquipamentoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueOrdensDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueuePowDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoMotivadoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.DispatchWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoDispatchWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRespostaDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.AuditoriaComandoPatioServico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueuePatioServico;
 import java.util.List;
 import javax.validation.Valid;
@@ -29,9 +31,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class WorkQueuePatioControlador {
 
     private final WorkQueuePatioServico workQueuePatioServico;
+    private final AuditoriaComandoPatioServico auditoriaComandoPatioServico;
 
-    public WorkQueuePatioControlador(WorkQueuePatioServico workQueuePatioServico) {
+    public WorkQueuePatioControlador(WorkQueuePatioServico workQueuePatioServico,
+                                      AuditoriaComandoPatioServico auditoriaComandoPatioServico) {
         this.workQueuePatioServico = workQueuePatioServico;
+        this.auditoriaComandoPatioServico = auditoriaComandoPatioServico;
     }
 
     @GetMapping("/work-queues")
@@ -46,31 +51,48 @@ public class WorkQueuePatioControlador {
     }
 
     @PatchMapping("/work-queues/{id}/ativar")
-    public WorkQueuePatioRespostaDto ativar(@PathVariable Long id) {
-        return workQueuePatioServico.ativar(id);
+    public WorkQueuePatioRespostaDto ativar(@PathVariable Long id,
+                                             @Valid @RequestBody ComandoMotivadoDto comando) {
+        WorkQueuePatioRespostaDto resposta = workQueuePatioServico.ativar(id);
+        auditoriaComandoPatioServico.registrar(id, null, "WORK_QUEUE_ATIVADA_COM_MOTIVO", comando,
+                "Work queue ativada.");
+        return resposta;
     }
 
     @PatchMapping("/work-queues/{id}/desativar")
-    public WorkQueuePatioRespostaDto desativar(@PathVariable Long id) {
-        return workQueuePatioServico.desativar(id);
+    public WorkQueuePatioRespostaDto desativar(@PathVariable Long id,
+                                                @Valid @RequestBody ComandoMotivadoDto comando) {
+        WorkQueuePatioRespostaDto resposta = workQueuePatioServico.desativar(id);
+        auditoriaComandoPatioServico.registrar(id, null, "WORK_QUEUE_DESATIVADA_COM_MOTIVO", comando,
+                "Work queue desativada.");
+        return resposta;
     }
 
     @PatchMapping("/work-queues/{id}/pow")
     public WorkQueuePatioRespostaDto atualizarPow(@PathVariable Long id,
-                                                    @RequestBody AtualizacaoWorkQueuePowDto dto) {
-        return workQueuePatioServico.atualizarPow(id, dto);
+                                                    @Valid @RequestBody AtualizacaoWorkQueuePowDto dto) {
+        WorkQueuePatioRespostaDto resposta = workQueuePatioServico.atualizarPow(id, dto);
+        auditoriaComandoPatioServico.registrar(id, null, "POW_POOL_ATUALIZADO_COM_MOTIVO", dto,
+                "POW e pool operacional atualizados.");
+        return resposta;
     }
 
     @PatchMapping("/work-queues/{id}/equipamento")
     public WorkQueuePatioRespostaDto atualizarEquipamento(@PathVariable Long id,
-                                                            @RequestBody AtualizacaoWorkQueueEquipamentoDto dto) {
-        return workQueuePatioServico.atualizarEquipamento(id, dto);
+                                                            @Valid @RequestBody AtualizacaoWorkQueueEquipamentoDto dto) {
+        WorkQueuePatioRespostaDto resposta = workQueuePatioServico.atualizarEquipamento(id, dto);
+        auditoriaComandoPatioServico.registrar(id, null, "EQUIPAMENTO_ATUALIZADO_COM_MOTIVO", dto,
+                "Equipamento da work queue atualizado.");
+        return resposta;
     }
 
     @PatchMapping("/work-queues/{id}/ordens")
     public WorkQueuePatioRespostaDto atualizarOrdens(@PathVariable Long id,
-                                                      @RequestBody AtualizacaoWorkQueueOrdensDto dto) {
-        return workQueuePatioServico.atualizarOrdens(id, dto == null ? List.of() : dto.getOrdemIds());
+                                                      @Valid @RequestBody AtualizacaoWorkQueueOrdensDto dto) {
+        WorkQueuePatioRespostaDto resposta = workQueuePatioServico.atualizarOrdens(id, dto.getOrdemIds());
+        auditoriaComandoPatioServico.registrar(id, null, "JOB_LIST_ATUALIZADA_COM_MOTIVO", dto,
+                "Lista de work instructions atualizada.");
+        return resposta;
     }
 
     @GetMapping("/work-queues/{id}/job-list")
@@ -85,12 +107,20 @@ public class WorkQueuePatioControlador {
     }
 
     @PostMapping("/work-instructions/{id}/reset")
-    public OrdemTrabalhoPatioRespostaDto resetarInstrucao(@PathVariable Long id) {
-        return workQueuePatioServico.resetarInstrucao(id);
+    public OrdemTrabalhoPatioRespostaDto resetarInstrucao(@PathVariable Long id,
+                                                           @Valid @RequestBody ComandoMotivadoDto comando) {
+        OrdemTrabalhoPatioRespostaDto resposta = workQueuePatioServico.resetarInstrucao(id);
+        auditoriaComandoPatioServico.registrar(null, id, "WORK_INSTRUCTION_RESETADA_COM_MOTIVO", comando,
+                "Work instruction resetada.");
+        return resposta;
     }
 
     @PostMapping("/work-instructions/{id}/cancelar")
-    public OrdemTrabalhoPatioRespostaDto cancelarInstrucao(@PathVariable Long id) {
-        return workQueuePatioServico.cancelarInstrucao(id);
+    public OrdemTrabalhoPatioRespostaDto cancelarInstrucao(@PathVariable Long id,
+                                                            @Valid @RequestBody ComandoMotivadoDto comando) {
+        OrdemTrabalhoPatioRespostaDto resposta = workQueuePatioServico.cancelarInstrucao(id);
+        auditoriaComandoPatioServico.registrar(null, id, "WORK_INSTRUCTION_CANCELADA_COM_MOTIVO", comando,
+                "Work instruction cancelada.");
+        return resposta;
     }
 }

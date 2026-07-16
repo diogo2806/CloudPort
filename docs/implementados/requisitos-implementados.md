@@ -46,6 +46,7 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 9. Enviar JWT, usuario autenticado, origem da acao e `X-Correlation-Id` nas chamadas operacionais.
 10. Exibir `codigo`, `mensagem`, `detalhes` e `correlationId` quando retornados pelo backend.
 11. Executar as consultas do snapshot em paralelo, aplicar o resultado de forma atomica e impedir atualizacoes sobrepostas.
+12. Solicitar motivo no frontend antes de alteracoes de fase, prioridade, suspensao, retomada, reset, cancelamento e alteracoes administrativas de work queue.
 
 ## Work queues implementadas
 
@@ -62,6 +63,8 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 11. Padronizar a resposta com `workQueueId`, `totalOrdensDespachadas`, `totalOrdensIgnoradas`, `ordens` e `mensagem`.
 12. Persistir auditoria de criacao, ativacao, desativacao, POW/pool, equipamento, vinculo, dispatch, reset e cancelamento.
 13. Restringir operacoes a perfis autorizados e ao servico interno de navios.
+14. Exigir e auditar motivo em ativacao, desativacao, alteracao de POW/pool/equipamento/job list, reset e cancelamento.
+15. Exigir e auditar motivo em alteracao de status, prioridade, suspensao e retomada de ordens.
 
 ## Reserva contra mapa real implementada
 
@@ -83,6 +86,8 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 7. Restringir manutencao do cadastro canonico de navios a perfis administrativos/planejamento.
 8. Liberar os cabecalhos de correlacao necessarios no CORS do Control Room.
 9. Retornar `503 Service Unavailable` quando a consulta de work queues no Yard falhar, em vez de esconder a falha como lista vazia.
+10. Proteger `/api/public/v1/**` por cliente/aplicacao usando `X-CloudPort-Client-Id` e `X-CloudPort-Client-Secret`.
+11. Comparar o segredo do cliente externo em tempo constante e associar a role `INTEGRACAO_EXTERNA`.
 
 ## Scheduler operacional implementado
 
@@ -150,6 +155,9 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 42. Criar testes ArchUnit contra dependencias ciclicas, acesso direto a dominio/repository de outro modulo e cliente HTTP entre modulos incorporados.
 43. Validar os dois historicos Flyway sem pendencias e preservar compatibilidade de rollback por estrategia `expand and contract`.
 44. Documentar corte, coexistencia, criterios de aprovacao, rollback e bloqueios operacionais em `docs/operacao-corte-rollback-navio.md`.
+45. Incluir `cloudport-contracts` no reator Maven, no workflow e nas imagens Docker standalone e consolidada.
+46. Publicar um unico OpenAPI no runtime consolidado com seguranca JWT e credenciais de cliente externo.
+47. Garantir `operationId` unico no OpenAPI consolidado por customizer do runtime.
 
 ## Documentacao da migracao para monolito modular implementada
 
@@ -161,6 +169,30 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 6. Marcar `servico-gate` como deployment legado em transicao e remover referencias de documentacao inexistentes.
 7. Atualizar os requisitos pendentes com o roteiro de incorporacao de Yard, Gate, Rail, Autenticacao e Visibilidade.
 8. Criar runbook operacional de corte e rollback do primeiro runtime consolidado.
+
+## Contratos e integracoes implementados
+
+1. Criar `backend/cloudport-contracts` com paginacao, erro padronizado, comando motivado, envelope de evento versionado e enums externos.
+2. Padronizar respostas paginadas com `conteudo`, `pagina`, `tamanho`, `totalElementos`, `totalPaginas`, `primeira` e `ultima`.
+3. Separar `VisitaNavioResumoDTO` do DTO detalhado da visita.
+4. Separar `WorkQueuePatioResumoDTO` do DTO detalhado que contem a job list.
+5. Centralizar a conversao de `WorkQueuePatioYardDTO` em `ConversorWorkQueuePatioServico`.
+6. Implementar filtros no banco para fase, periodo, navio, codigo de visita, berco e linha operadora.
+7. Implementar selecao segura de campos e whitelist de ordenacao na API publica.
+8. Padronizar erros do modulo Navio Siderurgico com codigo, mensagem, detalhes, correlationId e timestamp.
+9. Gerar e propagar `X-Correlation-Id` em todas as requisicoes autenticadas do Control Room e APIs do modulo.
+10. Criar o comando `npm run generate:api-types` com `openapi-typescript` e manter snapshot dos tipos gerados.
+11. Criar envelope `EventoIntegracaoV1` com `eventId`, `eventType`, `eventVersion`, `occurredAt`, `correlationId`, `source` e `data`.
+12. Publicar eventos de visita por SSE, WebSocket/STOMP e evento interno Spring.
+13. Expor `GET /api/public/v1/events/stream` e `GET /visitas-navio/{id}/eventos/stream`.
+14. Expor WebSocket em `/ws/integrations` e topicos versionados em `/topic/v1`.
+15. Proteger a API publica por cadastro de cliente/aplicacao configurado em `CLOUDPORT_PUBLIC_API_CLIENTS`.
+16. Completar BAPLIE, COPRAR e COARRI com validacao de tipo, rejeicao e auditoria persistente.
+17. Implementar VERMAS, converter peso em quilogramas e atualizar o VGM dos containers do Bay Plan.
+18. Persistir status `RECEBIDO`, `PROCESSANDO`, `CONCLUIDO` e `REJEITADO` para cada processamento EDI.
+19. Expor consulta paginada e detalhamento da auditoria EDI.
+20. Permitir reprocessamento motivado de mensagens rejeitadas, com encadeamento da tentativa e limite de cinco execucoes.
+21. Retornar `X-EDI-Processing-Id` nos processamentos aceitos.
 
 ## Visibilidade operacional implementada
 
@@ -198,6 +230,20 @@ POST  /yard/patio/work-queues/{id}/dispatch
 POST  /yard/patio/work-instructions/{id}/reset
 POST  /yard/patio/work-instructions/{id}/cancelar
 GET   /visitas-navio/{id}/integracao-patio/work-queues
+GET   /api/public/v1/vessel-visits
+GET   /api/public/v1/vessel-visits/{id}
+GET   /api/public/v1/vessel-visits/{id}/work-queues
+GET   /api/public/v1/vessel-visits/{id}/work-queues/{workQueueId}
+GET   /api/public/v1/events/stream
+GET   /visitas-navio/{id}/eventos/stream
+POST  /api/edi/baplie/upload
+POST  /api/edi/baplie/texto
+POST  /api/edi/coprar
+POST  /api/edi/coarri
+POST  /api/edi/vermas
+GET   /api/edi/processamentos
+GET   /api/edi/processamentos/{id}
+POST  /api/edi/processamentos/{id}/reprocessar
 POST  /api/scheduler/gerar-plano
 GET   /api/v1/visibilidade/dashboard
 GET   /api/v1/visibilidade/navios
@@ -235,6 +281,7 @@ GET   /api/v1/visibilidade/conteiners/buscar
 20. Testes dos filtros de modo somente leitura dos deployments legados.
 21. Testes ArchUnit dos limites, dependencias e ausencia de ciclos dos modulos incorporados.
 22. Validacao Flyway dos dois schemas sem migracoes pendentes.
+23. Testes do parser VERMAS para quilogramas, toneladas e rejeicao de mensagem sem VGM.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -258,6 +305,8 @@ GET   /api/v1/visibilidade/conteiners/buscar
 18. Rotas unicas e metricas baseadas em eventos reais no servico de Visibilidade.
 19. Smoke automatizado da imagem unificada com autenticacao e conexao ao Yard.
 20. Paridade do primeiro corte, bloqueio de escrita legado, jobs sem duplicidade, testes arquiteturais e rollback Flyway documentado.
+21. Contratos paginados, protegidos, filtraveis e versionados da API publica de Navio.
+22. BAPLIE, COPRAR, COARRI e VERMAS com rejeicao, auditoria e reprocessamento motivado.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

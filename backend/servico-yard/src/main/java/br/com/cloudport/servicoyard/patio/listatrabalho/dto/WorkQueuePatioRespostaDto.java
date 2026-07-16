@@ -15,11 +15,14 @@ public class WorkQueuePatioRespostaDto {
     private Long visitaNavioId;
     private String berco;
     private Integer porao;
+    private Long planoGuindasteId;
+    private Long recursoCaisId;
     private String blocoZona;
     private Integer sequenciaInicial;
     private String pow;
     private String poolOperacional;
     private String equipamento;
+    private Long equipamentoPatioId;
     private String status;
     private Integer prioridadeOperacional;
     private int totalOrdens;
@@ -35,11 +38,14 @@ public class WorkQueuePatioRespostaDto {
         dto.setVisitaNavioId(fila.getVisitaNavioId());
         dto.setBerco(escapar(fila.getBerco()));
         dto.setPorao(fila.getPorao());
+        dto.setPlanoGuindasteId(fila.getPlanoGuindasteId());
+        dto.setRecursoCaisId(fila.getRecursoCaisId());
         dto.setBlocoZona(escapar(fila.getBlocoZona()));
         dto.setSequenciaInicial(fila.getSequenciaInicial() != null ? fila.getSequenciaInicial() : sequenciaInicial(ordens));
         dto.setPow(escapar(fila.getPow()));
         dto.setPoolOperacional(escapar(fila.getPoolOperacional()));
         dto.setEquipamento(escapar(fila.getEquipamento()));
+        dto.setEquipamentoPatioId(fila.getEquipamentoPatioId());
         dto.setStatus(fila.getStatus() == null ? null : fila.getStatus().name());
         dto.setPrioridadeOperacional(fila.getPrioridadeOperacional());
         dto.setTotalOrdens(ordens.size());
@@ -76,6 +82,10 @@ public class WorkQueuePatioRespostaDto {
     public void setBerco(String berco) { this.berco = berco; }
     public Integer getPorao() { return porao; }
     public void setPorao(Integer porao) { this.porao = porao; }
+    public Long getPlanoGuindasteId() { return planoGuindasteId; }
+    public void setPlanoGuindasteId(Long planoGuindasteId) { this.planoGuindasteId = planoGuindasteId; }
+    public Long getRecursoCaisId() { return recursoCaisId; }
+    public void setRecursoCaisId(Long recursoCaisId) { this.recursoCaisId = recursoCaisId; }
     public String getBlocoZona() { return blocoZona; }
     public void setBlocoZona(String blocoZona) { this.blocoZona = blocoZona; }
     public Integer getSequenciaInicial() { return sequenciaInicial; }
@@ -86,6 +96,8 @@ public class WorkQueuePatioRespostaDto {
     public void setPoolOperacional(String poolOperacional) { this.poolOperacional = poolOperacional; }
     public String getEquipamento() { return equipamento; }
     public void setEquipamento(String equipamento) { this.equipamento = equipamento; }
+    public Long getEquipamentoPatioId() { return equipamentoPatioId; }
+    public void setEquipamentoPatioId(Long equipamentoPatioId) { this.equipamentoPatioId = equipamentoPatioId; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public Integer getPrioridadeOperacional() { return prioridadeOperacional; }

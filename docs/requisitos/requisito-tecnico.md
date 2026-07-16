@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-16 após auditoria da branch main.
+Status: atualizado em 2026-07-16 após implementação do ASYNC20.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -33,22 +33,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/PlanoOtimizadoPatioServico.java` | `selecionarFila()` | Quando não encontra candidata com `blocoZona` compatível, retorna a primeira fila do equipamento e pode vincular a ordem a outro bloco. | Rejeitar o plano quando não houver fila compatível; não usar fallback para zona diferente. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/PlanoOtimizadoPatioServico.java` | `aplicar()` | `planoId` aparece somente nos detalhes do histórico e não diferencia primeira aplicação, repetição concluída ou execução em andamento. | Persistir identidade, visita, status e resultado na mesma transação das alterações do Yard, com unicidade por plano e visita. |
 
-## 3. Integrações e processamento assíncrono
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| ASYNC20 | Fazer todos os ingressos EDI usarem a recepção idempotente e o worker transacional. | HTTP e RabbitMQ registram a mesma identidade antes de confirmar; nenhum listener chama o processador diretamente ou converte falha em sucesso; worker, retentativa e quarentena respeitam os controles de execução do runtime. | 🟡 Em andamento |
-
-### ASYNC20 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/controlador/EdiIntegracaoControlador.java` | recepção BAPLIE, COPRAR, COARRI e VERMAS | Os endpoints HTTP persistem a recepção idempotente e retornam `202` com o identificador do processamento. | Preservar este fluxo como contrato único de entrada para o processamento assíncrono. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/mensagem/EdiMensagemListenerServico.java` | `receberCoprar()` e `receberCoarri()` | Os listeners RabbitMQ chamam `EdiProcessadorServico` diretamente e capturam exceções sem propagá-las, contornando idempotência, retentativa e quarentena e permitindo confirmação da mensagem com falha. | Registrar a recepção idempotente e deixar o worker executar o negócio; falha de recepção deve impedir a confirmação da mensagem. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiProcessamentoWorker.java` | `executar()` | O componente agendado não está condicionado a `cloudport.runtime.jobs-enabled`. | Condicionar a criação ou execução do worker ao controle de jobs do runtime para impedir processamento concorrente em coexistência e rollback. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiAuditoriaServico.java` e `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/repositorio/ProcessamentoEdiRepositorio.java` | chave idempotente, retentativa e quarentena | O fluxo auditado e transacional está implementado para HTTP, mas é ignorado pelos listeners RabbitMQ. | Reutilizar os mesmos contratos em todos os canais de entrada, sem manter caminho síncrono concorrente. |
-
-## 4. Interface e navegação operacional
+## 3. Interface e navegação operacional
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

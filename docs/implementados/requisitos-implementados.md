@@ -46,6 +46,10 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 9. Enviar JWT, usuario autenticado, origem da acao e `X-Correlation-Id` nas chamadas operacionais.
 10. Exibir `codigo`, `mensagem`, `detalhes` e `correlationId` quando retornados pelo backend.
 11. Executar as consultas do snapshot em paralelo, aplicar o resultado de forma atomica e impedir atualizacoes sobrepostas.
+12. Exibir por work queue o porao, plano de guindaste, recurso de cais e CHE real associado.
+13. Exibir painel de job list agrupado por equipamento de patio.
+14. Exibir drill-down da work instruction com fila, CHE, estados permitidos e auditoria operacional.
+15. Permitir suspender, retomar, bloquear, concluir e alterar prioridades com motivo informado pelo operador.
 
 ## Quay, berth e crane implementados
 
@@ -74,6 +78,13 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 11. Padronizar a resposta com `workQueueId`, `totalOrdensDespachadas`, `totalOrdensIgnoradas`, `ordens` e `mensagem`.
 12. Persistir auditoria de criacao, ativacao, desativacao, POW/pool, equipamento, vinculo, dispatch, reset e cancelamento.
 13. Restringir operacoes a perfis autorizados e ao servico interno de navios.
+14. Auditar suspensao, retomada, bloqueio e conclusao da work instruction com motivo, usuario, origem e `correlationId`.
+15. Associar a work queue a porao, plano de guindaste e recurso de cais.
+16. Associar a fila ao cadastro real de `EquipamentoPatio`, mantendo o identificador do CHE para exibicao.
+17. Separar `prioridadeBusca` da `prioridadeOperacional` e registrar auditoria independente para cada alteracao.
+18. Definir uma matriz oficial de transicoes e rejeitar mudancas de estado nao permitidas.
+19. Ordenar a job list por prioridade de fetch, prioridade operacional, sequencia e data de criacao nos contratos por equipamento.
+20. Expor job lists por equipamento e drill-down da work instruction com fila, CHE, estados permitidos e os ultimos 100 eventos de auditoria.
 
 ## Reserva contra mapa real implementada
 
@@ -204,11 +215,21 @@ PATCH /yard/patio/work-queues/{id}/ativar
 PATCH /yard/patio/work-queues/{id}/desativar
 PATCH /yard/patio/work-queues/{id}/pow
 PATCH /yard/patio/work-queues/{id}/equipamento
+PATCH /yard/patio/work-queues/{id}/recursos-operacionais
 PATCH /yard/patio/work-queues/{id}/ordens
 GET   /yard/patio/work-queues/{id}/job-list
 POST  /yard/patio/work-queues/{id}/dispatch
 POST  /yard/patio/work-instructions/{id}/reset
 POST  /yard/patio/work-instructions/{id}/cancelar
+POST  /yard/patio/work-instructions/{id}/suspender
+POST  /yard/patio/work-instructions/{id}/retomar
+POST  /yard/patio/work-instructions/{id}/bloquear
+POST  /yard/patio/work-instructions/{id}/concluir
+PATCH /yard/patio/work-instructions/{id}/prioridades
+GET   /yard/patio/work-instructions/{id}/drill-down
+GET   /yard/patio/work-instructions/matriz-estados
+GET   /yard/patio/equipamentos/job-lists?visitaNavioId={id}
+GET   /yard/patio/equipamentos/{id}/job-list?visitaNavioId={id}
 GET   /visitas-navio/{id}/integracao-patio/work-queues
 GET   /visitas-navio/{id}/quay-monitor
 POST  /visitas-navio/{id}/crane-plan
@@ -253,6 +274,8 @@ GET   /api/v1/visibilidade/conteiners/buscar
 23. Testes unitarios do crane plan, calculo de produtividade real, rejeicao de sobreposicao e registro de evento.
 24. Teste dos mapeamentos dos tres contratos de quay/berth/crane.
 25. Teste de contexto do monolito validando o novo controller, a migracao e o repositorio do plano de guindastes.
+26. Testes unitarios da matriz oficial, auditoria de suspensao, rejeicao de transicao invalida e separacao das prioridades da work instruction.
+27. Testes de contrato frontend para recursos operacionais, CHE real, prioridade de fetch, painel por equipamento e drill-down.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -277,6 +300,7 @@ GET   /api/v1/visibilidade/conteiners/buscar
 19. Smoke automatizado da imagem unificada com autenticacao e conexao ao Yard.
 20. Paridade do primeiro corte, bloqueio de escrita legado, jobs sem duplicidade, testes arquiteturais e rollback Flyway documentado.
 21. Contratos backend de quay monitor, crane plan e produtividade do cais com persistencia e metricas operacionais reais.
+22. Auditoria completa das transicoes operacionais, CHE real, prioridades separadas, matriz de estados e painel/drill-down por equipamento.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

@@ -40,6 +40,7 @@ public class VisitaNavioServico {
     private final ReservaPosicaoPatioNavioRepositorio reservaRepositorio;
     private final NavioSiderurgicoServico navioServico;
     private final EventoIntegracaoPublicador eventoPublicador;
+    private final EventoOperacionalStreamingServico streamingServico;
 
     public VisitaNavioServico(
             VisitaNavioRepositorio visitaRepositorio,
@@ -47,13 +48,15 @@ public class VisitaNavioServico {
             EventoVisitaNavioRepositorio eventoRepositorio,
             ReservaPosicaoPatioNavioRepositorio reservaRepositorio,
             NavioSiderurgicoServico navioServico,
-            EventoIntegracaoPublicador eventoPublicador) {
+            EventoIntegracaoPublicador eventoPublicador,
+            EventoOperacionalStreamingServico streamingServico) {
         this.visitaRepositorio = visitaRepositorio;
         this.itemRepositorio = itemRepositorio;
         this.eventoRepositorio = eventoRepositorio;
         this.reservaRepositorio = reservaRepositorio;
         this.navioServico = navioServico;
         this.eventoPublicador = eventoPublicador;
+        this.streamingServico = streamingServico;
     }
 
     @Transactional(readOnly = true)
@@ -228,6 +231,7 @@ public class VisitaNavioServico {
         evento.setDadosAntes(antes);
         evento.setDadosDepois(depois);
         EventoVisitaNavio salvo = eventoRepositorio.save(evento);
+        streamingServico.publicar(salvo);
         eventoPublicador.publicar(visita.getId(), EventoVisitaNavioDTO.de(salvo), correlationIdAtual());
     }
 

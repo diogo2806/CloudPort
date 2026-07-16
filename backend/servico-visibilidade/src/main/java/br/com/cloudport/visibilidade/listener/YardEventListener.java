@@ -1,8 +1,11 @@
 package br.com.cloudport.visibilidade.listener;
 
 import br.com.cloudport.visibilidade.config.RabbitMQConfig;
+import br.com.cloudport.visibilidade.dto.evento.EventoMovimentoPatioMensagem;
 import br.com.cloudport.visibilidade.service.CapacidadeYardService;
 import br.com.cloudport.visibilidade.service.MovimentoConteinerService;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,25 +30,30 @@ public class YardEventListener {
     @RabbitListener(queues = RabbitMQConfig.VISIBILIDADE_YARD_QUEUE)
     public void handleYardEvent(Map<String, Object> event) {
         String eventType = texto(event, "eventType");
-        if (!StringUtils.hasText(eventType)) {
-            LOGGER.warn("Evento de patio ignorado porque eventType nao foi informado.");
+
+        if ("yard.container.stored".equals(eventType)) {
+            processarArmazenagem(event);
+            return;
+        }
+        if ("yard.capacity_updated".equals(eventType)) {
+            processarCapacidade(event);
+            return;
+        }
+        if ("yard.movimento.registrado".equals(eventType)
+                || StringUtils.hasText(texto(event, "codigoConteiner"))) {
+            processarMovimentoOperacional(event);
             return;
         }
 
-        switch (eventType) {
-            case "yard.container.stored":
-                processarArmazenagem(event);
-                break;
-            case "yard.capacity_updated":
-                processarCapacidade(event);
-                break;
-            default:
-                LOGGER.debug("Evento de patio sem processador registrado. eventType={}", eventType);
+        if (!StringUtils.hasText(eventType)) {
+            LOGGER.warn("Evento de patio ignorado porque nao corresponde a um contrato conhecido.");
+        } else {
+            LOGGER.debug("Evento de patio sem processador registrado. eventType={}", eventType);
         }
     }
 
     private void processarArmazenagem(Map<String, Object> event) {
-        String containerId = texto(event, "containerId");
+        String containerId = primeiroTexto(event, "containerId", "codigoConteiner");
         if (!StringUtils.hasText(containerId)) {
             LOGGER.warn("Evento yard.container.stored ignorado porque containerId nao foi informado.");
             return;
@@ -60,6 +68,28 @@ public class YardEventListener {
                 containerId, zona, posicao, equipamento, responsavel);
         LOGGER.info("Armazenagem de conteiner registrada. containerId={} zona={} posicao={}",
                 containerId, zona, posicao);
+    }
+
+    private void processarMovimentoOperacional(Map<String, Object> event) {
+        EventoMovimentoPatioMensagem mensagem = new EventoMovimentoPatioMensagem();
+        mensagem.setCodigoConteiner(primeiroTexto(event, "codigoConteiner", "containerId"));
+        mensagem.setTipoMovimento(texto(event, "tipoMovimento"));
+        mensagem.setDescricao(texto(event, "descricao"));
+        mensagem.setDestino(texto(event, "destino"));
+        mensagem.setLinha(inteiro(event, "linha"));
+        mensagem.setColuna(inteiro(event, "coluna"));
+        mensagem.setCamadaOperacional(texto(event, "camadaOperacional"));
+        mensagem.setRegistradoEm(dataHora(event, "registradoEm"));
+
+        if (!StringUtils.hasText(mensagem.getCodigoConteiner())) {
+            LOGGER.warn("Evento yard.movimento.registrado ignorado porque codigoConteiner nao foi informado.");
+            return;
+        }
+
+        movimentoConteinerService.registrarMovimentoPatio(mensagem);
+        LOGGER.info("Movimento real de patio registrado. containerId={} tipo={} linha={} coluna={} camada={}",
+                mensagem.getCodigoConteiner(), mensagem.getTipoMovimento(), mensagem.getLinha(),
+                mensagem.getColuna(), mensagem.getCamadaOperacional());
     }
 
     private void processarCapacidade(Map<String, Object> event) {
@@ -80,6 +110,19 @@ public class YardEventListener {
 
         capacidadeYardService.atualizarOcupacao(zona, ocupacaoAtual);
         LOGGER.info("Ocupacao do patio atualizada. zona={} ocupacaoAtual={}", zona, ocupacaoAtual);
+    }
+
+    private LocalDateTime dataHora(Map<String, Object> event, String chave) {
+        String valor = texto(event, chave);
+        if (!StringUtils.hasText(valor)) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(valor);
+        } catch (DateTimeParseException ex) {
+            LOGGER.warn("Data invalida recebida no evento de patio. campo={} valor={}", chave, valor);
+            return null;
+        }
     }
 
     private Integer inteiro(Map<String, Object> event, String chave) {

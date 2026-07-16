@@ -166,9 +166,9 @@ test('valida e conclui plano de estiva por contratos POST distintos', async () =
   assert.ok(conclusionBody.correlationId);
 });
 
-test('rejeita identificadores e contratos inválidos antes de chamar a rede', async () => {
-  await assert.rejects(() => api.atualizarVisita(0, { navioId: 1, codigoVisita: 'VIS' }), /visitaId/);
-  await assert.rejects(() => api.atualizarItemVisita(1, 2, { codigoLote: 'LT' }), /tipoMovimento/);
-  await assert.rejects(() => api.concluirPlanoEstiva(1, -5), /planoId/);
+test('rejeita identificadores e contratos inválidos antes de chamar a rede', () => {
+  assert.throws(() => api.atualizarVisita(0, { navioId: 1, codigoVisita: 'VIS' }), /visitaId/);
+  assert.throws(() => api.atualizarItemVisita(1, 2, { codigoLote: 'LT' }), /tipoMovimento/);
+  assert.throws(() => api.concluirPlanoEstiva(1, -5), /planoId/);
   assert.equal(requests.length, 0);
 });

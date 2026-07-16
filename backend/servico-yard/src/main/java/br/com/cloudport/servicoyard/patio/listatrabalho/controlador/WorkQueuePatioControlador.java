@@ -8,6 +8,7 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRe
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.AuditoriaComandoPatioServico;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.EventoOperacaoPatioPublicador;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueueOperacaoServico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueuePatioServico;
 import java.util.List;
@@ -32,13 +33,16 @@ public class WorkQueuePatioControlador {
     private final WorkQueuePatioServico workQueuePatioServico;
     private final WorkQueueOperacaoServico workQueueOperacaoServico;
     private final AuditoriaComandoPatioServico auditoriaComandoPatioServico;
+    private final EventoOperacaoPatioPublicador eventoPublicador;
 
     public WorkQueuePatioControlador(WorkQueuePatioServico workQueuePatioServico,
                                       WorkQueueOperacaoServico workQueueOperacaoServico,
-                                      AuditoriaComandoPatioServico auditoriaComandoPatioServico) {
+                                      AuditoriaComandoPatioServico auditoriaComandoPatioServico,
+                                      EventoOperacaoPatioPublicador eventoPublicador) {
         this.workQueuePatioServico = workQueuePatioServico;
         this.workQueueOperacaoServico = workQueueOperacaoServico;
         this.auditoriaComandoPatioServico = auditoriaComandoPatioServico;
+        this.eventoPublicador = eventoPublicador;
     }
 
     @GetMapping("/work-queues")
@@ -50,7 +54,9 @@ public class WorkQueuePatioControlador {
     @PostMapping("/work-queues")
     @ResponseStatus(HttpStatus.CREATED)
     public WorkQueuePatioRespostaDto criar(@Valid @RequestBody WorkQueuePatioRequisicaoDto dto) {
-        return workQueuePatioServico.criar(dto);
+        WorkQueuePatioRespostaDto resposta = workQueuePatioServico.criar(dto);
+        eventoPublicador.publicarWorkQueue(resposta, "WORK_QUEUE_CRIADA", null);
+        return resposta;
     }
 
     @PatchMapping("/work-queues/{id}/ativar")
@@ -59,6 +65,7 @@ public class WorkQueuePatioControlador {
         WorkQueuePatioRespostaDto resposta = workQueuePatioServico.ativar(id);
         auditoriaComandoPatioServico.registrar(id, null, "WORK_QUEUE_ATIVADA_COM_MOTIVO", comando,
                 "Work queue ativada.");
+        eventoPublicador.publicarWorkQueue(resposta, "WORK_QUEUE_ATIVADA", comando.getCorrelationId());
         return resposta;
     }
 
@@ -68,20 +75,25 @@ public class WorkQueuePatioControlador {
         WorkQueuePatioRespostaDto resposta = workQueuePatioServico.desativar(id);
         auditoriaComandoPatioServico.registrar(id, null, "WORK_QUEUE_DESATIVADA_COM_MOTIVO", comando,
                 "Work queue desativada.");
+        eventoPublicador.publicarWorkQueue(resposta, "WORK_QUEUE_DESATIVADA", comando.getCorrelationId());
         return resposta;
     }
 
     @PatchMapping("/work-queues/{id}/pow")
     public WorkQueuePatioRespostaDto atualizarPow(@PathVariable Long id,
                                                    @Valid @RequestBody AtualizacaoWorkQueuePowDto dto) {
-        return workQueueOperacaoServico.atualizarPow(id, dto);
+        WorkQueuePatioRespostaDto resposta = workQueueOperacaoServico.atualizarPow(id, dto);
+        eventoPublicador.publicarWorkQueue(resposta, "WORK_QUEUE_COBERTURA_ATUALIZADA", dto.getCorrelationId());
+        return resposta;
     }
 
     @PatchMapping("/work-queues/{id}/equipamento")
     public WorkQueuePatioRespostaDto atualizarEquipamento(
             @PathVariable Long id,
             @Valid @RequestBody AtualizacaoWorkQueueEquipamentoDto dto) {
-        return workQueueOperacaoServico.atualizarEquipamento(id, dto);
+        WorkQueuePatioRespostaDto resposta = workQueueOperacaoServico.atualizarEquipamento(id, dto);
+        eventoPublicador.publicarWorkQueue(resposta, "WORK_QUEUE_EQUIPAMENTO_ATUALIZADO", dto.getCorrelationId());
+        return resposta;
     }
 
     @PatchMapping("/work-queues/{id}/ordens")
@@ -90,6 +102,7 @@ public class WorkQueuePatioControlador {
         WorkQueuePatioRespostaDto resposta = workQueuePatioServico.atualizarOrdens(id, dto.getOrdemIds());
         auditoriaComandoPatioServico.registrar(id, null, "JOB_LIST_ATUALIZADA_COM_MOTIVO", dto,
                 "Lista de work instructions atualizada.");
+        eventoPublicador.publicarWorkQueue(resposta, "WORK_QUEUE_JOB_LIST_ATUALIZADA", dto.getCorrelationId());
         return resposta;
     }
 

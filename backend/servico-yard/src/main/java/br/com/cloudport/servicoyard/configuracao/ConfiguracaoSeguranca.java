@@ -94,7 +94,6 @@ public class ConfiguracaoSeguranca {
                         String role = jwt.getClaimAsString("role");
                         return StringUtils.hasText(role) ? Collections.singletonList(role) : Collections.emptyList();
                     });
-
             return roles.stream()
                     .filter(StringUtils::hasText)
                     .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase(Locale.ROOT))
@@ -117,14 +116,10 @@ public class ConfiguracaoSeguranca {
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "X-Correlation-Id",
-                "Last-Event-ID",
-                InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY
-        ));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "X-Correlation-Id"));
+                "Authorization", "Content-Type", "Accept", "X-Correlation-Id", "X-Trace-Id", "traceparent",
+                "Last-Event-ID", InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY));
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization", "X-Correlation-Id", "X-Trace-Id", "traceparent"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

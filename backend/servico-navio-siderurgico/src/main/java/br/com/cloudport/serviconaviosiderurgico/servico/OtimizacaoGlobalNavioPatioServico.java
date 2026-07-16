@@ -25,7 +25,7 @@ public class OtimizacaoGlobalNavioPatioServico {
 
     private final VisitaNavioServico visitaServico;
     private final ItemOperacaoNavioRepositorio itemRepositorio;
-    private final IntegracaoNavioPatioServico integracaoServico;
+    private final ReservaPatioNavioServico reservaPatioServico;
     private final OrdemPatioYardCliente ordemPatioYardCliente;
     private final OtimizacaoYardCliente otimizacaoYardCliente;
     private final EventoOperacionalStreamingServico streamingServico;
@@ -33,14 +33,14 @@ public class OtimizacaoGlobalNavioPatioServico {
     public OtimizacaoGlobalNavioPatioServico(
             VisitaNavioServico visitaServico,
             ItemOperacaoNavioRepositorio itemRepositorio,
-            IntegracaoNavioPatioServico integracaoServico,
+            ReservaPatioNavioServico reservaPatioServico,
             OrdemPatioYardCliente ordemPatioYardCliente,
             OtimizacaoYardCliente otimizacaoYardCliente,
             EventoOperacionalStreamingServico streamingServico
     ) {
         this.visitaServico = visitaServico;
         this.itemRepositorio = itemRepositorio;
-        this.integracaoServico = integracaoServico;
+        this.reservaPatioServico = reservaPatioServico;
         this.ordemPatioYardCliente = ordemPatioYardCliente;
         this.otimizacaoYardCliente = otimizacaoYardCliente;
         this.streamingServico = streamingServico;
@@ -142,7 +142,7 @@ public class OtimizacaoGlobalNavioPatioServico {
 
     private Map<Long, ReservaPatioNavioDTO> reservasComPosicao(Long visitaId) {
         Map<Long, ReservaPatioNavioDTO> porItem = new LinkedHashMap<>();
-        integracaoServico.listarReservasPatio(visitaId).stream()
+        reservaPatioServico.listar(visitaId).stream()
                 .filter(reserva -> reserva.status() == StatusReservaPatioNavio.ATIVA
                         || reserva.status() == StatusReservaPatioNavio.CONSUMIDA)
                 .filter(reserva -> reserva.itemOperacaoNavioId() != null)

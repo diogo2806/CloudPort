@@ -15,3 +15,11 @@ CREATE INDEX IF NOT EXISTS idx_reserva_patio_navio_expiracao
     ON reserva_posicao_patio_navio (status, expira_em);
 CREATE INDEX IF NOT EXISTS idx_reserva_patio_navio_anterior
     ON reserva_posicao_patio_navio (reserva_anterior_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_reserva_patio_navio_item_ativa
+    ON reserva_posicao_patio_navio (item_operacao_navio_id)
+    WHERE status = 'ATIVA';
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_reserva_patio_navio_posicao_ativa
+    ON reserva_posicao_patio_navio (UPPER(posicao_patio_id))
+    WHERE status = 'ATIVA';

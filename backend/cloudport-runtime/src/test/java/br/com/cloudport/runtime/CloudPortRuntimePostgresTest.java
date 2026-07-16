@@ -2,6 +2,7 @@ package br.com.cloudport.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import br.com.cloudport.runtime.integracao.AutenticacaoLocalAdapter;
@@ -92,8 +93,7 @@ class CloudPortRuntimePostgresTest {
         }
         assertEquals(1, applicationContext.getBeansOfType(SecurityFilterChain.class).size());
         assertEquals(1, applicationContext.getBeansOfType(OpenAPI.class).size());
-        assertEquals("cacheManager", applicationContext.getBeanNamesForType(CacheManager.class)[0]);
-        assertTrue(cacheManager != null);
+        assertSame(applicationContext.getBean("cacheManager"), cacheManager);
     }
 
     @Test

@@ -16,6 +16,25 @@ O frontend incorporado recebe sua configuracao em tempo de execucao por `GET /as
 
 A conexao unica usa os schemas `cloudport_navio` e `cloudport_siderurgico`, mantendo historicos Flyway independentes. Defina as variaveis de banco, JWT, credencial interna e URL do Yard no ambiente antes de usar fora do desenvolvimento local.
 
+## Smoke automatizado
+
+Execute a partir da raiz do repositorio:
+
+```bash
+bash deploy/navio-monolito/smoke-test.sh
+```
+
+O teste cria um ambiente descartavel com PostgreSQL, runtime unificado e um mock autenticado do Yard. Ele valida:
+
+1. construcao e inicializacao da imagem com o frontend React incorporado;
+2. configuracao dinamica do Control Room na mesma origem;
+3. bloqueio `401` para acesso sem autenticacao;
+4. autenticacao JWT e persistencia nos dois modulos;
+5. cadastro canonico local, extensao siderurgica e criacao de visita;
+6. chamada real do runtime ao contrato de work queues do Yard com `X-CloudPort-Service-Key`.
+
+O script gera credenciais temporarias, exibe logs quando ocorre falha e remove containers, rede de projeto e volume ao terminar. O mock existe somente no overlay `docker-compose.smoke.yml` e nao deve ser usado como dependencia operacional.
+
 ## Comparacao com os deployments legados
 
 ```bash

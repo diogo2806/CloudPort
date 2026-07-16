@@ -1,0 +1,101 @@
+name: cloudport-runtime
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cloudport
+      POSTGRES_USER: cloudport
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - cloudport-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloudport -d cloudport"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [cloudport]
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: cloudport
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - cloudport-rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [cloudport]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - cloudport-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [cloudport]
+
+  cloudport-runtime:
+    build:
+      context: ../..
+      dockerfile: backend/cloudport-runtime/Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cloudport
+      SPRING_DATASOURCE_USERNAME: cloudport
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: cloudport
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      CLOUDPORT_SECURITY_JWT_SECRET: ${JWT_SECRET}
+      API_SECURITY_TOKEN_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      CLOUDPORT_SECURITY_INTERNAL_SERVICE_KEY: ${CLOUDPORT_INTERNAL_SERVICE_KEY}
+      CLOUDPORT_SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS}
+      CLOUDPORT_RUNTIME_WRITES_ENABLED: "true"
+      CLOUDPORT_RUNTIME_JOBS_ENABLED: "true"
+      CLOUDPORT_MODULO_AUTENTICACAO_INTEGRACAO: local
+      CLOUDPORT_MODULO_NAVIO_INTEGRACAO: local
+      CLOUDPORT_MODULO_YARD_INTEGRACAO: local
+      TOS_API_BASE_URL: ${TOS_API_BASE_URL}
+      DOCUMENT_STORAGE_BASE_PATH: /var/lib/cloudport/documents
+    volumes:
+      - cloudport-documents:/var/lib/cloudport/documents
+    ports:
+      - "${CLOUDPORT_PUBLIC_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks: [cloudport]
+
+volumes:
+  cloudport-postgres:
+  cloudport-rabbitmq:
+  cloudport-redis:
+  cloudport-documents:
+
+networks:
+  cloudport:
+    name: cloudport-runtime

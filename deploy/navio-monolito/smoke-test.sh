@@ -133,11 +133,15 @@ request_json() {
         curl -fsS -X "$method" \
             -H "Authorization: Bearer $TOKEN" \
             -H 'Content-Type: application/json' \
+            -H 'X-Correlation-Id: cloudport-smoke-flow' \
+            -H 'traceparent: 00-0123456789abcdef0123456789abcdef-0123456789abcdef-01' \
             --data "$body" \
             "$PUBLIC_URL$path"
     else
         curl -fsS -X "$method" \
             -H "Authorization: Bearer $TOKEN" \
+            -H 'X-Correlation-Id: cloudport-smoke-flow' \
+            -H 'traceparent: 00-0123456789abcdef0123456789abcdef-0123456789abcdef-01' \
             "$PUBLIC_URL$path"
     fi
 }
@@ -157,5 +161,111 @@ visita_id="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<<
 stage "validando integracao autenticada com o Yard"
 work_queues_response="$(request_json GET "/visitas-navio/$visita_id/integracao-patio/work-queues")"
 python3 -c 'import json,sys; assert json.load(sys.stdin) == []' <<< "$work_queues_response"
+
+stage "criando item operacional de descarga"
+item_response="$(request_json POST "/visitas-navio/$visita_id/itens" '{"tipoMovimento":"DESCARGA","codigoLote":"LOTE-SMOKE-001","produto":"BOBINA DE ACO","tipoCarga":"BOBINA","quantidade":1,"pesoUnitarioToneladas":12.500,"pesoTotalToneladas":12.500,"poraoPlanejado":1,"destinoPatio":"BLOCO-SMOKE","sequenciaOperacional":1,"status":"PLANEJADO"}')"
+item_id="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<< "$item_response")"
+
+stage "reservando posicao no mapa real"
+reservas_response="$(request_json POST "/visitas-navio/$visita_id/integracao-patio/reservas" '{"tipoReserva":"DEFINITIVA","somentePendentes":true,"usuario":"cloudport-smoke"}')"
+python3 - "$item_id" "$reservas_response" <<'PY'
+import json
+import sys
+item_id = int(sys.argv[1])
+reservas = json.loads(sys.argv[2])
+assert len(reservas) == 1
+assert reservas[0]["itemOperacaoNavioId"] == item_id
+assert reservas[0]["posicaoPatioId"] == "101"
+assert reservas[0]["linha"] == 1
+assert reservas[0]["coluna"] == 2
+assert reservas[0]["camada"] == "3"
+assert reservas[0]["status"] == "ATIVA"
+PY
+
+stage "gerando ordem real no Yard"
+geracao_response="$(request_json POST "/visitas-navio/$visita_id/integracao-patio/gerar-ordens" '{"tipoMovimento":"DESCARGA","modo":"SOMENTE_PENDENTES","usuario":"cloudport-smoke","gerarReservasAutomaticas":false}')"
+python3 - "$geracao_response" <<'PY'
+import json
+import sys
+resultado = json.loads(sys.argv[1])
+assert resultado["totalOrdensCriadas"] == 1
+assert resultado["totalItensComErro"] == 0
+assert resultado["errosPorItem"] == []
+PY
+
+stage "validando work queue e job list por equipamento"
+work_queues_response="$(request_json GET "/visitas-navio/$visita_id/integracao-patio/work-queues")"
+python3 - "$item_id" "$work_queues_response" <<'PY'
+import json
+import sys
+item_id = int(sys.argv[1])
+filas = json.loads(sys.argv[2])
+assert len(filas) == 1
+assert filas[0]["equipamento"] == "RTG-SMOKE-01"
+assert filas[0]["status"] == "ATIVA"
+assert len(filas[0]["jobList"]) == 1
+assert filas[0]["jobList"][0]["itemOperacaoNavioId"] == item_id
+PY
+
+stage "sincronizando conclusao do Yard"
+resumo_response="$(request_json POST "/visitas-navio/$visita_id/integracao-patio/sincronizar-status")"
+python3 - "$resumo_response" <<'PY'
+import json
+import sys
+resumo = json.loads(sys.argv[1])
+assert resumo["totalItens"] == 1
+assert resumo["itensComOrdem"] == 1
+assert resumo["ordensConcluidas"] == 1
+assert resumo["statusPredominante"] == "SINCRONIZADO"
+PY
+
+stage "validando consumo da reserva e item operado"
+itens_response="$(request_json GET "/visitas-navio/$visita_id/itens")"
+reservas_response="$(request_json GET "/visitas-navio/$visita_id/integracao-patio/reservas")"
+python3 - "$itens_response" <<'PY'
+import json
+import sys
+itens = json.loads(sys.argv[1])
+assert len(itens) == 1
+assert itens[0]["status"] == "OPERADO"
+assert itens[0]["statusIntegracaoPatio"] == "SINCRONIZADO"
+assert itens[0]["posicaoPatioReal"] == "1-2-3"
+PY
+python3 - "$reservas_response" <<'PY'
+import json
+import sys
+reservas = json.loads(sys.argv[1])
+assert len(reservas) == 1
+assert reservas[0]["status"] == "CONSUMIDA"
+PY
+
+stage "validando relatorio operacional integrado"
+relatorio_file="$(mktemp)"
+relatorio_status="$(curl -sS -o "$relatorio_file" -w '%{http_code}' \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'X-Correlation-Id: cloudport-smoke-flow' \
+    -H 'traceparent: 00-0123456789abcdef0123456789abcdef-0123456789abcdef-01' \
+    "$PUBLIC_URL/visitas-navio/$visita_id/relatorio-operacional-integrado")"
+printf 'RELATORIO_HTTP_STATUS=%s\n' "$relatorio_status" >> "$STATUS_FILE"
+if [[ "$relatorio_status" != "200" ]]; then
+    echo "[smoke] resposta do relatório:" >&2
+    cat "$relatorio_file" >&2
+    exit 1
+fi
+python3 - "$visita_id" "$relatorio_file" <<'PY'
+import json
+import sys
+visita_id = int(sys.argv[1])
+with open(sys.argv[2], encoding="utf-8") as arquivo:
+    relatorio = json.load(arquivo)
+try:
+    assert relatorio["visita"]["id"] == visita_id
+    assert len(relatorio["itens"]) == 1
+    assert len(relatorio["reservasPatio"]) == 1
+    assert len(relatorio["ordensPatio"]) == 1
+except (AssertionError, KeyError, TypeError):
+    print(json.dumps(relatorio, ensure_ascii=False, indent=2), file=sys.stderr)
+    raise
+PY
 
 stage "smoke test concluido"

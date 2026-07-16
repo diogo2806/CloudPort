@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoyard.patio.modelo;
 
+import java.math.BigDecimal;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -26,6 +27,33 @@ public class PosicaoPatio {
 
     @Column(name = "camada_operacional", nullable = false, length = 40)
     private String camadaOperacional;
+
+    @Column(name = "bloco", length = 40)
+    private String bloco;
+
+    @Column(name = "bloqueada", nullable = false)
+    private boolean bloqueada;
+
+    @Column(name = "interditada", nullable = false)
+    private boolean interditada;
+
+    @Column(name = "area_permitida", nullable = false)
+    private boolean areaPermitida = true;
+
+    @Column(name = "tipos_carga_permitidos", length = 500)
+    private String tiposCargaPermitidos;
+
+    @Column(name = "peso_maximo_toneladas", precision = 12, scale = 3)
+    private BigDecimal pesoMaximoToneladas;
+
+    @Column(name = "altura_maxima_metros", precision = 8, scale = 3)
+    private BigDecimal alturaMaximaMetros;
+
+    @Column(name = "camada_maxima")
+    private Integer camadaMaxima;
+
+    @Column(name = "capacidade_pilha")
+    private Integer capacidadePilha;
 
     public PosicaoPatio() {
     }
@@ -67,5 +95,77 @@ public class PosicaoPatio {
 
     public void setCamadaOperacional(String camadaOperacional) {
         this.camadaOperacional = camadaOperacional;
+    }
+
+    public String getBloco() {
+        return bloco;
+    }
+
+    public void setBloco(String bloco) {
+        this.bloco = bloco;
+    }
+
+    public boolean isBloqueada() {
+        return bloqueada;
+    }
+
+    public void setBloqueada(boolean bloqueada) {
+        this.bloqueada = bloqueada;
+    }
+
+    public boolean isInterditada() {
+        return interditada;
+    }
+
+    public void setInterditada(boolean interditada) {
+        this.interditada = interditada;
+    }
+
+    public boolean isAreaPermitida() {
+        return areaPermitida;
+    }
+
+    public void setAreaPermitida(boolean areaPermitida) {
+        this.areaPermitida = areaPermitida;
+    }
+
+    public String getTiposCargaPermitidos() {
+        return tiposCargaPermitidos;
+    }
+
+    public void setTiposCargaPermitidos(String tiposCargaPermitidos) {
+        this.tiposCargaPermitidos = tiposCargaPermitidos;
+    }
+
+    public BigDecimal getPesoMaximoToneladas() {
+        return pesoMaximoToneladas;
+    }
+
+    public void setPesoMaximoToneladas(BigDecimal pesoMaximoToneladas) {
+        this.pesoMaximoToneladas = pesoMaximoToneladas;
+    }
+
+    public BigDecimal getAlturaMaximaMetros() {
+        return alturaMaximaMetros;
+    }
+
+    public void setAlturaMaximaMetros(BigDecimal alturaMaximaMetros) {
+        this.alturaMaximaMetros = alturaMaximaMetros;
+    }
+
+    public Integer getCamadaMaxima() {
+        return camadaMaxima;
+    }
+
+    public void setCamadaMaxima(Integer camadaMaxima) {
+        this.camadaMaxima = camadaMaxima;
+    }
+
+    public Integer getCapacidadePilha() {
+        return capacidadePilha;
+    }
+
+    public void setCapacidadePilha(Integer capacidadePilha) {
+        this.capacidadePilha = capacidadePilha;
     }
 }

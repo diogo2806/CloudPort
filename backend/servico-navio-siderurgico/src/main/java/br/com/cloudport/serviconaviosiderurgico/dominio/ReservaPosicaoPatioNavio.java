@@ -52,6 +52,12 @@ public class ReservaPosicaoPatioNavio {
     @Column(name = "motivo_cancelamento", length = 500)
     private String motivoCancelamento;
 
+    @Column(name = "expira_em")
+    private LocalDateTime expiraEm;
+
+    @Column(name = "reserva_anterior_id")
+    private Long reservaAnteriorId;
+
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
 
@@ -91,6 +97,10 @@ public class ReservaPosicaoPatioNavio {
     public void setStatus(StatusReservaPatioNavio status) { this.status = status; }
     public String getMotivoCancelamento() { return motivoCancelamento; }
     public void setMotivoCancelamento(String motivoCancelamento) { this.motivoCancelamento = motivoCancelamento; }
+    public LocalDateTime getExpiraEm() { return expiraEm; }
+    public void setExpiraEm(LocalDateTime expiraEm) { this.expiraEm = expiraEm; }
+    public Long getReservaAnteriorId() { return reservaAnteriorId; }
+    public void setReservaAnteriorId(Long reservaAnteriorId) { this.reservaAnteriorId = reservaAnteriorId; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
     public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
 }

@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import br.com.cloudport.serviconavio.configuracao.InternalServiceAuthenticationFilter;
+import br.com.cloudport.monolitonavio.seguranca.InternalServiceAuthenticationFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.cors.CorsConfiguration;

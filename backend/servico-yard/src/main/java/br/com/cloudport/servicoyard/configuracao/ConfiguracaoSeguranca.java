@@ -121,9 +121,16 @@ public class ConfiguracaoSeguranca {
                 "Content-Type",
                 "Accept",
                 "X-Correlation-Id",
+                "X-Trace-Id",
+                "traceparent",
+                "Last-Event-ID",
                 InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY
         ));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "X-Correlation-Id"));
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "X-Correlation-Id",
+                "X-Trace-Id",
+                "traceparent"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

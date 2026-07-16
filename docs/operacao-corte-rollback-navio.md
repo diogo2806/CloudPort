@@ -1,49 +1,72 @@
-# Operação de corte e rollback do runtime de Navio
+# Operação de corte e rollback do monólito modular CloudPort
 
-Este runbook cobre o primeiro corte do monólito modular, formado pelos módulos `servico-navio` e `servico-navio-siderurgico` no runtime `cloudport-monolito-navio`.
+Este runbook cobre o runtime `cloudport-monolito-navio`, que incorpora Navio, Navio Siderúrgico, Yard, Gate, Rail, Autenticação e Visibilidade. O nome do diretório é histórico e pode ser alterado somente depois que pipelines e rollback deixarem de depender dele.
 
 ## Invariantes do corte
 
-1. Somente um runtime pode aceitar comandos de escrita para Navio e Navio Siderúrgico.
-2. Somente uma instância executa cada job agendado, mesmo durante sobreposição temporária de deployments.
-3. O runtime consolidado usa `CadastroNavioPorta` local e não realiza HTTP entre os dois módulos incorporados.
-4. Os schemas `cloudport_navio` e `cloudport_siderurgico` continuam pertencendo aos respectivos módulos.
-5. Os históricos `flyway_schema_history` permanecem independentes em cada schema.
-6. Rollback troca o binário e o roteamento; não executa downgrade de banco.
+1. Somente um runtime aceita comandos de escrita para cada domínio.
+2. Somente um runtime registra jobs agendados.
+3. Somente um grupo de consumidores RabbitMQ processa cada fila operacional.
+4. Módulos incorporados usam portas ou eventos internos, sem HTTP entre si.
+5. Cada schema e seu `flyway_schema_history` permanecem sob ownership do módulo correspondente.
+6. Rollback normal troca binário e roteamento; não executa downgrade de banco.
+7. Deployments, imagens e credenciais legadas permanecem disponíveis até a paridade e o retorno serem comprovados.
 
-## Controles implementados
+## Controles de execução única
 
-- `CLOUDPORT_WRITES_ENABLED=false` coloca os deployments legados em modo somente leitura e responde `503` para `POST`, `PUT`, `PATCH` e `DELETE`.
-- `CLOUDPORT_JOBS_ENABLED=false` remove os jobs siderúrgicos do contexto legado.
-- Os jobs de reconciliação e sincronização usam `pg_try_advisory_xact_lock`, evitando execução simultânea em instâncias que compartilham o mesmo PostgreSQL.
-- O Compose mantém o runtime monolítico como escritor e executor e inicia os serviços legados com escrita e jobs desativados por padrão.
-- Testes ArchUnit impedem ciclos, acesso direto ao domínio/repository de outro módulo e uso do cliente HTTP legado pelo runtime monolítico.
+| Variável | Monólito ativo | Legado em coexistência | Efeito |
+| --- | --- | --- | --- |
+| `CLOUDPORT_WRITES_ENABLED` | `true` | `false` | bloqueia `POST`, `PUT`, `PATCH` e `DELETE` com `503` |
+| `CLOUDPORT_JOBS_ENABLED` | `true` | `false` | habilita ou remove o agendamento do contexto |
+| `CLOUDPORT_CONSUMERS_ENABLED` | `true` | `false` | inicia ou impede containers RabbitMQ |
+
+Jobs críticos usam também `pg_try_advisory_xact_lock`. Consumidores e comandos sujeitos a retry devem possuir idempotência persistente.
+
+## Schemas e históricos
+
+| Módulo | Schema |
+| --- | --- |
+| Navio | `cloudport_navio` |
+| Navio Siderúrgico | `cloudport_siderurgico` |
+| Yard | `cloudport_yard` |
+| Gate | `cloudport_gate` |
+| Rail | `cloudport_rail` |
+| Autenticação | `cloudport_autenticacao` |
+| Visibilidade | `cloudport_visibilidade` |
+
+Cada schema mantém sua própria tabela `flyway_schema_history`. Não alterar checksum, versão ou conteúdo de migração já aplicada.
 
 ## Validações antes do corte
 
-1. Fazer backup consistente do banco e registrar o ponto de restauração.
-2. Confirmar que a branch de implantação contém todas as migrações já aplicadas no ambiente.
-3. Executar o build completo e o smoke do Compose.
-4. Confirmar que os dois Flyway executam `validate` sem migrações pendentes.
-5. Comparar as quantidades essenciais dos dois schemas antes e depois de iniciar o runtime consolidado.
-6. Confirmar que o proxy possui uma única regra de destino para cada rota.
-7. Confirmar que o Yard está acessível e aceita `X-CloudPort-Service-Key`.
+1. Sincronizar a branch de implantação com `main` e confirmar ausência de conflitos.
+2. Executar o build do reator e os testes do runtime.
+3. Validar o Docker Compose e construir a imagem completa.
+4. Executar `Flyway.validate()` nos sete schemas e confirmar ausência de migração pendente ou falha.
+5. Confirmar ownership e contagens essenciais de cada domínio.
+6. Criar backup consistente e registrar o ponto de restauração.
+7. Confirmar que o proxy direciona cada rota para exatamente um backend.
+8. Confirmar que nenhuma configuração de produção aponta módulos incorporados para adaptadores HTTP internos.
+9. Validar login, autorização, CORS, OpenAPI, erros, correlationId, métricas e health checks.
+10. Validar produção e consumo de eventos externos sem duplicação.
+11. Executar smoke dos fluxos de Navio, Yard, Gate, Rail, Autenticação e Visibilidade.
+12. Confirmar em `/actuator/prometheus` as métricas operacionais e do runtime, sem labels de alta cardinalidade.
+13. Registrar responsável, janela, critérios de aborto e procedimento de comunicação.
 
-Consultas mínimas de conferência:
+Consultas mínimas:
 
 ```sql
 SELECT COUNT(*) FROM cloudport_navio.flyway_schema_history WHERE success;
 SELECT COUNT(*) FROM cloudport_siderurgico.flyway_schema_history WHERE success;
-SELECT COUNT(*) FROM cloudport_navio.navio;
-SELECT COUNT(*) FROM cloudport_siderurgico.navio_siderurgico;
-SELECT COUNT(*) FROM cloudport_siderurgico.visita_navio;
+SELECT COUNT(*) FROM cloudport_yard.flyway_schema_history WHERE success;
+SELECT COUNT(*) FROM cloudport_gate.flyway_schema_history WHERE success;
+SELECT COUNT(*) FROM cloudport_rail.flyway_schema_history WHERE success;
+SELECT COUNT(*) FROM cloudport_autenticacao.flyway_schema_history WHERE success;
+SELECT COUNT(*) FROM cloudport_visibilidade.flyway_schema_history WHERE success;
 ```
 
-Os nomes das tabelas operacionais devem ser ajustados somente quando uma migração do módulo proprietário os alterar.
+As consultas operacionais adicionais devem usar somente tabelas do módulo proprietário e ser registradas no plano da implantação.
 
-## Corte com coexistência controlada
-
-O Compose permite iniciar os dois perfis para observação, mantendo o legado sem escrita e sem jobs:
+## Início do monólito com coexistência controlada
 
 ```bash
 docker compose \
@@ -53,83 +76,124 @@ docker compose \
   up -d --build
 ```
 
-Durante essa janela:
+Durante a coexistência:
 
-- o proxy aponta rotas funcionais somente para `cloudport-monolito-navio`;
-- os serviços legados podem atender apenas consultas;
+- o proxy aponta as rotas incorporadas somente para `cloudport-monolito`;
+- o monólito usa integrações locais para Navio, Yard e Autenticação;
+- legados atendem no máximo leituras de comparação;
+- escrita, jobs e consumidores legados permanecem desativados;
 - tentativas de escrita no legado retornam `503`;
-- jobs legados não são registrados;
-- o bloqueio PostgreSQL protege contra uma configuração incorreta que habilite dois schedulers.
+- filas não podem possuir dois grupos consumidores ativos;
+- o mesmo `correlationId` e `traceId` deve aparecer nos logs da mesma operação nas integrações externas;
+- nenhuma credencial ou imagem é apagada.
 
-Depois do smoke funcional, parar os containers legados sem remover o volume PostgreSQL:
+## Smoke obrigatório
 
-```bash
-docker compose \
-  -f deploy/navio-monolito/docker-compose.yml \
-  --profile legado \
-  stop servico-navio servico-navio-siderurgico
-```
+Validar, no mínimo:
+
+1. `health` e `prometheus` do runtime;
+2. frontend e `assets/configuracao.json`;
+3. login e emissão de JWT pelo módulo incorporado de Autenticação;
+4. rejeição de chamada sem token;
+5. roles e restrições administrativas;
+6. cadastro canônico e projeção siderúrgica por porta local;
+7. consulta de mapa, reserva, ordem, work queue e work instruction do Yard;
+8. consulta Gate → Yard por porta local;
+9. consulta Gate → Autenticação por porta local;
+10. visita de trem e integração Rail/Yard;
+11. projeções e alertas de Visibilidade;
+12. `X-Correlation-Id` na resposta e nos logs;
+13. erro padronizado;
+14. OpenAPI sem rota ou schema duplicado;
+15. persistência no schema proprietário;
+16. um único job e um único consumidor por chave ou fila;
+17. nenhuma escrita recebida pelos legados.
 
 ## Critérios de aprovação
 
-- frontend e configuração dinâmica disponíveis;
-- rotas de Navio, Navio Siderúrgico e Visita carregadas no mesmo contexto;
-- chamadas sem autenticação rejeitadas;
-- JWT e perfis operacionais preservados;
-- cadastro canônico acessado pela porta local;
-- criação e consulta persistidas nos schemas existentes;
-- integração com Yard autenticada;
-- nenhum job duplicado nos logs;
-- nenhuma escrita recebida pelos deployments legados;
-- Flyway sem erro de checksum, versão ou migração pendente.
+O corte é aprovado quando:
+
+- todos os smokes passam;
+- não há erro de Flyway, JPA, rota duplicada ou bean duplicado;
+- nenhuma chamada HTTP interna aparece nos logs do runtime;
+- latência, erros e consumo de recursos estão dentro da referência acordada;
+- eventos não apresentam duplicação não tratada;
+- contagens e vínculos de dados permanecem consistentes;
+- a operação confirma paridade dos fluxos críticos;
+- o procedimento de rollback foi ensaiado no ambiente de aceitação.
 
 ## Rollback da aplicação
 
-O rollback não desfaz migrações. Ele reativa o binário legado sobre os mesmos schemas, desde que a versão anterior seja compatível com as migrações já aplicadas.
+O retorno não desfaz migrações. Ele reativa binários legados compatíveis com as estruturas já aplicadas.
 
-1. Retirar o runtime monolítico do proxy.
-2. Parar o runtime monolítico antes de reativar qualquer escritor legado.
-3. Iniciar o perfil legado com escrita e jobs explicitamente habilitados:
+1. Bloquear novas entradas no proxy ou colocar a aplicação em manutenção.
+2. Retirar o monólito do proxy.
+3. Parar o monólito antes de ativar qualquer escritor ou consumidor legado.
+4. Confirmar que não existem transações, jobs ou mensagens em processamento.
+5. Iniciar os deployments legados necessários com escrita, jobs e consumidores explicitamente habilitados.
+6. Executar health checks e leituras controladas.
+7. Direcionar as rotas para os deployments legados.
+8. Executar uma escrita controlada em cada domínio afetado.
+9. Validar auditoria, dados, filas e integrações externas.
+10. Manter o monólito parado até a causa ser corrigida.
+
+Para o perfil legado já presente no Compose:
 
 ```bash
 LEGACY_NAVIO_WRITES_ENABLED=true \
 LEGACY_NAVIO_JOBS_ENABLED=true \
+LEGACY_NAVIO_CONSUMERS_ENABLED=true \
 docker compose \
   -f deploy/navio-monolito/docker-compose.yml \
   --profile legado \
   up -d --build servico-navio servico-navio-siderurgico
 ```
 
-4. Executar health checks e consultas de leitura.
-5. Direcionar o proxy para os endpoints legados.
-6. Executar uma escrita controlada e verificar auditoria, dados e integração com Yard.
-7. Manter o monólito parado até a causa do rollback ser corrigida.
-
-Nunca habilitar escrita ou jobs legados enquanto o monólito ainda estiver recebendo comandos.
+Os demais deployments legados devem ser reativados pelos manifests atuais de cada ambiente. Nunca habilitar escritor, scheduler ou consumidor legado enquanto o monólito estiver ativo.
 
 ## Compatibilidade Flyway
 
-As migrações do período de coexistência devem seguir `expand and contract`:
+Durante a janela de retorno, aplicar `expand and contract`:
 
-1. adicionar estruturas antes de remover ou renomear estruturas existentes;
-2. manter colunas antigas enquanto o binário legado puder ser reativado;
-3. preencher dados novos de forma idempotente;
-4. evitar `DROP`, redução de tamanho, alteração incompatível de tipo e `NOT NULL` sem valor padrão no mesmo corte;
-5. aplicar mudanças destrutivas somente após o fim formal da janela de rollback;
-6. nunca alterar o conteúdo de uma migração já aplicada;
-7. corrigir uma migração publicada somente por uma nova versão;
-8. validar os dois históricos antes de promover a imagem;
-9. preservar os locais `cloudport/migrations/navio` e `cloudport/migrations/navio-siderurgico` nos artefatos Maven;
-10. restaurar backup somente como recuperação de desastre, não como rollback normal de aplicação.
+1. adicionar antes de remover;
+2. manter colunas e contratos antigos enquanto o binário anterior puder voltar;
+3. fazer backfill idempotente e observável;
+4. evitar `DROP`, redução de tamanho e alteração incompatível de tipo;
+5. evitar `NOT NULL` sem valor padrão e sem preenchimento prévio;
+6. não renomear diretamente tabela, coluna, índice ou constraint usada pelo legado;
+7. nunca editar migração aplicada;
+8. corrigir por nova versão;
+9. validar os sete históricos antes da promoção;
+10. preservar os locais `cloudport/migrations/<modulo>` nos artefatos;
+11. encerrar formalmente a janela de rollback antes da fase destrutiva;
+12. usar restauração de backup somente para recuperação de desastre.
 
-## Condições que bloqueiam o corte
+## Retirada de deployments e credenciais legadas
 
-- checksum Flyway divergente;
-- migração pendente ou falha em qualquer schema;
-- branch desatualizada ou conflito com `main`;
-- rota enviada simultaneamente ao monólito e ao legado;
-- legado aceitando escrita durante a coexistência;
-- dois jobs processando a mesma chave;
-- diferença não explicada nas contagens ou vínculos de dados;
-- falha de autenticação, autorização ou integração com Yard;
-- smoke ou testes de arquitetura falhando.
+A remoção ocorre em mudança separada do corte e exige:
+
+- período de observação concluído;
+- zero tráfego nos endpoints legados;
+- zero uso de `X-CloudPort-Service-Key` entre módulos incorporados;
+- zero consumidores e jobs legados ativos;
+- rollback ensaiado e documentado;
+- backups e imagens da versão anterior retidos pelo prazo definido;
+- aprovação de operação e segurança;
+- inventário de secrets, DNS, portas, pipelines e dashboards atualizado.
+
+Somente depois podem ser removidos containers, manifests, imagens, credenciais, variáveis e clientes HTTP legados.
+
+## Condições que bloqueiam ou abortam o corte
+
+- conflito com `main`;
+- build, teste, smoke ou ArchUnit falhando;
+- checksum divergente ou migração pendente;
+- rota simultaneamente apontada para monólito e legado;
+- mais de um escritor, scheduler ou grupo consumidor ativo;
+- adaptador HTTP interno registrado no runtime;
+- diferença de dados sem explicação;
+- falha de autenticação, autorização, CORS ou token;
+- OpenAPI com operação duplicada;
+- ausência de correlação, tracing ou métricas operacionais;
+- aumento não aceito de erros, filas, latência ou consumo;
+- incapacidade de executar o rollback ensaiado.

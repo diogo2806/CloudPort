@@ -9,24 +9,27 @@ A decisão arquitetural e as regras de migração estão em [`../../docs/arquite
 O módulo Gate concentra as integrações e operações de gate do CloudPort. Atualmente ele:
 
 - expõe APIs REST de gate;
-- troca mensagens com integrações assíncronas por RabbitMQ;
+- processa a validação básica de imagens OCR localmente, no mesmo processo;
 - integra com TOS e storage de documentos;
 - valida autenticação e autorização do modelo legado;
 - persiste seus dados no PostgreSQL configurado para o deployment.
+
+Não existe dependência operacional de RabbitMQ no Gate. Mensageria não deve ser adicionada para fluxos internos ou para integrações sem consumidor real.
+
+A integração de barcode com DMT permanece desabilitada. Enquanto não existir cliente DMT implementado e contratado, `GATE_BARCODE_HABILITADO` deve permanecer `false`; a aplicação impede a ativação de um fluxo que não possa entregar a solicitação.
 
 Após a incorporação ao runtime monolítico, os contratos REST externos devem ser preservados, enquanto chamadas para outros módulos CloudPort devem migrar para portas locais.
 
 ## Pré-requisitos do deployment legado
 
-- JDK 11 ou superior;
+- JDK 17;
 - Maven 3.8+;
 - PostgreSQL;
-- RabbitMQ para os fluxos que utilizam mensageria;
-- variáveis de ambiente das integrações externas.
+- variáveis de ambiente das integrações externas realmente utilizadas.
 
 ## Configuração
 
-Configure as variáveis `GATE_*`, `TOS_API_*` e `DOCUMENT_STORAGE_*` no ambiente de execução. Garanta que o banco indicado em `GATE_DB_URL` exista e esteja acessível.
+Configure as variáveis `GATE_*`, `TOS_API_*` e `DOCUMENT_STORAGE_*` no ambiente de execução. Garanta que o banco configurado exista e esteja acessível.
 
 Exemplo de criação de banco para desenvolvimento:
 
@@ -55,7 +58,8 @@ mvn test
 
 - manter controllers e contratos REST estáveis;
 - mover regras de comunicação com Yard, autenticação e demais domínios para portas internas;
-- manter TOS, OCR, documentos e mensageria como adaptadores externos;
+- manter somente integrações externas que possuam consumidor, contrato e necessidade operacional comprovados;
+- executar processamento local diretamente quando produtor e consumidor pertencem ao mesmo módulo;
 - não compartilhar entidades JPA ou repositories com outro módulo;
 - desativar jobs e consumidores duplicados antes do corte de ambiente;
 - remover este deployment somente após validar paridade, segurança, dados, observabilidade e rollback.

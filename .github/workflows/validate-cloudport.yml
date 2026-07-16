@@ -42,13 +42,6 @@ jobs:
               mvn -B -Pmodulo-monolito
               -pl :cloudport-monolito-navio
               test package
-          - module: backend/cloudport-modules
-            command: >-
-              mvn -q -B -Dspring-boot.repackage.skip=true
-              -pl :cloudport-runtime -am
-              -DskipTests install &&
-              mvn -q -B -pl :cloudport-runtime
-              test package
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -59,6 +52,39 @@ jobs:
       - name: Compilar e validar
         working-directory: ${{ matrix.module }}
         run: ${{ matrix.command }}
+
+  runtime-geral:
+    name: Runtime geral CloudPort
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Compilar e testar runtime geral
+        working-directory: backend/cloudport-modules
+        shell: bash
+        run: |
+          set +e
+          {
+            mvn -B -Dspring-boot.repackage.skip=true \
+              -pl :cloudport-runtime -am \
+              -DskipTests install &&
+            mvn -B -pl :cloudport-runtime test package
+          } > /tmp/cloudport-runtime.log 2>&1
+          status=$?
+          tail -n 300 /tmp/cloudport-runtime.log > /tmp/cloudport-runtime-diagnostico.log
+          cat /tmp/cloudport-runtime-diagnostico.log
+          exit $status
+      - name: Publicar diagnóstico do runtime geral
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-geral-diagnostico
+          path: /tmp/cloudport-runtime-diagnostico.log
+          if-no-files-found: error
 
   frontend:
     name: Frontend ${{ matrix.name }}

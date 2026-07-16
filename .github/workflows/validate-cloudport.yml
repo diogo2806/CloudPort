@@ -105,5 +105,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: smoke-navio-diagnostico
-          path: /tmp/cloudport-smoke-status.txt
+          path: /tmp/cloudport-smoke-*
           if-no-files-found: error

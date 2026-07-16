@@ -30,17 +30,20 @@ public class VisitaNavioServico {
     private final ItemOperacaoNavioRepositorio itemRepositorio;
     private final EventoVisitaNavioRepositorio eventoRepositorio;
     private final NavioSiderurgicoServico navioServico;
+    private final EventoOperacionalStreamingServico streamingServico;
 
     public VisitaNavioServico(
             VisitaNavioRepositorio visitaRepositorio,
             ItemOperacaoNavioRepositorio itemRepositorio,
             EventoVisitaNavioRepositorio eventoRepositorio,
-            NavioSiderurgicoServico navioServico
+            NavioSiderurgicoServico navioServico,
+            EventoOperacionalStreamingServico streamingServico
     ) {
         this.visitaRepositorio = visitaRepositorio;
         this.itemRepositorio = itemRepositorio;
         this.eventoRepositorio = eventoRepositorio;
         this.navioServico = navioServico;
+        this.streamingServico = streamingServico;
     }
 
     @Transactional(readOnly = true)
@@ -184,7 +187,8 @@ public class VisitaNavioServico {
         evento.setUsuario(usuario == null || usuario.isBlank() ? "sistema" : usuario.trim());
         evento.setDadosAntes(antes);
         evento.setDadosDepois(depois);
-        eventoRepositorio.save(evento);
+        EventoVisitaNavio salvo = eventoRepositorio.save(evento);
+        streamingServico.publicar(salvo);
     }
 
     private void preencher(VisitaNavio visita, VisitaNavioDTO dto, String codigo) {

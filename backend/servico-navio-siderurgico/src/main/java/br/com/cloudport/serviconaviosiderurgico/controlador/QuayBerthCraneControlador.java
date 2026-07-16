@@ -28,6 +28,11 @@ public class QuayBerthCraneControlador {
         return quayBerthCraneServico.obterQuayMonitor(id);
     }
 
+    @GetMapping("/crane-plan")
+    public PlanoGuindasteDTO obterPlanoGuindaste(@PathVariable Long id) {
+        return quayBerthCraneServico.obterPlano(id);
+    }
+
     @PostMapping("/crane-plan")
     public PlanoGuindasteDTO salvarPlanoGuindaste(
             @PathVariable Long id,

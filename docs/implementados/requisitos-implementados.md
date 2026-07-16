@@ -162,6 +162,9 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 42. Criar testes ArchUnit contra dependencias ciclicas, acesso direto a dominio/repository de outro modulo e cliente HTTP entre modulos incorporados.
 43. Validar os dois historicos Flyway sem pendencias e preservar compatibilidade de rollback por estrategia `expand and contract`.
 44. Documentar corte, coexistencia, criterios de aprovacao, rollback e bloqueios operacionais em `docs/operacao-corte-rollback-navio.md`.
+45. Propagar `X-Correlation-Id`, `X-Trace-Id` e `traceparent` na integracao HTTP legada entre Navio Siderurgico e Yard.
+46. Controlar a inicializacao dos consumidores RabbitMQ do Yard por `CLOUDPORT_CONSUMERS_ENABLED`, permitindo manter apenas um deployment consumidor durante o corte.
+47. Ampliar o smoke para o fluxo completo cadastro canonico, navio siderurgico, visita, item, reserva real, ordem, work queue, job list, equipamento, sincronizacao e relatorio integrado.
 
 ## Documentacao da migracao para monolito modular implementada
 
@@ -193,6 +196,16 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 15. Corrigir o emissor JWT padrao da visibilidade para o servico de autenticacao na porta `8080`.
 16. Desabilitar Open Session in View no servico de visibilidade.
 17. Incluir Autenticacao, Gate, Rail e Visibilidade na matriz de validacao do backend, executando os testes de Visibilidade.
+
+## Observabilidade operacional implementada
+
+1. Registrar logs JSON estruturados das operacoes HTTP de Navio, Navio Siderurgico e Yard.
+2. Incluir em MDC e nos logs `correlationId`, `traceId`, `spanId`, modulo, operacao, visita, item, reserva, ordem, work queue e equipamento quando presentes.
+3. Gerar e devolver `X-Correlation-Id`, `X-Trace-Id` e `traceparent`, preservando o trace recebido entre os modulos.
+4. Publicar o contador `cloudport.operacao.total` e o timer `cloudport.operacao.duracao` com tags de modulo, operacao, resultado e contexto operacional.
+5. Expor `health`, `info`, `metrics` e `prometheus` pelo Actuator no runtime monolitico, no modulo siderurgico e no Yard.
+6. Liberar os cabecalhos de tracing no CORS dos runtimes envolvidos.
+7. Separar identificadores de alta cardinalidade dos labels de metricas, mantendo-os nos logs e no contexto de tracing.
 
 ## Contratos de API implementados
 
@@ -253,6 +266,13 @@ GET   /api/v1/visibilidade/conteiners/buscar
 23. Testes unitarios do crane plan, calculo de produtividade real, rejeicao de sobreposicao e registro de evento.
 24. Teste dos mapeamentos dos tres contratos de quay/berth/crane.
 25. Teste de contexto do monolito validando o novo controller, a migracao e o repositorio do plano de guindastes.
+26. Teste de contrato HTTP do adaptador Navio Siderurgico -> Yard para credencial interna, correlacao e tracing.
+27. Testes de reserva contra mapa real cobrindo mapa vazio, posicao inexistente, ocupada, ja reservada e reserva definitiva valida.
+28. Testes de work queue cobrindo vinculo `workQueueId`, limite de dispatch, auditoria e autorizacao por perfil.
+29. E2E operacional do cadastro canonico ate o consumo da reserva, incluindo ordem, work queue, job list, equipamento, sincronizacao e relatorio integrado.
+30. Teste de execucao unica do job de reconciliacao quando outra instancia possui o bloqueio distribuido.
+31. Teste que exige controle central de inicializacao em todos os consumidores RabbitMQ do Yard durante a migracao.
+32. Teste do filtro de observabilidade para correlacao, tracing, identificadores operacionais, metricas e limpeza do MDC.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -277,6 +297,8 @@ GET   /api/v1/visibilidade/conteiners/buscar
 19. Smoke automatizado da imagem unificada com autenticacao e conexao ao Yard.
 20. Paridade do primeiro corte, bloqueio de escrita legado, jobs sem duplicidade, testes arquiteturais e rollback Flyway documentado.
 21. Contratos backend de quay monitor, crane plan e produtividade do cais com persistencia e metricas operacionais reais.
+22. Testes de contrato, reserva real, dispatch, auditoria, autorizacao, fluxo operacional completo e observabilidade do corte Navio + Yard externo.
+23. Controle configuravel para impedir consumidores RabbitMQ duplicados do Yard durante a coexistencia.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

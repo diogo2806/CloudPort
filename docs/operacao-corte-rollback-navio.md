@@ -6,18 +6,22 @@ Este runbook cobre o primeiro corte do monólito modular, formado pelos módulos
 
 1. Somente um runtime pode aceitar comandos de escrita para Navio e Navio Siderúrgico.
 2. Somente uma instância executa cada job agendado, mesmo durante sobreposição temporária de deployments.
-3. O runtime consolidado usa `CadastroNavioPorta` local e não realiza HTTP entre os dois módulos incorporados.
-4. Os schemas `cloudport_navio` e `cloudport_siderurgico` continuam pertencendo aos respectivos módulos.
-5. Os históricos `flyway_schema_history` permanecem independentes em cada schema.
-6. Rollback troca o binário e o roteamento; não executa downgrade de banco.
+3. Somente um deployment do Yard pode manter os consumidores RabbitMQ ativos durante a coexistência.
+4. O runtime consolidado usa `CadastroNavioPorta` local e não realiza HTTP entre os dois módulos incorporados.
+5. Os schemas `cloudport_navio` e `cloudport_siderurgico` continuam pertencendo aos respectivos módulos.
+6. Os históricos `flyway_schema_history` permanecem independentes em cada schema.
+7. Rollback troca o binário e o roteamento; não executa downgrade de banco.
 
 ## Controles implementados
 
 - `CLOUDPORT_WRITES_ENABLED=false` coloca os deployments legados em modo somente leitura e responde `503` para `POST`, `PUT`, `PATCH` e `DELETE`.
 - `CLOUDPORT_JOBS_ENABLED=false` remove os jobs siderúrgicos do contexto legado.
+- `CLOUDPORT_CONSUMERS_ENABLED=false` impede que o deployment correspondente do Yard inicie os listeners COPRAR, COARRI e de movimentação ferroviária.
 - Os jobs de reconciliação e sincronização usam `pg_try_advisory_xact_lock`, evitando execução simultânea em instâncias que compartilham o mesmo PostgreSQL.
 - O Compose mantém o runtime monolítico como escritor e executor e inicia os serviços legados com escrita e jobs desativados por padrão.
 - Testes ArchUnit impedem ciclos, acesso direto ao domínio/repository de outro módulo e uso do cliente HTTP legado pelo runtime monolítico.
+- Testes de configuração verificam que todos os consumidores RabbitMQ do Yard respeitam o controle central de inicialização.
+- Logs estruturados, métricas e tracing permitem correlacionar visita, item, reserva, ordem, work queue e equipamento durante o corte.
 
 ## Validações antes do corte
 
@@ -27,7 +31,9 @@ Este runbook cobre o primeiro corte do monólito modular, formado pelos módulos
 4. Confirmar que os dois Flyway executam `validate` sem migrações pendentes.
 5. Comparar as quantidades essenciais dos dois schemas antes e depois de iniciar o runtime consolidado.
 6. Confirmar que o proxy possui uma única regra de destino para cada rota.
-7. Confirmar que o Yard está acessível e aceita `X-CloudPort-Service-Key`.
+7. Confirmar que o Yard está acessível e aceita `X-CloudPort-Service-Key`, `X-Correlation-Id` e `traceparent`.
+8. Confirmar que apenas o deployment responsável está com `CLOUDPORT_CONSUMERS_ENABLED=true`.
+9. Consultar `/actuator/prometheus` e confirmar a publicação de `cloudport_operacao_total` e `cloudport_operacao_duracao_seconds`.
 
 Consultas mínimas de conferência:
 
@@ -59,7 +65,9 @@ Durante essa janela:
 - os serviços legados podem atender apenas consultas;
 - tentativas de escrita no legado retornam `503`;
 - jobs legados não são registrados;
-- o bloqueio PostgreSQL protege contra uma configuração incorreta que habilite dois schedulers.
+- somente um deployment do Yard inicia os consumidores RabbitMQ;
+- o bloqueio PostgreSQL protege contra uma configuração incorreta que habilite dois schedulers;
+- o mesmo `correlationId` e `traceId` deve aparecer nos logs do runtime monolítico e do Yard para a mesma operação.
 
 Depois do smoke funcional, parar os containers legados sem remover o volume PostgreSQL:
 
@@ -78,9 +86,12 @@ docker compose \
 - JWT e perfis operacionais preservados;
 - cadastro canônico acessado pela porta local;
 - criação e consulta persistidas nos schemas existentes;
-- integração com Yard autenticada;
+- fluxo completo visita, item, reserva, ordem, work queue, job list, sincronização e relatório integrado validado;
+- integração com Yard autenticada e com correlação/tracing propagados;
 - nenhum job duplicado nos logs;
+- nenhum consumidor RabbitMQ duplicado no Yard;
 - nenhuma escrita recebida pelos deployments legados;
+- métricas operacionais disponíveis no Prometheus;
 - Flyway sem erro de checksum, versão ou migração pendente.
 
 ## Rollback da aplicação
@@ -103,9 +114,10 @@ docker compose \
 4. Executar health checks e consultas de leitura.
 5. Direcionar o proxy para os endpoints legados.
 6. Executar uma escrita controlada e verificar auditoria, dados e integração com Yard.
-7. Manter o monólito parado até a causa do rollback ser corrigida.
+7. Confirmar que somente o deployment escolhido do Yard está com `CLOUDPORT_CONSUMERS_ENABLED=true`.
+8. Manter o monólito parado até a causa do rollback ser corrigida.
 
-Nunca habilitar escrita ou jobs legados enquanto o monólito ainda estiver recebendo comandos.
+Nunca habilitar escrita ou jobs legados enquanto o monólito ainda estiver recebendo comandos. Nunca habilitar consumidores RabbitMQ em dois deployments do Yard ao mesmo tempo.
 
 ## Compatibilidade Flyway
 
@@ -130,6 +142,9 @@ As migrações do período de coexistência devem seguir `expand and contract`:
 - rota enviada simultaneamente ao monólito e ao legado;
 - legado aceitando escrita durante a coexistência;
 - dois jobs processando a mesma chave;
+- dois deployments do Yard com consumidores RabbitMQ ativos;
+- ausência de correlação entre os logs do runtime e do Yard;
+- métricas operacionais indisponíveis;
 - diferença não explicada nas contagens ou vínculos de dados;
 - falha de autenticação, autorização ou integração com Yard;
 - smoke ou testes de arquitetura falhando.

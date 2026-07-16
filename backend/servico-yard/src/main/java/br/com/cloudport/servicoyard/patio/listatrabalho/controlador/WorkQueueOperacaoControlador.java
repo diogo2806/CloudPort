@@ -3,8 +3,10 @@ package br.com.cloudport.servicoyard.patio.listatrabalho.controlador;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoPrioridadesWorkInstructionDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueRecursosDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoWorkInstructionDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.DispatchWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.JobListEquipamentoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRespostaDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoDispatchWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkInstructionDrillDownDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueueOperacaoServico;
@@ -38,6 +40,12 @@ public class WorkQueueOperacaoControlador {
         return servico.associarRecursos(id, dto);
     }
 
+    @PostMapping("/work-queues/{id}/dispatch")
+    public ResultadoDispatchWorkQueueDto despachar(@PathVariable Long id,
+                                                    @Valid @RequestBody DispatchWorkQueueDto dto) {
+        return servico.despachar(id, dto);
+    }
+
     @PostMapping("/work-instructions/{id}/suspender")
     public OrdemTrabalhoPatioRespostaDto suspender(@PathVariable Long id,
                                                     @Valid @RequestBody ComandoWorkInstructionDto dto) {
@@ -60,6 +68,18 @@ public class WorkQueueOperacaoControlador {
     public OrdemTrabalhoPatioRespostaDto concluir(@PathVariable Long id,
                                                    @Valid @RequestBody ComandoWorkInstructionDto dto) {
         return servico.concluir(id, dto);
+    }
+
+    @PostMapping("/work-instructions/{id}/reset")
+    public OrdemTrabalhoPatioRespostaDto resetar(@PathVariable Long id,
+                                                  @Valid @RequestBody ComandoWorkInstructionDto dto) {
+        return servico.resetar(id, dto);
+    }
+
+    @PostMapping("/work-instructions/{id}/cancelar")
+    public OrdemTrabalhoPatioRespostaDto cancelar(@PathVariable Long id,
+                                                   @Valid @RequestBody ComandoWorkInstructionDto dto) {
+        return servico.cancelar(id, dto);
     }
 
     @PatchMapping("/work-instructions/{id}/prioridades")

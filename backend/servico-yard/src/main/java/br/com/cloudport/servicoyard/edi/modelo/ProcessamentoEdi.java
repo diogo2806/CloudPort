@@ -25,7 +25,7 @@ public class ProcessamentoEdi {
     private TipoMensagemEdi tipoMensagem;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 40)
     private StatusProcessamentoEdi status;
 
     @Column(name = "conteudo_original", nullable = false, columnDefinition = "TEXT")
@@ -39,6 +39,18 @@ public class ProcessamentoEdi {
 
     @Column(name = "referencia_mensagem", length = 100)
     private String referenciaMensagem;
+
+    @Column(name = "identificador_interchange", length = 100, updatable = false)
+    private String identificadorInterchange;
+
+    @Column(name = "identificador_mensagem", length = 100, updatable = false)
+    private String identificadorMensagem;
+
+    @Column(name = "chave_idempotencia", nullable = false, length = 64, updatable = false)
+    private String chaveIdempotencia;
+
+    @Column(name = "hash_conteudo", nullable = false, length = 64, updatable = false)
+    private String hashConteudo;
 
     @Column(name = "correlation_id", length = 100)
     private String correlationId;
@@ -58,6 +70,9 @@ public class ProcessamentoEdi {
     @Column(name = "tentativa", nullable = false)
     private Integer tentativa;
 
+    @Column(name = "proxima_tentativa_em")
+    private LocalDateTime proximaTentativaEm;
+
     @Column(name = "bay_plan_id")
     private Long bayPlanId;
 
@@ -73,10 +88,13 @@ public class ProcessamentoEdi {
         criadoEm = agora;
         atualizadoEm = agora;
         if (tentativa == null) {
-            tentativa = 1;
+            tentativa = 0;
         }
         if (status == null) {
             status = StatusProcessamentoEdi.RECEBIDO;
+        }
+        if (proximaTentativaEm == null && status == StatusProcessamentoEdi.RECEBIDO) {
+            proximaTentativaEm = agora;
         }
     }
 
@@ -98,6 +116,14 @@ public class ProcessamentoEdi {
     public void setCodigoViagem(String codigoViagem) { this.codigoViagem = codigoViagem; }
     public String getReferenciaMensagem() { return referenciaMensagem; }
     public void setReferenciaMensagem(String referenciaMensagem) { this.referenciaMensagem = referenciaMensagem; }
+    public String getIdentificadorInterchange() { return identificadorInterchange; }
+    public void setIdentificadorInterchange(String identificadorInterchange) { this.identificadorInterchange = identificadorInterchange; }
+    public String getIdentificadorMensagem() { return identificadorMensagem; }
+    public void setIdentificadorMensagem(String identificadorMensagem) { this.identificadorMensagem = identificadorMensagem; }
+    public String getChaveIdempotencia() { return chaveIdempotencia; }
+    public void setChaveIdempotencia(String chaveIdempotencia) { this.chaveIdempotencia = chaveIdempotencia; }
+    public String getHashConteudo() { return hashConteudo; }
+    public void setHashConteudo(String hashConteudo) { this.hashConteudo = hashConteudo; }
     public String getCorrelationId() { return correlationId; }
     public void setCorrelationId(String correlationId) { this.correlationId = correlationId; }
     public String getMotivoRejeicao() { return motivoRejeicao; }
@@ -110,6 +136,8 @@ public class ProcessamentoEdi {
     public void setReprocessamentoDeId(Long reprocessamentoDeId) { this.reprocessamentoDeId = reprocessamentoDeId; }
     public Integer getTentativa() { return tentativa; }
     public void setTentativa(Integer tentativa) { this.tentativa = tentativa; }
+    public LocalDateTime getProximaTentativaEm() { return proximaTentativaEm; }
+    public void setProximaTentativaEm(LocalDateTime proximaTentativaEm) { this.proximaTentativaEm = proximaTentativaEm; }
     public Long getBayPlanId() { return bayPlanId; }
     public void setBayPlanId(Long bayPlanId) { this.bayPlanId = bayPlanId; }
     public LocalDateTime getCriadoEm() { return criadoEm; }

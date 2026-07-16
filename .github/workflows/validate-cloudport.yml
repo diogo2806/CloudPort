@@ -86,6 +86,23 @@ jobs:
           path: /tmp/cloudport-runtime-diagnostico.log
           if-no-files-found: error
 
+  deployment-geral:
+    name: Imagem e Compose do runtime geral
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_PASSWORD: cloudport-ci-postgres
+      RABBITMQ_PASSWORD: cloudport-ci-rabbitmq
+      JWT_SECRET: cloudport-ci-jwt-secret-with-at-least-32-bytes
+      CLOUDPORT_INTERNAL_SERVICE_KEY: cloudport-ci-service-key
+      SECURITY_CORS_ALLOWED_ORIGINS: http://localhost:4200,http://localhost:8080
+      TOS_API_BASE_URL: http://localhost:8090
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar Docker Compose
+        run: docker compose -f deploy/cloudport-runtime/docker-compose.yml config
+      - name: Construir imagem do runtime geral
+        run: docker build -f backend/cloudport-runtime/Dockerfile -t cloudport-runtime:ci .
+
   frontend:
     name: Frontend ${{ matrix.name }}
     runs-on: ubuntu-latest

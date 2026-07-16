@@ -398,16 +398,21 @@ GET   /api/v1/visibilidade/conteiners/buscar
 18. Definição de ownership e rollback Flyway.
 19. Preservação dos deployments e credenciais legadas até o aceite operacional.
 20. Contratos paginados, protegidos, filtráveis e versionados da API pública de Navio.
-21. BAPLIE, COPRAR, COARRI e VERMAS com rejeição, auditoria e reprocessamento motivado.
 
-## Idempotência dos consumidores de Visibilidade implementada
+## ARCH10 — otimização Yard por porta local implementada
 
-1. Exigir `eventId` ou `messageId` nos eventos conhecidos de Yard, Gate, Rail e Navio.
-2. Registrar identidade, tipo e hash canônico do payload em `visibilidade_evento_processado`.
-3. Inserir a identidade com unicidade no PostgreSQL antes de aplicar o efeito.
-4. Executar deduplicação, atualização da projeção e gravação do histórico na mesma transação.
-5. Ignorar redelivery com a mesma identidade e o mesmo payload sem reaplicar o efeito.
-6. Rejeitar colisão de identidade quando o tipo ou o payload forem divergentes.
-7. Vincular `HistoricoMovimento.eventoId` ao evento externo e impedir histórico duplicado por índice único.
-8. Reverter a identidade persistida quando o efeito falhar, permitindo retentativa segura.
-9. Cobrir primeira entrega, redelivery, colisão, envelope inválido e propagação de falha por testes unitários.
+1. Transformar `OtimizacaoYardCliente` em porta do módulo Navio Siderúrgico.
+2. Manter `OtimizacaoYardHttpAdapter` condicionado ao modo `http` de rollback.
+3. Registrar `OtimizacaoYardLocalAdapter` no `cloudport-runtime` para chamar `PredictiveSchedulerService` no mesmo processo.
+4. Configurar o runtime geral com `cloudport.modulo.yard.integracao=local`.
+5. Impedir ativação simultânea dos adaptadores local e HTTP pela condição de propriedade.
+
+## STATE10 — estado operacional de work queues implementado
+
+1. Concentrar dispatch e transições de work instruction em `WorkQueueOperacaoServico`.
+2. Validar fila ativa, POW, pool, plano de guindaste, recurso de cais e `EquipamentoPatio` operacional antes do dispatch.
+3. Aplicar uma matriz oficial de estados para suspensão, retomada, bloqueio, conclusão, reset e cancelamento.
+4. Resolver o equipamento real por ID ou identificador e preservar o vínculo da fila.
+5. Auditar motivo, usuário, origem e `correlationId` nas mutações operacionais.
+6. Fazer os endpoints compatíveis de POW e equipamento delegarem ao serviço operacional.
+7. Migrar o Control Room para recursos operacionais, dispatch robusto, transições oficiais, drill-down e job lists por equipamento.

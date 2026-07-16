@@ -8,33 +8,46 @@ import br.com.cloudport.visibilidade.repository.CapacidadeYardRepository;
 import br.com.cloudport.visibilidade.repository.StatusNavioRepository;
 import java.time.LocalDateTime;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class AlertasService {
 
-    @Autowired
-    private AlertaRepository alertaRepository;
+    private final AlertaRepository alertaRepository;
+    private final StatusNavioRepository statusNavioRepository;
+    private final CapacidadeYardRepository capacidadeYardRepository;
 
-    @Autowired
-    private StatusNavioRepository statusNavioRepository;
+    public AlertasService(AlertaRepository alertaRepository,
+                          StatusNavioRepository statusNavioRepository,
+                          CapacidadeYardRepository capacidadeYardRepository) {
+        this.alertaRepository = alertaRepository;
+        this.statusNavioRepository = statusNavioRepository;
+        this.capacidadeYardRepository = capacidadeYardRepository;
+    }
 
-    @Autowired
-    private CapacidadeYardRepository capacidadeYardRepository;
-
+    @Transactional(readOnly = true)
     public List<Alerta> listarAlertasAtivos() {
         return alertaRepository.findByStatusOrderByDataGeradaDesc("ativo");
     }
 
-    public Page<Alerta> buscarAlertasFiltrados(List<String> severidades, List<String> tipos, String status, Pageable pageable) {
+    @Transactional(readOnly = true)
+    public Page<Alerta> buscarAlertasFiltrados(List<String> severidades,
+                                               List<String> tipos,
+                                               String status,
+                                               Pageable pageable) {
         return alertaRepository.findBySeveridadeInAndTipoInAndStatus(severidades, tipos, status, pageable);
     }
 
-    public Alerta criarAlerta(String tipo, String severidade, String entidadeId, String descricao, String acaoSugerida) {
+    @Transactional
+    public Alerta criarAlerta(String tipo,
+                              String severidade,
+                              String entidadeId,
+                              String descricao,
+                              String acaoSugerida) {
         Alerta alerta = new Alerta();
         alerta.setTipo(tipo);
         alerta.setSeveridade(severidade);
@@ -43,16 +56,25 @@ public class AlertasService {
         alerta.setDataGerada(LocalDateTime.now());
         alerta.setStatus("ativo");
         alerta.setAcaoSugerida(acaoSugerida);
-
         return alertaRepository.save(alerta);
     }
 
+    @Transactional
     public void resolverAlerta(Long id) {
-        alertaRepository.findById(id).ifPresent(alerta -> {
-            alerta.setStatus("resolvido");
-            alerta.setDataResolucao(LocalDateTime.now());
-            alertaRepository.save(alerta);
-        });
+        Alerta alerta = alertaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Alerta nao encontrado: " + id));
+        resolver(alerta);
+    }
+
+    @Transactional
+    public void resolverAlertasAtivos(String entidadeId, String tipo) {
+        if (!StringUtils.hasText(entidadeId) || !StringUtils.hasText(tipo)) {
+            return;
+        }
+
+        alertaRepository.findByEntidadeIdAndStatus(entidadeId, "ativo").stream()
+                .filter(alerta -> tipo.equalsIgnoreCase(alerta.getTipo()))
+                .forEach(this::resolver);
     }
 
     @Transactional
@@ -130,14 +152,10 @@ public class AlertasService {
         alertaRepository.save(alerta);
     }
 
-    private void resolverAlertasAtivos(String entidadeId, String tipo) {
-        alertaRepository.findByEntidadeIdAndStatus(entidadeId, "ativo").stream()
-                .filter(alerta -> tipo.equalsIgnoreCase(alerta.getTipo()))
-                .forEach(alerta -> {
-                    alerta.setStatus("resolvido");
-                    alerta.setDataResolucao(LocalDateTime.now());
-                    alertaRepository.save(alerta);
-                });
+    private void resolver(Alerta alerta) {
+        alerta.setStatus("resolvido");
+        alerta.setDataResolucao(LocalDateTime.now());
+        alertaRepository.save(alerta);
     }
 
     private double calcularPercentual(CapacidadeYard yard) {

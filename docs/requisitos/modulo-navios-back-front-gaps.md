@@ -12,7 +12,7 @@ Antes de desenvolver, ler os dois arquivos. Depois de desenvolver, remover daqui
 
 O backend alvo do CloudPort é um **monólito modular**. Não criar novos microsserviços para funcionalidades internas nem ampliar chamadas HTTP entre módulos que já executam no mesmo processo.
 
-O runtime `backend/cloudport-monolito-navio` é o primeiro corte consolidado e atualmente incorpora Navio e Navio Siderúrgico. Yard, Gate, Rail, Autenticação e Visibilidade continuam como deployments legados durante a migração incremental.
+O runtime geral `backend/cloudport-runtime` incorpora Autenticação, Gate, Rail, Visibilidade, Yard, Navio e Navio Siderúrgico. O runtime `backend/cloudport-monolito-navio` permanece apenas como primeiro corte e alternativa de rollback durante a retirada controlada dos deployments antigos.
 
 As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-monolito-modular.md` e `docs/operacao-corte-rollback-navio.md`.
 
@@ -46,7 +46,6 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 5. Centralizar conversão de `WorkQueuePatioYardDTO`.
 6. Separar DTO resumido de lista e DTO detalhado de job list.
 7. Definir contrato versionado de evento para SSE/WebSocket.
-8. Publicar um OpenAPI consolidado no runtime monolítico sem duplicação de operação, schema ou configuração.
 
 ## Pendências do módulo de Visibilidade
 
@@ -55,30 +54,28 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 3. Publicar atualização do dashboard imediatamente após eventos de gate, pátio, rail e navio, mantendo o agendamento apenas como reconciliação.
 4. Persistir quantidades reais de movimentos, produtividade, equipamentos alocados e previsão de saída antes de preencher esses campos nos contratos.
 5. Integrar a Visibilidade ao contrato compartilhado de enums e eventos versionados.
-6. Criar teste de contexto com PostgreSQL, RabbitMQ e mapeamentos Spring reais, além dos testes unitários atuais.
-7. Preparar o módulo para incorporação ao runtime monolítico sem manter segurança, tratamento de erros e agendamento duplicados.
+6. Criar teste de contexto com RabbitMQ e Redis reais, incluindo redelivery, idempotência e todos os listeners, além do contexto PostgreSQL já coberto pelo runtime geral.
 
 ## Pendências da migração para monólito modular
 
-O corte Navio + Navio Siderúrgico já possui paridade estrutural de controllers, segurança única, integração local do cadastro canônico, validação dos dados e históricos Flyway, bloqueio distribuído dos jobs, deployments legados em modo somente leitura, testes de arquitetura e runbook de corte/rollback. O smoke cobre inicialização, frontend, configuração dinâmica, autenticação, persistência, cadastro canônico, visita, item, reserva em mapa real, ordem, work queue, job list, equipamento, sincronização e relatório integrado, validando também correlação e tracing na integração com o Yard.
+O runtime geral já carrega os sete módulos no mesmo processo, preserva schemas e históricos Flyway independentes, centraliza segurança, CORS, cache, OpenAPI e conexão PostgreSQL e mantém TOS, OCR, EDI, RabbitMQ, Redis e storage como adaptadores externos. As integrações Navio Siderúrgico -> Navio, Navio -> Yard, Gate -> Autenticação e Gate -> status do Yard são locais no runtime geral.
 
 Ainda falta:
 
-1. Incorporar o Yard ao runtime e substituir a integração HTTP Navio -> Yard por portas locais, preservando os contratos REST externos.
-2. Incorporar Gate e Rail como módulos, usando o Yard por interfaces internas e mantendo TOS, OCR, EDI e mensageria como adaptadores externos.
-3. Incorporar Autenticação e Visibilidade, centralizando emissão de token, OpenAPI, erros, logs, métricas e tracing.
-4. Definir ownership de tabelas e schemas para todos os módulos antes de consolidar a conexão PostgreSQL.
+1. Executar o corte operacional dos ambientes, mantendo uma única instância escritora e uma única instância de cada job e consumidor antes de desligar os deployments antigos.
+2. Validar paridade e e2e de todos os endpoints de Gate, Rail, Autenticação, Visibilidade e Yard no runtime geral, incluindo falhas dos adaptadores externos.
+3. Auditar e substituir qualquer chamada HTTP interna remanescente encontrada entre módulos incorporados, preservando HTTP somente na borda.
+4. Centralizar tratamento de erros, Jackson, logs, métricas, tracing e políticas de agendamento que ainda permaneçam definidos nos módulos.
 5. Centralizar versões e `pluginManagement` em um parent Maven compartilhado, sem criar dependências cíclicas.
-6. Centralizar configurações de segurança, CORS, Jackson, tratamento de erros, observabilidade e agendamento no runtime geral.
-7. Remover clientes HTTP, credenciais internas, imagens, deployments e variáveis legadas somente depois da conclusão de cada corte.
-8. Renomear diretórios e artefatos `servico-*` somente quando não houver impacto em pipelines, imagens, imports ou rollback.
-9. Evoluir `cloudport-monolito-navio` para um runtime geral do CloudPort ou criar o runtime geral antes de incorporar domínios não relacionados a Navio.
+6. Remover credenciais internas, imagens, deployments e variáveis legadas somente depois do corte e rollback do runtime geral serem testados no ambiente.
+7. Renomear diretórios e artefatos `servico-*` somente quando não houver impacto em pipelines, imports ou rollback.
+8. Criar smoke completo do runtime geral com PostgreSQL, RabbitMQ, Redis, autenticação, Gate, Rail, Visibilidade, Yard, Navio e integrações externas simuladas.
 
 ## P0 - Pendências obrigatórias restantes
 
 ### 1. Eventos Pátio -> Navio
 
-A reconciliação automática e idempotente por job já atualiza item, posição real e reserva. Falta substituir a consulta periódica por callback, evento interno ou fila externa conforme o estágio da migração, reduzindo latência sem introduzir novo microsserviço.
+A reconciliação automática e idempotente por job já atualiza item, posição real e reserva. Falta substituir a consulta periódica por evento interno no runtime geral e por evento externo versionado apenas quando atravessar a fronteira da aplicação.
 
 Eventos alvo:
 
@@ -118,12 +115,12 @@ O replanejamento já troca reservas usando outra posição real validada do Yard
 
 ### 5. Testes e observabilidade
 
-1. Testar o proxy de work queues com sucesso, retorno vazio legítimo e falha do Yard convertida em `503` enquanto o Yard permanecer externo.
-2. Validar o OpenAPI consolidado e ausência de rotas duplicadas.
-3. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ e todos os mapeamentos de controller.
-4. Criar testes de integração do crane plan com work queues reais do Yard e testes frontend do Quay Monitor.
-5. Expandir logs estruturados, métricas e tracing para Gate, Rail, Autenticação e Visibilidade durante a incorporação desses módulos.
-6. Criar teste de integração da reserva contra o endpoint real do Yard, cobrindo concorrência, expiração e restrições persistidas no PostgreSQL.
+1. Validar os adaptadores HTTP legados de rollback com sucesso, retorno vazio legítimo, credencial interna, correlação e falha convertida em `503`.
+2. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ, Redis e todos os listeners.
+3. Criar testes de integração do crane plan com work queues reais do Yard e testes frontend do Quay Monitor.
+4. Centralizar logs estruturados, métricas e tracing de Gate, Rail, Autenticação e Visibilidade na infraestrutura do runtime geral.
+5. Criar teste de integração da reserva contra o endpoint real do Yard, cobrindo concorrência, expiração e restrições persistidas no PostgreSQL.
+6. Criar smoke completo da imagem geral e comprovar que jobs, consumidores e escritas não duplicam durante o corte.
 
 ## P1
 
@@ -152,13 +149,13 @@ O replanejamento já troca reservas usando outra posição real validada do Yard
 3. Validar quay/berth/crane contra work queues, ordens e recursos reais do Yard.
 4. Padronizar, versionar, paginar e proteger contratos externos.
 5. Cobrir o fluxo por testes de service, controller, contrato e frontend.
-6. Expandir logs, métricas e tracing aos módulos ainda não incorporados.
+6. Centralizar logs, métricas e tracing no runtime geral.
 7. Exigir motivo e usuário autenticado nas ações aplicáveis.
 8. Diferenciar fila derivada, work queue persistente, work instruction, job list e exceção operacional.
-9. Manter uma única origem de API para o frontend após cada corte.
-10. Garantir que módulos incorporados não realizem chamadas HTTP entre si em cada novo corte.
-11. Retirar um deployment legado somente após paridade, dados, segurança, observabilidade e rollback validados.
-12. Revalidar que cada job, consumidor e comando de escrita execute em uma única instância durante cada novo corte.
+9. Manter uma única origem de API para o frontend.
+10. Garantir que módulos incorporados não realizem chamadas HTTP entre si.
+11. Retirar deployments legados somente após paridade, dados, segurança, observabilidade e rollback validados.
+12. Executar cada job, consumidor e comando de escrita em uma única instância durante a transição.
 
 ## Fora do escopo deste corte
 

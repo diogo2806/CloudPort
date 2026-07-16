@@ -13,6 +13,7 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoWorkInstructi
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.HistoricoOperacaoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
+import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.WorkQueuePatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.HistoricoWorkInstructionRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.WorkQueuePatioRepositorio;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,6 +39,8 @@ class WorkQueueOperacaoServicoTest {
     private HistoricoWorkInstructionRepositorio historicoRepositorio;
     @Mock
     private EquipamentoPatioRepositorio equipamentoRepositorio;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private WorkQueueOperacaoServico servico;
 
@@ -46,7 +50,8 @@ class WorkQueueOperacaoServicoTest {
                 workQueueRepositorio,
                 ordemRepositorio,
                 historicoRepositorio,
-                equipamentoRepositorio);
+                equipamentoRepositorio,
+                eventPublisher);
     }
 
     @Test
@@ -66,11 +71,13 @@ class WorkQueueOperacaoServicoTest {
         when(ordemRepositorio.findById(10L)).thenReturn(Optional.of(ordem));
         when(ordemRepositorio.save(any(OrdemTrabalhoPatio.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(workQueueRepositorio.findById(99L)).thenReturn(Optional.of(fila()));
 
         servico.suspender(10L, comando("Interdição operacional"));
 
         assertEquals(StatusOrdemTrabalhoPatio.SUSPENSA, ordem.getStatusOrdem());
         verify(historicoRepositorio).save(any(HistoricoOperacaoPatio.class));
+        verify(eventPublisher).publishEvent(any());
     }
 
     @Test
@@ -90,6 +97,7 @@ class WorkQueueOperacaoServicoTest {
         when(ordemRepositorio.findById(12L)).thenReturn(Optional.of(ordem));
         when(ordemRepositorio.save(any(OrdemTrabalhoPatio.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(workQueueRepositorio.findById(99L)).thenReturn(Optional.of(fila()));
 
         AtualizacaoPrioridadesWorkInstructionDto comando = new AtualizacaoPrioridadesWorkInstructionDto();
         comando.setPrioridadeOperacional(3);
@@ -102,6 +110,14 @@ class WorkQueueOperacaoServicoTest {
         assertEquals(3, ordem.getPrioridadeOperacional());
         assertTrue(ordem.isPrioridadeBusca());
         verify(historicoRepositorio, times(2)).save(any(HistoricoOperacaoPatio.class));
+        verify(eventPublisher).publishEvent(any());
+    }
+
+    private WorkQueuePatio fila() {
+        WorkQueuePatio fila = new WorkQueuePatio();
+        fila.setId(99L);
+        fila.setVisitaNavioId(42L);
+        return fila;
     }
 
     private OrdemTrabalhoPatio ordem(Long id, StatusOrdemTrabalhoPatio status) {

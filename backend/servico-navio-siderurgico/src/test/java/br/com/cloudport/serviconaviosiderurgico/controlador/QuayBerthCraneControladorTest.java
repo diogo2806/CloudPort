@@ -14,7 +14,8 @@ class QuayBerthCraneControladorTest {
     void deveExporContratosDeQuayBerthECraneNaVisita() throws Exception {
         RequestMapping base = QuayBerthCraneControlador.class.getAnnotation(RequestMapping.class);
         Method quayMonitor = QuayBerthCraneControlador.class.getMethod("obterQuayMonitor", Long.class);
-        Method cranePlan = QuayBerthCraneControlador.class.getMethod(
+        Method consultarCranePlan = QuayBerthCraneControlador.class.getMethod("obterPlanoGuindaste", Long.class);
+        Method salvarCranePlan = QuayBerthCraneControlador.class.getMethod(
                 "salvarPlanoGuindaste",
                 Long.class,
                 br.com.cloudport.serviconaviosiderurgico.dto.ComandoPlanoGuindasteDTO.class);
@@ -22,7 +23,8 @@ class QuayBerthCraneControladorTest {
 
         assertArrayEquals(new String[]{"/visitas-navio/{id}"}, base.value());
         assertArrayEquals(new String[]{"/quay-monitor"}, quayMonitor.getAnnotation(GetMapping.class).value());
-        assertArrayEquals(new String[]{"/crane-plan"}, cranePlan.getAnnotation(PostMapping.class).value());
+        assertArrayEquals(new String[]{"/crane-plan"}, consultarCranePlan.getAnnotation(GetMapping.class).value());
+        assertArrayEquals(new String[]{"/crane-plan"}, salvarCranePlan.getAnnotation(PostMapping.class).value());
         assertArrayEquals(new String[]{"/produtividade-cais"}, produtividade.getAnnotation(GetMapping.class).value());
     }
 }

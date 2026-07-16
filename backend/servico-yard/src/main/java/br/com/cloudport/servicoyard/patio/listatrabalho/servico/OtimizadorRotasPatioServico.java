@@ -5,6 +5,7 @@ import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService.DualCy
 import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService.DualCyclePair;
 import br.com.cloudport.servicoyard.comum.otimizacao.YardDualCycleService.YardPosition;
 import br.com.cloudport.servicoyard.comum.util.YardDistanceCalculator;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.EstatisticasOtimizacaoRotaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
@@ -24,7 +25,7 @@ public class OtimizadorRotasPatioServico {
     private final YardDualCycleService dualCycleService;
 
     public OtimizadorRotasPatioServico(OrdemTrabalhoPatioRepositorio ordemRepositorio,
-                                        YardDualCycleService dualCycleService) {
+                                         YardDualCycleService dualCycleService) {
         this.ordemRepositorio = ordemRepositorio;
         this.dualCycleService = dualCycleService;
     }
@@ -62,8 +63,9 @@ public class OtimizadorRotasPatioServico {
             return resultado;
         }
 
-        PosicaoPatio ultimaPosicao = obterPosicaoInicial(pendentes);
-        resultado.add(pendentes.remove(0));
+        OrdemTrabalhoPatio primeiraOrdem = pendentes.remove(0);
+        resultado.add(primeiraOrdem);
+        PosicaoPatio ultimaPosicao = obterPosicaoDestino(primeiraOrdem);
 
         while (!pendentes.isEmpty()) {
             int proximoIndice = encontrarProximoMaisProximo(pendentes, ultimaPosicao);
@@ -88,14 +90,20 @@ public class OtimizadorRotasPatioServico {
                 DualCycleConfig.semRestricao());
 
         Map<String, OrdemTrabalhoPatio> porId = ordens.stream()
-                .collect(Collectors.toMap(o -> o.getId().toString(), o -> o));
+                .collect(Collectors.toMap(o -> o.getId().toString(), o -> o, (existente, duplicada) -> existente,
+                        HashMap::new));
 
         List<OrdemTrabalhoPatio> resultado = new ArrayList<>();
         for (DualCyclePair pair : pairs) {
-            OrdemTrabalhoPatio o = porId.remove(pair.getPickup().getId());
-            if (o != null) resultado.add(o);
+            OrdemTrabalhoPatio ordem = porId.remove(pair.getPickup().getId());
+            if (ordem != null) {
+                resultado.add(ordem);
+            }
         }
-        resultado.addAll(porId.values());
+
+        ordens.stream()
+                .filter(ordem -> porId.containsKey(ordem.getId().toString()))
+                .forEach(resultado::add);
         return resultado;
     }
 
@@ -106,7 +114,6 @@ public class OtimizadorRotasPatioServico {
         for (int i = 0; i < pendentes.size(); i++) {
             OrdemTrabalhoPatio ordem = pendentes.get(i);
             PosicaoPatio posicaoConteiner = obterPosicaoAtual(ordem);
-
             double distancia = calcularDistancia(posicaoAtual, posicaoConteiner);
 
             if (distancia < menorDistancia) {
@@ -119,7 +126,9 @@ public class OtimizadorRotasPatioServico {
     }
 
     private double calcularDistancia(PosicaoPatio p1, PosicaoPatio p2) {
-        if (p1 == null || p2 == null) {
+        if (p1 == null || p2 == null
+                || p1.getLinha() == null || p1.getColuna() == null
+                || p2.getLinha() == null || p2.getColuna() == null) {
             return Double.MAX_VALUE;
         }
         return YardDistanceCalculator.manhattan(p1.getLinha(), p1.getColuna(), p2.getLinha(), p2.getColuna());
@@ -157,19 +166,26 @@ public class OtimizadorRotasPatioServico {
         return total;
     }
 
-    public Map<String, Object> obterEstatisticasOtimizacao(List<OrdemTrabalhoPatio> ordensOriginais,
-                                                           List<OrdemTrabalhoPatio> ordensOtimizadas) {
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("totalOrdens", ordensOriginais.size());
-        stats.put("distanciaOriginal", calcularDistanciaTotal(ordensOriginais));
-        stats.put("distanciaOtimizada", calcularDistanciaTotal(ordensOtimizadas));
+    public EstatisticasOtimizacaoRotaDto obterEstatisticasOtimizacao(
+            List<OrdemTrabalhoPatio> ordensOriginais,
+            List<OrdemTrabalhoPatio> ordensOtimizadas) {
+        double distanciaOriginal = calcularDistanciaTotal(ordensOriginais);
+        double distanciaOtimizada = calcularDistanciaTotal(ordensOtimizadas);
+        double percentualMelhoria = calcularPercentualMelhoria(distanciaOriginal, distanciaOtimizada);
 
-        double mejora = stats.get("distanciaOriginal") != null && stats.get("distanciaOtimizada") != null
-                ? ((Double) stats.get("distanciaOriginal") - (Double) stats.get("distanciaOtimizada"))
-                / (Double) stats.get("distanciaOriginal") * 100
-                : 0;
-        stats.put("percentualMejora", mejora);
+        return new EstatisticasOtimizacaoRotaDto(
+                ordensOriginais.size(),
+                distanciaOriginal,
+                distanciaOtimizada,
+                percentualMelhoria,
+                null);
+    }
 
-        return stats;
+    private double calcularPercentualMelhoria(double distanciaOriginal, double distanciaOtimizada) {
+        if (!Double.isFinite(distanciaOriginal) || !Double.isFinite(distanciaOtimizada)
+                || distanciaOriginal <= 0) {
+            return 0.0;
+        }
+        return ((distanciaOriginal - distanciaOtimizada) / distanciaOriginal) * 100.0;
     }
 }

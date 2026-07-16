@@ -11,6 +11,7 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalh
 import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OtimizadorDualCyclingServico {
+
+    private static final int RAIO_ADJACENCIA_PADRAO = 10;
+    private static final String BLOCO_NAO_IDENTIFICADO = "BLOCO_NAO_IDENTIFICADO";
 
     private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
     private final YardDualCycleService dualCycleService;
@@ -32,15 +36,18 @@ public class OtimizadorDualCyclingServico {
 
     @Transactional(readOnly = true)
     public AnaliseDualCyclingDto analisarPairingsPotenciais() {
-        List<OrdemTrabalhoPatio> ordensEntrada = obterOrdensEntrada();
-        List<OrdemTrabalhoPatio> ordensSaida = obterOrdensSaida();
-
-        List<PairOrdensTrabalhDto> pairsOtimizados = gerarPairs(10);
+        List<OrdemTrabalhoPatio> ordensPendentes = obterOrdensPendentes();
+        List<OrdemTrabalhoPatio> ordensEntrada = filtrarPorTipo(ordensPendentes, TipoMovimentoPatio.ALOCACAO);
+        List<OrdemTrabalhoPatio> ordensSaida = filtrarPorTipo(ordensPendentes, TipoMovimentoPatio.REMOCAO);
+        List<PairOrdensTrabalhoDto> pairsOtimizados = gerarPairs(
+                ordensEntrada, ordensSaida, RAIO_ADJACENCIA_PADRAO);
 
         double distanciaTotal = calcularDistanciaTotal(pairsOtimizados);
         double distanciaIndividual = calcularDistanciaIndividual(ordensEntrada, ordensSaida);
         double economia = distanciaIndividual - distanciaTotal;
-        double percentualEconomia = (economia / distanciaIndividual) * 100;
+        double percentualEconomia = distanciaIndividual > 0
+                ? (economia / distanciaIndividual) * 100.0
+                : 0.0;
 
         return new AnaliseDualCyclingDto(
                 pairsOtimizados,
@@ -48,44 +55,71 @@ public class OtimizadorDualCyclingServico {
                 distanciaTotal,
                 economia,
                 percentualEconomia,
-                ordensEntrada.size() + ordensSaida.size()
-        );
+                ordensPendentes.size());
     }
 
     @Transactional(readOnly = true)
-    public List<PairOrdensTrabalhDto> gerarPairs(Integer raioAdjacencia) {
-        List<OrdemTrabalhoPatio> ordensEntrada = obterOrdensEntrada();
-        List<OrdemTrabalhoPatio> ordensSaida = obterOrdensSaida();
+    public List<PairOrdensTrabalhoDto> gerarPairs(Integer raioAdjacencia) {
+        List<OrdemTrabalhoPatio> ordensPendentes = obterOrdensPendentes();
+        return gerarPairs(
+                filtrarPorTipo(ordensPendentes, TipoMovimentoPatio.ALOCACAO),
+                filtrarPorTipo(ordensPendentes, TipoMovimentoPatio.REMOCAO),
+                raioAdjacencia != null ? raioAdjacencia : RAIO_ADJACENCIA_PADRAO);
+    }
 
+    private List<PairOrdensTrabalhoDto> gerarPairs(List<OrdemTrabalhoPatio> ordensEntrada,
+                                                     List<OrdemTrabalhoPatio> ordensSaida,
+                                                     int raioAdjacencia) {
         List<YardPosition> pickups = ordemParaYardPosition(ordensEntrada, TipoMovimentoPatio.ALOCACAO);
         List<YardPosition> dropoffs = ordemParaYardPosition(ordensSaida, TipoMovimentoPatio.REMOCAO);
-
-        int raio = raioAdjacencia != null ? raioAdjacencia : 10;
-        List<DualCyclePair> pairs = dualCycleService.otimizar(pickups, dropoffs,
-                new DualCycleConfig(raio, 0.0));
+        List<DualCyclePair> pairs = dualCycleService.otimizar(
+                pickups,
+                dropoffs,
+                new DualCycleConfig(raioAdjacencia, 0.0));
 
         Map<String, OrdemTrabalhoPatio> entradaPorId = ordensEntrada.stream()
                 .collect(Collectors.toMap(o -> o.getId().toString(), o -> o));
         Map<String, OrdemTrabalhoPatio> saidaPorId = ordensSaida.stream()
                 .collect(Collectors.toMap(o -> o.getId().toString(), o -> o));
 
-        return pairs.stream().map(pair -> {
-            OrdemTrabalhoPatio oe = entradaPorId.get(pair.getPickup().getId());
-            OrdemTrabalhoPatio os = saidaPorId.get(pair.getDropoff().getId());
-            if (oe == null || os == null) return null;
-            return new PairOrdensTrabalhDto(
-                    oe.getId(), oe.getCodigoConteiner(), oe.getLinhaDestino(), oe.getColunaDestino(),
-                    TipoMovimentoPatio.ALOCACAO,
-                    os.getId(), os.getCodigoConteiner(), os.getLinhaDestino(), os.getColunaDestino(),
-                    TipoMovimentoPatio.REMOCAO,
-                    "BLOCO_" + (oe.getLinhaDestino() / 10) + "_" + (oe.getColunaDestino() / 10),
-                    "BLOCO_" + (os.getLinhaDestino() / 10) + "_" + (os.getColunaDestino() / 10),
-                    pair.getDistancia(),
-                    pair.getEconomia()
-            );
-        }).filter(Objects::nonNull)
-          .sorted(Comparator.comparing(PairOrdensTrabalhDto::getPontuacao).reversed())
-          .collect(Collectors.toList());
+        return pairs.stream()
+                .map(pair -> criarPair(pair, entradaPorId, saidaPorId))
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(PairOrdensTrabalhoDto::getPontuacao).reversed())
+                .collect(Collectors.toList());
+    }
+
+    private PairOrdensTrabalhoDto criarPair(DualCyclePair pair,
+                                             Map<String, OrdemTrabalhoPatio> entradaPorId,
+                                             Map<String, OrdemTrabalhoPatio> saidaPorId) {
+        OrdemTrabalhoPatio ordemEntrada = entradaPorId.get(pair.getPickup().getId());
+        OrdemTrabalhoPatio ordemSaida = saidaPorId.get(pair.getDropoff().getId());
+        if (ordemEntrada == null || ordemSaida == null) {
+            return null;
+        }
+
+        return new PairOrdensTrabalhoDto(
+                ordemEntrada.getId(),
+                ordemEntrada.getCodigoConteiner(),
+                ordemEntrada.getLinhaDestino(),
+                ordemEntrada.getColunaDestino(),
+                TipoMovimentoPatio.ALOCACAO,
+                ordemSaida.getId(),
+                ordemSaida.getCodigoConteiner(),
+                ordemSaida.getLinhaDestino(),
+                ordemSaida.getColunaDestino(),
+                TipoMovimentoPatio.REMOCAO,
+                identificarBloco(ordemEntrada),
+                identificarBloco(ordemSaida),
+                pair.getDistancia(),
+                pair.getEconomia());
+    }
+
+    private String identificarBloco(OrdemTrabalhoPatio ordem) {
+        if (ordem.getLinhaDestino() == null || ordem.getColunaDestino() == null) {
+            return BLOCO_NAO_IDENTIFICADO;
+        }
+        return "BLOCO_" + (ordem.getLinhaDestino() / 10) + "_" + (ordem.getColunaDestino() / 10);
     }
 
     private List<YardPosition> ordemParaYardPosition(List<OrdemTrabalhoPatio> ordens,
@@ -101,79 +135,84 @@ public class OtimizadorDualCyclingServico {
 
     @Transactional(readOnly = true)
     public List<OrdemTrabalhoPatio> obterSequenciaOtimizadaComDualCycling() {
-        List<PairOrdensTrabalhDto> pairs = gerarPairs(10);
+        List<OrdemTrabalhoPatio> ordensPendentes = obterOrdensPendentes();
+        List<PairOrdensTrabalhoDto> pairs = gerarPairs(
+                filtrarPorTipo(ordensPendentes, TipoMovimentoPatio.ALOCACAO),
+                filtrarPorTipo(ordensPendentes, TipoMovimentoPatio.REMOCAO),
+                RAIO_ADJACENCIA_PADRAO);
 
         if (pairs.isEmpty()) {
-            return ordemRepositorio.findByStatusOrdemOrderByCriadoEmAsc(StatusOrdemTrabalhoPatio.PENDENTE);
+            return ordensPendentes;
         }
 
+        Map<Long, OrdemTrabalhoPatio> ordensPorId = ordensPendentes.stream()
+                .collect(Collectors.toMap(
+                        OrdemTrabalhoPatio::getId,
+                        ordem -> ordem,
+                        (existente, duplicada) -> existente,
+                        LinkedHashMap::new));
         List<OrdemTrabalhoPatio> resultado = new ArrayList<>();
-        List<Long> idsProcessados = new ArrayList<>();
 
-        for (PairOrdensTrabalhDto pair : pairs) {
-            OrdemTrabalhoPatio ordemEntrada = ordemRepositorio.findById(pair.getIdOrdemEntrada())
-                    .orElse(null);
-            OrdemTrabalhoPatio ordemSaida = ordemRepositorio.findById(pair.getIdOrdemSaida())
-                    .orElse(null);
-
+        for (PairOrdensTrabalhoDto pair : pairs) {
+            OrdemTrabalhoPatio ordemEntrada = ordensPorId.remove(pair.getIdOrdemEntrada());
+            OrdemTrabalhoPatio ordemSaida = ordensPorId.remove(pair.getIdOrdemSaida());
             if (ordemEntrada != null && ordemSaida != null) {
                 resultado.add(ordemEntrada);
                 resultado.add(ordemSaida);
-                idsProcessados.add(ordemEntrada.getId());
-                idsProcessados.add(ordemSaida.getId());
+            } else {
+                if (ordemEntrada != null) {
+                    ordensPorId.put(ordemEntrada.getId(), ordemEntrada);
+                }
+                if (ordemSaida != null) {
+                    ordensPorId.put(ordemSaida.getId(), ordemSaida);
+                }
             }
         }
 
-        List<OrdemTrabalhoPatio> ordensRestantes = ordemRepositorio
-                .findByStatusOrdemOrderByCriadoEmAsc(StatusOrdemTrabalhoPatio.PENDENTE).stream()
-                .filter(ordem -> !idsProcessados.contains(ordem.getId()))
-                .collect(Collectors.toList());
-
-        resultado.addAll(ordensRestantes);
+        resultado.addAll(ordensPorId.values());
         return resultado;
     }
 
-    private List<OrdemTrabalhoPatio> obterOrdensEntrada() {
-        return ordemRepositorio.findByStatusOrdemOrderByCriadoEmAsc(StatusOrdemTrabalhoPatio.PENDENTE)
-                .stream()
-                .filter(ordem -> ordem.getTipoMovimento() == TipoMovimentoPatio.ALOCACAO)
+    private List<OrdemTrabalhoPatio> obterOrdensPendentes() {
+        return ordemRepositorio.findByStatusOrdemOrderByCriadoEmAsc(StatusOrdemTrabalhoPatio.PENDENTE);
+    }
+
+    private List<OrdemTrabalhoPatio> filtrarPorTipo(List<OrdemTrabalhoPatio> ordens,
+                                                      TipoMovimentoPatio tipo) {
+        return ordens.stream()
+                .filter(ordem -> ordem.getTipoMovimento() == tipo)
                 .collect(Collectors.toList());
     }
 
-    private List<OrdemTrabalhoPatio> obterOrdensSaida() {
-        return ordemRepositorio.findByStatusOrdemOrderByCriadoEmAsc(StatusOrdemTrabalhoPatio.PENDENTE)
-                .stream()
-                .filter(ordem -> ordem.getTipoMovimento() == TipoMovimentoPatio.REMOCAO)
-                .collect(Collectors.toList());
-    }
-
-    private double calcularDistanciaTotal(List<PairOrdensTrabalhDto> pairs) {
-        return pairs.stream().mapToDouble(PairOrdensTrabalhDto::getDistanciaRetorno).sum();
+    private double calcularDistanciaTotal(List<PairOrdensTrabalhoDto> pairs) {
+        return pairs.stream().mapToDouble(PairOrdensTrabalhoDto::getDistanciaRetorno).sum();
     }
 
     private double calcularDistanciaIndividual(List<OrdemTrabalhoPatio> ordensEntrada,
                                                 List<OrdemTrabalhoPatio> ordensSaida) {
         return ordensEntrada.stream()
-                .mapToDouble(o -> YardDistanceCalculator.fromOrigin(
-                        o.getLinhaDestino() != null ? o.getLinhaDestino() : 0,
-                        o.getColunaDestino() != null ? o.getColunaDestino() : 0))
+                .mapToDouble(this::calcularDistanciaDaOrigem)
                 .sum()
-               + ordensSaida.stream()
-                .mapToDouble(o -> YardDistanceCalculator.fromOrigin(
-                        o.getLinhaDestino() != null ? o.getLinhaDestino() : 0,
-                        o.getColunaDestino() != null ? o.getColunaDestino() : 0))
+                + ordensSaida.stream()
+                .mapToDouble(this::calcularDistanciaDaOrigem)
                 .sum();
     }
 
-    public static class AnaliseDualCyclingDto {
-        private List<PairOrdensTrabalhDto> pairsOtimizados;
-        private double distanciaIndividual;
-        private double distanciaComPairing;
-        private double economiaKm;
-        private double percentualEconomia;
-        private int totalOrdens;
+    private double calcularDistanciaDaOrigem(OrdemTrabalhoPatio ordem) {
+        return YardDistanceCalculator.fromOrigin(
+                ordem.getLinhaDestino() != null ? ordem.getLinhaDestino() : 0,
+                ordem.getColunaDestino() != null ? ordem.getColunaDestino() : 0);
+    }
 
-        public AnaliseDualCyclingDto(List<PairOrdensTrabalhDto> pairsOtimizados,
+    public static class AnaliseDualCyclingDto {
+        private final List<PairOrdensTrabalhoDto> pairsOtimizados;
+        private final double distanciaIndividual;
+        private final double distanciaComPairing;
+        private final double economiaKm;
+        private final double percentualEconomia;
+        private final int totalOrdens;
+
+        public AnaliseDualCyclingDto(List<PairOrdensTrabalhoDto> pairsOtimizados,
                                       double distanciaIndividual,
                                       double distanciaComPairing,
                                       double economiaKm,
@@ -187,82 +226,131 @@ public class OtimizadorDualCyclingServico {
             this.totalOrdens = totalOrdens;
         }
 
-        public List<PairOrdensTrabalhDto> getPairsOtimizados() { return pairsOtimizados; }
-        public double getDistanciaIndividual() { return distanciaIndividual; }
-        public double getDistanciaComPairing() { return distanciaComPairing; }
-        public double getEconomiaKm() { return economiaKm; }
-        public double getPercentualEconomia() { return percentualEconomia; }
-        public int getTotalOrdens() { return totalOrdens; }
+        public List<PairOrdensTrabalhoDto> getPairsOtimizados() {
+            return pairsOtimizados;
+        }
+
+        public double getDistanciaIndividual() {
+            return distanciaIndividual;
+        }
+
+        public double getDistanciaComPairing() {
+            return distanciaComPairing;
+        }
+
+        public double getEconomiaKm() {
+            return economiaKm;
+        }
+
+        public double getPercentualEconomia() {
+            return percentualEconomia;
+        }
+
+        public int getTotalOrdens() {
+            return totalOrdens;
+        }
     }
 
-    public static class PairOrdensTrabalhDto {
-        private Long idOrdemEntrada;
-        private String codigoConteinerEntrada;
-        private Integer linhaDestEntrada;
-        private Integer colunaDestEntrada;
-        private TipoMovimentoPatio tipoMovimentoEntrada;
+    public static class PairOrdensTrabalhoDto {
+        private final Long idOrdemEntrada;
+        private final String codigoConteinerEntrada;
+        private final Integer linhaDestEntrada;
+        private final Integer colunaDestEntrada;
+        private final TipoMovimentoPatio tipoMovimentoEntrada;
+        private final Long idOrdemSaida;
+        private final String codigoConteinerSaida;
+        private final Integer linhaDestSaida;
+        private final Integer colunaDestSaida;
+        private final TipoMovimentoPatio tipoMovimentoSaida;
+        private final String blocoEntrada;
+        private final String blocoSaida;
+        private final double distanciaRetorno;
+        private final double pontuacao;
 
-        private Long idOrdemSaida;
-        private String codigoConteinerSaida;
-        private Integer linhaDestSaida;
-        private Integer colunaDestSaida;
-        private TipoMovimentoPatio tipoMovimentoSaida;
-
-        private String blocoEntrada;
-        private String blocoSaida;
-        private double distanciaRetorno;
-        private double pontuacao;
-
-        public PairOrdensTrabalhDto(
-                Long idOrdemEntrada,
-                String codigoConteinerEntrada,
-                Integer linhaDestEntrada,
-                Integer colunaDestEntrada,
-                TipoMovimentoPatio tipoMovimentoEntrada,
-
-                Long idOrdemSaida,
-                String codigoConteinerSaida,
-                Integer linhaDestSaida,
-                Integer colunaDestSaida,
-                TipoMovimentoPatio tipoMovimentoSaida,
-
-                String blocoEntrada,
-                String blocoSaida,
-                double distanciaRetorno,
-                double pontuacao) {
+        public PairOrdensTrabalhoDto(Long idOrdemEntrada,
+                                     String codigoConteinerEntrada,
+                                     Integer linhaDestEntrada,
+                                     Integer colunaDestEntrada,
+                                     TipoMovimentoPatio tipoMovimentoEntrada,
+                                     Long idOrdemSaida,
+                                     String codigoConteinerSaida,
+                                     Integer linhaDestSaida,
+                                     Integer colunaDestSaida,
+                                     TipoMovimentoPatio tipoMovimentoSaida,
+                                     String blocoEntrada,
+                                     String blocoSaida,
+                                     double distanciaRetorno,
+                                     double pontuacao) {
             this.idOrdemEntrada = idOrdemEntrada;
             this.codigoConteinerEntrada = codigoConteinerEntrada;
             this.linhaDestEntrada = linhaDestEntrada;
             this.colunaDestEntrada = colunaDestEntrada;
             this.tipoMovimentoEntrada = tipoMovimentoEntrada;
-
             this.idOrdemSaida = idOrdemSaida;
             this.codigoConteinerSaida = codigoConteinerSaida;
             this.linhaDestSaida = linhaDestSaida;
             this.colunaDestSaida = colunaDestSaida;
             this.tipoMovimentoSaida = tipoMovimentoSaida;
-
             this.blocoEntrada = blocoEntrada;
             this.blocoSaida = blocoSaida;
             this.distanciaRetorno = distanciaRetorno;
             this.pontuacao = pontuacao;
         }
 
-        public Long getIdOrdemEntrada() { return idOrdemEntrada; }
-        public String getCodigoConteinerEntrada() { return codigoConteinerEntrada; }
-        public Integer getLinhaDestEntrada() { return linhaDestEntrada; }
-        public Integer getColunaDestEntrada() { return colunaDestEntrada; }
-        public TipoMovimentoPatio getTipoMovimentoEntrada() { return tipoMovimentoEntrada; }
+        public Long getIdOrdemEntrada() {
+            return idOrdemEntrada;
+        }
 
-        public Long getIdOrdemSaida() { return idOrdemSaida; }
-        public String getCodigoConteinerSaida() { return codigoConteinerSaida; }
-        public Integer getLinhaDestSaida() { return linhaDestSaida; }
-        public Integer getColunaDestSaida() { return colunaDestSaida; }
-        public TipoMovimentoPatio getTipoMovimentoSaida() { return tipoMovimentoSaida; }
+        public String getCodigoConteinerEntrada() {
+            return codigoConteinerEntrada;
+        }
 
-        public String getBlocoEntrada() { return blocoEntrada; }
-        public String getBlocoSaida() { return blocoSaida; }
-        public double getDistanciaRetorno() { return distanciaRetorno; }
-        public double getPontuacao() { return pontuacao; }
+        public Integer getLinhaDestEntrada() {
+            return linhaDestEntrada;
+        }
+
+        public Integer getColunaDestEntrada() {
+            return colunaDestEntrada;
+        }
+
+        public TipoMovimentoPatio getTipoMovimentoEntrada() {
+            return tipoMovimentoEntrada;
+        }
+
+        public Long getIdOrdemSaida() {
+            return idOrdemSaida;
+        }
+
+        public String getCodigoConteinerSaida() {
+            return codigoConteinerSaida;
+        }
+
+        public Integer getLinhaDestSaida() {
+            return linhaDestSaida;
+        }
+
+        public Integer getColunaDestSaida() {
+            return colunaDestSaida;
+        }
+
+        public TipoMovimentoPatio getTipoMovimentoSaida() {
+            return tipoMovimentoSaida;
+        }
+
+        public String getBlocoEntrada() {
+            return blocoEntrada;
+        }
+
+        public String getBlocoSaida() {
+            return blocoSaida;
+        }
+
+        public double getDistanciaRetorno() {
+            return distanciaRetorno;
+        }
+
+        public double getPontuacao() {
+            return pontuacao;
+        }
     }
 }

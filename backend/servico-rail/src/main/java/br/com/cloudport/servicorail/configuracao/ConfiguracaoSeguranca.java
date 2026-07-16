@@ -42,7 +42,7 @@ public class ConfiguracaoSeguranca {
     private final String allowedOrigins;
 
     public ConfiguracaoSeguranca(@Value("${cloudport.security.jwt.secret}") String jwtSecret,
-                                 @Value("${cloudport.security.cors.allowed-origins:http://localhost:4200}") String allowedOrigins) {
+                                  @Value("${cloudport.security.cors.allowed-origins:http://localhost:4200}") String allowedOrigins) {
         this.jwtSecret = jwtSecret;
         this.allowedOrigins = allowedOrigins;
     }
@@ -109,8 +109,12 @@ public class ConfiguracaoSeguranca {
         }
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
-        configuration.setExposedHeaders(Collections.singletonList("Authorization"));
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "X-Correlation-Id"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "X-Correlation-Id"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

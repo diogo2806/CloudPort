@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -19,6 +20,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
+@ConditionalOnProperty(
+        name = "cloudport.modulo.yard.status-integracao",
+        havingValue = "http",
+        matchIfMissing = true)
 public class ClienteStatusPatio {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClienteStatusPatio.class);
@@ -30,11 +35,11 @@ public class ClienteStatusPatio {
     private final String fallbackOrientacao;
 
     public ClienteStatusPatio(RestTemplate restTemplate,
-                              @Value("${cloudport.integracoes.yard.base-url:http://localhost:8083}") String baseUrl,
-                              @Value("${cloudport.integracoes.yard.status-path:/yard/status}") String statusPath,
-                              IntegracaoDegradacaoHandler degradacaoHandler,
-                              @Value("${cloudport.integracoes.yard.fallback-orientacao:Consultar equipe de pátio para orientações manuais.}")
-                                      String fallbackOrientacao) {
+                               @Value("${cloudport.integracoes.yard.base-url:http://localhost:8083}") String baseUrl,
+                               @Value("${cloudport.integracoes.yard.status-path:/yard/status}") String statusPath,
+                               IntegracaoDegradacaoHandler degradacaoHandler,
+                               @Value("${cloudport.integracoes.yard.fallback-orientacao:Consultar equipe de pátio para orientações manuais.}")
+                                       String fallbackOrientacao) {
         this.restTemplate = restTemplate;
         this.baseUrl = baseUrl;
         this.statusPath = statusPath;

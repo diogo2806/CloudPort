@@ -91,20 +91,7 @@ MovimentoPatioConfirmado
 DivergenciaNavioPatioDetectada
 ```
 
-### 2. Fechar o ciclo de reserva no mapa real
-
-Já entregue: consulta de posições reais, rejeição de posição inexistente ou ocupada, rejeição de reserva ativa duplicada, remoção de posição textual artificial, consumo ao concluir ordem e cancelamento ao cancelar ordem.
-
-Ainda falta:
-
-1. Validar bloqueio, interdição e área permitida.
-2. Validar tipo de carga, peso, altura/camada e capacidade da pilha.
-3. Expirar reserva por prazo configurável.
-4. Cancelar reserva ao cancelar visita ou replanejar item.
-5. Persistir auditoria específica de reserva criada, consumida, cancelada e expirada.
-6. Aplicar replanejamento com reserva nova e compensação da reserva anterior.
-
-### 3. Work queues e cobertura operacional
+### 2. Work queues e cobertura operacional
 
 Já entregue: vínculo persistente `workQueueId`, endpoint `PATCH /yard/patio/work-queues/{id}/ordens`, auditoria de criação/status/POW/equipamento/vínculo/dispatch/reset/cancelamento e limite real no dispatch. O plano de guindastes também persiste porão, recurso de cais e `workQueueId` por alocação.
 
@@ -117,11 +104,11 @@ Ainda falta:
 5. Criar matriz oficial de transição de work instruction.
 6. Expor painel de job list por equipamento e drill-down completo.
 
-### 4. Replanejamento real
+### 3. Replanejamento real
 
-O scheduler não gera mais equipamentos, contêineres ou coordenadas aleatórias e exige dados operacionais reais. Falta conectar esse contrato ao replanejamento da visita, considerando ETA, ETB, ETD, cutoff, mapa, bloqueios, capacidade, dual-cycling e rehandle.
+O replanejamento já troca reservas usando outra posição real validada do Yard, cancela a reserva anterior e mantém o vínculo de compensação na mesma transação. Falta conectar o motor real de otimização ao contrato, considerando ETA, ETB, ETD, cutoff, mapa completo, dual-cycling, rehandle e disponibilidade de equipamentos.
 
-### 5. Contratos externos e EDI
+### 4. Contratos externos e EDI
 
 1. Proteger `/api/public/v1` por client/app.
 2. Implementar filtros, paginação, campos selecionáveis, `correlationId`, erro padronizado e OpenAPI.
@@ -129,18 +116,19 @@ O scheduler não gera mais equipamentos, contêineres ou coordenadas aleatórias
 4. Completar BAPLIE, COPRAR, COARRI e VERMAS com validação, rejeição, reprocessamento e auditoria.
 5. Separar eventos internos do monólito de eventos publicados para integrações externas.
 
-### 6. Testes e observabilidade
+### 5. Testes e observabilidade
 
 1. Testar o proxy de work queues com sucesso, retorno vazio legítimo e falha do Yard convertida em `503` enquanto o Yard permanecer externo.
 2. Validar o OpenAPI consolidado e ausência de rotas duplicadas.
 3. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ e todos os mapeamentos de controller.
 4. Criar testes de integração do crane plan com work queues reais do Yard e testes frontend do Quay Monitor.
 5. Expandir logs estruturados, métricas e tracing para Gate, Rail, Autenticação e Visibilidade durante a incorporação desses módulos.
+6. Criar teste de integração da reserva contra o endpoint real do Yard, cobrindo concorrência, expiração e restrições persistidas no PostgreSQL.
 
 ## P1
 
 1. Relatórios operacionais e exportação CSV/PDF.
-2. Completar permissões e auditoria de reservas, ordens, replanejamento, sincronização e prioridades.
+2. Completar permissões de reservas, ordens, replanejamento, sincronização e prioridades e a auditoria das ações operacionais ainda pendentes.
 3. Padronizar status entre Navio, Pátio, work queue e alertas.
 4. Substituir a sincronização periódica da projeção siderúrgica do cadastro canônico por evento interno.
 5. Criar matriz de dependências permitidas entre todos os módulos do monólito.
@@ -159,20 +147,18 @@ O scheduler não gera mais equipamentos, contêineres ou coordenadas aleatórias
 
 ## Critérios de aceite pendentes
 
-1. Impedir reserva bloqueada, sem capacidade ou incompatível com a carga.
-2. Expirar e auditar reservas automaticamente.
-3. Replanejar usando mapa e otimização real.
-4. Atualizar o Control Room por eventos, sem polling.
-5. Validar quay/berth/crane contra work queues, ordens e recursos reais do Yard.
-6. Padronizar, versionar, paginar e proteger contratos externos.
-7. Cobrir o fluxo por testes de service, controller, contrato e frontend.
-8. Expandir logs, métricas e tracing aos módulos ainda não incorporados.
-9. Exigir motivo e usuário autenticado nas ações aplicáveis.
-10. Diferenciar fila derivada, work queue persistente, work instruction, job list e exceção operacional.
-11. Manter uma única origem de API para o frontend após cada corte.
-12. Garantir que módulos incorporados não realizem chamadas HTTP entre si em cada novo corte.
-13. Retirar um deployment legado somente após paridade, dados, segurança, observabilidade e rollback validados.
-14. Revalidar que cada job, consumidor e comando de escrita execute em uma única instância durante cada novo corte.
+1. Replanejar usando mapa e otimização real.
+2. Atualizar o Control Room por eventos, sem polling.
+3. Validar quay/berth/crane contra work queues, ordens e recursos reais do Yard.
+4. Padronizar, versionar, paginar e proteger contratos externos.
+5. Cobrir o fluxo por testes de service, controller, contrato e frontend.
+6. Expandir logs, métricas e tracing aos módulos ainda não incorporados.
+7. Exigir motivo e usuário autenticado nas ações aplicáveis.
+8. Diferenciar fila derivada, work queue persistente, work instruction, job list e exceção operacional.
+9. Manter uma única origem de API para o frontend após cada corte.
+10. Garantir que módulos incorporados não realizem chamadas HTTP entre si em cada novo corte.
+11. Retirar um deployment legado somente após paridade, dados, segurança, observabilidade e rollback validados.
+12. Revalidar que cada job, consumidor e comando de escrita execute em uma única instância durante cada novo corte.
 
 ## Fora do escopo deste corte
 

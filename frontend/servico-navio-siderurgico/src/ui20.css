@@ -1,0 +1,22 @@
+.stream-health { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.message.warning-message { margin: 12px 0; border: 1px solid #fde68a; background: #fffbeb; color: #92400e; }
+.quay-metrics { margin-bottom: 16px; }
+.unsaved-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 8px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 900; }
+.plan-header-grid { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(150px, .7fr) minmax(260px, 1.5fr) auto; align-items: end; gap: 10px; margin-top: 14px; }
+.plan-actions { justify-content: flex-end; }
+.plan-allocation-list { display: grid; gap: 12px; margin: 14px 0; }
+.plan-allocation { padding: 14px; border: 1px solid #cbd5e1; border-radius: 12px; background: #fff; }
+.plan-allocation-title { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; margin-bottom: 12px; }
+.plan-allocation-title > span { overflow: hidden; color: #475569; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.plan-allocation-grid { display: grid; grid-template-columns: repeat(5, minmax(145px, 1fr)); gap: 9px; }
+.plan-validation { margin: 12px 0; padding: 12px 14px; border: 1px solid #fecaca; border-radius: 10px; background: #fef2f2; color: #991b1b; }
+.plan-validation ul { margin: 7px 0 0; padding-left: 20px; }
+.resource-editor { display: grid; grid-template-columns: repeat(4, minmax(145px, 1fr)) auto; align-items: end; gap: 9px; }
+.coverage-summary { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 8px; }
+.coverage-summary span { padding: 9px; border: 1px solid #e2e8f0; border-radius: 9px; background: #f8fafc; color: #64748b; font-size: 11px; }
+.coverage-summary b { display: block; margin-top: 3px; color: #0f172a; font-size: 13px; }
+.priority-editor { display: grid; grid-template-columns: minmax(170px, 220px) minmax(190px, 1fr) auto; align-items: end; gap: 10px; }
+.check-label { display: flex; align-items: center; min-height: 40px; gap: 8px; }
+.check-label input { width: auto; }
+@media (max-width: 1280px) { .plan-header-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .plan-allocation-grid { grid-template-columns: repeat(3, minmax(145px, 1fr)); } .resource-editor { grid-template-columns: repeat(2, minmax(145px, 1fr)); } }
+@media (max-width: 760px) { .stream-health, .plan-actions { justify-content: flex-start; } .plan-header-grid, .plan-allocation-grid, .resource-editor, .coverage-summary, .priority-editor { grid-template-columns: 1fr; } .plan-allocation-title { grid-template-columns: 1fr; } }

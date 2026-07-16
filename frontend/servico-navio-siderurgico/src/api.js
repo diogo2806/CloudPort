@@ -119,6 +119,35 @@ function isFormData(body) {
   return typeof FormData !== 'undefined' && body instanceof FormData;
 }
 
+function positiveId(value, label) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new TypeError(`${label} deve ser um identificador positivo.`);
+  return parsed;
+}
+
+function contractBody(value, label) {
+  if (!value || Array.isArray(value) || typeof value !== 'object') throw new TypeError(`${label} deve ser um objeto.`);
+  return { ...value };
+}
+
+function visitContract(value) {
+  const body = contractBody(value, 'A visita');
+  positiveId(body.navioId, 'navioId');
+  if (!String(body.codigoVisita ?? '').trim()) throw new TypeError('codigoVisita é obrigatório.');
+  return body;
+}
+
+function itemContract(value) {
+  const body = contractBody(value, 'O item da visita');
+  if (!String(body.tipoMovimento ?? '').trim()) throw new TypeError('tipoMovimento é obrigatório.');
+  if (!String(body.codigoLote ?? '').trim()) throw new TypeError('codigoLote é obrigatório.');
+  if (!String(body.produto ?? '').trim()) throw new TypeError('produto é obrigatório.');
+  if (!String(body.tipoCarga ?? '').trim()) throw new TypeError('tipoCarga é obrigatório.');
+  if (!(Number(body.quantidade) > 0)) throw new TypeError('quantidade deve ser maior que zero.');
+  if (!(Number(body.pesoTotalToneladas) > 0)) throw new TypeError('pesoTotalToneladas deve ser maior que zero.');
+  return body;
+}
+
 function commandBody(motivo, extra = {}) {
   let normalized = String(motivo ?? '').trim();
   if (!normalized && typeof window !== 'undefined' && typeof window.prompt === 'function') {
@@ -311,10 +340,21 @@ export function subscribeSse(path, handlers = {}) {
   };
 }
 
+async function optionalPlan(visitaId) {
+  try {
+    return await request(`/visitas-navio/${positiveId(visitaId, 'visitaId')}/plano-estiva`);
+  } catch (error) {
+    const message = String(error?.message ?? '').toLowerCase();
+    if ([400, 404].includes(error?.status) && message.includes('plano de estiva') && message.includes('nao encontrado')) return null;
+    throw error;
+  }
+}
+
 export const api = {
   autenticar: (login, senha) => request('/auth/login', { method: 'POST', body: { login, senha } }),
   listarNavios: () => request('/navios-siderurgicos'),
   listarVisitas: () => request('/visitas-navio'),
+  atualizarVisita: (visitaId, visita) => request(`/visitas-navio/${positiveId(visitaId, 'visitaId')}`, { method: 'PUT', body: visitContract(visita) }),
   alterarFaseVisita: (visitaId, fase, motivo) => {
     const comando = commandBody(motivo);
     return request(`/visitas-navio/${visitaId}/fase`, {
@@ -323,6 +363,10 @@ export const api = {
     });
   },
   listarItensVisita: (visitaId) => request(`/visitas-navio/${visitaId}/itens`),
+  atualizarItemVisita: (visitaId, itemId, item) => request(`/visitas-navio/${positiveId(visitaId, 'visitaId')}/itens/${positiveId(itemId, 'itemId')}`, { method: 'PUT', body: itemContract(item) }),
+  obterPlanoEstiva: (visitaId) => optionalPlan(visitaId),
+  validarPlanoEstiva: (visitaId, planoId) => request(`/visitas-navio/${positiveId(visitaId, 'visitaId')}/plano-estiva/${positiveId(planoId, 'planoId')}/validar`, { method: 'POST', body: {} }),
+  concluirPlanoEstiva: (visitaId, planoId) => request(`/visitas-navio/${positiveId(visitaId, 'visitaId')}/plano-estiva/${positiveId(planoId, 'planoId')}/concluir`, { method: 'POST', body: {} }),
   obterResumo: (visitaId) => request(`/visitas-navio/${visitaId}/resumo-operacional`),
   listarEventos: (visitaId) => request(`/visitas-navio/${visitaId}/eventos`),
   assinarControlRoom: (visitaId, handlers) => subscribeSse(`/visitas-navio/${visitaId}/stream`, handlers),

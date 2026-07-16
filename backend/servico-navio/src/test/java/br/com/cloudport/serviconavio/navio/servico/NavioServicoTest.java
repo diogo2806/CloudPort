@@ -5,13 +5,13 @@ import br.com.cloudport.serviconavio.navio.dto.CadastroNavioDTO;
 import br.com.cloudport.serviconavio.navio.dto.NavioDetalheDTO;
 import br.com.cloudport.serviconavio.navio.entidade.Navio;
 import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
+import java.math.BigDecimal;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.math.BigDecimal;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,17 +26,19 @@ class NavioServicoTest {
 
     private NavioRepositorio navioRepositorio;
     private SanitizadorEntrada sanitizadorEntrada;
+    private ApplicationEventPublisher eventPublisher;
     private NavioServico navioServico;
 
     @BeforeEach
     void preparar() {
         navioRepositorio = mock(NavioRepositorio.class);
         sanitizadorEntrada = mock(SanitizadorEntrada.class);
+        eventPublisher = mock(ApplicationEventPublisher.class);
         when(sanitizadorEntrada.limparTextoObrigatorio(anyString(), anyString()))
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
         when(sanitizadorEntrada.limparTexto(anyString()))
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
-        navioServico = new NavioServico(navioRepositorio, sanitizadorEntrada);
+        navioServico = new NavioServico(navioRepositorio, sanitizadorEntrada, eventPublisher);
     }
 
     private CadastroNavioDTO cadastroValido() {
@@ -72,6 +74,7 @@ class NavioServicoTest {
         assertThat(salvo.getLoaMetros()).isEqualByComparingTo("294.00");
         assertThat(salvo.getCaladoMaximoMetros()).isEqualByComparingTo("14.50");
         assertThat(salvo.getCallSign()).isEqualTo("PWXY");
+        verify(eventPublisher).publishEvent(any());
     }
 
     @Test
@@ -82,6 +85,7 @@ class NavioServicoTest {
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(navioRepositorio, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

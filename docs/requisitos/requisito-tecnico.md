@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-16 após auditoria da branch main.
+Status: atualizado em 2026-07-16 após implementação do SEC10.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -60,22 +60,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueuePatioControlador.java` | `/pow`, `/equipamento`, `/dispatch`, `/reset`, `/cancelar` | Os contratos antigos continuam acessíveis e contornam parte das validações do fluxo novo. | Fazer os contratos compatíveis delegarem ao serviço único ou removê-los após migração dos consumidores, sem manter dois caminhos de escrita. |
 | `frontend/servico-navio-siderurgico/src/api.js` | métodos de work queue e work instruction | O frontend chama somente os contratos legados para recurso, dispatch, reset e cancelamento. | Migrar para `/recursos-operacionais`, transições da matriz, drill-down e job lists por equipamento. |
 
-## 3. Autenticação e autorização
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| SEC10 | Conectar a autenticação por cliente da API pública à cadeia de segurança do runtime geral. | Requisições válidas a `/api/public/v1/**` autenticam por `X-CloudPort-Client-Id` e `X-CloudPort-Client-Secret` no `cloudport-runtime`; credenciais inválidas são rejeitadas e os cabeçalhos necessários são aceitos pelo CORS. | ⬜ Pendente |
-
-### SEC10 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/configuracao/ConfiguracaoSegurancaRuntime.java` | `securityFilterChain()` | A cadeia adiciona somente `InternalServiceAuthenticationFilter`; o filtro de clientes externos não é registrado antes da decisão de autorização. | Injetar `PublicApiClientAuthenticationFilter`, posicioná-lo explicitamente antes do `BearerTokenAuthenticationFilter` e autorizar a role externa somente nas rotas públicas previstas. |
-| `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/configuracao/ConfiguracaoSegurancaRuntime.java` | `corsConfigurationSource()` | Os cabeçalhos `X-CloudPort-Client-Id` e `X-CloudPort-Client-Secret` não estão na lista permitida. | Incluir os cabeçalhos de autenticação pública e expor apenas os cabeçalhos de resposta necessários. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/configuracao/PublicApiClientAuthenticationFilter.java` | `doFilterInternal()` | O filtro implementa validação e cria `ROLE_INTEGRACAO_EXTERNA`, mas sua existência como componente não garante execução antes da cadeia central. | Manter uma única instância controlada pela configuração central e limpar o contexto de segurança ao final ou em falha conforme o ciclo do filtro. |
-| `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/CloudPortRuntimeApplication.java` | filtros excluídos do scan | As configurações standalone são excluídas, portanto a proteção declarada no módulo não substitui a integração explícita com o runtime. | Preservar a exclusão das cadeias duplicadas e registrar somente o filtro necessário na cadeia única. |
-
-## 4. Eventos, integrações e processamento assíncrono
+## 3. Eventos, integrações e processamento assíncrono
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
@@ -111,7 +96,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueueOperacaoServico.java` | `transicionar()` e mutações de recursos | As mudanças persistem e auditam, mas não formam o fluxo interno principal de atualização do módulo Navio Siderúrgico. | Publicar eventos internos após commit com identidade e versão; consumidores devem ser idempotentes. |
 | `backend/servico-navio/src/main/java/br/com/cloudport/serviconavio` | atualização do cadastro canônico | Alterações do domínio não disparam um contrato interno consumido pela projeção siderúrgica. | Publicar evento interno versionado contendo o identificador canônico e os campos alterados. |
 
-## 5. Interface e navegação operacional
+## 4. Interface e navegação operacional
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

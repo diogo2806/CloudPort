@@ -3,7 +3,7 @@ package br.com.cloudport.servicoyard.patio.listatrabalho.dto;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 
-public class AtualizacaoPrioridadeOrdemTrabalhoDto {
+public class AtualizacaoPrioridadeOrdemTrabalhoDto extends ComandoMotivadoDto {
 
     @NotNull
     @Min(0)

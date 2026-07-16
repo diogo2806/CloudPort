@@ -35,7 +35,7 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 
 ## Control Room implementado
 
-1. Criar painel Angular Navio + Patio com filtros, movimentos iminentes, filas, reservas, ordens, alertas e excecoes.
+1. Criar painel Navio + Patio com filtros, movimentos iminentes, filas, reservas, ordens, alertas e excecoes.
 2. Permitir gerar reservas, gerar ordens, sincronizar, replanejar, priorizar, suspender e retomar ordens.
 3. Carregar e renderizar work queues persistentes com job list expansivel.
 4. Permitir ativar/desativar fila, editar POW/pool/equipamento, executar dispatch, resetar e cancelar work instruction.
@@ -132,13 +132,17 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 24. Publicar as migracoes de `servico-navio` em `cloudport/migrations/navio` dentro do proprio artefato Maven.
 25. Publicar as migracoes de `servico-navio-siderurgico` em `cloudport/migrations/navio-siderurgico` dentro do proprio artefato Maven.
 26. Remover do runtime a copia direta de recursos a partir dos diretorios irmaos dos dois servicos.
-27. Incorporar o frontend Angular do Control Room na imagem do runtime unificado.
+27. Incorporar o frontend React do Control Room na imagem do runtime unificado.
 28. Expor `GET /assets/configuracao.json` dinamicamente para configurar API e origens confiaveis sem reconstruir o frontend.
 29. Criar Compose com perfis `monolito` e `legado` para corte, comparacao e retorno controlado.
 30. Usar no Compose uma unica instancia PostgreSQL com os schemas e historicos Flyway preservados.
 31. Apontar a configuracao local do portal para o Control Room servido pelo runtime unificado em `8086`.
 32. Validar no CI a sintaxe do Compose e a construcao completa da imagem Docker com backend e frontend.
 33. Documentar a troca de perfil, a preservacao do volume e os cuidados para evitar jobs duplicados.
+34. Corrigir o Dockerfile para copiar a saida `dist` gerada pelo Vite/React para o JAR unificado.
+35. Criar overlay de smoke com PostgreSQL e mock do Yard que exige `X-CloudPort-Service-Key`.
+36. Criar smoke test da imagem iniciada pelo Compose, com credenciais temporarias e limpeza automatica do ambiente.
+37. Validar no smoke frontend React, configuracao dinamica, bloqueio `401`, JWT, persistencia, cadastro canonico local, visita e chamada autenticada ao Yard.
 
 ## Documentacao da migracao para monolito modular implementada
 
@@ -201,7 +205,7 @@ GET   /api/v1/visibilidade/conteiners/buscar
 
 ## Testes implementados
 
-1. Testes de contrato Angular para work queues, job list, dispatch, reset e cancelamento.
+1. Testes de contrato do Control Room para work queues, job list, dispatch, reset e cancelamento.
 2. Testes de componente para filtros, totalizacao, expansao e acoes operacionais.
 3. Testes do scheduler com dados reais, quantidades inconsistentes, conflito no mesmo berco e simultaneidade em bercos diferentes.
 4. Teste do contrato de dispatch atualizado no componente.
@@ -217,6 +221,7 @@ GET   /api/v1/visibilidade/conteiners/buscar
 14. Testes de preservacao de status na atribuicao de berco e criacao da projecao de navio.
 15. Testes do throughput real do gate e da ausencia de tempo medio inventado sem ciclo completo.
 16. Teste de inicializacao conjunta dos controllers para impedir rotas ambiguas.
+17. Smoke do Compose com frontend, configuracao dinamica, seguranca, persistencia e integracao autenticada com o Yard.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -238,6 +243,7 @@ GET   /api/v1/visibilidade/conteiners/buscar
 16. Imagem unificada com frontend incorporado, configuracao dinamica e Compose de transicao entre perfis.
 17. Definicao e documentacao do monolito modular como arquitetura alvo do CloudPort.
 18. Rotas unicas e metricas baseadas em eventos reais no servico de Visibilidade.
+19. Smoke automatizado da imagem unificada com autenticacao e conexao ao Yard.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

@@ -85,11 +85,25 @@ jobs:
         run: npm run build
 
   deployment-navio:
-    name: Deploy unificado de Navio
+    name: Smoke do deploy unificado de Navio
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Validar Docker Compose
-        run: docker compose -f deploy/navio-monolito/docker-compose.yml --profile monolito config
-      - name: Construir imagem do runtime unificado
-        run: docker build -f backend/cloudport-monolito-navio/Dockerfile -t cloudport-monolito-navio:ci .
+        run: |
+          docker compose -f deploy/navio-monolito/docker-compose.yml --profile monolito config
+          SMOKE_JWT_SECRET="$(openssl rand -hex 32)" \
+          SMOKE_SERVICE_KEY="$(openssl rand -hex 24)" \
+          docker compose \
+            -f deploy/navio-monolito/docker-compose.yml \
+            -f deploy/navio-monolito/docker-compose.smoke.yml \
+            --profile monolito config
+      - name: Executar smoke test completo
+        run: bash deploy/navio-monolito/smoke-test.sh
+      - name: Publicar diagnóstico do smoke
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-navio-diagnostico
+          path: /tmp/cloudport-smoke-status.txt
+          if-no-files-found: error

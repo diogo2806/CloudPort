@@ -116,8 +116,18 @@ public class ConfiguracaoSeguranca {
                 .collect(Collectors.toList());
         configuration.setAllowedOrigins(origins.isEmpty() ? Collections.singletonList("http://localhost:4201") : origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Correlation-Id"));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "X-Correlation-Id"));
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "X-Correlation-Id",
+                "Last-Event-ID"
+        ));
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "X-Correlation-Id",
+                "Content-Disposition"
+        ));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

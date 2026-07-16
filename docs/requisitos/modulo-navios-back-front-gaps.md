@@ -25,6 +25,7 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 5. Integrar o motor real de otimização ao endpoint de replanejamento da visita.
 6. Separar em `/filas` e `/sem-cobertura` as causas sem fila, sem POW, sem equipamento e sem job list.
 7. Evoluir o relatório integrado com produtividade, divergências detalhadas, planejado x realizado e exportação.
+8. Consumir no frontend os contratos de quay/berth/crane, permitindo consultar o monitor, editar/publicar o plano e acompanhar a produtividade do cais.
 
 ## Pendências do Control Room
 
@@ -32,7 +33,7 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 2. Criar drill-down da work instruction com eventos, auditoria, divergências, reserva, item de navio e movimento de pátio.
 3. Diferenciar visualmente sem fila, sem POW, sem equipamento, sem job list, posição inválida, reserva bloqueada e divergência Navio x Pátio.
 4. Criar painel de CHE/job list por equipamento.
-5. Criar Quay Monitor quando os contratos de berth/crane estiverem disponíveis.
+5. Criar a tela de Quay Monitor consumindo os contratos de berth/crane, com linha do tempo, alertas, progresso, MPH e ETC por guindaste.
 6. Expandir para os demais backends o contrato de erro com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp já aplicado no `servico-visibilidade`.
 7. Criar e2e para login/SSO, job list, dispatch, reset, cancelamento e indisponibilidade do Yard.
 
@@ -90,45 +91,24 @@ MovimentoPatioConfirmado
 DivergenciaNavioPatioDetectada
 ```
 
-### 2. Fechar o ciclo de reserva no mapa real
+### 2. Work queues e cobertura operacional
 
-Já entregue: consulta de posições reais, rejeição de posição inexistente ou ocupada, rejeição de reserva ativa duplicada, remoção de posição textual artificial, consumo ao concluir ordem e cancelamento ao cancelar ordem.
-
-Ainda falta:
-
-1. Validar bloqueio, interdição e área permitida.
-2. Validar tipo de carga, peso, altura/camada e capacidade da pilha.
-3. Expirar reserva por prazo configurável.
-4. Cancelar reserva ao cancelar visita ou replanejar item.
-5. Persistir auditoria específica de reserva criada, consumida, cancelada e expirada.
-6. Aplicar replanejamento com reserva nova e compensação da reserva anterior.
-
-### 3. Work queues e cobertura operacional
-
-Já entregue: vínculo persistente `workQueueId`, endpoint `PATCH /yard/patio/work-queues/{id}/ordens`, auditoria de criação/status/POW/equipamento/vínculo/dispatch/reset/cancelamento e limite real no dispatch.
+Já entregue: vínculo persistente `workQueueId`, endpoint `PATCH /yard/patio/work-queues/{id}/ordens`, auditoria de criação/status/POW/equipamento/vínculo/dispatch/reset/cancelamento e limite real no dispatch. O plano de guindastes também persiste porão, recurso de cais e `workQueueId` por alocação.
 
 Ainda falta:
 
 1. Auditar suspensão, retomada, bloqueio e conclusão.
-2. Associar work queue a porão, plano de guindaste e recurso de cais.
+2. Validar no Yard a existência, cobertura e compatibilidade da work queue informada no plano de guindastes.
 3. Associar fila a CHE real.
 4. Auditar prioridade de fetch/busca separadamente da prioridade operacional.
 5. Criar matriz oficial de transição de work instruction.
 6. Expor painel de job list por equipamento e drill-down completo.
 
-### 4. Replanejamento real
+### 3. Replanejamento real
 
-O scheduler não gera mais equipamentos, contêineres ou coordenadas aleatórias e exige dados operacionais reais. Falta conectar esse contrato ao replanejamento da visita, considerando ETA, ETB, ETD, cutoff, mapa, bloqueios, capacidade, dual-cycling e rehandle.
+O replanejamento já troca reservas usando posições reais validadas do Yard e compensa a reserva anterior de forma transacional. Falta conectar o motor real de otimização ao contrato, considerando ETA, ETB, ETD, cutoff, mapa completo, dual-cycling, rehandle e disponibilidade de equipamentos.
 
-### 5. Quay/berth/crane
-
-```text
-GET  /visitas-navio/{id}/quay-monitor
-POST /visitas-navio/{id}/crane-plan
-GET  /visitas-navio/{id}/produtividade-cais
-```
-
-### 6. Contratos externos e EDI
+### 4. Contratos externos e EDI
 
 1. Proteger `/api/public/v1` por client/app.
 2. Implementar filtros, paginação, campos selecionáveis, `correlationId`, erro padronizado e OpenAPI.
@@ -136,21 +116,22 @@ GET  /visitas-navio/{id}/produtividade-cais
 4. Completar BAPLIE, COPRAR, COARRI e VERMAS com validação, rejeição, reprocessamento e auditoria.
 5. Separar eventos internos do monólito de eventos publicados para integrações externas.
 
-### 7. Testes e observabilidade
+### 5. Testes e observabilidade
 
 1. Testar o proxy de work queues com sucesso, retorno vazio legítimo e falha do Yard convertida em `503` enquanto o Yard permanecer externo.
 2. Criar testes de contrato entre os módulos Navio Siderúrgico, Yard e Navio, cobrindo chamada local no monólito e adaptadores HTTP legados com `X-CloudPort-Service-Key`.
 3. Testar vínculo `workQueueId`, limite de dispatch, auditoria e autorização por perfil.
-4. Testar reserva contra mapa real: inexistente, ocupada, já reservada e mapa vazio.
+4. Criar teste de integração da reserva contra o endpoint real do Yard, cobrindo concorrência e restrições persistidas no PostgreSQL.
 5. Criar e2e do fluxo operacional completo.
 6. Adicionar logs estruturados, métricas e tracing com módulo, visita, item, reserva, ordem, work queue e `correlationId`.
 7. Validar o OpenAPI consolidado e ausência de rotas duplicadas.
 8. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ e todos os mapeamentos de controller.
+9. Criar testes de integração do crane plan com work queues reais do Yard e testes frontend do Quay Monitor.
 
 ## P1
 
 1. Relatórios operacionais e exportação CSV/PDF.
-2. Completar permissões e auditoria de reservas, ordens, replanejamento, sincronização e prioridades.
+2. Completar permissões de reservas, ordens, replanejamento, sincronização e prioridades.
 3. Padronizar status entre Navio, Pátio, work queue e alertas.
 4. Substituir a sincronização periódica da projeção siderúrgica do cadastro canônico por evento interno.
 5. Criar matriz de dependências permitidas entre todos os módulos do monólito.
@@ -169,20 +150,18 @@ GET  /visitas-navio/{id}/produtividade-cais
 
 ## Critérios de aceite pendentes
 
-1. Impedir reserva bloqueada, sem capacidade ou incompatível com a carga.
-2. Expirar e auditar reservas automaticamente.
-3. Replanejar usando mapa e otimização real.
-4. Atualizar o Control Room por eventos, sem polling.
-5. Integrar quay/berth/crane às filas e ordens.
-6. Padronizar, versionar, paginar e proteger contratos externos.
-7. Cobrir o fluxo por testes de service, controller, contrato e frontend.
-8. Rastrear o fluxo por logs, métricas e tracing.
-9. Exigir motivo e usuário autenticado nas ações aplicáveis.
-10. Diferenciar fila derivada, work queue persistente, work instruction, job list e exceção operacional.
-11. Manter uma única origem de API para o frontend após cada corte.
-12. Garantir que módulos incorporados não realizem chamadas HTTP entre si em cada novo corte.
-13. Retirar um deployment legado somente após paridade, dados, segurança, observabilidade e rollback validados.
-14. Executar cada job, consumidor e comando de escrita em uma única instância durante cada novo corte.
+1. Replanejar usando mapa e otimização real.
+2. Atualizar o Control Room por eventos, sem polling.
+3. Validar quay/berth/crane contra work queues, ordens e recursos reais do Yard.
+4. Padronizar, versionar, paginar e proteger contratos externos.
+5. Cobrir o fluxo por testes de service, controller, contrato e frontend.
+6. Rastrear o fluxo por logs, métricas e tracing.
+7. Exigir motivo e usuário autenticado nas ações aplicáveis.
+8. Diferenciar fila derivada, work queue persistente, work instruction, job list e exceção operacional.
+9. Manter uma única origem de API para o frontend após cada corte.
+10. Garantir que módulos incorporados não realizem chamadas HTTP entre si em cada novo corte.
+11. Retirar um deployment legado somente após paridade, dados, segurança, observabilidade e rollback validados.
+12. Executar cada job, consumidor e comando de escrita em uma única instância durante cada novo corte.
 
 ## Fora do escopo deste corte
 

@@ -1,20 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.18</version>
-        <relativePath/>
+        <groupId>br.com.cloudport</groupId>
+        <artifactId>cloudport-navio-modules</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../cloudport-navio-modules/pom.xml</relativePath>
     </parent>
-    <groupId>br.com.cloudport</groupId>
+
     <artifactId>servico-navio-siderurgico</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>servico-navio-siderurgico</name>
-    <description>Servico de operacoes de navio siderurgico</description>
+    <description>Módulo de operações de navio siderúrgico</description>
     <properties>
-        <java.version>17</java.version>
         <frontend.working.dir>${project.basedir}/../../frontend/servico-navio-siderurgico</frontend.working.dir>
         <frontend.output.dir>${frontend.working.dir}/dist/servico-navio-siderurgico</frontend.output.dir>
         <spring-boot.repackage.skip>false</spring-boot.repackage.skip>
@@ -124,29 +123,19 @@
                             <execution>
                                 <id>install-node-and-npm</id>
                                 <phase>generate-resources</phase>
-                                <goals>
-                                    <goal>install-node-and-npm</goal>
-                                </goals>
+                                <goals><goal>install-node-and-npm</goal></goals>
                             </execution>
                             <execution>
                                 <id>npm-install</id>
                                 <phase>generate-resources</phase>
-                                <goals>
-                                    <goal>npm</goal>
-                                </goals>
-                                <configuration>
-                                    <arguments>install</arguments>
-                                </configuration>
+                                <goals><goal>npm</goal></goals>
+                                <configuration><arguments>install</arguments></configuration>
                             </execution>
                             <execution>
                                 <id>npm-build</id>
                                 <phase>generate-resources</phase>
-                                <goals>
-                                    <goal>npm</goal>
-                                </goals>
-                                <configuration>
-                                    <arguments>run build</arguments>
-                                </configuration>
+                                <goals><goal>npm</goal></goals>
+                                <configuration><arguments>run build</arguments></configuration>
                             </execution>
                         </executions>
                     </plugin>
@@ -156,9 +145,7 @@
                             <execution>
                                 <id>copiar-frontend-react</id>
                                 <phase>process-resources</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
+                                <goals><goal>copy-resources</goal></goals>
                                 <configuration>
                                     <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
                                     <resources>

@@ -1,55 +1,92 @@
-name: cloudport-navio
+name: cloudport-monolito
 
 services:
-  postgres-navio:
+  postgres-cloudport:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_NAVIO_DATABASE:-cloudport_navio_runtime}
-      POSTGRES_USER: ${POSTGRES_NAVIO_USERNAME:-cloudport}
-      POSTGRES_PASSWORD: ${POSTGRES_NAVIO_PASSWORD:-cloudport-local}
+      POSTGRES_DB: ${POSTGRES_CLOUDPORT_DATABASE:-cloudport_runtime}
+      POSTGRES_USER: ${POSTGRES_CLOUDPORT_USERNAME:-cloudport}
+      POSTGRES_PASSWORD: ${POSTGRES_CLOUDPORT_PASSWORD:-cloudport-local}
     volumes:
-      - cloudport-navio-postgres:/var/lib/postgresql/data
+      - cloudport-postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
-    networks:
-      - cloudport-navio
+    networks: [cloudport]
 
-  cloudport-monolito-navio:
+  rabbitmq-cloudport:
+    image: rabbitmq:3.13-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${SPRING_RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${SPRING_RABBITMQ_PASSWORD:-guest}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [cloudport]
+
+  redis-cloudport:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - cloudport-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [cloudport]
+
+  cloudport-monolito:
     profiles: ["monolito"]
     build:
       context: ../..
       dockerfile: backend/cloudport-monolito-navio/Dockerfile
     restart: unless-stopped
     environment:
-      MONOLITO_NAVIO_SERVER_PORT: 8086
-      MONOLITO_NAVIO_DB_URL: jdbc:postgresql://postgres-navio:5432/${POSTGRES_NAVIO_DATABASE:-cloudport_navio_runtime}
-      MONOLITO_NAVIO_DB_USERNAME: ${POSTGRES_NAVIO_USERNAME:-cloudport}
-      MONOLITO_NAVIO_DB_PASSWORD: ${POSTGRES_NAVIO_PASSWORD:-cloudport-local}
+      CLOUDPORT_SERVER_PORT: 8086
+      CLOUDPORT_DB_URL: jdbc:postgresql://postgres-cloudport:5432/${POSTGRES_CLOUDPORT_DATABASE:-cloudport_runtime}
+      CLOUDPORT_DB_USERNAME: ${POSTGRES_CLOUDPORT_USERNAME:-cloudport}
+      CLOUDPORT_DB_PASSWORD: ${POSTGRES_CLOUDPORT_PASSWORD:-cloudport-local}
       MONOLITO_NAVIO_SCHEMA: ${MONOLITO_NAVIO_SCHEMA:-cloudport_navio}
       MONOLITO_SIDERURGICO_SCHEMA: ${MONOLITO_SIDERURGICO_SCHEMA:-cloudport_siderurgico}
+      MONOLITO_YARD_SCHEMA: ${MONOLITO_YARD_SCHEMA:-cloudport_yard}
+      MONOLITO_GATE_SCHEMA: ${MONOLITO_GATE_SCHEMA:-cloudport_gate}
+      MONOLITO_RAIL_SCHEMA: ${MONOLITO_RAIL_SCHEMA:-cloudport_rail}
+      MONOLITO_AUTENTICACAO_SCHEMA: ${MONOLITO_AUTENTICACAO_SCHEMA:-cloudport_autenticacao}
+      MONOLITO_VISIBILIDADE_SCHEMA: ${MONOLITO_VISIBILIDADE_SCHEMA:-cloudport_visibilidade}
       CLOUDPORT_WRITES_ENABLED: "true"
       CLOUDPORT_JOBS_ENABLED: "true"
-      YARD_SERVICE_URL: ${YARD_SERVICE_URL:-http://host.docker.internal:8081}
+      CLOUDPORT_CONSUMERS_ENABLED: "true"
+      SPRING_RABBITMQ_HOST: rabbitmq-cloudport
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${SPRING_RABBITMQ_USERNAME:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${SPRING_RABBITMQ_PASSWORD:-guest}
+      SPRING_REDIS_HOST: redis-cloudport
+      SPRING_REDIS_PORT: 6379
       YARD_RECONCILIACAO_MS: ${YARD_RECONCILIACAO_MS:-60000}
       NAVIO_SINCRONIZACAO_MS: ${NAVIO_SINCRONIZACAO_MS:-300000}
-      JWT_SECRET: ${JWT_SECRET:-cloudport-local-jwt-secret-with-32-bytes}
+      JWT_SECRET: ${JWT_SECRET:-cloudport-local-jwt-secret-with-at-least-32-bytes}
       CLOUDPORT_INTERNAL_SERVICE_KEY: ${CLOUDPORT_INTERNAL_SERVICE_KEY:-cloudport-local-service-key}
       SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:8086}
       CONTROL_ROOM_BASE_API_URL: ${CONTROL_ROOM_BASE_API_URL:-}
       CONTROL_ROOM_TRUSTED_PARENT_ORIGINS: ${CONTROL_ROOM_TRUSTED_PARENT_ORIGINS:-http://localhost:4200}
     ports:
-      - "${MONOLITO_NAVIO_PUBLIC_PORT:-8086}:8086"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "${CLOUDPORT_PUBLIC_PORT:-8086}:8086"
     depends_on:
-      postgres-navio:
+      postgres-cloudport:
         condition: service_healthy
-    networks:
-      - cloudport-navio
+      rabbitmq-cloudport:
+        condition: service_healthy
+      redis-cloudport:
+        condition: service_healthy
+    networks: [cloudport]
 
   servico-navio:
     profiles: ["legado"]
@@ -59,21 +96,22 @@ services:
     restart: unless-stopped
     environment:
       NAVIO_SERVER_PORT: 8084
-      NAVIO_DB_URL: jdbc:postgresql://postgres-navio:5432/${POSTGRES_NAVIO_DATABASE:-cloudport_navio_runtime}
-      NAVIO_DB_USERNAME: ${POSTGRES_NAVIO_USERNAME:-cloudport}
-      NAVIO_DB_PASSWORD: ${POSTGRES_NAVIO_PASSWORD:-cloudport-local}
+      NAVIO_DB_URL: jdbc:postgresql://postgres-cloudport:5432/${POSTGRES_CLOUDPORT_DATABASE:-cloudport_runtime}
+      NAVIO_DB_USERNAME: ${POSTGRES_CLOUDPORT_USERNAME:-cloudport}
+      NAVIO_DB_PASSWORD: ${POSTGRES_CLOUDPORT_PASSWORD:-cloudport-local}
       NAVIO_FLYWAY_SCHEMA: ${MONOLITO_NAVIO_SCHEMA:-cloudport_navio}
       CLOUDPORT_WRITES_ENABLED: ${LEGACY_NAVIO_WRITES_ENABLED:-false}
-      JWT_SECRET: ${JWT_SECRET:-cloudport-local-jwt-secret-with-32-bytes}
+      CLOUDPORT_JOBS_ENABLED: ${LEGACY_NAVIO_JOBS_ENABLED:-false}
+      CLOUDPORT_CONSUMERS_ENABLED: ${LEGACY_NAVIO_CONSUMERS_ENABLED:-false}
+      JWT_SECRET: ${JWT_SECRET:-cloudport-local-jwt-secret-with-at-least-32-bytes}
       CLOUDPORT_INTERNAL_SERVICE_KEY: ${CLOUDPORT_INTERNAL_SERVICE_KEY:-cloudport-local-service-key}
       SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:4201}
     ports:
       - "${NAVIO_PUBLIC_PORT:-8084}:8084"
     depends_on:
-      postgres-navio:
+      postgres-cloudport:
         condition: service_healthy
-    networks:
-      - cloudport-navio
+    networks: [cloudport]
 
   servico-navio-siderurgico:
     profiles: ["legado"]
@@ -83,17 +121,16 @@ services:
     restart: unless-stopped
     environment:
       SIDERURGICO_SERVER_PORT: 8085
-      SIDERURGICO_DB_URL: jdbc:postgresql://postgres-navio:5432/${POSTGRES_NAVIO_DATABASE:-cloudport_navio_runtime}
-      SIDERURGICO_DB_USERNAME: ${POSTGRES_NAVIO_USERNAME:-cloudport}
-      SIDERURGICO_DB_PASSWORD: ${POSTGRES_NAVIO_PASSWORD:-cloudport-local}
+      SIDERURGICO_DB_URL: jdbc:postgresql://postgres-cloudport:5432/${POSTGRES_CLOUDPORT_DATABASE:-cloudport_runtime}
+      SIDERURGICO_DB_USERNAME: ${POSTGRES_CLOUDPORT_USERNAME:-cloudport}
+      SIDERURGICO_DB_PASSWORD: ${POSTGRES_CLOUDPORT_PASSWORD:-cloudport-local}
       SIDERURGICO_FLYWAY_SCHEMA: ${MONOLITO_SIDERURGICO_SCHEMA:-cloudport_siderurgico}
       CLOUDPORT_WRITES_ENABLED: ${LEGACY_NAVIO_WRITES_ENABLED:-false}
       CLOUDPORT_JOBS_ENABLED: ${LEGACY_NAVIO_JOBS_ENABLED:-false}
+      CLOUDPORT_CONSUMERS_ENABLED: ${LEGACY_NAVIO_CONSUMERS_ENABLED:-false}
       NAVIO_SERVICE_URL: http://servico-navio:8084
       YARD_SERVICE_URL: ${YARD_SERVICE_URL:-http://host.docker.internal:8081}
-      YARD_RECONCILIACAO_MS: ${YARD_RECONCILIACAO_MS:-60000}
-      NAVIO_SINCRONIZACAO_MS: ${NAVIO_SINCRONIZACAO_MS:-300000}
-      JWT_SECRET: ${JWT_SECRET:-cloudport-local-jwt-secret-with-32-bytes}
+      JWT_SECRET: ${JWT_SECRET:-cloudport-local-jwt-secret-with-at-least-32-bytes}
       CLOUDPORT_INTERNAL_SERVICE_KEY: ${CLOUDPORT_INTERNAL_SERVICE_KEY:-cloudport-local-service-key}
       SIDERURGICO_SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:4201}
     ports:
@@ -101,16 +138,16 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      postgres-navio:
+      postgres-cloudport:
         condition: service_healthy
       servico-navio:
         condition: service_started
-    networks:
-      - cloudport-navio
+    networks: [cloudport]
 
 volumes:
-  cloudport-navio-postgres:
+  cloudport-postgres:
+  cloudport-redis:
 
 networks:
-  cloudport-navio:
-    name: cloudport-navio
+  cloudport:
+    name: cloudport

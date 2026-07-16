@@ -1,52 +1,78 @@
-# Deploy do runtime unificado de Navio
+# Deploy do monólito modular CloudPort
 
-Este Compose permite executar Navio e Navio Siderurgico no runtime `cloudport-monolito-navio` ou, para comparacao e rollback em desenvolvimento/homologacao, nos dois deployments legados.
+Este Compose executa o runtime `cloudport-monolito`, com Navio, Navio Siderúrgico, Yard, Gate, Rail, Autenticação e Visibilidade no mesmo processo. O diretório mantém o nome histórico para não quebrar pipelines e rollback.
 
-## Runtime unificado
+## Runtime consolidado
 
-Execute a partir da raiz do repositorio:
+A partir da raiz:
 
 ```bash
-docker compose -f deploy/navio-monolito/docker-compose.yml --profile monolito up --build
+docker compose \
+  -f deploy/navio-monolito/docker-compose.yml \
+  --profile monolito \
+  up -d --build
 ```
 
-O Control Room e as APIs ficam na mesma origem, por padrao em `http://localhost:8086`. O portal principal deve configurar `navioControlRoomUrl` com essa origem.
+As APIs e o Control Room ficam na mesma origem, por padrão `http://localhost:8086`.
 
-O frontend incorporado recebe sua configuracao em tempo de execucao por `GET /assets/configuracao.json`. Configure as origens autorizadas do portal por `CONTROL_ROOM_TRUSTED_PARENT_ORIGINS` e o CORS do backend por `SECURITY_CORS_ALLOWED_ORIGINS`.
+O ambiente inclui:
 
-A conexao unica usa os schemas `cloudport_navio` e `cloudport_siderurgico`, mantendo historicos Flyway independentes. Defina as variaveis de banco, JWT, credencial interna e URL do Yard no ambiente antes de usar fora do desenvolvimento local.
+- PostgreSQL 16;
+- RabbitMQ;
+- Redis;
+- um JAR Spring Boot com os sete módulos;
+- frontend React incorporado.
+
+A conexão PostgreSQL preserva um schema e um histórico Flyway por módulo. Configure banco, JWT, RabbitMQ, Redis e origens CORS antes de usar fora do desenvolvimento local.
 
 ## Smoke automatizado
-
-Execute a partir da raiz do repositorio:
 
 ```bash
 bash deploy/navio-monolito/smoke-test.sh
 ```
 
-O teste cria um ambiente descartavel com PostgreSQL, runtime unificado e um mock autenticado do Yard. Ele valida:
+O smoke cria um ambiente descartável e valida:
 
-1. construcao e inicializacao da imagem com o frontend React incorporado;
-2. configuracao dinamica do Control Room na mesma origem;
-3. bloqueio `401` para acesso sem autenticacao;
-4. autenticacao JWT e persistencia nos dois modulos;
-5. cadastro canonico local, extensao siderurgica e criacao de visita;
-6. chamada real do runtime ao contrato de work queues do Yard com `X-CloudPort-Service-Key`.
+1. construção e inicialização da imagem completa;
+2. frontend e configuração dinâmica;
+3. bloqueio `401` sem autenticação;
+4. JWT e autorização;
+5. persistência de Navio e Navio Siderúrgico;
+6. criação de visita;
+7. consulta local às work queues do Yard;
+8. carregamento dos schemas e migrações incorporadas.
 
-O script gera credenciais temporarias, exibe logs quando ocorre falha e remove containers, rede de projeto e volume ao terminar. O mock existe somente no overlay `docker-compose.smoke.yml` e nao deve ser usado como dependencia operacional.
+No smoke, jobs e consumidores são desativados para evitar processamento de fundo sem dados de integração. O script publica diagnóstico e remove containers, rede e volumes ao terminar.
 
-## Comparacao com os deployments legados
+## Coexistência com legado
 
 ```bash
-docker compose -f deploy/navio-monolito/docker-compose.yml --profile legado up --build
+docker compose \
+  -f deploy/navio-monolito/docker-compose.yml \
+  --profile monolito \
+  --profile legado \
+  up -d --build
 ```
 
-O perfil legado publica Navio em `8084` e Navio Siderurgico em `8085`. Nao execute os perfis `monolito` e `legado` simultaneamente contra o mesmo banco, pois os jobs agendados e comandos operacionais seriam duplicados.
+O perfil legado disponível neste Compose mantém Navio e Navio Siderúrgico para comparação e rollback. Os demais deployments legados continuam nos manifests próprios de cada ambiente.
+
+Durante coexistência:
+
+- monólito: escrita, jobs e consumidores ativos;
+- legados: escrita, jobs e consumidores desativados;
+- cada rota aponta para um único backend;
+- o volume PostgreSQL é preservado;
+- credenciais e imagens legadas não são removidas.
 
 ## Corte e retorno
 
-1. Pare os deployments ativos antes de trocar o perfil.
-2. Preserve o volume PostgreSQL e os nomes dos schemas.
-3. Inicie o novo perfil e valide login, endpoints, jobs, Control Room e integracao com o Yard.
-4. Em caso de retorno, pare o runtime unificado antes de iniciar o perfil legado.
-5. Nao aponte ambientes existentes sem validar previamente a compatibilidade das migracoes aplicadas nas duas direcoes.
+1. Validar os sete históricos Flyway.
+2. Criar backup e registrar o ponto de restauração.
+3. Iniciar o monólito e executar smoke funcional.
+4. Direcionar as rotas para o monólito.
+5. Manter legados sem escrita, jobs e consumidores durante observação.
+6. Para retornar, retirar e parar o monólito antes de habilitar qualquer legado.
+7. Reativar escrita, jobs e consumidores somente no runtime escolhido.
+8. Não executar downgrade Flyway; o binário anterior deve ser compatível por `expand and contract`.
+
+Detalhes: [`../../docs/operacao-corte-rollback-navio.md`](../../docs/operacao-corte-rollback-navio.md).

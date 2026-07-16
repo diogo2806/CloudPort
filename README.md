@@ -28,7 +28,8 @@ Não devem ser criados novos microsserviços para funcionalidades internas do Cl
 | Rail | Em transição | Deployment legado |
 | Autenticação | Em transição | Emissor de JWT ainda separado |
 | Visibilidade | Em transição | Deployment legado |
-| Frontend principal | Ativo | Aplicação Angular em `frontend/cloudport` |
+| Frontend principal | Migrado | Portal React em `frontend/cloudport` |
+| Control Room | Migrado | Aplicação React incorporada ao runtime consolidado |
 
 Os diretórios `backend/servico-*` continuam existindo para preservar os limites dos módulos e permitir rollback durante a transição. O prefixo `servico-` não define a arquitetura alvo nem exige deployment separado.
 
@@ -36,7 +37,8 @@ Os diretórios `backend/servico-*` continuam existindo para preservar os limites
 
 ```mermaid
 flowchart LR
-    FE[Frontend Angular] --> API[cloudport-monolito-navio :8086]
+    FE[Portal React] --> API[cloudport-monolito-navio :8086]
+    FE --> CR[Control Room React]
 
     subgraph MONOLITO[Monólito modular]
         API --> NAVIO[Módulo Navio]
@@ -67,8 +69,8 @@ backend/
 └── servico-visibilidade/          # módulo/deployment legado em transição
 
 frontend/
-├── cloudport/                     # portal Angular principal
-└── servico-navio-siderurgico/     # frontend legado durante a consolidação
+├── cloudport/                     # portal principal React
+└── servico-navio-siderurgico/     # Control Room React incorporado ao runtime
 ```
 
 ## Compilar e testar o runtime consolidado
@@ -117,18 +119,17 @@ Após compilar:
 java -jar backend/cloudport-monolito-navio/target/cloudport-monolito-navio-*.jar
 ```
 
-Também é possível construir a imagem a partir da pasta `backend`:
+Também é possível construir a imagem a partir da raiz do repositório:
 
 ```bash
-cd backend
-docker build -f cloudport-monolito-navio/Dockerfile -t cloudport-monolito-navio .
+docker build -f backend/cloudport-monolito-navio/Dockerfile -t cloudport-monolito-navio .
 ```
 
 ## Frontend
 
-O portal principal usa uma única URL base configurada em tempo de execução por `frontend/cloudport/src/assets/configuracao.json`. Durante a migração, essa URL deve apontar para o proxy de entrada ou para o runtime consolidado, evitando URLs específicas de cada módulo no código Angular.
+O portal principal e o Control Room usam React 19 com Vite 8. Ambos consomem URLs configuradas em tempo de execução por `assets/configuracao.json`, sem acoplar os componentes aos hosts dos módulos internos.
 
-Consulte [`frontend/cloudport/README.md`](frontend/cloudport/README.md) para instalação, build e testes.
+Consulte [`frontend/cloudport/README.md`](frontend/cloudport/README.md) para instalação, build e testes do portal.
 
 ## Documentação de evolução
 

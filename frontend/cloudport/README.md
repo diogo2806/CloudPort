@@ -1,61 +1,68 @@
 # CloudPort Frontend
 
-Portal principal do CloudPort, desenvolvido com Angular 21.2.
+Portal principal do CloudPort, desenvolvido com React 19 e Vite 8.
+
+## Escopo migrado
+
+O runtime Angular foi removido. O portal React preserva:
+
+- autenticação JWT e sessão compatível com o portal anterior;
+- autorização por papéis;
+- navegação dinâmica por `/api/navegacao/abas`, com menu de contingência;
+- papéis, usuários, segurança, notificações e privacidade;
+- telas operacionais de Gate, Ferrovia, Pátio, Navio e Embarque;
+- integração SSO com o Control Room React por `postMessage` com origem restrita;
+- `X-Correlation-Id` e contexto do usuário nos comandos operacionais;
+- rotas públicas usadas anteriormente em `/home/*`.
 
 ## Integração com o backend
 
-O backend está migrando para um monólito modular. O frontend deve consumir uma única origem de API e não deve conhecer hosts, portas ou nomes de módulos internos.
+O backend está migrando para um monólito modular. O frontend consome uma única origem de API e não conhece hosts, portas ou nomes de módulos internos.
 
-Durante a transição, a URL pode apontar para:
+A URL pode apontar para o runtime consolidado, um proxy de transição ou a entrada única do ambiente. A arquitetura vigente está documentada em [`../../docs/arquitetura-monolito-modular.md`](../../docs/arquitetura-monolito-modular.md).
 
-- o runtime consolidado;
-- um proxy que encaminha rotas ainda legadas;
-- uma entrada única de ambiente.
+## Configuração dinâmica
 
-Não devem ser adicionadas URLs específicas como `servico-yard`, `servico-navio` ou `servico-gate` diretamente nos componentes e serviços Angular.
-
-A arquitetura vigente está documentada em [`../../docs/arquitetura-monolito-modular.md`](../../docs/arquitetura-monolito-modular.md).
-
-## Configuração dinâmica da URL da API
-
-A URL base é definida em tempo de execução pelo arquivo `src/assets/configuracao.json`. O arquivo é carregado antes da inicialização do Angular e disponibilizado aos serviços por `ConfiguracaoAplicacaoService`.
-
-Copie o exemplo:
-
-```bash
-cp src/assets/configuracao.exemplo.json src/assets/configuracao.json
-```
-
-Configure uma única `baseApiUrl`:
+A configuração é carregada de `public/assets/configuracao.json` antes da renderização:
 
 ```json
 {
-  "baseApiUrl": "http://localhost:8086"
+  "baseApiUrl": "http://localhost:8080",
+  "navioControlRoomUrl": "http://localhost:8086"
 }
 ```
 
-Em ambientes que ainda possuam deployments separados, configure `baseApiUrl` com a URL do proxy, não com a URL individual de um serviço.
+- `baseApiUrl`: origem única para os contratos do portal;
+- `navioControlRoomUrl`: endereço do Control Room incorporado por iframe e SSO.
 
-Caso o arquivo não exista, esteja inacessível ou não contenha `baseApiUrl`, a aplicação interrompe o carregamento e apresenta a falha de configuração.
+Em produção, o arquivo pode ser substituído sem reconstruir os artefatos estáticos.
 
 ## Pré-requisitos
 
 - Node.js 22
-- npm compatível com o `package-lock.json`
+- npm 10+
 
 ## Instalação
 
 ```bash
-npm ci
+npm install --no-audit --no-fund
 ```
 
-## Servidor de desenvolvimento
+## Desenvolvimento
 
 ```bash
 npm start
 ```
 
-A aplicação fica disponível em `http://localhost:4200/`.
+A aplicação fica disponível em `http://localhost:4200`.
+
+## Testes
+
+```bash
+npm test
+```
+
+Os testes unitários usam o test runner nativo do Node e cobrem sessão, papéis, erros, JWT, correlação e enriquecimento dos comandos operacionais.
 
 ## Build
 
@@ -63,27 +70,21 @@ A aplicação fica disponível em `http://localhost:4200/`.
 npm run build
 ```
 
-Os artefatos são gerados em `dist/`.
-
-## Testes unitários
-
-```bash
-npm test
-```
+Os artefatos são gerados em `dist/cloudport`.
 
 ## Testes fim a fim
-
-Os testes e2e usam Playwright:
 
 ```bash
 npm run e2e
 ```
 
+O Playwright inicia o servidor Vite conforme `playwright.config.ts`.
+
 ## Regras para novos contratos
 
 - usar caminhos relativos à `baseApiUrl`;
-- manter autenticação e `X-Correlation-Id` nos interceptors compartilhados;
+- manter autenticação e `X-Correlation-Id` no cliente compartilhado;
 - não reproduzir no frontend a decisão entre chamada local e remota do backend;
 - consumir erros padronizados com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp;
-- preferir tipos gerados pelo OpenAPI consolidado quando essa geração estiver disponível;
-- preservar as rotas funcionais durante a migração para evitar acoplamento à estrutura física do backend.
+- preservar as rotas funcionais durante a migração do backend;
+- não introduzir dependências Angular no portal React.

@@ -79,6 +79,9 @@ public class OrdemTrabalhoPatio {
     @Column(name = "prioridade_operacional")
     private Integer prioridadeOperacional;
 
+    @Column(name = "prioridade_busca", nullable = false)
+    private boolean prioridadeBusca;
+
     @Column(name = "work_queue_id")
     private Long workQueueId;
 
@@ -156,6 +159,8 @@ public class OrdemTrabalhoPatio {
     public void setSequenciaNavio(Integer sequenciaNavio) { this.sequenciaNavio = sequenciaNavio; }
     public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
     public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
+    public boolean isPrioridadeBusca() { return prioridadeBusca; }
+    public void setPrioridadeBusca(boolean prioridadeBusca) { this.prioridadeBusca = prioridadeBusca; }
     public Long getWorkQueueId() { return workQueueId; }
     public void setWorkQueueId(Long workQueueId) { this.workQueueId = workQueueId; }
     public LocalDateTime getCriadoEm() { return criadoEm; }

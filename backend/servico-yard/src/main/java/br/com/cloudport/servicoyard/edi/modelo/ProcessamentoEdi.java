@@ -25,11 +25,23 @@ public class ProcessamentoEdi {
     private TipoMensagemEdi tipoMensagem;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 30)
     private StatusProcessamentoEdi status;
 
     @Column(name = "conteudo_original", nullable = false, columnDefinition = "TEXT")
     private String conteudoOriginal;
+
+    @Column(name = "identificador_unb", length = 100)
+    private String identificadorUnb;
+
+    @Column(name = "identificador_unh", length = 100)
+    private String identificadorUnh;
+
+    @Column(name = "chave_idempotencia", nullable = false, unique = true, length = 64)
+    private String chaveIdempotencia;
+
+    @Column(name = "hash_conteudo", nullable = false, length = 64)
+    private String hashConteudo;
 
     @Column(name = "codigo_navio", length = 50)
     private String codigoNavio;
@@ -58,6 +70,12 @@ public class ProcessamentoEdi {
     @Column(name = "tentativa", nullable = false)
     private Integer tentativa;
 
+    @Column(name = "proxima_tentativa_em")
+    private LocalDateTime proximaTentativaEm;
+
+    @Column(name = "processando_desde")
+    private LocalDateTime processandoDesde;
+
     @Column(name = "bay_plan_id")
     private Long bayPlanId;
 
@@ -78,6 +96,9 @@ public class ProcessamentoEdi {
         if (status == null) {
             status = StatusProcessamentoEdi.RECEBIDO;
         }
+        if (proximaTentativaEm == null && status == StatusProcessamentoEdi.RECEBIDO) {
+            proximaTentativaEm = agora;
+        }
     }
 
     @PreUpdate
@@ -92,6 +113,14 @@ public class ProcessamentoEdi {
     public void setStatus(StatusProcessamentoEdi status) { this.status = status; }
     public String getConteudoOriginal() { return conteudoOriginal; }
     public void setConteudoOriginal(String conteudoOriginal) { this.conteudoOriginal = conteudoOriginal; }
+    public String getIdentificadorUnb() { return identificadorUnb; }
+    public void setIdentificadorUnb(String identificadorUnb) { this.identificadorUnb = identificadorUnb; }
+    public String getIdentificadorUnh() { return identificadorUnh; }
+    public void setIdentificadorUnh(String identificadorUnh) { this.identificadorUnh = identificadorUnh; }
+    public String getChaveIdempotencia() { return chaveIdempotencia; }
+    public void setChaveIdempotencia(String chaveIdempotencia) { this.chaveIdempotencia = chaveIdempotencia; }
+    public String getHashConteudo() { return hashConteudo; }
+    public void setHashConteudo(String hashConteudo) { this.hashConteudo = hashConteudo; }
     public String getCodigoNavio() { return codigoNavio; }
     public void setCodigoNavio(String codigoNavio) { this.codigoNavio = codigoNavio; }
     public String getCodigoViagem() { return codigoViagem; }
@@ -110,6 +139,10 @@ public class ProcessamentoEdi {
     public void setReprocessamentoDeId(Long reprocessamentoDeId) { this.reprocessamentoDeId = reprocessamentoDeId; }
     public Integer getTentativa() { return tentativa; }
     public void setTentativa(Integer tentativa) { this.tentativa = tentativa; }
+    public LocalDateTime getProximaTentativaEm() { return proximaTentativaEm; }
+    public void setProximaTentativaEm(LocalDateTime proximaTentativaEm) { this.proximaTentativaEm = proximaTentativaEm; }
+    public LocalDateTime getProcessandoDesde() { return processandoDesde; }
+    public void setProcessandoDesde(LocalDateTime processandoDesde) { this.processandoDesde = processandoDesde; }
     public Long getBayPlanId() { return bayPlanId; }
     public void setBayPlanId(Long bayPlanId) { this.bayPlanId = bayPlanId; }
     public LocalDateTime getCriadoEm() { return criadoEm; }

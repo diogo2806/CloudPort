@@ -44,14 +44,19 @@ function AuthGate({ onAuthenticated }) {
   async function submit(event) {
     event.preventDefault();
     if (busy) return;
-    setBusy(true); setError('');
+    setBusy(true);
+    setError('');
     try {
       const session = saveSession(await api.autenticar(clean(login), senha));
       if (!hasAnyRole(session, ...ALLOWED_ROLES)) throw new Error('A conta não possui permissão operacional para acessar o Control Room.');
-      setSenha(''); onAuthenticated(session);
+      setSenha('');
+      onAuthenticated(session);
     } catch (reason) {
-      clearSession(); setError(formatError(reason, 'Não foi possível autenticar.'));
-    } finally { setBusy(false); }
+      clearSession();
+      setError(formatError(reason, 'Não foi possível autenticar.'));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return <main className="auth-shell"><form className="auth-card" onSubmit={submit}>
@@ -100,18 +105,25 @@ function ControlRoom({ session, onLogout }) {
   const [autoRefresh, setAutoRefresh] = useState(true); const [lastUpdate, setLastUpdate] = useState(null); const [expanded, setExpanded] = useState({}); const [edits, setEdits] = useState({}); const [priorities, setPriorities] = useState({});
   const [busy, setBusy] = useState(false); const [busyKey, setBusyKey] = useState(''); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const [result, setResult] = useState(null);
   const activeRequest = useRef(null);
+  const snapshotVersion = useRef(0);
   const selectedVisit = useMemo(() => visits.find((visit) => visit.id === visitId), [visits, visitId]);
 
   const loadSnapshot = useCallback(async (id, silent = false) => {
     if (!id) return;
-    if (activeRequest.current) return activeRequest.current;
+    if (activeRequest.current?.visitId === id) return activeRequest.current.promise;
+    const version = ++snapshotVersion.current;
     if (!silent) setBusy(true);
     const promise = Promise.all([api.listarItensVisita(id), api.obterResumo(id), api.listarEventos(id), api.obterResumoIntegracaoPatio(id), api.listarReservasPatio(id), api.listarOrdensPatio(id), api.listarFilasPatio(id), api.listarWorkQueuesPatio(id), api.listarOrdensSemCoberturaPatio(id), api.listarAlertasIntegracaoPatio(id)]).then(([newItems, newSummary, newEvents, newIntegration, newReservations, newOrders, newQueues, newWorkQueues, newUncovered, newAlerts]) => {
+      if (version !== snapshotVersion.current) return;
       setItems(newItems); setSummary(newSummary); setEvents(newEvents); setIntegration(newIntegration); setReservations(newReservations); setOrders(newOrders); setQueues(newQueues); setWorkQueues(newWorkQueues); setUncovered(newUncovered); setAlerts(newAlerts); setLastUpdate(new Date());
       setPriorities((current) => [...newOrders, ...newWorkQueues.flatMap((queue) => queue.jobList ?? [])].reduce((acc, order) => order.id ? { ...acc, [order.id]: current[order.id] ?? order.prioridadeOperacional ?? order.sequenciaNavio ?? 0 } : acc, {}));
       setEdits((current) => newWorkQueues.reduce((acc, queue) => ({ ...acc, [queue.id]: current[queue.id] ?? { pow: queue.pow || '', poolOperacional: queue.poolOperacional || '', equipamento: queue.equipamento || '', limite: null } }), {}));
-    }).finally(() => { activeRequest.current = null; if (!silent) setBusy(false); });
-    activeRequest.current = promise; return promise;
+    }).finally(() => {
+      if (activeRequest.current?.promise === promise) activeRequest.current = null;
+      if (!silent && version === snapshotVersion.current) setBusy(false);
+    });
+    activeRequest.current = { visitId: id, promise };
+    return promise;
   }, []);
 
   useEffect(() => { let active = true; (async () => { try { const [ships, newVisits] = await Promise.all([api.listarNavios(), api.listarVisitas()]); if (!active) return; setNavios(ships); setVisits(newVisits); setVisitId(newVisits[0]?.id ?? null); } catch (reason) { setError(formatError(reason, 'Não foi possível carregar os dados operacionais.')); } })(); return () => { active = false; }; }, []);

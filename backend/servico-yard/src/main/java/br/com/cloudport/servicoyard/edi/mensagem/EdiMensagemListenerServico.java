@@ -29,7 +29,9 @@ public class EdiMensagemListenerServico {
         this.processador = processador;
     }
 
-    @RabbitListener(queues = "${cloudport.yard.integracoes.edi.queue.coprar}")
+    @RabbitListener(
+            queues = "${cloudport.yard.integracoes.edi.queue.coprar}",
+            autoStartup = "${cloudport.runtime.consumers-enabled:true}")
     public void receberCoprar(CoprarMensagemDto dto) {
         try {
             log.info("COPRAR recebido: navio={} viagem={}",
@@ -41,7 +43,9 @@ public class EdiMensagemListenerServico {
         }
     }
 
-    @RabbitListener(queues = "${cloudport.yard.integracoes.edi.queue.coarri}")
+    @RabbitListener(
+            queues = "${cloudport.yard.integracoes.edi.queue.coarri}",
+            autoStartup = "${cloudport.runtime.consumers-enabled:true}")
     public void receberCoarri(CoarriMensagemDto dto) {
         try {
             log.info("COARRI recebido: navio={} viagem={}",

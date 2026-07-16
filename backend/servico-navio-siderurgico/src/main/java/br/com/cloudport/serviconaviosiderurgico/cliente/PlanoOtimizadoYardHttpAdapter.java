@@ -45,7 +45,8 @@ public class PlanoOtimizadoYardHttpAdapter implements PlanoOtimizadoYardCliente 
             Long visitaNavioId,
             String usuario,
             String motivo,
-            List<EstadoAnteriorOrdemYardDTO> estadosAnteriores
+            List<EstadoAnteriorOrdemYardDTO> estadosAnteriores,
+            List<EstadoAnteriorWorkQueueYardDTO> estadosAnterioresWorkQueues
     ) {
         CompensacaoPlanoYardDTO comando = new CompensacaoPlanoYardDTO();
         comando.setPlanoId(planoId);
@@ -53,6 +54,7 @@ public class PlanoOtimizadoYardHttpAdapter implements PlanoOtimizadoYardCliente 
         comando.setUsuario(usuario);
         comando.setMotivo(motivo);
         comando.setEstadosAnteriores(estadosAnteriores);
+        comando.setEstadosAnterioresWorkQueues(estadosAnterioresWorkQueues);
         ResponseEntity<Void> resposta = restTemplate.postForEntity(
                 baseUrl + "/yard/patio/planos-otimizados/compensar",
                 comando,

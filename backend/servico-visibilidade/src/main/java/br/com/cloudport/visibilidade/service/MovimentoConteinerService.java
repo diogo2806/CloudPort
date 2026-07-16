@@ -24,25 +24,41 @@ public class MovimentoConteinerService {
     public static final String TIPO_ARMAZENAGEM_YARD = "ARMAZENAGEM_YARD";
     public static final String TIPO_MOVIMENTO_RAIL = "MOVIMENTO_RAIL";
 
+    private static final int TAMANHO_MAXIMO_IDENTIDADE_EVENTO = 150;
+
     private final ConteinerLocalizacaoRepository localizacaoRepository;
     private final HistoricoMovimentoRepository historicoRepository;
 
     public MovimentoConteinerService(ConteinerLocalizacaoRepository localizacaoRepository,
-                                     HistoricoMovimentoRepository historicoRepository) {
+                                      HistoricoMovimentoRepository historicoRepository) {
         this.localizacaoRepository = localizacaoRepository;
         this.historicoRepository = historicoRepository;
     }
 
     @Transactional
     public void registrarEntradaGate(String containerId, String responsavel) {
-        registrarMovimento(containerId, STATUS_NO_YARD, "GATE", "ENTRADA",
+        registrarEntradaGate(null, containerId, responsavel);
+    }
+
+    @Transactional
+    public void registrarEntradaGate(String identidadeEvento,
+                                     String containerId,
+                                     String responsavel) {
+        registrarMovimento(identidadeEvento, containerId, STATUS_NO_YARD, "GATE", "ENTRADA",
                 TIPO_ENTRADA_GATE, "GATE_ENTRADA", responsavel, null,
                 "Entrada do conteiner confirmada no gate.", LocalDateTime.now());
     }
 
     @Transactional
     public void registrarSaidaGate(String containerId, String responsavel) {
-        registrarMovimento(containerId, STATUS_SAIU_DO_PORTO, "GATE", "SAIDA",
+        registrarSaidaGate(null, containerId, responsavel);
+    }
+
+    @Transactional
+    public void registrarSaidaGate(String identidadeEvento,
+                                   String containerId,
+                                   String responsavel) {
+        registrarMovimento(identidadeEvento, containerId, STATUS_SAIU_DO_PORTO, "GATE", "SAIDA",
                 TIPO_SAIDA_GATE, "GATE_SAIDA", responsavel, null,
                 "Saida do conteiner confirmada no gate.", LocalDateTime.now());
     }
@@ -53,14 +69,30 @@ public class MovimentoConteinerService {
                                          String posicao,
                                          String equipamento,
                                          String responsavel) {
+        registrarArmazenagemYard(null, containerId, zona, posicao, equipamento, responsavel);
+    }
+
+    @Transactional
+    public void registrarArmazenagemYard(String identidadeEvento,
+                                         String containerId,
+                                         String zona,
+                                         String posicao,
+                                         String equipamento,
+                                         String responsavel) {
         String localizacao = montarLocalizacaoYard(zona, posicao);
-        registrarMovimento(containerId, STATUS_NO_YARD, zona, posicao,
+        registrarMovimento(identidadeEvento, containerId, STATUS_NO_YARD, zona, posicao,
                 TIPO_ARMAZENAGEM_YARD, localizacao, responsavel, equipamento,
                 "Armazenagem do conteiner confirmada no patio.", LocalDateTime.now());
     }
 
     @Transactional
     public void registrarMovimentoPatio(EventoMovimentoPatioMensagem evento) {
+        registrarMovimentoPatio(null, evento);
+    }
+
+    @Transactional
+    public void registrarMovimentoPatio(String identidadeEvento,
+                                        EventoMovimentoPatioMensagem evento) {
         if (evento == null) {
             throw new IllegalArgumentException("Evento de movimento do patio nao pode ser nulo.");
         }
@@ -73,9 +105,9 @@ public class MovimentoConteinerService {
                 ? LocalDateTime.now()
                 : evento.getRegistradoEm();
 
-        registrarMovimento(evento.getCodigoConteiner(), STATUS_NO_YARD, "YARD", posicao,
-                tipo, montarLocalizacaoYard("YARD", posicao), "YARD", null,
-                observacoes, timestamp);
+        registrarMovimento(identidadeEvento, evento.getCodigoConteiner(), STATUS_NO_YARD,
+                "YARD", posicao, tipo, montarLocalizacaoYard("YARD", posicao),
+                "YARD", null, observacoes, timestamp);
     }
 
     @Transactional
@@ -84,14 +116,30 @@ public class MovimentoConteinerService {
                                        String destino,
                                        String equipamento,
                                        String responsavel) {
+        registrarMovimentoRail(null, containerId, origem, destino, equipamento, responsavel);
+    }
+
+    @Transactional
+    public void registrarMovimentoRail(String identidadeEvento,
+                                       String containerId,
+                                       String origem,
+                                       String destino,
+                                       String equipamento,
+                                       String responsavel) {
         String localizacao = montarTrechoRail(origem, destino);
-        registrarMovimento(containerId, STATUS_EM_TRANSITO_RAIL, destino, null,
+        registrarMovimento(identidadeEvento, containerId, STATUS_EM_TRANSITO_RAIL, destino, null,
                 TIPO_MOVIMENTO_RAIL, localizacao, responsavel, equipamento,
                 "Movimento ferroviario do conteiner confirmado.", LocalDateTime.now());
     }
 
     @Transactional
     public void registrarMovimentoFerroviario(EventoMovimentacaoTremConcluidaMensagem evento) {
+        registrarMovimentoFerroviario(null, evento);
+    }
+
+    @Transactional
+    public void registrarMovimentoFerroviario(String identidadeEvento,
+                                              EventoMovimentacaoTremConcluidaMensagem evento) {
         if (evento == null) {
             throw new IllegalArgumentException("Evento ferroviario nao pode ser nulo.");
         }
@@ -103,12 +151,13 @@ public class MovimentoConteinerService {
         String observacoes = "ordem=" + valor(evento.getIdOrdemMovimentacao())
                 + "; status=" + valorOuPadrao(evento.getStatusEvento(), "CONCLUIDO");
 
-        registrarMovimento(evento.getCodigoConteiner(), STATUS_EM_TRANSITO_RAIL,
+        registrarMovimento(identidadeEvento, evento.getCodigoConteiner(), STATUS_EM_TRANSITO_RAIL,
                 localizacao, null, tipo, localizacao, "RAIL", null,
                 observacoes, converter(evento.getConcluidoEm()));
     }
 
-    private void registrarMovimento(String containerId,
+    private void registrarMovimento(String identidadeEvento,
+                                    String containerId,
                                     String status,
                                     String zona,
                                     String posicao,
@@ -131,6 +180,7 @@ public class MovimentoConteinerService {
 
         HistoricoMovimento historico = new HistoricoMovimento();
         historico.setContainerId(containerId.trim());
+        historico.setEventoId(normalizarIdentidadeEvento(identidadeEvento));
         historico.setTimestamp(ocorridoEm);
         historico.setTipo(tipo);
         historico.setLocalizacao(localizacao);
@@ -206,6 +256,14 @@ public class MovimentoConteinerService {
 
     private String normalizarOpcional(String valor) {
         return StringUtils.hasText(valor) ? valor.trim() : null;
+    }
+
+    private String normalizarIdentidadeEvento(String identidadeEvento) {
+        String normalizada = normalizarOpcional(identidadeEvento);
+        if (normalizada != null && normalizada.length() > TAMANHO_MAXIMO_IDENTIDADE_EVENTO) {
+            throw new IllegalArgumentException("A identidade do evento excede 150 caracteres.");
+        }
+        return normalizada;
     }
 
     private void validarContainerId(String containerId) {

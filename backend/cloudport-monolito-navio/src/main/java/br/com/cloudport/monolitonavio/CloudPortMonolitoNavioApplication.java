@@ -27,17 +27,15 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         "br.com.cloudport.servicoautenticacao",
         "br.com.cloudport.visibilidade"
 })
-@EnableJpaRepositories(
-        basePackages = {
-                "br.com.cloudport.serviconavio",
-                "br.com.cloudport.serviconaviosiderurgico",
-                "br.com.cloudport.servicoyard",
-                "br.com.cloudport.servicogate",
-                "br.com.cloudport.servicorail",
-                "br.com.cloudport.servicoautenticacao",
-                "br.com.cloudport.visibilidade"
-        },
-        nameGenerator = FullyQualifiedAnnotationBeanNameGenerator.class)
+@EnableJpaRepositories(basePackages = {
+        "br.com.cloudport.serviconavio",
+        "br.com.cloudport.serviconaviosiderurgico",
+        "br.com.cloudport.servicoyard",
+        "br.com.cloudport.servicogate",
+        "br.com.cloudport.servicorail",
+        "br.com.cloudport.servicoautenticacao",
+        "br.com.cloudport.visibilidade"
+})
 @ComponentScan(
         basePackages = {
                 "br.com.cloudport.monolitonavio",

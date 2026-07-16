@@ -28,12 +28,12 @@ public class FlywayModulosConfiguracao {
 
     @Bean(name = "flywayNavio", initMethod = "migrate")
     public Flyway flywayNavio() {
-        return criarFlyway("classpath:db/migration/navio", schemaNavio);
+        return criarFlyway("classpath:cloudport/migrations/navio", schemaNavio);
     }
 
     @Bean(name = "flywayNavioSiderurgico", initMethod = "migrate")
     public Flyway flywayNavioSiderurgico() {
-        return criarFlyway("classpath:db/migration/navio-siderurgico", schemaSiderurgico);
+        return criarFlyway("classpath:cloudport/migrations/navio-siderurgico", schemaSiderurgico);
     }
 
     @Bean

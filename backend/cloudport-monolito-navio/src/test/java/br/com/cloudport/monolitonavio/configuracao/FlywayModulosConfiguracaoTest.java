@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import java.net.URL;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -29,12 +31,17 @@ class FlywayModulosConfiguracaoTest {
     }
 
     @Test
-    void deveEmpacotarMigracoesDosDoisModulos() {
+    void deveCarregarMigracoesPublicadasPelosArtefatosDosModulos() {
         ClassLoader classLoader = getClass().getClassLoader();
+        URL migracaoNavio = classLoader.getResource(
+                "cloudport/migrations/navio/V1__criar_tabelas_navio.sql");
+        URL migracaoSiderurgica = classLoader.getResource(
+                "cloudport/migrations/navio-siderurgico/V1__criar_tabelas_navio_siderurgico.sql");
 
-        assertNotNull(classLoader.getResource("db/migration/navio/V1__criar_tabelas_navio.sql"));
-        assertNotNull(classLoader.getResource(
-                "db/migration/navio-siderurgico/V1__criar_tabelas_navio_siderurgico.sql"));
+        assertNotNull(migracaoNavio);
+        assertNotNull(migracaoSiderurgica);
+        assertTrue(migracaoNavio.toExternalForm().contains("servico-navio"));
+        assertTrue(migracaoSiderurgica.toExternalForm().contains("servico-navio-siderurgico"));
     }
 
     @Test

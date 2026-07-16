@@ -1,31 +1,26 @@
 package br.com.cloudport.monolitonavio.integracao;
 
+import br.com.cloudport.servicoautenticacao.app.administracao.ConsultaUsuarioServico;
 import br.com.cloudport.servicoautenticacao.app.administracao.dto.UsuarioInfoDTO;
-import br.com.cloudport.servicoautenticacao.app.usuarioslista.UsuarioRepositorio;
 import br.com.cloudport.servicogate.security.AutenticacaoClient;
 import br.com.cloudport.servicogate.security.UserInfoResponse;
 import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 @Component
 @ConditionalOnProperty(name = "cloudport.modulo.autenticacao.integracao", havingValue = "local")
 public class AutenticacaoLocalAdapter implements AutenticacaoClient {
 
-    private final UsuarioRepositorio usuarioRepositorio;
+    private final ConsultaUsuarioServico consultaUsuarioServico;
 
-    public AutenticacaoLocalAdapter(UsuarioRepositorio usuarioRepositorio) {
-        this.usuarioRepositorio = usuarioRepositorio;
+    public AutenticacaoLocalAdapter(ConsultaUsuarioServico consultaUsuarioServico) {
+        this.consultaUsuarioServico = consultaUsuarioServico;
     }
 
     @Override
     public Optional<UserInfoResponse> buscarUsuario(String login, String authorizationHeader) {
-        if (!StringUtils.hasText(login)) {
-            return Optional.empty();
-        }
-        return usuarioRepositorio.findByLogin(login.trim())
-                .map(UsuarioInfoDTO::fromUsuario)
+        return consultaUsuarioServico.buscarPorLogin(login)
                 .map(this::converter);
     }
 

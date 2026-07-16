@@ -6,9 +6,13 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -20,9 +24,11 @@ import org.springframework.web.server.ResponseStatusException;
 @RestControllerAdvice
 public class TratadorExcecoes {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TratadorExcecoes.class);
+
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<ErroApi> tratarArgumentoInvalido(IllegalArgumentException ex, HttpServletRequest request) {
-        return resposta(HttpStatus.BAD_REQUEST, "VALIDACAO_NEGOCIO", ex.getMessage(), Map.of(), request);
+        return resposta(HttpStatus.BAD_REQUEST, "VALIDACAO_NEGOCIO", ex.getMessage(), Map.of(), request, ex, false);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -34,7 +40,8 @@ public class TratadorExcecoes {
                         (primeiro, segundo) -> primeiro,
                         LinkedHashMap::new
                 ));
-        return resposta(HttpStatus.BAD_REQUEST, "VALIDACAO_ENTRADA", "Dados de entrada invalidos.", detalhes, request);
+        return resposta(HttpStatus.BAD_REQUEST, "VALIDACAO_ENTRADA", "Dados de entrada invalidos.", detalhes,
+                request, ex, false);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -46,7 +53,8 @@ public class TratadorExcecoes {
                         (primeiro, segundo) -> primeiro,
                         LinkedHashMap::new
                 ));
-        return resposta(HttpStatus.BAD_REQUEST, "VALIDACAO_ENTRADA", "Parametros invalidos.", detalhes, request);
+        return resposta(HttpStatus.BAD_REQUEST, "VALIDACAO_ENTRADA", "Parametros invalidos.", detalhes,
+                request, ex, false);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -56,7 +64,9 @@ public class TratadorExcecoes {
                 "PARAMETRO_INVALIDO",
                 "Valor invalido para o parametro " + ex.getName() + ".",
                 Map.of("parametro", ex.getName(), "valor", String.valueOf(ex.getValue())),
-                request
+                request,
+                ex,
+                false
         );
     }
 
@@ -68,11 +78,12 @@ public class TratadorExcecoes {
             case CONFLICT -> "CONFLITO_NEGOCIO";
             case UNAUTHORIZED -> "NAO_AUTENTICADO";
             case FORBIDDEN -> "ACESSO_NEGADO";
+            case UNPROCESSABLE_ENTITY -> "MENSAGEM_REJEITADA";
             case SERVICE_UNAVAILABLE -> "INTEGRACAO_INDISPONIVEL";
             default -> "ERRO_HTTP_" + status.value();
         };
         String mensagem = Optional.ofNullable(ex.getReason()).orElse(status.getReasonPhrase());
-        return resposta(status, codigo, mensagem, Map.of(), request);
+        return resposta(status, codigo, mensagem, Map.of(), request, ex, false);
     }
 
     @ExceptionHandler(Exception.class)
@@ -82,22 +93,47 @@ public class TratadorExcecoes {
                 "ERRO_INTERNO",
                 "Ocorreu um erro interno ao processar a solicitacao.",
                 Map.of(),
-                request
+                request,
+                ex,
+                true
         );
     }
 
     private ResponseEntity<ErroApi> resposta(HttpStatus status,
                                                String codigo,
                                                String mensagem,
-                                               Map<String, Object> detalhes,
-                                               HttpServletRequest request) {
+                                               Map<String, Object> detalhesAdicionais,
+                                               HttpServletRequest request,
+                                               Exception ex,
+                                               boolean stackTrace) {
+        String correlationId = correlationId(request);
+        String rota = request.getMethod() + " " + request.getRequestURI();
+        Map<String, Object> detalhes = new LinkedHashMap<>();
+        detalhes.put("rota", rota);
+        detalhes.putAll(detalhesAdicionais);
         ErroApi erro = new ErroApi(
                 codigo,
                 mensagem == null || mensagem.isBlank() ? status.getReasonPhrase() : mensagem,
                 detalhes,
-                CorrelationIdFilter.obter(request),
+                correlationId,
                 Instant.now()
         );
-        return ResponseEntity.status(status).body(erro);
+        if (stackTrace) {
+            LOGGER.error("Falha inesperada. correlationId={} rota={}", correlationId, rota, ex);
+        } else {
+            LOGGER.warn("Requisicao rejeitada. correlationId={} rota={} motivo={}", correlationId, rota, ex.getMessage());
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(CorrelationIdFilter.HEADER, correlationId);
+        return new ResponseEntity<>(erro, headers, status);
+    }
+
+    private String correlationId(HttpServletRequest request) {
+        String correlationId = CorrelationIdFilter.obter(request);
+        if (correlationId != null && !correlationId.isBlank()) {
+            return correlationId;
+        }
+        String header = request.getHeader(CorrelationIdFilter.HEADER);
+        return header == null || header.isBlank() ? UUID.randomUUID().toString() : header.trim();
     }
 }

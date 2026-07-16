@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
@@ -89,10 +89,7 @@ public class TosClientConfig {
     }
 
     @Bean(name = "cacheManager")
-    @ConditionalOnProperty(
-            name = "cloudport.runtime.general",
-            havingValue = "false",
-            matchIfMissing = true)
+    @ConditionalOnExpression("'${spring.application.name:servico-gate}' != 'cloudport-runtime'")
     public CacheManager cacheManagerStandalone(
             @Qualifier("tosCacheManager") CacheManager tosCacheManager) {
         return tosCacheManager;

@@ -1,0 +1,252 @@
+import { useEffect, useMemo, useState } from 'react';
+
+const MOVIMENTOS = ['EMBARQUE', 'DESCARGA', 'RESTOW'];
+const TIPOS_CARGA = ['BOBINA', 'CHAPA', 'TARUGO', 'PLACA', 'PERFIL', 'VERGALHAO', 'OUTROS'];
+const CAMPOS_DATA_VISITA = [
+  'eta',
+  'ata',
+  'etb',
+  'atb',
+  'inicioOperacao',
+  'fimOperacao',
+  'etd',
+  'atd',
+  'janelaRecebimentoInicio',
+  'janelaRecebimentoFim',
+  'cutoffOperacional'
+];
+
+const statusClass = (value) => `status status-${String(value ?? 'indefinido').toLowerCase().replaceAll('_', '-')}`;
+const number = (value, digits = 0) => Number(value ?? 0).toLocaleString('pt-BR', {
+  minimumFractionDigits: digits,
+  maximumFractionDigits: digits
+});
+
+function text(value) {
+  return String(value ?? '').normalize('NFKC').replace(/[<>`\\]/g, '').trim();
+}
+
+function toDateTimeInput(value) {
+  if (!value) return '';
+  return String(value).slice(0, 16);
+}
+
+function toLocalDateTime(value) {
+  if (!value) return null;
+  return value.length === 16 ? `${value}:00` : value;
+}
+
+function nullableNumber(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function visitDraftFrom(visit) {
+  if (!visit) return null;
+  return {
+    ...visit,
+    codigoVisita: visit.codigoVisita ?? '',
+    viagemEntrada: visit.viagemEntrada ?? '',
+    viagemSaida: visit.viagemSaida ?? '',
+    linhaOperadora: visit.linhaOperadora ?? '',
+    terminalFacility: visit.terminalFacility ?? '',
+    bercoPrevisto: visit.bercoPrevisto ?? '',
+    bercoAtual: visit.bercoAtual ?? '',
+    observacoes: visit.observacoes ?? '',
+    ...Object.fromEntries(CAMPOS_DATA_VISITA.map((field) => [field, toDateTimeInput(visit[field])]))
+  };
+}
+
+function itemDraftFrom(item) {
+  if (!item) return null;
+  return Object.fromEntries(Object.entries(item).map(([key, value]) => [key, value ?? '']));
+}
+
+function visitPayload(draft) {
+  return {
+    ...draft,
+    navioId: Number(draft.navioId),
+    codigoVisita: text(draft.codigoVisita),
+    viagemEntrada: text(draft.viagemEntrada) || null,
+    viagemSaida: text(draft.viagemSaida) || null,
+    linhaOperadora: text(draft.linhaOperadora) || null,
+    terminalFacility: text(draft.terminalFacility) || null,
+    bercoPrevisto: text(draft.bercoPrevisto) || null,
+    bercoAtual: text(draft.bercoAtual) || null,
+    observacoes: text(draft.observacoes) || null,
+    ...Object.fromEntries(CAMPOS_DATA_VISITA.map((field) => [field, toLocalDateTime(draft[field])]))
+  };
+}
+
+function itemPayload(draft) {
+  return {
+    ...draft,
+    id: Number(draft.id),
+    visitaNavioId: Number(draft.visitaNavioId),
+    tipoMovimento: draft.tipoMovimento,
+    codigoLote: text(draft.codigoLote),
+    produto: text(draft.produto),
+    tipoCarga: draft.tipoCarga,
+    quantidade: nullableNumber(draft.quantidade),
+    pesoUnitarioToneladas: nullableNumber(draft.pesoUnitarioToneladas),
+    pesoTotalToneladas: nullableNumber(draft.pesoTotalToneladas),
+    alturaCargaMetros: nullableNumber(draft.alturaCargaMetros),
+    poraoPlanejado: nullableNumber(draft.poraoPlanejado),
+    poraoReal: nullableNumber(draft.poraoReal),
+    posicaoPlanejada: text(draft.posicaoPlanejada) || null,
+    posicaoReal: text(draft.posicaoReal) || null,
+    origemPatio: text(draft.origemPatio) || null,
+    destinoPatio: text(draft.destinoPatio) || null,
+    conteinerPatioId: nullableNumber(draft.conteinerPatioId),
+    cargaPatioId: nullableNumber(draft.cargaPatioId),
+    ordemTrabalhoPatioId: nullableNumber(draft.ordemTrabalhoPatioId),
+    movimentoPatioId: nullableNumber(draft.movimentoPatioId),
+    posicaoPatioPlanejada: text(draft.posicaoPatioPlanejada) || null,
+    posicaoPatioReal: text(draft.posicaoPatioReal) || null,
+    sequenciaOperacional: nullableNumber(draft.sequenciaOperacional),
+    motivoBloqueio: text(draft.motivoBloqueio) || null,
+    observacoes: text(draft.observacoes) || null
+  };
+}
+
+export default function VisitPlanEditor({
+  visit,
+  items = [],
+  plan,
+  validation,
+  busyKey = '',
+  onSaveVisit,
+  onSaveItem,
+  onValidatePlan,
+  onConcludePlan
+}) {
+  const [visitDraft, setVisitDraft] = useState(() => visitDraftFrom(visit));
+  const [itemDraft, setItemDraft] = useState(null);
+  const [localError, setLocalError] = useState('');
+
+  useEffect(() => {
+    setVisitDraft(visitDraftFrom(visit));
+    setItemDraft(null);
+    setLocalError('');
+  }, [visit?.id, visit?.atualizadoEm]);
+
+  useEffect(() => {
+    if (itemDraft && !items.some((item) => item.id === itemDraft.id)) setItemDraft(null);
+  }, [items, itemDraft]);
+
+  const visitValid = useMemo(() => Number(visitDraft?.navioId) > 0 && text(visitDraft?.codigoVisita), [visitDraft]);
+  const itemValid = useMemo(() => itemDraft
+    && MOVIMENTOS.includes(itemDraft.tipoMovimento)
+    && TIPOS_CARGA.includes(itemDraft.tipoCarga)
+    && text(itemDraft.codigoLote)
+    && text(itemDraft.produto)
+    && Number(itemDraft.quantidade) > 0
+    && Number(itemDraft.pesoTotalToneladas) > 0, [itemDraft]);
+
+  async function saveVisit(event) {
+    event.preventDefault();
+    if (!visitValid) {
+      setLocalError('Informe o código da visita e mantenha um navio válido.');
+      return;
+    }
+    setLocalError('');
+    await onSaveVisit(visitPayload(visitDraft));
+  }
+
+  async function saveItem(event) {
+    event.preventDefault();
+    if (!itemValid) {
+      setLocalError('Preencha movimento, lote, produto, tipo de carga, quantidade e peso total com valores válidos.');
+      return;
+    }
+    setLocalError('');
+    const updated = await onSaveItem(itemDraft.id, itemPayload(itemDraft));
+    if (updated) setItemDraft(itemDraftFrom(updated));
+  }
+
+  function concludePlan() {
+    if (!plan?.id || plan.status !== 'VALIDADO') return;
+    const confirmed = typeof window === 'undefined'
+      || typeof window.confirm !== 'function'
+      || window.confirm(`Concluir definitivamente o plano de estiva v${plan.versao}?`);
+    if (confirmed) onConcludePlan(plan.id);
+  }
+
+  if (!visit || !visitDraft) return null;
+
+  return <section className="panel visit-plan-editor">
+    <div className="section-head">
+      <div><span className="eyebrow">Visita e estiva</span><h2>Edição operacional</h2></div>
+      <span>{items.length} itens</span>
+    </div>
+    {localError && <div className="message error" role="alert">{localError}</div>}
+
+    <form className="editor-block" onSubmit={saveVisit}>
+      <div className="editor-title"><div><h3>Dados da visita</h3><small>Os dados somente são recarregados após a persistência confirmada pela API.</small></div><button disabled={!visitValid || busyKey === 'visit-update'}>{busyKey === 'visit-update' ? 'Salvando...' : 'Salvar visita'}</button></div>
+      <div className="editor-grid">
+        <label>Código da visita<input required value={visitDraft.codigoVisita} onChange={(event) => setVisitDraft({ ...visitDraft, codigoVisita: event.target.value })} /></label>
+        <label>Navio<input value={visit.navioNome || visit.navioId} readOnly /></label>
+        <label>Viagem de entrada<input value={visitDraft.viagemEntrada} onChange={(event) => setVisitDraft({ ...visitDraft, viagemEntrada: event.target.value })} /></label>
+        <label>Viagem de saída<input value={visitDraft.viagemSaida} onChange={(event) => setVisitDraft({ ...visitDraft, viagemSaida: event.target.value })} /></label>
+        <label>Linha operadora<input value={visitDraft.linhaOperadora} onChange={(event) => setVisitDraft({ ...visitDraft, linhaOperadora: event.target.value })} /></label>
+        <label>Terminal/facility<input value={visitDraft.terminalFacility} onChange={(event) => setVisitDraft({ ...visitDraft, terminalFacility: event.target.value })} /></label>
+        <label>Berço previsto<input value={visitDraft.bercoPrevisto} onChange={(event) => setVisitDraft({ ...visitDraft, bercoPrevisto: event.target.value })} /></label>
+        <label>Berço atual<input value={visitDraft.bercoAtual} onChange={(event) => setVisitDraft({ ...visitDraft, bercoAtual: event.target.value })} /></label>
+        <label>ETA<input type="datetime-local" value={visitDraft.eta} onChange={(event) => setVisitDraft({ ...visitDraft, eta: event.target.value })} /></label>
+        <label>ETB<input type="datetime-local" value={visitDraft.etb} onChange={(event) => setVisitDraft({ ...visitDraft, etb: event.target.value })} /></label>
+        <label>ETD<input type="datetime-local" value={visitDraft.etd} onChange={(event) => setVisitDraft({ ...visitDraft, etd: event.target.value })} /></label>
+        <label>Cutoff operacional<input type="datetime-local" value={visitDraft.cutoffOperacional} onChange={(event) => setVisitDraft({ ...visitDraft, cutoffOperacional: event.target.value })} /></label>
+        <label className="span-2">Observações<textarea rows="3" value={visitDraft.observacoes} onChange={(event) => setVisitDraft({ ...visitDraft, observacoes: event.target.value })} /></label>
+      </div>
+    </form>
+
+    <div className="editor-block">
+      <div className="editor-title"><div><h3>Itens da operação</h3><small>Selecione um item para editar os dados aceitos pelo contrato existente.</small></div></div>
+      <div className="table-wrap"><table><thead><tr><th>Lote</th><th>Movimento</th><th>Produto</th><th>Quantidade</th><th>Peso total</th><th>Status</th><th>Ação</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}>
+        <td><strong>{item.codigoLote}</strong></td><td>{item.tipoMovimento}</td><td>{item.produto}</td><td>{item.quantidade}</td><td>{number(item.pesoTotalToneladas, 3)} t</td><td><span className={statusClass(item.status)}>{item.status}</span></td><td><button type="button" className="small secondary" onClick={() => { setItemDraft(itemDraftFrom(item)); setLocalError(''); }}>Editar</button></td>
+      </tr>)}</tbody></table></div>
+      {!items.length && <p className="empty">Nenhum item cadastrado para a visita.</p>}
+
+      {itemDraft && <form className="item-editor" onSubmit={saveItem}>
+        <div className="editor-title"><div><h3>Editar item {itemDraft.codigoLote}</h3><small>ID {itemDraft.id}</small></div><div className="actions"><button type="button" className="secondary" onClick={() => setItemDraft(null)}>Cancelar</button><button disabled={!itemValid || busyKey === `item-update-${itemDraft.id}`}>{busyKey === `item-update-${itemDraft.id}` ? 'Salvando...' : 'Salvar item'}</button></div></div>
+        <div className="editor-grid">
+          <label>Movimento<select value={itemDraft.tipoMovimento} onChange={(event) => setItemDraft({ ...itemDraft, tipoMovimento: event.target.value })}>{MOVIMENTOS.map((value) => <option key={value}>{value}</option>)}</select></label>
+          <label>Tipo de carga<select value={itemDraft.tipoCarga} onChange={(event) => setItemDraft({ ...itemDraft, tipoCarga: event.target.value })}>{TIPOS_CARGA.map((value) => <option key={value}>{value}</option>)}</select></label>
+          <label>Código do lote<input required value={itemDraft.codigoLote} onChange={(event) => setItemDraft({ ...itemDraft, codigoLote: event.target.value })} /></label>
+          <label>Produto<input required value={itemDraft.produto} onChange={(event) => setItemDraft({ ...itemDraft, produto: event.target.value })} /></label>
+          <label>Quantidade<input type="number" min="1" required value={itemDraft.quantidade} onChange={(event) => setItemDraft({ ...itemDraft, quantidade: event.target.value })} /></label>
+          <label>Peso unitário (t)<input type="number" min="0.001" step="0.001" value={itemDraft.pesoUnitarioToneladas} onChange={(event) => setItemDraft({ ...itemDraft, pesoUnitarioToneladas: event.target.value })} /></label>
+          <label>Peso total (t)<input type="number" min="0.001" step="0.001" required value={itemDraft.pesoTotalToneladas} onChange={(event) => setItemDraft({ ...itemDraft, pesoTotalToneladas: event.target.value })} /></label>
+          <label>Altura (m)<input type="number" min="0.001" step="0.001" value={itemDraft.alturaCargaMetros} onChange={(event) => setItemDraft({ ...itemDraft, alturaCargaMetros: event.target.value })} /></label>
+          <label>Porão planejado<input type="number" min="1" value={itemDraft.poraoPlanejado} onChange={(event) => setItemDraft({ ...itemDraft, poraoPlanejado: event.target.value })} /></label>
+          <label>Porão real<input type="number" min="1" value={itemDraft.poraoReal} onChange={(event) => setItemDraft({ ...itemDraft, poraoReal: event.target.value })} /></label>
+          <label>Posição planejada<input value={itemDraft.posicaoPlanejada} onChange={(event) => setItemDraft({ ...itemDraft, posicaoPlanejada: event.target.value })} /></label>
+          <label>Posição real<input value={itemDraft.posicaoReal} onChange={(event) => setItemDraft({ ...itemDraft, posicaoReal: event.target.value })} /></label>
+          <label>Origem no pátio<input value={itemDraft.origemPatio} onChange={(event) => setItemDraft({ ...itemDraft, origemPatio: event.target.value })} /></label>
+          <label>Destino no pátio<input value={itemDraft.destinoPatio} onChange={(event) => setItemDraft({ ...itemDraft, destinoPatio: event.target.value })} /></label>
+          <label>Sequência operacional<input type="number" min="1" value={itemDraft.sequenciaOperacional} onChange={(event) => setItemDraft({ ...itemDraft, sequenciaOperacional: event.target.value })} /></label>
+          <label className="span-2">Observações<textarea rows="3" value={itemDraft.observacoes} onChange={(event) => setItemDraft({ ...itemDraft, observacoes: event.target.value })} /></label>
+        </div>
+      </form>}
+    </div>
+
+    <div className="editor-block plan-editor">
+      <div className="editor-title"><div><h3>Plano de estiva</h3><small>A conclusão exige validação persistida e nova validação no backend.</small></div>{plan && <span className={statusClass(plan.status)}>{plan.status}</span>}</div>
+      {!plan ? <p className="empty">Nenhum plano de estiva disponível para a visita.</p> : <>
+        <div className="plan-summary">
+          <span><b>v{plan.versao}</b> versão</span><span><b>{plan.posicoes?.length ?? 0}</b> posições</span><span><b>{number(plan.pesoTotalPlanejado, 3)} t</b> planejadas</span><span><b>{number(plan.pesoTotalRealizado, 3)} t</b> realizadas</span>
+        </div>
+        {validation && <div className="validation-result">
+          <strong>{validation.erros?.length ?? 0} erros · {validation.alertas?.length ?? 0} alertas</strong>
+          {(validation.erros ?? []).map((entry) => <p className="validation-error" key={entry}>{entry}</p>)}
+          {(validation.alertas ?? []).map((entry) => <p className="validation-warning" key={entry}>{entry}</p>)}
+        </div>}
+        <div className="actions">
+          <button type="button" className="secondary" disabled={busyKey === 'plan-validate' || plan.status === 'CONCLUIDO'} onClick={() => onValidatePlan(plan.id)}>{busyKey === 'plan-validate' ? 'Validando...' : 'Validar plano'}</button>
+          <button type="button" className="warning" disabled={busyKey === 'plan-conclude' || plan.status !== 'VALIDADO'} onClick={concludePlan}>{busyKey === 'plan-conclude' ? 'Concluindo...' : 'Concluir plano de estiva'}</button>
+        </div>
+      </>}
+    </div>
+  </section>;
+}

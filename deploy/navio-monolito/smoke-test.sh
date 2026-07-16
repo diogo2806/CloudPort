@@ -7,6 +7,8 @@ SMOKE_COMPOSE="$ROOT_DIR/deploy/navio-monolito/docker-compose.smoke.yml"
 PUBLIC_URL="${MONOLITO_SMOKE_URL:-http://localhost:8086}"
 PROJECT_NAME="${MONOLITO_SMOKE_PROJECT:-cloudport-navio-smoke}"
 COMPOSE_LOG="$(mktemp)"
+STATUS_FILE="${SMOKE_STATUS_FILE:-/tmp/cloudport-smoke-status.txt}"
+CURRENT_STAGE="inicializacao"
 
 export SMOKE_JWT_SECRET="${SMOKE_JWT_SECRET:-$(openssl rand -hex 32)}"
 export SMOKE_SERVICE_KEY="${SMOKE_SERVICE_KEY:-$(openssl rand -hex 24)}"
@@ -14,16 +16,20 @@ export SMOKE_SERVICE_KEY="${SMOKE_SERVICE_KEY:-$(openssl rand -hex 24)}"
 COMPOSE=(docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$SMOKE_COMPOSE" --profile monolito)
 
 stage() {
-    echo "[smoke] $1"
+    CURRENT_STAGE="$1"
+    printf 'STAGE=%s\n' "$CURRENT_STAGE" > "$STATUS_FILE"
+    echo "[smoke] $CURRENT_STAGE"
 }
 
 cleanup() {
     local exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
-        echo "[smoke] falha detectada; ultimas linhas da construcao:" >&2
-        tail -n 120 "$COMPOSE_LOG" >&2 || true
+        printf 'RESULT=failure\nSTAGE=%s\n' "$CURRENT_STAGE" > "$STATUS_FILE"
+        echo "[smoke] falha no estágio: $CURRENT_STAGE" >&2
+        tail -n 40 "$COMPOSE_LOG" >&2 || true
         "${COMPOSE[@]}" ps || true
-        "${COMPOSE[@]}" logs --no-color --tail 160 || true
+    else
+        printf 'RESULT=success\nSTAGE=%s\n' "$CURRENT_STAGE" > "$STATUS_FILE"
     fi
     "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
     exit "$exit_code"
@@ -33,9 +39,8 @@ trap cleanup EXIT
 stage "limpando ambiente anterior"
 "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
 
-stage "construindo e iniciando PostgreSQL, monolito e Yard simulado"
+stage "construindo e iniciando ambiente"
 if ! "${COMPOSE[@]}" up -d --build >"$COMPOSE_LOG" 2>&1; then
-    echo "[smoke] falha ao construir ou iniciar o ambiente" >&2
     exit 1
 fi
 
@@ -61,7 +66,6 @@ PY
 done
 
 if [[ "$ready" != "true" ]]; then
-    echo "Runtime unificado nao ficou pronto no prazo." >&2
     exit 1
 fi
 
@@ -85,7 +89,7 @@ PY
 stage "validando bloqueio sem autenticacao"
 unauthorized_status="$(curl -sS -o /tmp/cloudport-smoke-unauthorized.json -w '%{http_code}' "$PUBLIC_URL/visitas-navio")"
 if [[ "$unauthorized_status" != "401" ]]; then
-    echo "API sem autenticacao deveria responder 401, mas respondeu $unauthorized_status." >&2
+    printf 'HTTP_STATUS=%s\n' "$unauthorized_status" >> "$STATUS_FILE"
     exit 1
 fi
 
@@ -154,4 +158,4 @@ stage "validando integracao autenticada com o Yard"
 work_queues_response="$(request_json GET "/visitas-navio/$visita_id/integracao-patio/work-queues")"
 python3 -c 'import json,sys; assert json.load(sys.stdin) == []' <<< "$work_queues_response"
 
-stage "smoke test concluido com sucesso"
+stage "smoke test concluido"

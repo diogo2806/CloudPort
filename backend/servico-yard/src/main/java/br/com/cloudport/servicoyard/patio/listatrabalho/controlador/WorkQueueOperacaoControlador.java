@@ -9,6 +9,7 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRe
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoDispatchWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkInstructionDrillDownDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRespostaDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.EventoOperacaoPatioPublicador;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueueOperacaoServico;
 import java.util.List;
 import java.util.Map;
@@ -29,64 +30,72 @@ import org.springframework.web.bind.annotation.RestController;
 public class WorkQueueOperacaoControlador {
 
     private final WorkQueueOperacaoServico servico;
+    private final EventoOperacaoPatioPublicador eventoPublicador;
 
-    public WorkQueueOperacaoControlador(WorkQueueOperacaoServico servico) {
+    public WorkQueueOperacaoControlador(WorkQueueOperacaoServico servico,
+                                         EventoOperacaoPatioPublicador eventoPublicador) {
         this.servico = servico;
+        this.eventoPublicador = eventoPublicador;
     }
 
     @PatchMapping("/work-queues/{id}/recursos-operacionais")
     public WorkQueuePatioRespostaDto associarRecursos(@PathVariable Long id,
                                                        @Valid @RequestBody AtualizacaoWorkQueueRecursosDto dto) {
-        return servico.associarRecursos(id, dto);
+        WorkQueuePatioRespostaDto resposta = servico.associarRecursos(id, dto);
+        eventoPublicador.publicarWorkQueue(resposta, "WORK_QUEUE_RECURSOS_ASSOCIADOS", dto.getCorrelationId());
+        return resposta;
     }
 
     @PostMapping("/work-queues/{id}/dispatch")
     public ResultadoDispatchWorkQueueDto despachar(@PathVariable Long id,
                                                     @Valid @RequestBody DispatchWorkQueueDto dto) {
-        return servico.despachar(id, dto);
+        ResultadoDispatchWorkQueueDto resposta = servico.despachar(id, dto);
+        eventoPublicador.publicarDispatch(resposta, dto.getCorrelationId());
+        return resposta;
     }
 
     @PostMapping("/work-instructions/{id}/suspender")
     public OrdemTrabalhoPatioRespostaDto suspender(@PathVariable Long id,
                                                     @Valid @RequestBody ComandoWorkInstructionDto dto) {
-        return servico.suspender(id, dto);
+        return publicar(servico.suspender(id, dto), "WORK_INSTRUCTION_SUSPENSA", dto.getCorrelationId());
     }
 
     @PostMapping("/work-instructions/{id}/retomar")
     public OrdemTrabalhoPatioRespostaDto retomar(@PathVariable Long id,
                                                   @Valid @RequestBody ComandoWorkInstructionDto dto) {
-        return servico.retomar(id, dto);
+        return publicar(servico.retomar(id, dto), "WORK_INSTRUCTION_RETOMADA", dto.getCorrelationId());
     }
 
     @PostMapping("/work-instructions/{id}/bloquear")
     public OrdemTrabalhoPatioRespostaDto bloquear(@PathVariable Long id,
                                                    @Valid @RequestBody ComandoWorkInstructionDto dto) {
-        return servico.bloquear(id, dto);
+        return publicar(servico.bloquear(id, dto), "WORK_INSTRUCTION_BLOQUEADA", dto.getCorrelationId());
     }
 
     @PostMapping("/work-instructions/{id}/concluir")
     public OrdemTrabalhoPatioRespostaDto concluir(@PathVariable Long id,
                                                    @Valid @RequestBody ComandoWorkInstructionDto dto) {
-        return servico.concluir(id, dto);
+        return publicar(servico.concluir(id, dto), "WORK_INSTRUCTION_CONCLUIDA", dto.getCorrelationId());
     }
 
     @PostMapping("/work-instructions/{id}/reset")
     public OrdemTrabalhoPatioRespostaDto resetar(@PathVariable Long id,
                                                   @Valid @RequestBody ComandoWorkInstructionDto dto) {
-        return servico.resetar(id, dto);
+        return publicar(servico.resetar(id, dto), "WORK_INSTRUCTION_RESETADA", dto.getCorrelationId());
     }
 
     @PostMapping("/work-instructions/{id}/cancelar")
     public OrdemTrabalhoPatioRespostaDto cancelar(@PathVariable Long id,
                                                    @Valid @RequestBody ComandoWorkInstructionDto dto) {
-        return servico.cancelar(id, dto);
+        return publicar(servico.cancelar(id, dto), "WORK_INSTRUCTION_CANCELADA", dto.getCorrelationId());
     }
 
     @PatchMapping("/work-instructions/{id}/prioridades")
     public OrdemTrabalhoPatioRespostaDto atualizarPrioridades(
             @PathVariable Long id,
             @Valid @RequestBody AtualizacaoPrioridadesWorkInstructionDto dto) {
-        return servico.atualizarPrioridades(id, dto);
+        return publicar(servico.atualizarPrioridades(id, dto),
+                "WORK_INSTRUCTION_PRIORIDADE_ALTERADA", dto.getCorrelationId());
     }
 
     @GetMapping("/work-instructions/{id}/drill-down")
@@ -110,5 +119,12 @@ public class WorkQueueOperacaoControlador {
             @PathVariable Long id,
             @RequestParam(name = "visitaNavioId", required = false) Long visitaNavioId) {
         return servico.obterJobListEquipamento(id, visitaNavioId);
+    }
+
+    private OrdemTrabalhoPatioRespostaDto publicar(OrdemTrabalhoPatioRespostaDto resposta,
+                                                    String tipoAlteracao,
+                                                    String correlationId) {
+        eventoPublicador.publicarInstrucao(resposta, tipoAlteracao, correlationId);
+        return resposta;
     }
 }

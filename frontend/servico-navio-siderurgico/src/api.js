@@ -120,12 +120,13 @@ function isFormData(body) {
 }
 
 function commandBody(motivo, extra = {}) {
-  let normalized = String(motivo ?? '').trim();
+  let normalized = String(motivo ?? extra?.motivo ?? '').trim();
   if (!normalized && typeof window !== 'undefined' && typeof window.prompt === 'function') {
     normalized = String(window.prompt('Informe o motivo da operação administrativa:', '') ?? '').trim();
   }
   if (!normalized) throw new Error('O motivo da operação é obrigatório.');
-  return { ...extra, motivo: normalized };
+  const { motivo: ignored, ...rest } = extra ?? {};
+  return { ...rest, motivo: normalized };
 }
 
 function enrichCommand(path, method, body, session, correlationId) {
@@ -140,7 +141,7 @@ function enrichCommand(path, method, body, session, correlationId) {
     origemAcao: body.origemAcao ?? 'CONTROL_ROOM_NAVIO_PATIO',
     correlationId: body.correlationId ?? correlationId
   };
-  if (path.endsWith('/dispatch')) command.operador = session.nome;
+  if (path.endsWith('/dispatch')) command.operador = body.operador ?? session.nome;
   return command;
 }
 
@@ -193,13 +194,7 @@ async function request(path, options = {}) {
 
 function normalizeYardQueryResult(payload) {
   if (Array.isArray(payload)) {
-    return {
-      dados: payload,
-      status: 'CONFIRMADA',
-      confirmado: true,
-      fonte: 'YARD',
-      motivoDegradacao: null
-    };
+    return { dados: payload, status: 'CONFIRMADA', confirmado: true, fonte: 'YARD', motivoDegradacao: null };
   }
   return {
     dados: Array.isArray(payload?.dados) ? payload.dados : [],
@@ -273,6 +268,7 @@ export function subscribeSse(path, handlers = {}) {
       });
       if (!response.ok || !response.body) throw new Error(`Falha ao conectar ao stream: HTTP ${response.status}`);
       handlers.onState?.('CONECTADO');
+      handlers.onOpen?.();
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -311,6 +307,8 @@ export function subscribeSse(path, handlers = {}) {
   };
 }
 
+const query = (value) => value == null ? '' : `?visitaNavioId=${encodeURIComponent(value)}`;
+
 export const api = {
   autenticar: (login, senha) => request('/auth/login', { method: 'POST', body: { login, senha } }),
   listarNavios: () => request('/navios-siderurgicos'),
@@ -329,6 +327,8 @@ export const api = {
   assinarEventos: (visitaId, handlers) => subscribeSse(`/visitas-navio/${visitaId}/eventos/stream`, handlers),
   obterControlRoom: (visitaId) => request(`/visitas-navio/${visitaId}/control-room`),
   obterQuayMonitor: (visitaId) => request(`/visitas-navio/${visitaId}/quay-monitor`),
+  obterPlanoGuindaste: (visitaId) => request(`/visitas-navio/${visitaId}/crane-plan`),
+  salvarPlanoGuindaste: (visitaId, plano) => request(`/visitas-navio/${visitaId}/crane-plan`, { method: 'POST', body: plano }),
   otimizarOperacaoGlobal: (visitaId) => request(`/visitas-navio/${visitaId}/otimizacao-global`, { method: 'POST', body: {} }),
   validarRestricoesEstruturais: (visitaId, configuracao) => request(`/visitas-navio/${visitaId}/validacoes-estruturais`, { method: 'POST', body: configuracao }),
   baixarRelatorioCsv: (visitaId) => download(`/visitas-navio/${visitaId}/relatorio-operacional-integrado.csv`, `relatorio-operacional-visita-${visitaId}.csv`, 'text/csv'),
@@ -352,6 +352,22 @@ export const api = {
   despacharWorkQueuePatio: (id, body) => request(`/yard/patio/work-queues/${id}/dispatch`, { method: 'POST', body }),
   resetarWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/reset`, { method: 'POST', body: commandBody(motivo) }),
   cancelarWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/cancelar`, { method: 'POST', body: commandBody(motivo) }),
+  atualizarRecursosWorkQueuePatio: (id, body, motivo) => request(`/yard/patio/work-queues/${id}/recursos-operacionais`, {
+    method: 'PATCH',
+    body: commandBody(motivo ?? body?.motivo, body)
+  }),
+  atualizarPrioridadesWorkInstructionPatio: (id, body, motivo) => request(`/yard/patio/work-instructions/${id}/prioridades`, {
+    method: 'PATCH',
+    body: commandBody(motivo ?? body?.motivo, body)
+  }),
+  suspenderWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/suspender`, { method: 'POST', body: commandBody(motivo) }),
+  retomarWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/retomar`, { method: 'POST', body: commandBody(motivo) }),
+  bloquearWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/bloquear`, { method: 'POST', body: commandBody(motivo) }),
+  concluirWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/concluir`, { method: 'POST', body: commandBody(motivo) }),
+  obterDrillDownWorkInstructionPatio: (id) => request(`/yard/patio/work-instructions/${id}/drill-down`),
+  obterMatrizEstadosWorkInstructionPatio: () => request('/yard/patio/work-instructions/matriz-estados'),
+  listarJobListsEquipamentoPatio: (visitaId) => request(`/yard/patio/equipamentos/job-lists${query(visitaId)}`),
+  obterJobListEquipamentoPatio: (equipamentoId, visitaId) => request(`/yard/patio/equipamentos/${equipamentoId}/job-list${query(visitaId)}`),
   listarOrdensSemCoberturaPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/sem-cobertura`).then(normalizeYardQueryResult),
   listarAlertasIntegracaoPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/alertas`),
   sincronizarStatusPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/sincronizar-status`, { method: 'POST', body: {} }),

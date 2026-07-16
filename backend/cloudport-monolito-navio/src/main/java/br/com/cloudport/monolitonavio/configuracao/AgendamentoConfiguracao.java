@@ -1,6 +1,6 @@
 package br.com.cloudport.monolitonavio.configuracao;
 
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +38,7 @@ public class AgendamentoConfiguracao implements SchedulingConfigurer {
         scheduler.setAwaitTerminationSeconds(30);
         scheduler.setRemoveOnCancelPolicy(true);
         scheduler.setErrorHandler(erro -> LOGGER.error("Falha não tratada em job agendado", erro));
-        scheduler.setRejectedExecutionHandler(new ScheduledThreadPoolExecutor.CallerRunsPolicy());
+        scheduler.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         return scheduler;
     }
 

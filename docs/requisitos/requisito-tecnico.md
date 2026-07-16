@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-16 após implementação do ERR10.
+Status: atualizado em 2026-07-16 após implementação do ASYNC10.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -55,19 +55,8 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| ASYNC10 | Tornar os consumidores da Visibilidade idempotentes por identidade de evento. | O mesmo `eventId` ou `messageId` processado novamente não duplica histórico nem reaplica projeções; deduplicação e gravação do efeito ocorrem na mesma transação. | ⬜ Pendente |
 | ASYNC20 | Tornar o processamento EDI idempotente e desacoplado da requisição HTTP. | A combinação de tipo, identificadores `UNB`/`UNH` e referência possui unicidade; a recepção é persistida antes da confirmação e o processamento ocorre por worker com retentativa segura e quarentena. | ⬜ Pendente |
 | ASYNC30 | Usar eventos internos como fluxo principal de atualização Yard → Navio e Navio canônico → projeção siderúrgica. | Alterações relevantes publicam eventos no processo e atualizam os consumidores imediatamente; os jobs periódicos permanecem apenas para reconciliação de perdas, sem varrer toda a base como mecanismo principal. | ⬜ Pendente |
-
-### ASYNC10 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-visibilidade/src/main/java/br/com/cloudport/visibilidade/listener/YardEventListener.java` | `handleYardEvent()` | O listener recebe `Map<String, Object>`, não exige identidade do evento e chama os serviços novamente em cada redelivery. | Ler e validar `eventId` ou `messageId` do envelope versionado e chamar `novo método sugerido: processarUmaVez()`. |
-| `backend/servico-visibilidade/src/main/java/br/com/cloudport/visibilidade/listener/GateEventListener.java` | consumidores de eventos de Gate | O fluxo não compartilha uma barreira persistente de deduplicação com os demais listeners. | Aplicar o mesmo contrato idempotente antes de alterar localização e histórico. |
-| `backend/servico-visibilidade/src/main/java/br/com/cloudport/visibilidade/listener/RailEventListener.java` | consumidores de eventos ferroviários | Redelivery pode reaplicar a movimentação quando não há chave persistida do evento. | Persistir a identidade e confirmar a mensagem somente após a transação do efeito. |
-| `backend/servico-visibilidade/src/main/java/br/com/cloudport/visibilidade/listener/NavioEventListener.java` | consumidores de eventos de navio | Não há registro comum de eventos já processados. | Usar o mesmo mecanismo de deduplicação e rejeitar colisão de identidade com payload divergente. |
-| `backend/servico-visibilidade/src/main/java/br/com/cloudport/visibilidade/service/MovimentoConteinerService.java` | `registrarMovimento()` | Toda chamada cria um novo `HistoricoMovimento`; não recebe uma chave externa capaz de impedir duplicidade. | Receber a identidade do evento e persistir deduplicação, projeção e histórico atomicamente, com restrição única no banco. |
 
 ### ASYNC20 — arquivos e métodos
 

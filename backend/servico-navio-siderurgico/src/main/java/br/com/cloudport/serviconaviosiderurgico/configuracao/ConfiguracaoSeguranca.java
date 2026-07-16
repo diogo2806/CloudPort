@@ -57,7 +57,7 @@ public class ConfiguracaoSeguranca {
                 .csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests(authorize -> authorize
-                        .antMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .antMatchers("/api/public/v1/**").hasRole("INTEGRACAO_EXTERNA")
@@ -105,11 +105,15 @@ public class ConfiguracaoSeguranca {
             List<String> roles = Optional.ofNullable(jwt.getClaimAsStringList("roles"))
                     .orElseGet(() -> {
                         String role = jwt.getClaimAsString("role");
-                        return StringUtils.hasText(role) ? Collections.singletonList(role) : Collections.emptyList();
+                        return StringUtils.hasText(role)
+                                ? Collections.singletonList(role)
+                                : Collections.emptyList();
                     });
             return roles.stream()
                     .filter(StringUtils::hasText)
-                    .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase(Locale.ROOT))
+                    .map(role -> role.startsWith("ROLE_")
+                            ? role
+                            : "ROLE_" + role.toUpperCase(Locale.ROOT))
                     .distinct()
                     .<GrantedAuthority>map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
@@ -123,8 +127,11 @@ public class ConfiguracaoSeguranca {
                 .map(String::trim)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toList());
-        configuration.setAllowedOrigins(origins.isEmpty() ? Collections.singletonList("http://localhost:4201") : origins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedOrigins(origins.isEmpty()
+                ? Collections.singletonList("http://localhost:4201")
+                : origins);
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",
@@ -133,8 +140,7 @@ public class ConfiguracaoSeguranca {
                 "X-Trace-Id",
                 "traceparent",
                 PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID,
-                PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET
-        ));
+                PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET));
         configuration.setExposedHeaders(Arrays.asList(
                 "Authorization",
                 CorrelationIdFilter.HEADER,

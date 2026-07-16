@@ -60,7 +60,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
                 }),
                 @ComponentScan.Filter(
                         type = FilterType.REGEX,
-                        pattern = "br\\.com\\.cloudport\\..*\\.(ConfiguracaoSeguranca|SecurityConfig|SecurityConfigurations|TratadorExcecoes|GlobalExceptionHandler|VisibilidadeExceptionHandler|OpenApiConfig)")
+                        pattern = "br\\.com\\.cloudport\\..*\\.(ConfiguracaoSeguranca|SecurityConfig|SecurityConfigurations|TratadorExcecoes|GlobalExceptionHandler|VisibilidadeExceptionHandler|OpenApiConfig|RabbitConfiguracao)")
         })
 public class CloudPortMonolitoNavioApplication {
 

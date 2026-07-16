@@ -47,8 +47,7 @@ public class VisitaNavioServico {
             EventoVisitaNavioRepositorio eventoRepositorio,
             ReservaPosicaoPatioNavioRepositorio reservaRepositorio,
             NavioSiderurgicoServico navioServico,
-            EventoIntegracaoPublicador eventoPublicador
-    ) {
+            EventoIntegracaoPublicador eventoPublicador) {
         this.visitaRepositorio = visitaRepositorio;
         this.itemRepositorio = itemRepositorio;
         this.eventoRepositorio = eventoRepositorio;

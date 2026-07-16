@@ -1,103 +1,150 @@
 package br.com.cloudport.servicoyard.edi.servico;
 
-import br.com.cloudport.servicoyard.edi.dto.BayPlanRespostaDto;
-import br.com.cloudport.servicoyard.edi.dto.CoarriMensagemDto;
-import br.com.cloudport.servicoyard.edi.dto.CoprarMensagemDto;
 import br.com.cloudport.servicoyard.edi.dto.PaginaRespostaDto;
 import br.com.cloudport.servicoyard.edi.dto.ProcessamentoEdiRespostaDto;
-import br.com.cloudport.servicoyard.edi.dto.VermasMensagemDto;
 import br.com.cloudport.servicoyard.edi.modelo.ProcessamentoEdi;
 import br.com.cloudport.servicoyard.edi.modelo.StatusProcessamentoEdi;
 import br.com.cloudport.servicoyard.edi.modelo.TipoMensagemEdi;
 import br.com.cloudport.servicoyard.edi.repositorio.ProcessamentoEdiRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoMotivadoDto;
-import java.util.function.Supplier;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.util.HexFormat;
+import java.util.Locale;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class EdiAuditoriaServico {
 
-    private static final int MAXIMO_TENTATIVAS = 5;
     private static final int TAMANHO_MAXIMO_PAGINA = 200;
+    private static final long ATRASO_MAXIMO_MILISSEGUNDOS = 300_000L;
 
     private final ProcessamentoEdiRepositorio repositorio;
-    private final EdiProcessadorServico processador;
+    private final EdiIdentificadorExtrator identificadorExtrator;
+    private final int maximoTentativas;
+    private final long atrasoInicialMilissegundos;
 
-    public EdiAuditoriaServico(ProcessamentoEdiRepositorio repositorio,
-                                EdiProcessadorServico processador) {
+    public EdiAuditoriaServico(
+            ProcessamentoEdiRepositorio repositorio,
+            EdiIdentificadorExtrator identificadorExtrator,
+            @Value("${cloudport.edi.worker.max-tentativas:5}") int maximoTentativas,
+            @Value("${cloudport.edi.worker.atraso-inicial-ms:5000}") long atrasoInicialMilissegundos) {
         this.repositorio = repositorio;
-        this.processador = processador;
+        this.identificadorExtrator = identificadorExtrator;
+        this.maximoTentativas = Math.max(maximoTentativas, 1);
+        this.atrasoInicialMilissegundos = Math.max(atrasoInicialMilissegundos, 100L);
     }
 
-    public ResultadoProcessamentoEdi processar(TipoMensagemEdi tipo,
-                                                String conteudoOriginal,
-                                                String codigoNavio,
-                                                String codigoViagem,
-                                                String referenciaMensagem,
-                                                String correlationId,
-                                                Supplier<BayPlanRespostaDto> operacao) {
-        return processarInterno(
-                tipo,
-                conteudoOriginal,
-                codigoNavio,
-                codigoViagem,
-                referenciaMensagem,
-                correlationId,
-                null,
-                1,
-                null,
-                null,
-                operacao
-        );
-    }
-
-    public ResultadoProcessamentoEdi reprocessar(Long id, ComandoMotivadoDto comando) {
-        ProcessamentoEdi solicitado = repositorio.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Processamento EDI nao encontrado: " + id));
-        if (solicitado.getStatus() != StatusProcessamentoEdi.REJEITADO) {
-            throw new IllegalArgumentException("Somente mensagens EDI rejeitadas podem ser reprocessadas.");
+    @Transactional
+    public ProcessamentoEdiRespostaDto registrarRecebimento(TipoMensagemEdi tipo,
+                                                              String conteudoOriginal,
+                                                              String codigoNavio,
+                                                              String codigoViagem,
+                                                              String referenciaMensagem,
+                                                              String correlationId) {
+        if (!StringUtils.hasText(conteudoOriginal)) {
+            throw new IllegalArgumentException(tipo + ": conteudo original obrigatorio para auditoria.");
         }
 
-        Long raizId = solicitado.getReprocessamentoDeId() == null
-                ? solicitado.getId()
-                : solicitado.getReprocessamentoDeId();
-        ProcessamentoEdi ultimaTentativa = repositorio
-                .findTopByReprocessamentoDeIdOrderByTentativaDesc(raizId)
-                .orElse(solicitado);
-        int proximaTentativa = Math.max(solicitado.getTentativa(), ultimaTentativa.getTentativa()) + 1;
-        if (proximaTentativa > MAXIMO_TENTATIVAS) {
-            throw new IllegalArgumentException(
-                    "Limite de " + MAXIMO_TENTATIVAS + " tentativas de reprocessamento EDI atingido."
+        IdentificadoresEdi identificadores = identificadorExtrator.extrair(conteudoOriginal);
+        String referenciaNormalizada = normalizar(referenciaMensagem);
+        if (referenciaNormalizada == null) {
+            referenciaNormalizada = identificadores.messageReferenceNumber();
+        }
+        String hashConteudo = sha256(conteudoOriginal);
+        String chaveIdempotencia = criarChaveIdempotencia(
+                tipo,
+                identificadores.interchangeControlReference(),
+                identificadores.messageReferenceNumber(),
+                referenciaNormalizada,
+                hashConteudo
+        );
+        LocalDateTime agora = LocalDateTime.now();
+
+        repositorio.inserirSeAusente(
+                tipo.name(),
+                conteudoOriginal,
+                normalizar(codigoNavio),
+                normalizar(codigoViagem),
+                referenciaNormalizada,
+                normalizar(correlationId),
+                identificadores.interchangeControlReference(),
+                identificadores.messageReferenceNumber(),
+                chaveIdempotencia,
+                hashConteudo,
+                agora
+        );
+
+        ProcessamentoEdi processamento = repositorio.findByChaveIdempotencia(chaveIdempotencia)
+                .orElseThrow(() -> new IllegalStateException(
+                        "A recepcao EDI foi registrada, mas nao pode ser recuperada pela chave idempotente."));
+        if (!hashConteudo.equals(processamento.getHashConteudo())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "A identidade EDI ja existe com conteudo diferente. processamentoId=" + processamento.getId()
             );
         }
+        return ProcessamentoEdiRespostaDto.de(processamento);
+    }
 
-        Supplier<BayPlanRespostaDto> operacao = criarOperacao(solicitado);
-        return processarInterno(
-                solicitado.getTipoMensagem(),
-                solicitado.getConteudoOriginal(),
-                solicitado.getCodigoNavio(),
-                solicitado.getCodigoViagem(),
-                solicitado.getReferenciaMensagem(),
-                comando.getCorrelationId(),
-                raizId,
-                proximaTentativa,
-                comando.getMotivo().trim(),
-                usuarioEfetivo(comando),
-                operacao
-        );
+    @Transactional
+    public ProcessamentoEdiRespostaDto reprocessar(Long id, ComandoMotivadoDto comando) {
+        ProcessamentoEdi processamento = repositorio.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Processamento EDI nao encontrado: " + id));
+        if (processamento.getStatus() != StatusProcessamentoEdi.QUARENTENA
+                && processamento.getStatus() != StatusProcessamentoEdi.REJEITADO) {
+            throw new IllegalArgumentException(
+                    "Somente mensagens EDI em quarentena ou rejeitadas podem ser reprocessadas.");
+        }
+
+        processamento.setStatus(StatusProcessamentoEdi.RECEBIDO);
+        processamento.setTentativa(0);
+        processamento.setProximaTentativaEm(LocalDateTime.now());
+        processamento.setMotivoRejeicao(null);
+        processamento.setMotivoReprocessamento(comando.getMotivo().trim());
+        processamento.setUsuarioReprocessamento(usuarioEfetivo(comando));
+        if (StringUtils.hasText(comando.getCorrelationId())) {
+            processamento.setCorrelationId(comando.getCorrelationId().trim());
+        }
+        return ProcessamentoEdiRespostaDto.de(repositorio.saveAndFlush(processamento));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void registrarFalha(Long id, Throwable erro, boolean irrecuperavel) {
+        ProcessamentoEdi processamento = repositorio.findById(id)
+                .orElseThrow(() -> new IllegalStateException("Processamento EDI nao encontrado: " + id));
+        int tentativa = Math.max(processamento.getTentativa() == null ? 0 : processamento.getTentativa(), 0) + 1;
+        processamento.setTentativa(tentativa);
+        processamento.setMotivoRejeicao(limitar(mensagemRaiz(erro), 2000));
+        processamento.setBayPlanId(null);
+
+        if (irrecuperavel || tentativa >= maximoTentativas) {
+            processamento.setStatus(StatusProcessamentoEdi.QUARENTENA);
+            processamento.setProximaTentativaEm(null);
+        } else {
+            processamento.setStatus(StatusProcessamentoEdi.AGUARDANDO_REPROCESSAMENTO);
+            processamento.setProximaTentativaEm(
+                    LocalDateTime.now().plusNanos(calcularAtraso(tentativa) * 1_000_000L));
+        }
+        repositorio.saveAndFlush(processamento);
     }
 
     public PaginaRespostaDto<ProcessamentoEdiRespostaDto> listar(TipoMensagemEdi tipo,
-                                                                  StatusProcessamentoEdi status,
-                                                                  int pagina,
-                                                                  int tamanho) {
+                                                                   StatusProcessamentoEdi status,
+                                                                   int pagina,
+                                                                   int tamanho) {
         PageRequest pageable = PageRequest.of(
                 Math.max(pagina, 0),
                 Math.min(Math.max(tamanho, 1), TAMANHO_MAXIMO_PAGINA),
@@ -123,95 +170,28 @@ public class EdiAuditoriaServico {
                         HttpStatus.NOT_FOUND, "Processamento EDI nao encontrado: " + id));
     }
 
-    private ResultadoProcessamentoEdi processarInterno(TipoMensagemEdi tipo,
-                                                        String conteudoOriginal,
-                                                        String codigoNavio,
-                                                        String codigoViagem,
-                                                        String referenciaMensagem,
-                                                        String correlationId,
-                                                        Long reprocessamentoDeId,
-                                                        int tentativa,
-                                                        String motivoReprocessamento,
-                                                        String usuarioReprocessamento,
-                                                        Supplier<BayPlanRespostaDto> operacao) {
-        if (!StringUtils.hasText(conteudoOriginal)) {
-            throw new IllegalArgumentException(tipo + ": conteudo original obrigatorio para auditoria.");
-        }
-        ProcessamentoEdi auditoria = new ProcessamentoEdi();
-        auditoria.setTipoMensagem(tipo);
-        auditoria.setStatus(StatusProcessamentoEdi.RECEBIDO);
-        auditoria.setConteudoOriginal(conteudoOriginal);
-        auditoria.setCodigoNavio(normalizar(codigoNavio));
-        auditoria.setCodigoViagem(normalizar(codigoViagem));
-        auditoria.setReferenciaMensagem(normalizar(referenciaMensagem));
-        auditoria.setCorrelationId(normalizar(correlationId));
-        auditoria.setReprocessamentoDeId(reprocessamentoDeId);
-        auditoria.setTentativa(tentativa);
-        auditoria.setMotivoReprocessamento(motivoReprocessamento);
-        auditoria.setUsuarioReprocessamento(usuarioReprocessamento);
-        auditoria = repositorio.saveAndFlush(auditoria);
-
-        try {
-            auditoria.setStatus(StatusProcessamentoEdi.PROCESSANDO);
-            repositorio.saveAndFlush(auditoria);
-            BayPlanRespostaDto resultado = operacao.get();
-            auditoria.setStatus(StatusProcessamentoEdi.CONCLUIDO);
-            auditoria.setBayPlanId(resultado.getId());
-            if (!StringUtils.hasText(auditoria.getCodigoNavio())) {
-                auditoria.setCodigoNavio(resultado.getCodigoNavio());
-            }
-            if (!StringUtils.hasText(auditoria.getCodigoViagem())) {
-                auditoria.setCodigoViagem(resultado.getCodigoViagem());
-            }
-            ProcessamentoEdi concluido = repositorio.saveAndFlush(auditoria);
-            return new ResultadoProcessamentoEdi(ProcessamentoEdiRespostaDto.de(concluido), resultado);
-        } catch (RuntimeException ex) {
-            auditoria.setStatus(StatusProcessamentoEdi.REJEITADO);
-            auditoria.setMotivoRejeicao(limitar(mensagemRaiz(ex), 2000));
-            ProcessamentoEdi rejeitado = repositorio.saveAndFlush(auditoria);
-            throw new ResponseStatusException(
-                    HttpStatus.UNPROCESSABLE_ENTITY,
-                    tipo + " rejeitado. processamentoId=" + rejeitado.getId()
-                            + ". Motivo: " + rejeitado.getMotivoRejeicao(),
-                    ex
-            );
-        }
+    private String criarChaveIdempotencia(TipoMensagemEdi tipo,
+                                            String identificadorInterchange,
+                                            String identificadorMensagem,
+                                            String referenciaMensagem,
+                                            String hashConteudo) {
+        boolean possuiIdentidade = StringUtils.hasText(identificadorInterchange)
+                || StringUtils.hasText(identificadorMensagem)
+                || StringUtils.hasText(referenciaMensagem);
+        String material = String.join("|",
+                tipo.name(),
+                valorOuVazio(identificadorInterchange),
+                valorOuVazio(identificadorMensagem),
+                valorOuVazio(referenciaMensagem),
+                possuiIdentidade ? "" : hashConteudo
+        );
+        return sha256(material);
     }
 
-    private Supplier<BayPlanRespostaDto> criarOperacao(ProcessamentoEdi processamento) {
-        return switch (processamento.getTipoMensagem()) {
-            case BAPLIE -> () -> processador.processarBaplie(processamento.getConteudoOriginal());
-            case COPRAR -> () -> processador.processarCoprar(coprar(processamento));
-            case COARRI -> () -> processador.processarCoarri(coarri(processamento));
-            case VERMAS -> () -> processador.processarVermas(vermas(processamento));
-        };
-    }
-
-    private CoprarMensagemDto coprar(ProcessamentoEdi processamento) {
-        CoprarMensagemDto dto = new CoprarMensagemDto();
-        dto.setCodigoNavio(processamento.getCodigoNavio());
-        dto.setCodigoViagem(processamento.getCodigoViagem());
-        dto.setConteudoEdifact(processamento.getConteudoOriginal());
-        dto.setReferenciaMensagem(processamento.getReferenciaMensagem());
-        return dto;
-    }
-
-    private CoarriMensagemDto coarri(ProcessamentoEdi processamento) {
-        CoarriMensagemDto dto = new CoarriMensagemDto();
-        dto.setCodigoNavio(processamento.getCodigoNavio());
-        dto.setCodigoViagem(processamento.getCodigoViagem());
-        dto.setConteudoEdifact(processamento.getConteudoOriginal());
-        dto.setReferenciaMensagem(processamento.getReferenciaMensagem());
-        return dto;
-    }
-
-    private VermasMensagemDto vermas(ProcessamentoEdi processamento) {
-        VermasMensagemDto dto = new VermasMensagemDto();
-        dto.setCodigoNavio(processamento.getCodigoNavio());
-        dto.setCodigoViagem(processamento.getCodigoViagem());
-        dto.setConteudoEdifact(processamento.getConteudoOriginal());
-        dto.setReferenciaMensagem(processamento.getReferenciaMensagem());
-        return dto;
+    private long calcularAtraso(int tentativa) {
+        int expoente = Math.min(Math.max(tentativa - 1, 0), 10);
+        long multiplicador = 1L << expoente;
+        return Math.min(atrasoInicialMilissegundos * multiplicador, ATRASO_MAXIMO_MILISSEGUNDOS);
     }
 
     private String usuarioEfetivo(ComandoMotivadoDto comando) {
@@ -219,7 +199,20 @@ public class EdiAuditoriaServico {
     }
 
     private String normalizar(String valor) {
-        return StringUtils.hasText(valor) ? valor.trim() : null;
+        return StringUtils.hasText(valor) ? valor.trim().toUpperCase(Locale.ROOT) : null;
+    }
+
+    private String valorOuVazio(String valor) {
+        return valor == null ? "" : valor;
+    }
+
+    private String sha256(String valor) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(valor.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Algoritmo SHA-256 indisponivel.", ex);
+        }
     }
 
     private String mensagemRaiz(Throwable erro) {

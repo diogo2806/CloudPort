@@ -87,6 +87,65 @@ test('enriquece dispatch com usuário, origem, operador e correlationId', async 
   assert.equal(body.correlationId, requests[0].options.headers.get('X-Correlation-Id'));
 });
 
+test('associa recursos operacionais e CHE real com motivo auditável', async () => {
+  saveSession({
+    token: jwt({ nome: 'Diogo', roles: ['ROLE_PLANEJADOR'] }),
+    nome: 'Diogo',
+    roles: ['ROLE_PLANEJADOR']
+  });
+
+  await api.atualizarRecursosWorkQueuePatio(7, {
+    porao: 2,
+    planoGuindasteId: 31,
+    recursoCaisId: 44,
+    equipamentoPatioId: 9,
+    motivo: 'Ajuste de cobertura'
+  });
+
+  assert.equal(requests[0].url, 'http://api.cloudport.test/yard/patio/work-queues/7/recursos-operacionais');
+  assert.equal(requests[0].options.method, 'PATCH');
+  const body = JSON.parse(requests[0].options.body);
+  assert.equal(body.equipamentoPatioId, 9);
+  assert.equal(body.motivo, 'Ajuste de cobertura');
+  assert.equal(body.usuario, 'Diogo');
+  assert.equal(body.origemAcao, 'CONTROL_ROOM_NAVIO_PATIO');
+});
+
+test('separa prioridade operacional da prioridade de fetch', async () => {
+  saveSession({
+    token: jwt({ nome: 'Diogo', roles: ['ROLE_PLANEJADOR'] }),
+    nome: 'Diogo',
+    roles: ['ROLE_PLANEJADOR']
+  });
+
+  await api.atualizarPrioridadesWorkInstructionPatio(88, {
+    prioridadeOperacional: 4,
+    prioridadeBusca: true,
+    motivo: 'Movimento crítico'
+  });
+
+  assert.equal(requests[0].url, 'http://api.cloudport.test/yard/patio/work-instructions/88/prioridades');
+  assert.equal(requests[0].options.method, 'PATCH');
+  const body = JSON.parse(requests[0].options.body);
+  assert.equal(body.prioridadeOperacional, 4);
+  assert.equal(body.prioridadeBusca, true);
+  assert.equal(body.motivo, 'Movimento crítico');
+});
+
+test('consulta painel por equipamento e drill-down da work instruction', async () => {
+  saveSession({
+    token: jwt({ nome: 'Diogo', roles: ['ROLE_PLANEJADOR'] }),
+    nome: 'Diogo',
+    roles: ['ROLE_PLANEJADOR']
+  });
+
+  await api.listarJobListsEquipamentoPatio(42);
+  await api.obterDrillDownWorkInstructionPatio(99);
+
+  assert.equal(requests[0].url, 'http://api.cloudport.test/yard/patio/equipamentos/job-lists?visitaNavioId=42');
+  assert.equal(requests[1].url, 'http://api.cloudport.test/yard/patio/work-instructions/99/drill-down');
+});
+
 test('não envia sessão anterior nem metadados operacionais no login', async () => {
   saveSession({
     token: jwt({ nome: 'Anterior', roles: ['ROLE_PLANEJADOR'] }),

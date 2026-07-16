@@ -6,6 +6,7 @@ import br.com.cloudport.serviconaviosiderurgico.dto.NavioSiderurgicoDTO;
 import br.com.cloudport.serviconaviosiderurgico.porta.CadastroNavioPorta;
 import br.com.cloudport.serviconaviosiderurgico.porta.NavioCanonico;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.NavioSiderurgicoRepositorio;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -63,27 +64,71 @@ public class NavioSiderurgicoServico {
     }
 
     @Transactional
-    public void sincronizarCadastroCanonico() {
-        repositorio.findAll().forEach(this::sincronizarComTratamento);
+    public boolean sincronizarCadastroCanonico(Long navioCadastroId) {
+        return repositorio.findByNavioCadastroId(navioCadastroId)
+                .map(this::sincronizar)
+                .orElse(false);
     }
 
-    private void sincronizarComTratamento(NavioSiderurgico navio) {
-        try {
-            NavioCanonico canonico = navio.getNavioCadastroId() == null
-                    ? cadastroNavioPorta.buscarPorImo(navio.getCodigoImo())
-                    : cadastroNavioPorta.buscarPorId(navio.getNavioCadastroId());
-            if (atualizarDadosCanonicosSeNecessario(navio, canonico)) {
-                repositorio.save(navio);
-                LOGGER.info("Projeção siderúrgica do navio {} sincronizada com o cadastro canônico {}.",
-                        navio.getId(), canonico.identificador());
+    @Transactional
+    public boolean cancelarPorCadastroRemovido(Long navioCadastroId) {
+        return repositorio.findByNavioCadastroId(navioCadastroId)
+                .map(navio -> {
+                    if (navio.getStatus() == StatusNavioSiderurgico.CANCELADO) {
+                        return false;
+                    }
+                    navio.setStatus(StatusNavioSiderurgico.CANCELADO);
+                    repositorio.save(navio);
+                    LOGGER.info("Projecao siderurgica {} cancelada apos remocao do navio canonico {}.",
+                            navio.getId(), navioCadastroId);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    @Transactional
+    public int reconciliarCadastrosDesatualizados(LocalDateTime limiteAtualizacao) {
+        int atualizados = 0;
+        List<NavioSiderurgico> candidatos = repositorio
+                .findTop100ByAtualizadoEmBeforeAndStatusNotOrderByAtualizadoEmAsc(
+                        limiteAtualizacao,
+                        StatusNavioSiderurgico.CANCELADO
+                );
+        for (NavioSiderurgico navio : candidatos) {
+            if (sincronizarComTratamento(navio)) {
+                atualizados++;
             }
+        }
+        return atualizados;
+    }
+
+    private boolean sincronizar(NavioSiderurgico navio) {
+        NavioCanonico canonico = navio.getNavioCadastroId() == null
+                ? cadastroNavioPorta.buscarPorImo(navio.getCodigoImo())
+                : cadastroNavioPorta.buscarPorId(navio.getNavioCadastroId());
+        if (!atualizarDadosCanonicosSeNecessario(navio, canonico)) {
+            return false;
+        }
+        repositorio.save(navio);
+        LOGGER.info("Projecao siderurgica do navio {} sincronizada com o cadastro canonico {}.",
+                navio.getId(), canonico.identificador());
+        return true;
+    }
+
+    private boolean sincronizarComTratamento(NavioSiderurgico navio) {
+        try {
+            return sincronizar(navio);
         } catch (RuntimeException ex) {
-            LOGGER.warn("Não foi possível sincronizar o navio siderúrgico {} com o cadastro canônico: {}",
+            LOGGER.warn("Nao foi possivel reconciliar o navio siderurgico {} com o cadastro canonico: {}",
                     navio.getId(), ex.getMessage());
+            return false;
         }
     }
 
     private boolean atualizarDadosCanonicosSeNecessario(NavioSiderurgico navio, NavioCanonico canonico) {
+        if (canonico == null || canonico.identificador() == null) {
+            throw new IllegalArgumentException("Cadastro canonico do navio nao encontrado.");
+        }
         boolean alterado = !Objects.equals(navio.getNavioCadastroId(), canonico.identificador())
                 || !Objects.equals(navio.getNome(), canonico.nome())
                 || !Objects.equals(navio.getCodigoImo(), canonico.codigoImo())

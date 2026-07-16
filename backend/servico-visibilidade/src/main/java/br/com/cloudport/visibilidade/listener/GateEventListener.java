@@ -2,6 +2,7 @@ package br.com.cloudport.visibilidade.listener;
 
 import br.com.cloudport.visibilidade.config.RabbitMQConfig;
 import br.com.cloudport.visibilidade.service.MovimentoConteinerService;
+import br.com.cloudport.visibilidade.service.ProcessamentoEventoIdempotenteService;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,42 +14,75 @@ import org.springframework.util.StringUtils;
 public class GateEventListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GateEventListener.class);
+    private static final String ORIGEM = "GATE";
 
     private final MovimentoConteinerService movimentoConteinerService;
+    private final ProcessamentoEventoIdempotenteService processamentoEventoService;
 
-    public GateEventListener(MovimentoConteinerService movimentoConteinerService) {
+    public GateEventListener(MovimentoConteinerService movimentoConteinerService,
+                             ProcessamentoEventoIdempotenteService processamentoEventoService) {
         this.movimentoConteinerService = movimentoConteinerService;
+        this.processamentoEventoService = processamentoEventoService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.VISIBILIDADE_GATE_QUEUE)
     public void handleGateEvent(Map<String, Object> event) {
         String eventType = texto(event, "eventType");
-        String containerId = primeiroTexto(event, "containerId", "codigoConteiner");
-        String responsavel = primeiroTexto(event, "responsavel", "usuario", "operatorId");
-
         if (!StringUtils.hasText(eventType)) {
-            LOGGER.warn("Evento de gate ignorado porque eventType nao foi informado.");
-            return;
-        }
-
-        if (!StringUtils.hasText(containerId)) {
-            LOGGER.warn("Evento de gate {} ignorado porque containerId nao foi informado.", eventType);
-            return;
+            throw new IllegalArgumentException("Evento de gate sem eventType.");
         }
 
         switch (eventType) {
             case "gate.container.entered":
-                movimentoConteinerService.registrarEntradaGate(containerId, responsavel);
-                LOGGER.info("Entrada de conteiner registrada. containerId={}", containerId);
+                processarEntrada(event, eventType);
                 break;
             case "gate.container.exited":
-                movimentoConteinerService.registrarSaidaGate(containerId, responsavel);
-                LOGGER.info("Saida de conteiner registrada. containerId={}", containerId);
+                processarSaida(event, eventType);
                 break;
             default:
-                LOGGER.debug("Evento de gate sem processador registrado. eventType={} containerId={}",
-                        eventType, containerId);
+                LOGGER.debug("Evento de gate sem processador registrado. eventType={}", eventType);
         }
+    }
+
+    private void processarEntrada(Map<String, Object> event, String eventType) {
+        String containerId = containerIdObrigatorio(event, eventType);
+        String responsavel = primeiroTexto(event, "responsavel", "usuario", "operatorId");
+        boolean processado = processamentoEventoService.processarUmaVez(
+                ORIGEM,
+                eventType,
+                event,
+                eventoId -> movimentoConteinerService.registrarEntradaGate(
+                        eventoId, containerId, responsavel));
+        if (processado) {
+            LOGGER.info("Entrada de conteiner registrada. containerId={}", containerId);
+        } else {
+            LOGGER.debug("Redelivery de entrada de gate ignorado. containerId={}", containerId);
+        }
+    }
+
+    private void processarSaida(Map<String, Object> event, String eventType) {
+        String containerId = containerIdObrigatorio(event, eventType);
+        String responsavel = primeiroTexto(event, "responsavel", "usuario", "operatorId");
+        boolean processado = processamentoEventoService.processarUmaVez(
+                ORIGEM,
+                eventType,
+                event,
+                eventoId -> movimentoConteinerService.registrarSaidaGate(
+                        eventoId, containerId, responsavel));
+        if (processado) {
+            LOGGER.info("Saida de conteiner registrada. containerId={}", containerId);
+        } else {
+            LOGGER.debug("Redelivery de saida de gate ignorado. containerId={}", containerId);
+        }
+    }
+
+    private String containerIdObrigatorio(Map<String, Object> event, String eventType) {
+        String containerId = primeiroTexto(event, "containerId", "codigoConteiner");
+        if (!StringUtils.hasText(containerId)) {
+            throw new IllegalArgumentException(
+                    "Evento de gate " + eventType + " sem containerId.");
+        }
+        return containerId;
     }
 
     private String primeiroTexto(Map<String, Object> event, String... chaves) {

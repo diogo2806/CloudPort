@@ -1,51 +1,50 @@
 # Requisitos implementados - CloudPort
 
-## Instrucoes obrigatorias para agentes de IA
+## Instruções obrigatórias para agentes de IA
 
-Esta pasta deve manter um unico arquivo: `docs/implementados/requisitos-implementados.md`.
+Esta pasta deve manter um único arquivo: `docs/implementados/requisitos-implementados.md`.
 
-Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunhos nesta pasta. Toda entrega deve sair de `docs/requisitos/modulo-navios-back-front-gaps.md` e ser registrada aqui sem duplicacao.
+Não criar outros documentos, arquivos de evidência, logs, históricos ou rascunhos nesta pasta. Toda entrega deve sair de `docs/requisitos/modulo-navios-back-front-gaps.md` e ser registrada aqui sem duplicação.
 
-## Modulo Navio implementado
+## Módulo Navio implementado
 
 1. Criar visita de navio.
 2. Criar item operacional de embarque, descarga e restow.
 3. Criar plano de estiva por visita.
 4. Criar eventos e resumo operacional da visita.
-5. Criar endpoints basicos `/visitas-navio`.
-6. Criar endpoints basicos de integracao em `/visitas-navio/{id}/integracao-patio`.
-7. Adicionar campos de integracao em `ItemOperacaoNavio`.
-8. Expor relatorio operacional integrado basico.
+5. Criar endpoints básicos `/visitas-navio`.
+6. Criar endpoints de integração em `/visitas-navio/{id}/integracao-patio`.
+7. Adicionar campos de integração em `ItemOperacaoNavio`.
+8. Expor relatório operacional integrado básico.
 
-## Integracao Navio + Patio implementada
+## Integração Navio + Yard implementada
 
-1. Criar reserva de patio vinculada ao item de navio.
-2. Adicionar campos de visita, item e plano em `OrdemTrabalhoPatio`.
-3. Criar ordem real no `servico-yard` por `/yard/patio/ordens/navio`.
-4. Impedir ordem ativa duplicada por `visitaNavioId + itemOperacaoNavioId`.
-5. Expor filas e ordens sem cobertura por visita no Yard e no modulo de navio.
-6. Permitir sincronizacao manual de status.
-7. Permitir gerar reservas e ordens de patio.
+1. Criar reserva de pátio vinculada ao item de navio.
+2. Adicionar visita, item e plano em `OrdemTrabalhoPatio`.
+3. Criar ordem real no Yard.
+4. Impedir ordem ativa duplicada por visita e item.
+5. Expor filas e ordens sem cobertura por visita.
+6. Permitir sincronização manual e automática de status.
+7. Permitir gerar reservas e ordens.
 8. Permitir replanejamento inicial.
 9. Permitir alterar prioridade, suspender e retomar ordens.
-10. Reconciliar automaticamente visitas ativas por job agendado.
-11. Atualizar item para `EM_MOVIMENTO`, `OPERADO`, `BLOQUEADO` ou `CANCELADO` conforme a ordem real.
-12. Preencher posicao real, consumir reserva ao concluir e cancelar reserva ao cancelar ordem.
-13. Registrar eventos somente quando a reconciliacao alterar dados, evitando historico vazio repetitivo.
+10. Atualizar item conforme o estado real da ordem.
+11. Preencher posição real, consumir reserva ao concluir e cancelar reserva ao cancelar ordem.
+12. Registrar evento somente quando a reconciliação altera dados.
 
 ## Control Room implementado
 
-1. Criar painel Navio + Patio com filtros, movimentos iminentes, filas, reservas, ordens, alertas e excecoes.
-2. Permitir gerar reservas, gerar ordens, sincronizar, replanejar, priorizar, suspender e retomar ordens.
-3. Carregar e renderizar work queues persistentes com job list expansivel.
-4. Permitir ativar/desativar fila, editar POW/pool/equipamento, executar dispatch, resetar e cancelar work instruction.
-5. Exibir loading por acao e feedback de sucesso/erro.
-6. Integrar o modulo ao portal principal pela rota autenticada `/home/navio/control-room`.
-7. Implementar SSO entre o portal e o modulo por `postMessage` restrito a origens configuradas.
-8. Implementar login proprio como fallback e limitar acesso aos perfis operacionais.
-9. Enviar JWT, usuario autenticado, origem da acao e `X-Correlation-Id` nas chamadas operacionais.
-10. Exibir `codigo`, `mensagem`, `detalhes` e `correlationId` quando retornados pelo backend.
-11. Executar as consultas do snapshot em paralelo, aplicar o resultado de forma atomica e impedir atualizacoes sobrepostas.
+1. Criar painel Navio + Yard com filtros, movimentos iminentes, filas, reservas, ordens, alertas e exceções.
+2. Permitir gerar reservas e ordens, sincronizar, replanejar, priorizar, suspender e retomar.
+3. Carregar work queues persistentes com job list expansível.
+4. Ativar ou desativar fila, editar POW, pool e equipamento, executar dispatch, resetar e cancelar work instruction.
+5. Exibir loading por ação e feedback de sucesso ou erro.
+6. Integrar ao portal pela rota autenticada `/home/navio/control-room`.
+7. Implementar SSO por `postMessage` restrito a origens configuradas.
+8. Implementar login próprio como fallback e restringir perfis.
+9. Enviar JWT, usuário, origem e `X-Correlation-Id` nas ações.
+10. Exibir erro com `codigo`, `mensagem`, `detalhes` e `correlationId`.
+11. Executar consultas do snapshot em paralelo, aplicar resultado atomicamente e impedir sobreposição.
 
 ## Work queues implementadas
 
@@ -53,134 +52,183 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 2. Associar POW, pool operacional e equipamento.
 3. Expor job list e executar dispatch.
 4. Resetar e cancelar work instruction.
-5. Expor work queues pelo modulo de navio.
+5. Expor work queues pelo módulo de Navio.
 6. Persistir `workQueueId` em `OrdemTrabalhoPatio`.
-7. Atualizar explicitamente a job list por `PATCH /yard/patio/work-queues/{id}/ordens`.
-8. Vincular automaticamente uma ordem apenas quando existir uma unica fila compativel, evitando associacao ambigua.
-9. Remover a comparacao incorreta entre camada de destino e bloco/zona.
+7. Atualizar job list por `PATCH /yard/patio/work-queues/{id}/ordens`.
+8. Vincular automaticamente somente quando houver uma fila compatível inequívoca.
+9. Remover comparação incorreta entre camada e bloco/zona.
 10. Honrar `limiteOrdens` no dispatch.
-11. Padronizar a resposta com `workQueueId`, `totalOrdensDespachadas`, `totalOrdensIgnoradas`, `ordens` e `mensagem`.
-12. Persistir auditoria de criacao, ativacao, desativacao, POW/pool, equipamento, vinculo, dispatch, reset e cancelamento.
-13. Restringir operacoes a perfis autorizados e ao servico interno de navios.
+11. Padronizar a resposta de dispatch.
+12. Auditar criação, ativação, desativação, POW, pool, equipamento, vínculo, dispatch, reset e cancelamento.
+13. Restringir operações por perfil.
 
 ## Reserva contra mapa real implementada
 
 1. Consultar `GET /yard/patio/posicoes` antes de reservar.
-2. Selecionar somente posicao real com linha, coluna e camada.
-3. Recusar mapa vazio, posicao inexistente, posicao ocupada e posicao com reserva ativa.
-4. Remover a geracao de identificadores artificiais como `V{visita}-D-{sequencia}`.
-5. Armazenar identificador e coordenadas reais na reserva.
-6. Garantir que a reserva gerada contenha os dados exigidos para criar a ordem real no Yard.
+2. Selecionar posição real com linha, coluna e camada.
+3. Recusar mapa vazio, posição inexistente, posição ocupada e reserva ativa duplicada.
+4. Remover identificadores artificiais de posição.
+5. Armazenar identificador e coordenadas reais.
+6. Garantir dados necessários à criação da ordem real.
 
-## Autenticacao e seguranca implementadas
+## Autenticação e segurança implementadas
 
-1. Preservar a senha digitada sem remover caracteres antes do login.
-2. Nao armazenar senha no `localStorage`.
-3. Armazenar no portal somente os dados seguros da sessao.
-4. Autenticar chamadas entre `servico-navio-siderurgico`, `servico-yard` e `servico-navio` com `X-CloudPort-Service-Key`.
-5. Usar comparacao constante da credencial interna.
-6. Aplicar roles de servico separadas para integracoes internas.
-7. Restringir manutencao do cadastro canonico de navios a perfis administrativos/planejamento.
-8. Liberar os cabecalhos de correlacao necessarios no CORS do Control Room.
-9. Retornar `503 Service Unavailable` quando a consulta de work queues no Yard falhar, em vez de esconder a falha como lista vazia.
+1. Preservar a senha digitada sem remover caracteres.
+2. Não armazenar senha no `localStorage`.
+3. Armazenar somente dados seguros da sessão.
+4. Autenticar integrações legadas por `X-CloudPort-Service-Key`.
+5. Comparar credencial interna em tempo constante.
+6. Aplicar roles de serviço separadas.
+7. Restringir manutenção do cadastro canônico.
+8. Liberar cabeçalhos de correlação no CORS.
+9. Retornar `503` quando uma integração obrigatória falhar, sem mascarar como lista vazia.
 
 ## Scheduler operacional implementado
 
-1. Remover equipamentos, conteineres e coordenadas gerados com `Math.random()`.
-2. Exigir `SchedulerPlanoOperacionalRequisicaoDto` com navio, equipamentos e posicoes reais.
-3. Validar que as quantidades manifestadas correspondem as listas recebidas.
+1. Remover dados aleatórios de equipamentos, contêineres e coordenadas.
+2. Exigir requisição com navio, equipamentos e posições reais.
+3. Validar quantidades manifestadas.
 4. Validar janela de chegada e partida.
-5. Considerar conflito somente entre navios do mesmo berco.
-6. Preservar a duracao da operacao quando o slot for deslocado.
-7. Persistir a agenda em `vessel_schedule`, evitando perda ao reiniciar o servico.
-8. Calcular o diagnostico pela quantidade real de movimentos planejados, removendo a formula arbitraria `horas x 20`.
-9. Restringir a API do scheduler a perfis autorizados.
+5. Considerar conflito somente no mesmo berço.
+6. Preservar duração ao deslocar slot.
+7. Persistir agenda em `vessel_schedule`.
+8. Calcular diagnóstico por movimentos planejados reais.
+9. Restringir a API por perfil.
 
-## Cadastro canonico de navios implementado
+## Cadastro canônico de navios implementado
 
-1. Definir `servico-navio` como fonte de verdade dos dados comuns do navio.
-2. Vincular `NavioSiderurgico` ao cadastro canonico por `navioCadastroId` unico.
-3. Resolver cadastro existente por ID ou IMO antes de criar a extensao siderurgica.
-4. Copiar nome, IMO, bandeira, armador e LOA do cadastro canonico, mantendo localmente apenas a projecao operacional.
-5. Sincronizar periodicamente a projecao siderurgica com o cadastro canonico.
+1. Definir Navio como fonte dos dados comuns.
+2. Vincular `NavioSiderurgico` por `navioCadastroId` único.
+3. Resolver cadastro por ID ou IMO.
+4. Manter localmente somente a projeção operacional siderúrgica.
+5. Sincronizar a projeção com o cadastro canônico.
 
-## Monolito modular de Navio implementado
+## Monólito modular CloudPort implementado no código
 
-1. Criar o runtime `backend/cloudport-monolito-navio` para carregar `servico-navio` e `servico-navio-siderurgico` no mesmo processo Spring Boot.
-2. Preservar os limites de pacote, entidades e repositorios dos dois modulos durante a transicao.
-3. Extrair `CadastroNavioPorta` e `NavioCanonico` para desacoplar a regra siderurgica do transporte HTTP.
-4. Manter `NavioCadastroCliente` como adaptador HTTP para o deployment isolado do servico siderurgico.
-5. Criar `CadastroNavioLocalAdapter` para consultar `NavioServico` diretamente quando o runtime unificado estiver ativo.
-6. Desativar a chamada HTTP interna `servico-navio-siderurgico -> servico-navio` no modo local por `cloudport.modulo.navio.integracao=local`.
-7. Adicionar Dockerfile do runtime unificado e configuracao para usar os schemas existentes em uma unica conexao PostgreSQL.
-8. Adicionar teste unitario da integracao local por ID e IMO.
-9. Incluir o novo runtime no workflow de compilacao e testes do CloudPort.
-10. Empacotar separadamente as migracoes dos modulos em namespaces exclusivos do classpath.
-11. Executar dois historicos Flyway independentes pelo runtime unificado, um para `cloudport_navio` e outro para `cloudport_siderurgico`.
-12. Criar automaticamente os schemas e configurar o `search_path` da conexao para os dois modulos.
-13. Centralizar JWT, roles, credencial interna, endpoints publicos e CORS em uma unica configuracao de seguranca do runtime.
-14. Liberar `X-Correlation-Id` e `X-CloudPort-Service-Key` no CORS unificado.
-15. Incluir as migracoes dos dois modulos na imagem Docker do runtime.
-16. Validar por testes a separacao dos historicos Flyway, o empacotamento das migracoes, nomes seguros de schema e o CORS combinado.
-17. Criar o reator `backend/cloudport-navio-modules` com os tres projetos como modulos Maven do mesmo build.
-18. Permitir que `servico-navio` e `servico-navio-siderurgico` gerem JARs de biblioteca no perfil `modulo-monolito`, preservando o empacotamento executavel quando compilados isoladamente.
-19. Fazer o runtime unificado depender dos artefatos Maven dos dois modulos e remover o `build-helper-maven-plugin` que adicionava fontes externas.
-20. Atualizar a imagem Docker e o workflow para compilar os modulos pelo reator Maven.
-21. Criar teste de inicializacao completa com PostgreSQL 16 em Testcontainers.
-22. Executar as migracoes reais dos dois modulos antes da validacao do `EntityManagerFactory`.
-23. Validar a criacao dos dois schemas, os historicos Flyway e consultas em todos os 13 repositorios JPA do runtime.
-24. Publicar as migracoes de `servico-navio` em `cloudport/migrations/navio` dentro do proprio artefato Maven.
-25. Publicar as migracoes de `servico-navio-siderurgico` em `cloudport/migrations/navio-siderurgico` dentro do proprio artefato Maven.
-26. Remover do runtime a copia direta de recursos a partir dos diretorios irmaos dos dois servicos.
-27. Incorporar o frontend React do Control Room na imagem do runtime unificado.
-28. Expor `GET /assets/configuracao.json` dinamicamente para configurar API e origens confiaveis sem reconstruir o frontend.
-29. Criar Compose com perfis `monolito` e `legado` para corte, comparacao e retorno controlado.
-30. Usar no Compose uma unica instancia PostgreSQL com os schemas e historicos Flyway preservados.
-31. Apontar a configuracao local do portal para o Control Room servido pelo runtime unificado em `8086`.
-32. Validar no CI a sintaxe do Compose e a construcao completa da imagem Docker com backend e frontend.
-33. Documentar a troca de perfil, a preservacao do volume e os cuidados para evitar jobs duplicados.
-34. Corrigir o Dockerfile para copiar a saida `dist` gerada pelo Vite/React para o JAR unificado.
-35. Criar overlay de smoke com PostgreSQL e mock do Yard que exige `X-CloudPort-Service-Key`.
-36. Criar smoke test da imagem iniciada pelo Compose, com credenciais temporarias e limpeza automatica do ambiente.
-37. Validar no smoke frontend React, configuracao dinamica, bloqueio `401`, JWT, persistencia, cadastro canonico local, visita e chamada autenticada ao Yard.
-38. Validar no mesmo contexto a presenca dos controllers dos dois modulos, uma unica cadeia de seguranca e ausencia do cliente HTTP interno.
-39. Colocar os deployments legados em modo somente leitura durante a coexistencia e retornar `503` para comandos de escrita.
-40. Desativar por configuracao os jobs dos deployments legados durante o corte.
-41. Serializar reconciliacao e sincronizacao por `pg_try_advisory_xact_lock`, impedindo execucao simultanea em instancias que compartilham o PostgreSQL.
-42. Criar testes ArchUnit contra dependencias ciclicas, acesso direto a dominio/repository de outro modulo e cliente HTTP entre modulos incorporados.
-43. Validar os dois historicos Flyway sem pendencias e preservar compatibilidade de rollback por estrategia `expand and contract`.
-44. Documentar corte, coexistencia, criterios de aprovacao, rollback e bloqueios operacionais em `docs/operacao-corte-rollback-navio.md`.
+### Runtime e módulos
 
-## Documentacao da migracao para monolito modular implementada
+1. Criar o runtime `backend/cloudport-monolito-navio`.
+2. Incorporar Navio e Navio Siderúrgico no primeiro corte.
+3. Incorporar Yard ao mesmo runtime.
+4. Incorporar Gate e Rail.
+5. Incorporar Autenticação e Visibilidade.
+6. Manter os diretórios `servico-*` como módulos compiláveis isoladamente para rollback.
+7. Produzir um único JAR executável e uma única imagem Docker.
+8. Incorporar o frontend React do Control Room ao JAR.
+9. Expor `GET /assets/configuracao.json` dinamicamente.
 
-1. Criar `README.md` na raiz como entrada principal da documentacao do sistema.
-2. Registrar o monolito modular como arquitetura alvo e impedir a criacao indiscriminada de novos microsservicos internos.
-3. Documentar o estado atual, o estado alvo, os limites de dominio, comunicacao, persistencia, seguranca, observabilidade, build, deployment e rollback em `docs/arquitetura-monolito-modular.md`.
-4. Adicionar guia de compilacao, teste, configuracao, banco e Docker em `backend/cloudport-monolito-navio/README.md`.
-5. Atualizar o README do frontend para consumir uma unica `baseApiUrl` e nao conhecer hosts de modulos internos.
-6. Marcar `servico-gate` como deployment legado em transicao e remover referencias de documentacao inexistentes.
-7. Atualizar os requisitos pendentes com o roteiro de incorporacao de Yard, Gate, Rail, Autenticacao e Visibilidade.
-8. Criar runbook operacional de corte e rollback do primeiro runtime consolidado.
+### Comunicação interna por portas
+
+1. Extrair `CadastroNavioPorta` e implementar `CadastroNavioLocalAdapter`.
+2. Manter `NavioCadastroCliente` somente como adaptador HTTP legado.
+3. Transformar `OrdemPatioYardCliente` em porta e criar `OrdemPatioLocalAdapter`.
+4. Transformar `PosicaoPatioYardCliente` em porta e criar `PosicaoPatioLocalAdapter`.
+5. Transformar `ClienteStatusPatio` em porta e criar `StatusPatioLocalAdapter` para Gate → Yard.
+6. Transformar `AutenticacaoClient` em porta e criar `AutenticacaoLocalAdapter` para Gate → Autenticação.
+7. Registrar adaptadores HTTP somente quando a propriedade de integração estiver em `http`.
+8. Configurar Navio, Yard e Autenticação em modo `local` no runtime.
+9. Impedir por ArchUnit que o runtime dependa de classes `*HttpAdapter`.
+
+### Maven e empacotamento
+
+1. Evoluir `backend/cloudport-navio-modules` para parent e reator Maven comum.
+2. Centralizar Java, versões, BOMs, `dependencyManagement`, `pluginManagement` e Enforcer.
+3. Incluir os sete módulos e o runtime no reator.
+4. Permitir JAR de biblioteca pelo perfil `modulo-monolito` e preservar execução standalone.
+5. Remover inclusão direta de fontes de projetos irmãos.
+6. Publicar recursos e migrações dentro do artefato proprietário.
+7. Atualizar Dockerfile para copiar e compilar todos os módulos pelo reator.
+
+### Schemas, ownership e Flyway
+
+1. Usar uma conexão PostgreSQL e sete schemas proprietários:
+   - `cloudport_navio`;
+   - `cloudport_siderurgico`;
+   - `cloudport_yard`;
+   - `cloudport_gate`;
+   - `cloudport_rail`;
+   - `cloudport_autenticacao`;
+   - `cloudport_visibilidade`.
+2. Definir como proprietário o módulo que publica a migração que cria a estrutura.
+3. Publicar migrações em `cloudport/migrations/<modulo>`.
+4. Criar um objeto Flyway e um `flyway_schema_history` por schema.
+5. Executar todos os Flyway antes do `EntityManagerFactory`.
+6. Validar nomes de schema.
+7. Habilitar `validateOnMigrate`, desabilitar `clean` e criar schemas quando necessário.
+8. Configurar o `search_path` com os sete schemas e `public`.
+9. Preservar rollback por estratégia `expand and contract`, sem downgrade automático.
+10. Documentar ownership, compatibilidade e regras destrutivas.
+
+### Infraestrutura transversal centralizada
+
+1. Centralizar uma cadeia de segurança stateless.
+2. Incorporar login e emissão de token do módulo Autenticação.
+3. Centralizar JWT, roles, CORS e credencial interna transitória.
+4. Centralizar Jackson com Java Time, UTC e propriedades não nulas.
+5. Publicar OpenAPI consolidado.
+6. Centralizar tratamento de erros com código, mensagem, detalhes, status, caminho, timestamp e `correlationId`.
+7. Criar filtro de `X-Correlation-Id` e `traceId` no MDC.
+8. Criar métrica HTTP central e exportação Prometheus.
+9. Centralizar padrão de logs.
+10. Centralizar scheduler e seu tratamento de erro.
+11. Centralizar cliente HTTP para integrações externas.
+12. Centralizar conversor JSON principal do RabbitMQ.
+13. Excluir do runtime configurações standalone duplicadas de segurança, erros, OpenAPI e conversores genéricos.
+
+### Execução única e coexistência
+
+1. Controlar escrita por `cloudport.runtime.writes-enabled`.
+2. Retornar `503` para comandos de escrita no runtime desabilitado.
+3. Controlar jobs por `cloudport.runtime.jobs-enabled`.
+4. Controlar consumidores por `cloudport.runtime.consumers-enabled` e `auto-startup` do RabbitMQ.
+5. Manter monólito como escritor, scheduler e consumidor ativo.
+6. Manter legados sem escrita, jobs e consumidores durante coexistência.
+7. Serializar jobs críticos por `pg_try_advisory_xact_lock`.
+8. Adicionar PostgreSQL, RabbitMQ e Redis ao Compose consolidado.
+9. Manter deployments e credenciais legadas até validar paridade e rollback.
+
+### Testes e proteção arquitetural
+
+1. Criar teste de contexto com PostgreSQL 16 em Testcontainers.
+2. Validar os sete schemas e históricos Flyway.
+3. Validar ausência de migrações pendentes.
+4. Validar portas locais e ausência dos adaptadores HTTP no contexto.
+5. Validar uma única cadeia de segurança.
+6. Validar controllers incorporados no mesmo contexto.
+7. Testar exclusão mútua por advisory lock.
+8. Criar testes ArchUnit contra ciclos.
+9. Impedir dependência de módulo para o runtime.
+10. Impedir acesso direto ao repository de outro módulo.
+11. Impedir uso de adaptador HTTP pelo runtime.
+12. Validar build da imagem com todos os módulos.
+
+### Documentação e operação
+
+1. Registrar monólito modular como arquitetura alvo.
+2. Atualizar `README.md` da raiz e do runtime.
+3. Definir responsabilidades, comunicação, ownership, segurança e observabilidade.
+4. Documentar corte, coexistência, critérios de aprovação e rollback.
+5. Definir que rollback troca binário e roteamento sem downgrade de banco.
+6. Definir que deployments, imagens e credenciais legadas só podem ser removidos após paridade, observação e ensaio de retorno.
 
 ## Visibilidade operacional implementada
 
-1. Remover mapeamentos Spring MVC duplicados de conteineres, alertas e navios que impediam a inicializacao segura do servico.
-2. Consolidar rastreamento e historico de conteineres em um unico contrato e servico.
-3. Persistir eventos reais de entrada e saida no gate, armazenagem no patio e movimento ferroviario.
-4. Processar atualizacao de capacidade do patio sem exigir `containerId`.
-5. Preservar o status do navio quando o evento altera somente o berco.
-6. Criar a projecao de status quando o evento de navio chega antes do cadastro na visibilidade.
-7. Resolver alertas de atraso quando a chegada do navio for confirmada.
-8. Substituir `System.out` e injecao por campo por logging estruturado e injecao por construtor nos fluxos alterados.
-9. Remover totais, velocidades, previsoes e tempos ficticios dos DTOs de navio, gate, patio e rastreamento.
-10. Calcular throughput do gate somente com eventos `ENTRADA_GATE` e `SAIDA_GATE`, pareando ciclos reais por conteiner.
-11. Corrigir o contrato `estimadoParaida` para `estimadoParaSaida`, mantendo alias de leitura compativel.
-12. Padronizar erros da API com `codigo`, `mensagem`, `detalhes`, `correlationId` e `timestamp`.
+1. Remover mapeamentos MVC duplicados que impediam inicialização.
+2. Consolidar rastreamento e histórico de contêineres.
+3. Persistir eventos de entrada e saída no Gate, armazenagem no Yard e movimento ferroviário.
+4. Processar capacidade do Yard sem exigir `containerId`.
+5. Preservar status do navio quando o evento altera somente o berço.
+6. Criar projeção quando o evento chega antes do cadastro.
+7. Resolver alertas de atraso após confirmação de chegada.
+8. Substituir `System.out` por logging estruturado nos fluxos alterados.
+9. Remover métricas fictícias dos DTOs.
+10. Calcular throughput do Gate por ciclos reais.
+11. Corrigir `estimadoParaida` para `estimadoParaSaida` com alias compatível.
+12. Padronizar erros da API.
 13. Exigir motivo para resolver alertas.
-14. Externalizar configuracoes de banco, RabbitMQ, Redis, porta, emissor JWT e meta diaria do gate.
-15. Corrigir o emissor JWT padrao da visibilidade para o servico de autenticacao na porta `8080`.
-16. Desabilitar Open Session in View no servico de visibilidade.
-17. Incluir Autenticacao, Gate, Rail e Visibilidade na matriz de validacao do backend, executando os testes de Visibilidade.
+14. Externalizar banco, RabbitMQ, Redis, porta, emissor JWT e meta do Gate.
+15. Desabilitar Open Session in View.
+16. Incluir Autenticação, Gate, Rail e Visibilidade na matriz de validação do backend.
 
 ## Contratos de API implementados
 
@@ -211,63 +259,22 @@ GET   /api/v1/visibilidade/conteiners/{containerId}/historico
 GET   /api/v1/visibilidade/conteiners/buscar
 ```
 
-## Testes implementados
+## Itens que não devem voltar como pendência principal
 
-1. Testes de contrato do Control Room para work queues, job list, dispatch, reset e cancelamento.
-2. Testes de componente para filtros, totalizacao, expansao e acoes operacionais.
-3. Testes do scheduler com dados reais, quantidades inconsistentes, conflito no mesmo berco e simultaneidade em bercos diferentes.
-4. Teste do contrato de dispatch atualizado no componente.
-5. Testes da porta local de cadastro canonico usada pelo runtime unificado de Navio.
-6. Testes da configuracao Flyway modular e da seguranca CORS do runtime unificado.
-7. Validacao do build do runtime usando dependencias Maven reais dos modulos, sem inclusao direta dos diretorios de fontes.
-8. Teste de contexto com PostgreSQL/Testcontainers, `ddl-auto=validate`, migracoes reais e exercicio de todos os repositorios JPA.
-9. Teste da origem classpath das migracoes, garantindo que cada recurso seja fornecido pelo artefato do modulo responsavel.
-10. Teste unitario da configuracao dinamica entregue ao frontend incorporado.
-11. Validacao CI do Docker Compose e da imagem completa do runtime unificado.
-12. Testes de persistencia da localizacao atual e do historico de movimentos de conteineres.
-13. Testes dos listeners de gate, patio, rail e navio, incluindo capacidade sem `containerId`.
-14. Testes de preservacao de status na atribuicao de berco e criacao da projecao de navio.
-15. Testes do throughput real do gate e da ausencia de tempo medio inventado sem ciclo completo.
-16. Teste de inicializacao conjunta dos controllers para impedir rotas ambiguas.
-17. Smoke do Compose com frontend, configuracao dinamica, seguranca, persistencia e integracao autenticada com o Yard.
-18. Teste de paridade estrutural de controllers, seguranca e integracao local no runtime consolidado.
-19. Teste concorrente do bloqueio distribuido PostgreSQL para impedir duas execucoes da mesma chave.
-20. Testes dos filtros de modo somente leitura dos deployments legados.
-21. Testes ArchUnit dos limites, dependencias e ausencia de ciclos dos modulos incorporados.
-22. Validacao Flyway dos dois schemas sem migracoes pendentes.
-
-## Itens que nao devem voltar como pendencia principal
-
-1. CRUD operacional basico de visita, item e plano de estiva.
-2. Integracao inicial Navio + Patio.
-3. Work queues, job list e acoes basicas do Control Room.
-4. Reconciliacao automatica agendada Patio -> Navio.
-5. Reserva em posicao real livre do mapa do Yard.
-6. Autenticacao do Control Room e integracao ao portal principal.
-7. Credencial interna entre os servicos envolvidos.
-8. Vinculo persistente entre work queue e work instruction.
-9. Scheduler baseado em dados operacionais reais e agenda persistente.
-10. Cadastro canonico como fonte dos dados comuns do navio.
-11. Primeira execucao conjunta de Navio e Navio Siderurgico com chamada local ao cadastro canonico.
-12. Execucao das migracoes dos dois schemas e configuracao de seguranca pelo runtime unificado.
-13. Consumo de `servico-navio` e `servico-navio-siderurgico` como modulos Maven reais pelo runtime unificado.
-14. Inicializacao validada contra PostgreSQL real com os dois schemas e todos os repositorios JPA.
-15. Migracoes Flyway publicadas e carregadas a partir dos artefatos Maven dos respectivos modulos.
-16. Imagem unificada com frontend incorporado, configuracao dinamica e Compose de transicao entre perfis.
-17. Definicao e documentacao do monolito modular como arquitetura alvo do CloudPort.
-18. Rotas unicas e metricas baseadas em eventos reais no servico de Visibilidade.
-19. Smoke automatizado da imagem unificada com autenticacao e conexao ao Yard.
-20. Paridade do primeiro corte, bloqueio de escrita legado, jobs sem duplicidade, testes arquiteturais e rollback Flyway documentado.
-
-## Arquivos de execucao consolidados e removidos de `docs/requisitos`
-
-```text
-docs/requisitos/execucao-automatica-cloudport-20260708-2036.md
-docs/requisitos/execucao-automatica-cloudport-20260708-2139.md
-docs/requisitos/execucao-automatica-cloudport-20260708-2238.md
-docs/requisitos/execucao-automatica-cloudport-20260709-0630.md
-docs/requisitos/execucao-automatica-cloudport-20260709-1030.md
-docs/requisitos/execucao-automatica-cloudport-20260709-1038.md
-docs/requisitos/execucao-automatica-cloudport-20260709-claudeport-fallback.md
-docs/requisitos/execucao-automatica-cloudport-20260709-frontend-workqueues.md
-```
+1. CRUD operacional básico de visita, item e plano.
+2. Integração inicial Navio + Yard.
+3. Work queues, job list e ações básicas do Control Room.
+4. Reconciliação agendada Yard → Navio.
+5. Reserva em posição real livre.
+6. Autenticação do Control Room e integração ao portal.
+7. Scheduler baseado em dados reais.
+8. Cadastro canônico de Navio.
+9. Incorporação estrutural dos sete módulos no runtime.
+10. Portas locais para Navio, Yard e Autenticação.
+11. Parent Maven e build único.
+12. Sete schemas e históricos Flyway independentes.
+13. Segurança, CORS, Jackson, erros, logs, métricas, tracing e agendamento centralizados.
+14. Controles de escrita, jobs e consumidores para coexistência.
+15. Testes ArchUnit de ciclos e repositories entre módulos.
+16. Definição de ownership e rollback Flyway.
+17. Preservação dos deployments e credenciais legadas até o aceite operacional.

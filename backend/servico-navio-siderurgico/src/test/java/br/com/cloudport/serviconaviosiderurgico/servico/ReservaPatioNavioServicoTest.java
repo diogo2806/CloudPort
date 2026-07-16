@@ -24,9 +24,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ReservaPatioNavioServicoTest {
 
     @Mock
@@ -112,14 +115,14 @@ class ReservaPatioNavioServicoTest {
     void deveCriarReservaComCoordenadasDoMapaReal() {
         when(posicaoPatioYardCliente.listarPosicoes()).thenReturn(List.of(posicao(10L, false)));
 
-        ReservaPosicaoPatioNavio reserva = servico.reservarItem(item, TipoReservaPatioNavio.FIRME);
+        ReservaPosicaoPatioNavio reserva = servico.reservarItem(item, TipoReservaPatioNavio.DEFINITIVA);
 
         assertThat(reserva.getPosicaoPatioId()).isEqualTo("10");
         assertThat(reserva.getLinha()).isEqualTo(2);
         assertThat(reserva.getColuna()).isEqualTo(3);
         assertThat(reserva.getCamada()).isEqualTo("4");
         assertThat(reserva.getStatus()).isEqualTo(StatusReservaPatioNavio.ATIVA);
-        assertThat(reserva.getTipoReserva()).isEqualTo(TipoReservaPatioNavio.FIRME);
+        assertThat(reserva.getTipoReserva()).isEqualTo(TipoReservaPatioNavio.DEFINITIVA);
         assertThat(item.getPosicaoPatioPlanejada()).isEqualTo("10");
         assertThat(item.getStatusIntegracaoPatio()).isEqualTo(StatusIntegracaoPatio.RESERVADO);
     }

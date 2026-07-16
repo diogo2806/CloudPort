@@ -30,18 +30,17 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 ## Pendências do Control Room
 
 1. Substituir o polling de 30 segundos por SSE ou WebSocket. O carregamento atual já é paralelo, atômico e protegido contra sobreposição, mas continua baseado em polling.
-2. Criar drill-down da work instruction com eventos, auditoria, divergências, reserva, item de navio e movimento de pátio.
+2. Completar o drill-down da work instruction com divergências, reserva, item de navio e movimento de pátio. A fila, o CHE real, as prioridades, a matriz de estados e a auditoria operacional já são exibidos.
 3. Diferenciar visualmente sem fila, sem POW, sem equipamento, sem job list, posição inválida, reserva bloqueada e divergência Navio x Pátio.
-4. Criar painel de CHE/job list por equipamento.
-5. Criar a tela de Quay Monitor consumindo os contratos de berth/crane, com linha do tempo, alertas, progresso, MPH e ETC por guindaste.
-6. Expandir para os demais backends o contrato de erro com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp já aplicado no `servico-visibilidade`.
-7. Criar e2e para login/SSO, job list, dispatch, reset, cancelamento e indisponibilidade do Yard.
+4. Criar a tela de Quay Monitor consumindo os contratos de berth/crane, com linha do tempo, alertas, progresso, MPH e ETC por guindaste.
+5. Expandir para os demais backends o contrato de erro com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp já aplicado no `servico-visibilidade`.
+6. Criar e2e para login/SSO, job list, dispatch, reset, cancelamento e indisponibilidade do Yard.
 
 ## Pendências de contratos compartilhados
 
 1. Padronizar paginação para listas grandes.
 2. Padronizar enums de visita, item, ordem, reserva, work queue, severidade e alerta.
-3. Tornar `motivo` obrigatório nos comandos de cancelamento, suspensão, retomada, reset e alterações administrativas. A resolução de alerta da Visibilidade já exige motivo.
+3. Tornar `motivo` obrigatório nos comandos de cancelamento, reset e demais alterações administrativas ainda não migradas. Suspensão, retomada, bloqueio, conclusão, recursos operacionais e prioridades da work instruction já exigem motivo.
 4. Gerar tipos TypeScript a partir de OpenAPI.
 5. Centralizar conversão de `WorkQueuePatioYardDTO`.
 6. Separar DTO resumido de lista e DTO detalhado de job list.
@@ -106,16 +105,11 @@ Ainda falta:
 
 ### 3. Work queues e cobertura operacional
 
-Já entregue: vínculo persistente `workQueueId`, endpoint `PATCH /yard/patio/work-queues/{id}/ordens`, auditoria de criação/status/POW/equipamento/vínculo/dispatch/reset/cancelamento e limite real no dispatch. O plano de guindastes também persiste porão, recurso de cais e `workQueueId` por alocação.
+Já entregue: vínculo persistente `workQueueId`, atualização explícita da job list, limite real no dispatch, auditoria de criação e ações operacionais, associação a porão, plano de guindaste, recurso de cais e CHE real, separação entre prioridade de fetch e prioridade operacional, matriz oficial de estados, painel de job list por equipamento e drill-down com fila, equipamento, estados permitidos e auditoria.
 
 Ainda falta:
 
-1. Auditar suspensão, retomada, bloqueio e conclusão.
-2. Validar no Yard a existência, cobertura e compatibilidade da work queue informada no plano de guindastes.
-3. Associar fila a CHE real.
-4. Auditar prioridade de fetch/busca separadamente da prioridade operacional.
-5. Criar matriz oficial de transição de work instruction.
-6. Expor painel de job list por equipamento e drill-down completo.
+1. Validar no Yard a existência, cobertura e compatibilidade da work queue informada no plano de guindastes.
 
 ### 4. Replanejamento real
 
@@ -144,7 +138,7 @@ O scheduler não gera mais equipamentos, contêineres ou coordenadas aleatórias
 ## P1
 
 1. Relatórios operacionais e exportação CSV/PDF.
-2. Completar permissões e auditoria de reservas, ordens, replanejamento, sincronização e prioridades.
+2. Completar permissões e auditoria de reservas, ordens, replanejamento, sincronização e ações administrativas remanescentes.
 3. Padronizar status entre Navio, Pátio, work queue e alertas.
 4. Substituir a sincronização periódica da projeção siderúrgica do cadastro canônico por evento interno.
 5. Criar matriz de dependências permitidas entre todos os módulos do monólito.

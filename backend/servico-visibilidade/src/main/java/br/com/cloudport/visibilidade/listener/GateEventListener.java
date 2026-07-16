@@ -23,7 +23,7 @@ public class GateEventListener {
     @RabbitListener(queues = RabbitMQConfig.VISIBILIDADE_GATE_QUEUE)
     public void handleGateEvent(Map<String, Object> event) {
         String eventType = texto(event, "eventType");
-        String containerId = texto(event, "containerId");
+        String containerId = primeiroTexto(event, "containerId", "codigoConteiner");
         String responsavel = primeiroTexto(event, "responsavel", "usuario", "operatorId");
 
         if (!StringUtils.hasText(eventType)) {

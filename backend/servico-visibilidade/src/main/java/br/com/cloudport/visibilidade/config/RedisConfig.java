@@ -2,7 +2,7 @@ package br.com.cloudport.visibilidade.config;
 
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -44,10 +44,7 @@ public class RedisConfig {
     }
 
     @Bean(name = "cacheManager")
-    @ConditionalOnProperty(
-            name = "cloudport.runtime.general",
-            havingValue = "false",
-            matchIfMissing = true)
+    @ConditionalOnExpression("'${spring.application.name:servico-visibilidade}' != 'cloudport-runtime'")
     public CacheManager cacheManagerStandalone(
             @Qualifier("visibilidadeCacheManager") CacheManager visibilidadeCacheManager) {
         return visibilidadeCacheManager;

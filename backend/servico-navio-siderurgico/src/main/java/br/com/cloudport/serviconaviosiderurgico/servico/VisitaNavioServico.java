@@ -1,5 +1,6 @@
 package br.com.cloudport.serviconaviosiderurgico.servico;
 
+import br.com.cloudport.serviconaviosiderurgico.configuracao.CorrelationIdFilter;
 import br.com.cloudport.serviconaviosiderurgico.dominio.EventoVisitaNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.FaseVisitaNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
@@ -22,6 +23,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Service
 public class VisitaNavioServico {
@@ -30,17 +34,20 @@ public class VisitaNavioServico {
     private final ItemOperacaoNavioRepositorio itemRepositorio;
     private final EventoVisitaNavioRepositorio eventoRepositorio;
     private final NavioSiderurgicoServico navioServico;
+    private final EventoIntegracaoPublicador eventoPublicador;
 
     public VisitaNavioServico(
             VisitaNavioRepositorio visitaRepositorio,
             ItemOperacaoNavioRepositorio itemRepositorio,
             EventoVisitaNavioRepositorio eventoRepositorio,
-            NavioSiderurgicoServico navioServico
+            NavioSiderurgicoServico navioServico,
+            EventoIntegracaoPublicador eventoPublicador
     ) {
         this.visitaRepositorio = visitaRepositorio;
         this.itemRepositorio = itemRepositorio;
         this.eventoRepositorio = eventoRepositorio;
         this.navioServico = navioServico;
+        this.eventoPublicador = eventoPublicador;
     }
 
     @Transactional(readOnly = true)
@@ -61,7 +68,8 @@ public class VisitaNavioServico {
 
     @Transactional(readOnly = true)
     public VisitaNavio buscarEntidade(Long id) {
-        return visitaRepositorio.findById(id).orElseThrow(() -> new IllegalArgumentException("Visita de navio nao encontrada."));
+        return visitaRepositorio.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Visita de navio nao encontrada."));
     }
 
     @Transactional
@@ -86,7 +94,9 @@ public class VisitaNavioServico {
         String codigo = normalizarObrigatorio(dto.codigoVisita(), "Codigo da visita e obrigatorio.");
         visitaRepositorio.findByCodigoVisitaIgnoreCase(codigo)
                 .filter(existente -> !Objects.equals(existente.getId(), id))
-                .ifPresent(existente -> { throw new IllegalArgumentException("Ja existe visita de navio com este codigo."); });
+                .ifPresent(existente -> {
+                    throw new IllegalArgumentException("Ja existe visita de navio com este codigo.");
+                });
         validarDatas(dto);
         if (!Objects.equals(visita.getNavio().getId(), dto.navioId())) {
             NavioSiderurgico navio = navioServico.buscarEntidade(dto.navioId());
@@ -127,7 +137,10 @@ public class VisitaNavioServico {
     @Transactional
     public void excluir(Long id) {
         VisitaNavio visita = buscarEntidade(id);
-        if (visita.getInicioOperacao() != null || visita.getFase() == FaseVisitaNavio.OPERANDO || visita.getFase() == FaseVisitaNavio.OPERACAO_CONCLUIDA || visita.getFase() == FaseVisitaNavio.PARTIU) {
+        if (visita.getInicioOperacao() != null
+                || visita.getFase() == FaseVisitaNavio.OPERANDO
+                || visita.getFase() == FaseVisitaNavio.OPERACAO_CONCLUIDA
+                || visita.getFase() == FaseVisitaNavio.PARTIU) {
             throw new IllegalArgumentException("Nao e permitido excluir visita com operacao iniciada.");
         }
         if (itemRepositorio.countByVisitaNavioId(id) > 0) {
@@ -158,7 +171,9 @@ public class VisitaNavioServico {
                 visita.getInicioOperacao(),
                 visita.getFimOperacao() == null ? LocalDateTime.now() : visita.getFimOperacao()
         ).toMinutes();
-        return new ResumoOperacionalNavioDTO(itens.size(), operados, pesoPlanejado, pesoOperado, percentual, divergencias, bloqueados, tempo);
+        return new ResumoOperacionalNavioDTO(
+                itens.size(), operados, pesoPlanejado, pesoOperado, percentual, divergencias, bloqueados, tempo
+        );
     }
 
     @Transactional(readOnly = true)
@@ -175,7 +190,13 @@ public class VisitaNavioServico {
         }
     }
 
-    public void registrarEvento(VisitaNavio visita, ItemOperacaoNavio item, String tipo, String descricao, String usuario, String antes, String depois) {
+    public void registrarEvento(VisitaNavio visita,
+                                 ItemOperacaoNavio item,
+                                 String tipo,
+                                 String descricao,
+                                 String usuario,
+                                 String antes,
+                                 String depois) {
         EventoVisitaNavio evento = new EventoVisitaNavio();
         evento.setVisitaNavio(visita);
         evento.setItemOperacao(item);
@@ -184,7 +205,16 @@ public class VisitaNavioServico {
         evento.setUsuario(usuario == null || usuario.isBlank() ? "sistema" : usuario.trim());
         evento.setDadosAntes(antes);
         evento.setDadosDepois(depois);
-        eventoRepositorio.save(evento);
+        EventoVisitaNavio salvo = eventoRepositorio.save(evento);
+        eventoPublicador.publicar(visita.getId(), EventoVisitaNavioDTO.de(salvo), correlationIdAtual());
+    }
+
+    private String correlationIdAtual() {
+        RequestAttributes atributos = RequestContextHolder.getRequestAttributes();
+        if (atributos instanceof ServletRequestAttributes servletRequestAttributes) {
+            return CorrelationIdFilter.obter(servletRequestAttributes.getRequest());
+        }
+        return null;
     }
 
     private void preencher(VisitaNavio visita, VisitaNavioDTO dto, String codigo) {
@@ -218,7 +248,8 @@ public class VisitaNavioServico {
         validarOrdem(dto.inicioOperacao(), dto.fimOperacao(), "Fim da operacao nao pode ser anterior ao inicio.");
         validarOrdem(dto.eta(), dto.etd(), "ETD nao pode ser anterior ao ETA.");
         validarOrdem(dto.etd(), dto.atd(), "ATD nao pode ser anterior ao ETD.");
-        validarOrdem(dto.janelaRecebimentoInicio(), dto.janelaRecebimentoFim(), "Fim da janela de recebimento nao pode ser anterior ao inicio.");
+        validarOrdem(dto.janelaRecebimentoInicio(), dto.janelaRecebimentoFim(),
+                "Fim da janela de recebimento nao pode ser anterior ao inicio.");
     }
 
     private void validarOrdem(LocalDateTime inicio, LocalDateTime fim, String mensagem) {
@@ -228,8 +259,12 @@ public class VisitaNavioServico {
     }
 
     private boolean temDivergencia(ItemOperacaoNavio item) {
-        boolean poraoDiferente = item.getPoraoPlanejado() != null && item.getPoraoReal() != null && !Objects.equals(item.getPoraoPlanejado(), item.getPoraoReal());
-        boolean posicaoDiferente = item.getPosicaoPlanejada() != null && item.getPosicaoReal() != null && !item.getPosicaoPlanejada().equalsIgnoreCase(item.getPosicaoReal());
+        boolean poraoDiferente = item.getPoraoPlanejado() != null
+                && item.getPoraoReal() != null
+                && !Objects.equals(item.getPoraoPlanejado(), item.getPoraoReal());
+        boolean posicaoDiferente = item.getPosicaoPlanejada() != null
+                && item.getPosicaoReal() != null
+                && !item.getPosicaoPlanejada().equalsIgnoreCase(item.getPosicaoReal());
         return poraoDiferente || posicaoDiferente;
     }
 

@@ -4,13 +4,17 @@ import br.com.cloudport.serviconaviosiderurgico.dominio.EventoVisitaNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.FaseVisitaNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.NavioSiderurgico;
+import br.com.cloudport.serviconaviosiderurgico.dominio.ReservaPosicaoPatioNavio;
+import br.com.cloudport.serviconaviosiderurgico.dominio.StatusIntegracaoPatio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusItemCarga;
+import br.com.cloudport.serviconaviosiderurgico.dominio.StatusReservaPatioNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.VisitaNavio;
 import br.com.cloudport.serviconaviosiderurgico.dto.EventoVisitaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.ResumoOperacionalNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.VisitaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.EventoVisitaNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ItemOperacaoNavioRepositorio;
+import br.com.cloudport.serviconaviosiderurgico.repositorio.ReservaPosicaoPatioNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.VisitaNavioRepositorio;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -29,17 +33,20 @@ public class VisitaNavioServico {
     private final VisitaNavioRepositorio visitaRepositorio;
     private final ItemOperacaoNavioRepositorio itemRepositorio;
     private final EventoVisitaNavioRepositorio eventoRepositorio;
+    private final ReservaPosicaoPatioNavioRepositorio reservaRepositorio;
     private final NavioSiderurgicoServico navioServico;
 
     public VisitaNavioServico(
             VisitaNavioRepositorio visitaRepositorio,
             ItemOperacaoNavioRepositorio itemRepositorio,
             EventoVisitaNavioRepositorio eventoRepositorio,
+            ReservaPosicaoPatioNavioRepositorio reservaRepositorio,
             NavioSiderurgicoServico navioServico
     ) {
         this.visitaRepositorio = visitaRepositorio;
         this.itemRepositorio = itemRepositorio;
         this.eventoRepositorio = eventoRepositorio;
+        this.reservaRepositorio = reservaRepositorio;
         this.navioServico = navioServico;
     }
 
@@ -121,6 +128,9 @@ public class VisitaNavioServico {
                 ? "Fase alterada de " + faseAnterior + " para " + novaFase + "."
                 : observacao.trim();
         registrarEvento(salva, null, "FASE_ALTERADA", descricao, usuario, faseAnterior.name(), novaFase.name());
+        if (novaFase == FaseVisitaNavio.CANCELADA) {
+            cancelarReservasAtivas(salva, descricao, usuario);
+        }
         return VisitaNavioDTO.de(salva);
     }
 
@@ -185,6 +195,31 @@ public class VisitaNavioServico {
         evento.setDadosAntes(antes);
         evento.setDadosDepois(depois);
         eventoRepositorio.save(evento);
+    }
+
+    private void cancelarReservasAtivas(VisitaNavio visita, String motivo, String usuario) {
+        List<ReservaPosicaoPatioNavio> reservas = reservaRepositorio.findByVisitaNavioIdAndStatusOrderByCriadoEmAsc(
+                visita.getId(), StatusReservaPatioNavio.ATIVA);
+        for (ReservaPosicaoPatioNavio reserva : reservas) {
+            reserva.setStatus(StatusReservaPatioNavio.CANCELADA);
+            reserva.setMotivoCancelamento("Visita cancelada: " + motivo);
+            reservaRepositorio.save(reserva);
+            ItemOperacaoNavio item = itemRepositorio.findById(reserva.getItemOperacaoNavioId()).orElse(null);
+            if (item != null && item.getStatus() != StatusItemCarga.OPERADO) {
+                item.setStatus(StatusItemCarga.CANCELADO);
+                item.setStatusIntegracaoPatio(StatusIntegracaoPatio.CANCELADO);
+                itemRepositorio.save(item);
+            }
+            registrarEvento(
+                    visita,
+                    item,
+                    "RESERVA_PATIO_CANCELADA",
+                    "Reserva " + reserva.getId() + " da posicao " + reserva.getPosicaoPatioId()
+                            + " cancelada devido ao cancelamento da visita.",
+                    usuario,
+                    StatusReservaPatioNavio.ATIVA.name(),
+                    StatusReservaPatioNavio.CANCELADA.name());
+        }
     }
 
     private void preencher(VisitaNavio visita, VisitaNavioDTO dto, String codigo) {

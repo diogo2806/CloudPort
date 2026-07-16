@@ -2,6 +2,7 @@ package br.com.cloudport.serviconaviosiderurgico.repositorio;
 
 import br.com.cloudport.serviconaviosiderurgico.dominio.ReservaPosicaoPatioNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusReservaPatioNavio;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -13,4 +14,7 @@ public interface ReservaPosicaoPatioNavioRepositorio extends JpaRepository<Reser
     Optional<ReservaPosicaoPatioNavio> findFirstByItemOperacaoNavioIdAndStatusInOrderByCriadoEmDesc(Long itemOperacaoNavioId, Collection<StatusReservaPatioNavio> status);
     boolean existsByPosicaoPatioIdIgnoreCaseAndStatusIn(String posicaoPatioId, Collection<StatusReservaPatioNavio> status);
     long countByVisitaNavioIdAndStatus(Long visitaNavioId, StatusReservaPatioNavio status);
+    List<ReservaPosicaoPatioNavio> findByStatusAndExpiraEmLessThanEqualOrderByExpiraEmAsc(
+            StatusReservaPatioNavio status,
+            LocalDateTime expiraEm);
 }

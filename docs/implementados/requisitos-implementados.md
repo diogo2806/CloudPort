@@ -77,12 +77,22 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 
 ## Reserva contra mapa real implementada
 
-1. Consultar `GET /yard/patio/posicoes` antes de reservar.
-2. Selecionar somente posicao real com linha, coluna e camada.
+1. Consultar `GET /yard/patio/reservas/posicoes` antes de reservar.
+2. Selecionar somente posicao real com identificador, bloco, linha, coluna e camada.
 3. Recusar mapa vazio, posicao inexistente, posicao ocupada e posicao com reserva ativa.
-4. Remover a geracao de identificadores artificiais como `V{visita}-D-{sequencia}`.
+4. Remover a geracao de identificadores artificiais como `V{visita}-D-{sequencia}` e `RP-{visita}-{sequencia}`.
 5. Armazenar identificador e coordenadas reais na reserva.
 6. Garantir que a reserva gerada contenha os dados exigidos para criar a ordem real no Yard.
+7. Persistir bloqueio, interdicao, permissao de area, tipos de carga, peso maximo, altura maxima, camada maxima e capacidade da pilha na posicao do Yard.
+8. Validar bloqueio, interdicao e area permitida antes da criacao da reserva.
+9. Validar tipo de carga, peso, altura, camada e capacidade considerando ocupacao real e reservas ativas da pilha.
+10. Expirar reservas automaticamente por prazo configuravel e devolver o item para `NAO_GERADO`.
+11. Cancelar a reserva quando a visita, o item ou a ordem de patio for cancelada e antes de excluir o item.
+12. Consumir a reserva quando a ordem real do Yard for concluida.
+13. Auditar criacao, consumo, cancelamento e expiracao no historico persistente da visita.
+14. Replanejar usando outra posicao real valida, cancelar a reserva anterior e vincular a nova por `reservaAnteriorId`.
+15. Executar a compensacao do replanejamento na mesma transacao, restaurando a reserva anterior em caso de falha.
+16. Impedir por indice unico mais de uma reserva ativa para o mesmo item ou para a mesma posicao.
 
 ## Autenticacao e seguranca implementadas
 
@@ -211,6 +221,7 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 
 ```text
 GET   /assets/configuracao.json
+GET   /yard/patio/reservas/posicoes
 GET   /yard/patio/work-queues?visitaNavioId={id}
 POST  /yard/patio/work-queues
 PATCH /yard/patio/work-queues/{id}/ativar
@@ -273,6 +284,7 @@ GET   /api/v1/visibilidade/conteiners/buscar
 30. Teste de execucao unica do job de reconciliacao quando outra instancia possui o bloqueio distribuido.
 31. Teste que exige controle central de inicializacao em todos os consumidores RabbitMQ do Yard durante a migracao.
 32. Teste do filtro de observabilidade para correlacao, tracing, identificadores operacionais, metricas e limpeza do MDC.
+33. Testes unitarios de bloqueio, interdicao, area permitida, carga, peso, altura, camada, capacidade, expiracao, auditoria e compensacao de reserva.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -280,7 +292,7 @@ GET   /api/v1/visibilidade/conteiners/buscar
 2. Integracao inicial Navio + Patio.
 3. Work queues, job list e acoes basicas do Control Room.
 4. Reconciliacao automatica agendada Patio -> Navio.
-5. Reserva em posicao real livre do mapa do Yard.
+5. Ciclo completo de reserva em posicao real valida do Yard, incluindo expiracao, auditoria e compensacao no replanejamento.
 6. Autenticacao do Control Room e integracao ao portal principal.
 7. Credencial interna entre os servicos envolvidos.
 8. Vinculo persistente entre work queue e work instruction.

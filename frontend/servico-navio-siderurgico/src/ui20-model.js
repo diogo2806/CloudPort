@@ -1,6 +1,7 @@
 import { api } from './api.js';
 
 export const ROLES = ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'];
+export const PHASES = { PREVISTA: 'FUNDEADA', FUNDEADA: 'ATRACADA', ATRACADA: 'OPERANDO', OPERANDO: 'OPERACAO_CONCLUIDA', OPERACAO_CONCLUIDA: 'PARTIU' };
 export const PLAN_STATUSES = ['RASCUNHO', 'PUBLICADO', 'EM_EXECUCAO', 'CONCLUIDO'];
 export const TRANSITION_ACTIONS = {
   PENDENTE: ['Retomar', api.retomarWorkInstructionPatio],

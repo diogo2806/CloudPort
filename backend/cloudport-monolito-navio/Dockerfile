@@ -17,7 +17,7 @@ COPY backend/servico-navio/pom.xml servico-navio/pom.xml
 COPY backend/servico-navio/src servico-navio/src
 COPY backend/servico-navio-siderurgico/pom.xml servico-navio-siderurgico/pom.xml
 COPY backend/servico-navio-siderurgico/src servico-navio-siderurgico/src
-COPY --from=frontend-build /workspace/frontend/servico-navio-siderurgico/dist cloudport-monolito-navio/src/main/resources/static
+COPY --from=frontend-build /workspace/frontend/servico-navio-siderurgico/dist/servico-navio-siderurgico cloudport-monolito-navio/src/main/resources/static
 
 WORKDIR /workspace/cloudport-navio-modules
 RUN mvn -B -Pmodulo-monolito -pl :cloudport-monolito-navio -am -DskipTests package

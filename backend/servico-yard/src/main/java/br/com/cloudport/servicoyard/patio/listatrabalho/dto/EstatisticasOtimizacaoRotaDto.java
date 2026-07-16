@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class EstatisticasOtimizacaoRotaDto {
@@ -7,21 +8,21 @@ public class EstatisticasOtimizacaoRotaDto {
     private Integer totalOrdens;
     private Double distanciaOriginal;
     private Double distanciaOtimizada;
-    private Double percentualMejora;
+    private Double percentualMelhoria;
     private List<OrdemTrabalhoPatioRespostaDto> ordensOtimizadas;
 
     public EstatisticasOtimizacaoRotaDto() {
     }
 
     public EstatisticasOtimizacaoRotaDto(Integer totalOrdens,
-                                          Double distanciaOriginal,
-                                          Double distanciaOtimizada,
-                                          Double percentualMejora,
-                                          List<OrdemTrabalhoPatioRespostaDto> ordensOtimizadas) {
+                                           Double distanciaOriginal,
+                                           Double distanciaOtimizada,
+                                           Double percentualMelhoria,
+                                           List<OrdemTrabalhoPatioRespostaDto> ordensOtimizadas) {
         this.totalOrdens = totalOrdens;
         this.distanciaOriginal = distanciaOriginal;
         this.distanciaOtimizada = distanciaOtimizada;
-        this.percentualMejora = percentualMejora;
+        this.percentualMelhoria = percentualMelhoria;
         this.ordensOtimizadas = ordensOtimizadas;
     }
 
@@ -49,12 +50,24 @@ public class EstatisticasOtimizacaoRotaDto {
         this.distanciaOtimizada = distanciaOtimizada;
     }
 
-    public Double getPercentualMejora() {
-        return percentualMejora;
+    public Double getPercentualMelhoria() {
+        return percentualMelhoria;
     }
 
+    public void setPercentualMelhoria(Double percentualMelhoria) {
+        this.percentualMelhoria = percentualMelhoria;
+    }
+
+    @Deprecated
+    @JsonProperty("percentualMejora")
+    public Double getPercentualMejora() {
+        return percentualMelhoria;
+    }
+
+    @Deprecated
+    @JsonProperty("percentualMejora")
     public void setPercentualMejora(Double percentualMejora) {
-        this.percentualMejora = percentualMejora;
+        this.percentualMelhoria = percentualMejora;
     }
 
     public List<OrdemTrabalhoPatioRespostaDto> getOrdensOtimizadas() {

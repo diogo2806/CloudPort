@@ -11,11 +11,12 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabal
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OrdemTrabalhoPatioServico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorDualCyclingServico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorDualCyclingServico.AnaliseDualCyclingDto;
-import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorDualCyclingServico.PairOrdensTrabalhDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorDualCyclingServico.PairOrdensTrabalhoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorRotasPatioServico;
 import java.util.List;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/yard/patio/ordens")
+@PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','SERVICE_NAVIO')")
 public class OrdemTrabalhoPatioControlador {
 
     private final OrdemTrabalhoPatioServico ordemTrabalhoPatioServico;
@@ -35,15 +37,16 @@ public class OrdemTrabalhoPatioControlador {
     private final OtimizadorDualCyclingServico otimizadorDualCycling;
 
     public OrdemTrabalhoPatioControlador(OrdemTrabalhoPatioServico ordemTrabalhoPatioServico,
-                                         OtimizadorRotasPatioServico otimizadorRotas,
-                                         OtimizadorDualCyclingServico otimizadorDualCycling) {
+                                          OtimizadorRotasPatioServico otimizadorRotas,
+                                          OtimizadorDualCyclingServico otimizadorDualCycling) {
         this.ordemTrabalhoPatioServico = ordemTrabalhoPatioServico;
         this.otimizadorRotas = otimizadorRotas;
         this.otimizadorDualCycling = otimizadorDualCycling;
     }
 
     @GetMapping
-    public List<OrdemTrabalhoPatioRespostaDto> listarOrdens(@RequestParam(name = "status", required = false) StatusOrdemTrabalhoPatio status) {
+    public List<OrdemTrabalhoPatioRespostaDto> listarOrdens(
+            @RequestParam(name = "status", required = false) StatusOrdemTrabalhoPatio status) {
         return ordemTrabalhoPatioServico.listarOrdens(status);
     }
 
@@ -64,24 +67,27 @@ public class OrdemTrabalhoPatioControlador {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public OrdemTrabalhoPatioRespostaDto registrarOrdem(@Valid @RequestBody OrdemTrabalhoPatioRequisicaoDto dto) {
+    public OrdemTrabalhoPatioRespostaDto registrarOrdem(
+            @Valid @RequestBody OrdemTrabalhoPatioRequisicaoDto dto) {
         return ordemTrabalhoPatioServico.registrarOrdem(dto);
     }
 
     @PostMapping("/navio")
-    public OrdemTrabalhoPatioRespostaDto registrarOuReutilizarOrdemNavio(@Valid @RequestBody OrdemTrabalhoPatioRequisicaoDto dto) {
+    public OrdemTrabalhoPatioRespostaDto registrarOuReutilizarOrdemNavio(
+            @Valid @RequestBody OrdemTrabalhoPatioRequisicaoDto dto) {
         return ordemTrabalhoPatioServico.registrarOuReutilizarOrdemNavio(dto);
     }
 
     @PatchMapping("/{id}/status")
     public OrdemTrabalhoPatioRespostaDto atualizarStatus(@PathVariable("id") Long id,
-                                                         @Valid @RequestBody AtualizacaoStatusOrdemTrabalhoDto dto) {
+                                                          @Valid @RequestBody AtualizacaoStatusOrdemTrabalhoDto dto) {
         return ordemTrabalhoPatioServico.atualizarStatus(id, dto);
     }
 
     @PatchMapping("/{id}/prioridade")
-    public OrdemTrabalhoPatioRespostaDto atualizarPrioridade(@PathVariable("id") Long id,
-                                                             @Valid @RequestBody AtualizacaoPrioridadeOrdemTrabalhoDto dto) {
+    public OrdemTrabalhoPatioRespostaDto atualizarPrioridade(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody AtualizacaoPrioridadeOrdemTrabalhoDto dto) {
         return ordemTrabalhoPatioServico.atualizarPrioridade(id, dto);
     }
 
@@ -110,18 +116,12 @@ public class OrdemTrabalhoPatioControlador {
         List<OrdemTrabalhoPatio> ordensOriginais = ordemTrabalhoPatioServico
                 .listarOrdensOriginais(StatusOrdemTrabalhoPatio.PENDENTE);
         List<OrdemTrabalhoPatio> ordensOtimizadas = otimizadorRotas.otimizarRota();
-
-        var stats = otimizadorRotas.obterEstatisticasOtimizacao(ordensOriginais, ordensOtimizadas);
-
-        return new EstatisticasOtimizacaoRotaDto(
-                (Integer) stats.get("totalOrdens"),
-                (Double) stats.get("distanciaOriginal"),
-                (Double) stats.get("distanciaOtimizada"),
-                (Double) stats.get("percentualMejora"),
-                ordensOtimizadas.stream()
-                        .map(OrdemTrabalhoPatioRespostaDto::deEntidade)
-                        .toList()
-        );
+        EstatisticasOtimizacaoRotaDto estatisticas = otimizadorRotas
+                .obterEstatisticasOtimizacao(ordensOriginais, ordensOtimizadas);
+        estatisticas.setOrdensOtimizadas(ordensOtimizadas.stream()
+                .map(OrdemTrabalhoPatioRespostaDto::deEntidade)
+                .toList());
+        return estatisticas;
     }
 
     @GetMapping("/otimizacao/dual-cycling/analise")
@@ -130,7 +130,7 @@ public class OrdemTrabalhoPatioControlador {
     }
 
     @GetMapping("/otimizacao/dual-cycling/pairs")
-    public List<PairOrdensTrabalhDto> gerarPairsOtimizados(
+    public List<PairOrdensTrabalhoDto> gerarPairsOtimizados(
             @RequestParam(name = "raio", required = false) Integer raioAdjacencia) {
         return otimizadorDualCycling.gerarPairs(raioAdjacencia);
     }

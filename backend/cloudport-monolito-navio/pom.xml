@@ -79,6 +79,11 @@
     <dependencies>
         <dependency>
             <groupId>br.com.cloudport</groupId>
+            <artifactId>cloudport-contracts</artifactId>
+            <version>${cloudport.modules.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>br.com.cloudport</groupId>
             <artifactId>servico-navio</artifactId>
             <version>${cloudport.modules.version}</version>
             <exclusions>
@@ -152,6 +157,11 @@
                     <artifactId>spring-boot-starter-logging</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>

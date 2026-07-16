@@ -101,3 +101,45 @@ test('não envia sessão anterior nem metadados operacionais no login', async ()
   assert.equal(requests[0].options.headers.get('X-Correlation-Id'), null);
   assert.deepEqual(JSON.parse(requests[0].options.body), { login: 'diogo', senha: 'senha-segura' });
 });
+
+test('consulta o painel avançado e o Quay Monitor da visita', async () => {
+  saveSession({
+    token: jwt({ nome: 'Diogo', roles: ['ROLE_PLANEJADOR'] }),
+    nome: 'Diogo',
+    roles: ['ROLE_PLANEJADOR']
+  });
+
+  await api.obterControlRoom(77);
+  await api.obterQuayMonitor(77);
+
+  assert.equal(requests[0].url, 'http://api.cloudport.test/visitas-navio/77/control-room');
+  assert.equal(requests[1].url, 'http://api.cloudport.test/visitas-navio/77/quay-monitor');
+  assert.equal(requests[0].options.method, 'GET');
+  assert.equal(requests[1].options.method, 'GET');
+});
+
+test('envia configuração estrutural e comando de otimização global', async () => {
+  saveSession({
+    token: jwt({ nome: 'Diogo', roles: ['ROLE_PLANEJADOR'] }),
+    nome: 'Diogo',
+    roles: ['ROLE_PLANEJADOR']
+  });
+  const configuracao = {
+    limitePesoPorPoraoToneladas: 2000,
+    desequilibrioBombordoBoresteMaximoPercentual: 8,
+    poroesInterditados: [4]
+  };
+
+  await api.validarRestricoesEstruturais(81, configuracao);
+  await api.otimizarOperacaoGlobal(81);
+
+  assert.equal(requests[0].url, 'http://api.cloudport.test/visitas-navio/81/validacoes-estruturais');
+  assert.deepEqual(JSON.parse(requests[0].options.body), {
+    ...configuracao,
+    usuario: 'Diogo',
+    origemAcao: 'CONTROL_ROOM_NAVIO_PATIO',
+    correlationId: requests[0].options.headers.get('X-Correlation-Id')
+  });
+  assert.equal(requests[1].url, 'http://api.cloudport.test/visitas-navio/81/otimizacao-global');
+  assert.equal(requests[1].options.method, 'POST');
+});

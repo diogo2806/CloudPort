@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class BayPlanPublicadorServico {
@@ -60,6 +62,16 @@ public class BayPlanPublicadorServico {
     }
 
     private void publicar(String codigoNavio, AtualizacaoBayPlanEventoDto evento) {
-        messagingTemplate.convertAndSend(TOPICO_BASE + codigoNavio, evento);
+        Runnable envio = () -> messagingTemplate.convertAndSend(TOPICO_BASE + codigoNavio, evento);
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            envio.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                envio.run();
+            }
+        });
     }
 }

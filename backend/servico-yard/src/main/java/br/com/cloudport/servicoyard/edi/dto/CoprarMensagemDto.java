@@ -1,15 +1,20 @@
 package br.com.cloudport.servicoyard.edi.dto;
 
-/**
- * Representa uma mensagem COPRAR (Container Pre-Advice) recebida via RabbitMQ ou REST.
- * COPRAR informa o plano de carga: quais containers serão embarcados/desembarcados
- * e suas posições previstas no navio.
- */
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
+
 public class CoprarMensagemDto {
 
+    @Size(max = 50)
     private String codigoNavio;
+
+    @Size(max = 30)
     private String codigoViagem;
+
+    @NotBlank(message = "O conteudo EDIFACT COPRAR e obrigatorio.")
     private String conteudoEdifact;
+
+    @Size(max = 100)
     private String referenciaMensagem;
 
     public String getCodigoNavio() { return codigoNavio; }

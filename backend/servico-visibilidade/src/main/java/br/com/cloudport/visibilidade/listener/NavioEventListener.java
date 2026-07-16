@@ -1,7 +1,9 @@
 package br.com.cloudport.visibilidade.listener;
 
 import br.com.cloudport.visibilidade.config.RabbitMQConfig;
+import br.com.cloudport.visibilidade.dto.evento.EventoRecebido;
 import br.com.cloudport.visibilidade.service.AlertasService;
+import br.com.cloudport.visibilidade.service.EventoProcessadoService;
 import br.com.cloudport.visibilidade.service.StatusNavioService;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -15,25 +17,34 @@ public class NavioEventListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NavioEventListener.class);
     private static final String TIPO_ALERTA_ATRASO = "ATRASO_NAVIO";
+    private static final String CONSUMIDOR = "NAVIO";
 
     private final StatusNavioService statusNavioService;
     private final AlertasService alertasService;
+    private final EventoProcessadoService eventoProcessadoService;
 
     public NavioEventListener(StatusNavioService statusNavioService,
-                              AlertasService alertasService) {
+                              AlertasService alertasService,
+                              EventoProcessadoService eventoProcessadoService) {
         this.statusNavioService = statusNavioService;
         this.alertasService = alertasService;
+        this.eventoProcessadoService = eventoProcessadoService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.VISIBILIDADE_NAVIO_QUEUE)
     public void handleNavioEvent(Map<String, Object> event) {
-        String eventType = texto(event, "eventType");
-        String navioId = texto(event, "navioId");
-
-        if (!StringUtils.hasText(eventType)) {
-            LOGGER.warn("Evento de navio ignorado porque eventType nao foi informado.");
-            return;
+        boolean processado = eventoProcessadoService.processarUmaVez(
+                CONSUMIDOR, event, this::processarEvento);
+        if (!processado) {
+            LOGGER.info("Redelivery de evento de navio ignorado. identidade={}",
+                    EventoRecebido.de(event).getIdentidade());
         }
+    }
+
+    private void processarEvento(EventoRecebido event) {
+        String eventType = event.getTipo();
+        String navioId = event.texto("navioId");
+
         if (!StringUtils.hasText(navioId)) {
             LOGGER.warn("Evento de navio {} ignorado porque navioId nao foi informado.", eventType);
             return;
@@ -62,8 +73,8 @@ public class NavioEventListener {
         }
     }
 
-    private void processarBercoAtribuido(Map<String, Object> event, String navioId) {
-        String berco = texto(event, "berco");
+    private void processarBercoAtribuido(EventoRecebido event, String navioId) {
+        String berco = event.texto("berco");
         if (!StringUtils.hasText(berco)) {
             LOGGER.warn("Evento navio.berth_assigned ignorado porque berco nao foi informado. navioId={}",
                     navioId);
@@ -71,13 +82,5 @@ public class NavioEventListener {
         }
         statusNavioService.atualizarStatusNavio(navioId, null, berco);
         LOGGER.info("Berco atribuido ao navio. navioId={} berco={}", navioId, berco);
-    }
-
-    private String texto(Map<String, Object> event, String chave) {
-        if (event == null) {
-            return null;
-        }
-        Object valor = event.get(chave);
-        return valor == null ? null : String.valueOf(valor).trim();
     }
 }

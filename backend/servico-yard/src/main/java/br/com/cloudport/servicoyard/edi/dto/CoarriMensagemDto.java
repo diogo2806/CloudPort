@@ -1,14 +1,20 @@
 package br.com.cloudport.servicoyard.edi.dto;
 
-/**
- * Representa uma mensagem COARRI (Container Arrival/Departure Acknowledgement).
- * COARRI confirma a conclusão das operações com tempo real de execução.
- */
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
+
 public class CoarriMensagemDto {
 
+    @Size(max = 50)
     private String codigoNavio;
+
+    @Size(max = 30)
     private String codigoViagem;
+
+    @NotBlank(message = "O conteudo EDIFACT COARRI e obrigatorio.")
     private String conteudoEdifact;
+
+    @Size(max = 100)
     private String referenciaMensagem;
 
     public String getCodigoNavio() { return codigoNavio; }

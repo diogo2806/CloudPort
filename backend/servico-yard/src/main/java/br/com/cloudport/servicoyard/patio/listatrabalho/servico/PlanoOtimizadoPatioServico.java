@@ -6,16 +6,21 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.dto.CompensacaoPlanoOtim
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoAplicacaoPlanoOtimizadoPatioDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoAplicacaoPlanoOtimizadoPatioDto.EstadoAnteriorOrdemDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoAplicacaoPlanoOtimizadoPatioDto.EstadoAnteriorWorkQueueDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.AplicacaoPlanoOtimizadoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.HistoricoOperacaoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
+import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusAplicacaoPlanoOtimizadoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusWorkQueuePatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.WorkQueuePatio;
+import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.AplicacaoPlanoOtimizadoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.HistoricoWorkInstructionRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.WorkQueuePatioRepositorio;
 import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
 import br.com.cloudport.servicoyard.patio.repositorio.PosicaoPatioRepositorio;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,9 +31,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -39,22 +47,71 @@ public class PlanoOtimizadoPatioServico {
     private final WorkQueuePatioRepositorio workQueueRepositorio;
     private final PosicaoPatioRepositorio posicaoRepositorio;
     private final HistoricoWorkInstructionRepositorio historicoRepositorio;
+    private final AplicacaoPlanoOtimizadoPatioRepositorio aplicacaoRepositorio;
+    private final ObjectMapper objectMapper;
+    private final TransactionTemplate transactionTemplate;
 
     public PlanoOtimizadoPatioServico(
             OrdemTrabalhoPatioRepositorio ordemRepositorio,
             WorkQueuePatioRepositorio workQueueRepositorio,
             PosicaoPatioRepositorio posicaoRepositorio,
-            HistoricoWorkInstructionRepositorio historicoRepositorio
+            HistoricoWorkInstructionRepositorio historicoRepositorio,
+            AplicacaoPlanoOtimizadoPatioRepositorio aplicacaoRepositorio,
+            ObjectMapper objectMapper,
+            PlatformTransactionManager transactionManager
     ) {
         this.ordemRepositorio = ordemRepositorio;
         this.workQueueRepositorio = workQueueRepositorio;
         this.posicaoRepositorio = posicaoRepositorio;
         this.historicoRepositorio = historicoRepositorio;
+        this.aplicacaoRepositorio = aplicacaoRepositorio;
+        this.objectMapper = objectMapper;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
-    @Transactional
     public ResultadoAplicacaoPlanoOtimizadoPatioDto aplicar(AplicacaoPlanoOtimizadoPatioDto comando) {
         validarComando(comando);
+        try {
+            ResultadoAplicacaoPlanoOtimizadoPatioDto resultado = transactionTemplate.execute(
+                    status -> aplicarTransacional(comando));
+            if (resultado == null) {
+                throw new IllegalStateException("A transacao do plano otimizado nao retornou resultado.");
+            }
+            return resultado;
+        } catch (DataIntegrityViolationException ex) {
+            ResultadoAplicacaoPlanoOtimizadoPatioDto resultadoAnterior = transactionTemplate.execute(
+                    status -> buscarResultadoConcluido(comando));
+            if (resultadoAnterior != null) {
+                return resultadoAnterior;
+            }
+            throw ex;
+        }
+    }
+
+    private ResultadoAplicacaoPlanoOtimizadoPatioDto aplicarTransacional(
+            AplicacaoPlanoOtimizadoPatioDto comando
+    ) {
+        AplicacaoPlanoOtimizadoPatio aplicacao = aplicacaoRepositorio
+                .findByPlanoIdAndVisitaNavioId(comando.getPlanoId(), comando.getVisitaNavioId())
+                .orElse(null);
+        if (aplicacao != null
+                && aplicacao.getStatus() == StatusAplicacaoPlanoOtimizadoPatio.CONCLUIDA) {
+            return desserializarResultado(aplicacao);
+        }
+        if (aplicacao != null
+                && aplicacao.getStatus() == StatusAplicacaoPlanoOtimizadoPatio.EM_ANDAMENTO) {
+            throw conflito("O plano " + comando.getPlanoId() + " ja esta em aplicacao.");
+        }
+        if (aplicacao == null) {
+            aplicacao = novaAplicacao(comando);
+            aplicacaoRepositorio.saveAndFlush(aplicacao);
+        } else {
+            aplicacao.setStatus(StatusAplicacaoPlanoOtimizadoPatio.EM_ANDAMENTO);
+            aplicacao.setResultadoJson(null);
+            aplicacao.setAtualizadoEm(LocalDateTime.now());
+            aplicacaoRepositorio.save(aplicacao);
+        }
+
         List<WorkQueuePatio> filas = workQueueRepositorio
                 .findByVisitaNavioIdOrderBySequenciaInicialAscCriadoEmAsc(comando.getVisitaNavioId());
         if (filas.isEmpty()) {
@@ -112,9 +169,7 @@ public class PlanoOtimizadoPatioServico {
             ItemPlanoOtimizadoDto itemPlano = alteracao.itemPlano();
             WorkQueuePatio fila = alteracao.fila();
 
-            ordem.setDestino(StringUtils.hasText(posicao.getBloco())
-                    ? posicao.getBloco().trim().toUpperCase(Locale.ROOT)
-                    : chavePosicao(itemPlano.getLinha(), itemPlano.getColuna(), itemPlano.getCamada()));
+            ordem.setDestino(posicao.getBloco().trim().toUpperCase(Locale.ROOT));
             ordem.setLinhaDestino(itemPlano.getLinha());
             ordem.setColunaDestino(itemPlano.getColuna());
             ordem.setCamadaDestino(itemPlano.getCamada());
@@ -150,6 +205,10 @@ public class PlanoOtimizadoPatioServico {
             }
         }
         resultado.setOrdensAtualizadas(alteracoes.size());
+        aplicacao.setStatus(StatusAplicacaoPlanoOtimizadoPatio.CONCLUIDA);
+        aplicacao.setResultadoJson(serializarResultado(resultado));
+        aplicacao.setAtualizadoEm(agora);
+        aplicacaoRepositorio.save(aplicacao);
         return resultado;
     }
 
@@ -161,6 +220,16 @@ public class PlanoOtimizadoPatioServico {
                 || comando.getEstadosAnteriores().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Dados de compensacao do plano otimizado incompletos.");
+        }
+        AplicacaoPlanoOtimizadoPatio aplicacao = aplicacaoRepositorio
+                .findByPlanoIdAndVisitaNavioId(comando.getPlanoId(), comando.getVisitaNavioId())
+                .orElseThrow(() -> conflito("A aplicacao do plano informado nao foi encontrada."));
+        if (aplicacao.getStatus() == StatusAplicacaoPlanoOtimizadoPatio.COMPENSADA) {
+            return;
+        }
+        if (aplicacao.getStatus() != StatusAplicacaoPlanoOtimizadoPatio.CONCLUIDA) {
+            throw conflito("O plano " + comando.getPlanoId()
+                    + " nao esta concluido e nao pode ser compensado.");
         }
 
         for (EstadoAnteriorOrdemDto estado : comando.getEstadosAnteriores()) {
@@ -207,6 +276,53 @@ public class PlanoOtimizadoPatioServico {
                     comando.getUsuario(),
                     "planoId=" + comando.getPlanoId() + "; motivo=" + comando.getMotivo());
         }
+        aplicacao.setStatus(StatusAplicacaoPlanoOtimizadoPatio.COMPENSADA);
+        aplicacao.setAtualizadoEm(LocalDateTime.now());
+        aplicacaoRepositorio.save(aplicacao);
+    }
+
+    private AplicacaoPlanoOtimizadoPatio novaAplicacao(AplicacaoPlanoOtimizadoPatioDto comando) {
+        LocalDateTime agora = LocalDateTime.now();
+        AplicacaoPlanoOtimizadoPatio aplicacao = new AplicacaoPlanoOtimizadoPatio();
+        aplicacao.setPlanoId(comando.getPlanoId().trim());
+        aplicacao.setVisitaNavioId(comando.getVisitaNavioId());
+        aplicacao.setStatus(StatusAplicacaoPlanoOtimizadoPatio.EM_ANDAMENTO);
+        aplicacao.setCriadoEm(agora);
+        aplicacao.setAtualizadoEm(agora);
+        return aplicacao;
+    }
+
+    private ResultadoAplicacaoPlanoOtimizadoPatioDto buscarResultadoConcluido(
+            AplicacaoPlanoOtimizadoPatioDto comando
+    ) {
+        return aplicacaoRepositorio
+                .findByPlanoIdAndVisitaNavioId(comando.getPlanoId(), comando.getVisitaNavioId())
+                .filter(aplicacao -> aplicacao.getStatus() == StatusAplicacaoPlanoOtimizadoPatio.CONCLUIDA)
+                .map(this::desserializarResultado)
+                .orElse(null);
+    }
+
+    private String serializarResultado(ResultadoAplicacaoPlanoOtimizadoPatioDto resultado) {
+        try {
+            return objectMapper.writeValueAsString(resultado);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Nao foi possivel persistir o resultado do plano otimizado.", ex);
+        }
+    }
+
+    private ResultadoAplicacaoPlanoOtimizadoPatioDto desserializarResultado(
+            AplicacaoPlanoOtimizadoPatio aplicacao
+    ) {
+        if (!StringUtils.hasText(aplicacao.getResultadoJson())) {
+            throw conflito("A aplicacao concluida do plano nao possui resultado persistido.");
+        }
+        try {
+            return objectMapper.readValue(
+                    aplicacao.getResultadoJson(),
+                    ResultadoAplicacaoPlanoOtimizadoPatioDto.class);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Nao foi possivel recuperar o resultado do plano otimizado.", ex);
+        }
     }
 
     private void validarComando(AplicacaoPlanoOtimizadoPatioDto comando) {
@@ -217,6 +333,7 @@ public class PlanoOtimizadoPatioServico {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Plano otimizado, visita e itens devem ser informados.");
         }
+        comando.setPlanoId(comando.getPlanoId().trim());
     }
 
     private void validarOrdem(
@@ -250,6 +367,10 @@ public class PlanoOtimizadoPatioServico {
         if (!posicao.isAreaPermitida()) {
             throw conflito("A posicao " + chavePosicao + " esta fora da area operacional permitida.");
         }
+        if (!StringUtils.hasText(posicao.getBloco())) {
+            throw conflito("A posicao " + chavePosicao
+                    + " nao possui bloco operacional para validar a work queue.");
+        }
     }
 
     private WorkQueuePatio selecionarFila(
@@ -269,14 +390,12 @@ public class PlanoOtimizadoPatioServico {
             throw conflito("Nao existe work queue ativa, coberta e com recursos reais para o equipamento "
                     + equipamento + ".");
         }
-        if (StringUtils.hasText(bloco)) {
-            return candidatas.stream()
-                    .filter(fila -> StringUtils.hasText(fila.getBlocoZona()))
-                    .filter(fila -> fila.getBlocoZona().equalsIgnoreCase(bloco))
-                    .findFirst()
-                    .orElse(candidatas.get(0));
-        }
-        return candidatas.get(0);
+        return candidatas.stream()
+                .filter(fila -> StringUtils.hasText(fila.getBlocoZona()))
+                .filter(fila -> fila.getBlocoZona().equalsIgnoreCase(bloco))
+                .findFirst()
+                .orElseThrow(() -> conflito("Nao existe work queue compativel com o equipamento "
+                        + equipamento + " e o bloco de destino " + bloco + "."));
     }
 
     private EstadoAnteriorOrdemDto estadoAnterior(OrdemTrabalhoPatio ordem) {

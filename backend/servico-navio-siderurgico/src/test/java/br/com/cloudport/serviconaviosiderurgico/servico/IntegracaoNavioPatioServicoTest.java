@@ -7,6 +7,9 @@ import static org.mockito.Mockito.when;
 import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente;
 import br.com.cloudport.serviconaviosiderurgico.comum.IntegracaoYardIndisponivelException;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusConsultaYard;
+import br.com.cloudport.serviconaviosiderurgico.dto.FilaPatioDaVisitaDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.OrdemPatioDaVisitaDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.ResultadoConsultaYardDTO;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ItemOperacaoNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ReservaPosicaoPatioNavioRepositorio;
 import java.util.List;
@@ -49,7 +52,8 @@ class IntegracaoNavioPatioServicoTest {
     void deveDiferenciarRespostaVaziaLegitimaDeFalhaNasFilas() {
         when(ordemPatioYardCliente.listarFilasDaVisita(VISITA_ID)).thenReturn(List.of());
 
-        var resultado = criarServico(false).listarFilasOperacionaisDaVisita(VISITA_ID);
+        ResultadoConsultaYardDTO<FilaPatioDaVisitaDTO> resultado = criarServico(false)
+                .listarFilasOperacionaisDaVisita(VISITA_ID);
 
         assertThat(resultado.status()).isEqualTo(StatusConsultaYard.CONFIRMADA);
         assertThat(resultado.confirmado()).isTrue();
@@ -76,7 +80,8 @@ class IntegracaoNavioPatioServicoTest {
         when(itemRepositorio.findByVisitaNavioIdOrderBySequenciaOperacionalAscIdAsc(VISITA_ID))
                 .thenReturn(List.of());
 
-        var resultado = criarServico(true).listarFilasOperacionaisDaVisita(VISITA_ID);
+        ResultadoConsultaYardDTO<FilaPatioDaVisitaDTO> resultado = criarServico(true)
+                .listarFilasOperacionaisDaVisita(VISITA_ID);
 
         assertThat(resultado.status()).isEqualTo(StatusConsultaYard.DEGRADADA);
         assertThat(resultado.confirmado()).isFalse();
@@ -103,7 +108,8 @@ class IntegracaoNavioPatioServicoTest {
         when(itemRepositorio.findByVisitaNavioIdOrderBySequenciaOperacionalAscIdAsc(VISITA_ID))
                 .thenReturn(List.of());
 
-        var resultado = criarServico(true).listarOrdensSemCoberturaDaVisita(VISITA_ID);
+        ResultadoConsultaYardDTO<OrdemPatioDaVisitaDTO> resultado = criarServico(true)
+                .listarOrdensSemCoberturaDaVisita(VISITA_ID);
 
         assertThat(resultado.status()).isEqualTo(StatusConsultaYard.DEGRADADA);
         assertThat(resultado.confirmado()).isFalse();

@@ -28,13 +28,18 @@ jobs:
             command: mvn -B test package
           - module: backend/servico-yard
             command: >-
-              mvn -B -Dtest=OtimizadorRotasPatioServicoTest,OtimizadorDualCyclingServicoTest test &&
+              mvn -B
+              -Dtest=OtimizadorRotasPatioServicoTest,OtimizadorDualCyclingServicoTest,WorkQueuePatioServicoTest,WorkQueuePatioControladorAutorizacaoTest,ConsumidoresMigracaoConfiguracaoTest,ObservabilidadeYardFiltroTest,VermasParserTest
+              test &&
               mvn -B -DskipTests package
           - module: backend/servico-navio
             command: mvn -B -DskipTests package
           - module: backend/servico-navio-siderurgico
             command: >-
               mvn -B -f ../cloudport-contracts/pom.xml -DskipTests install &&
+              mvn -B
+              -Dtest=YardRestTemplateCustomizerContractTest,ObservabilidadeOperacionalFiltroTest,ReservaPatioNavioServicoTest,ReconciliacaoNavioPatioJobTest
+              test &&
               mvn -B -DskipTests package
           - module: backend/cloudport-navio-modules
             command: >-

@@ -1,18 +1,16 @@
 package br.com.cloudport.servicogate.scheduler;
 
-import br.com.cloudport.servicogate.app.gestor.ReconciliacaoBarcodeService;
 import br.com.cloudport.servicogate.app.gestor.ReconciliacaoBarcodeRepository;
+import br.com.cloudport.servicogate.app.gestor.ReconciliacaoBarcodeService;
 import br.com.cloudport.servicogate.model.ReconciliacaoBarcode;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
-@EnableScheduling
 public class ReconciliacaoBarcodeScheduler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReconciliacaoBarcodeScheduler.class);
@@ -21,7 +19,7 @@ public class ReconciliacaoBarcodeScheduler {
     private final ReconciliacaoBarcodeRepository reconciliacaoRepository;
 
     public ReconciliacaoBarcodeScheduler(ReconciliacaoBarcodeService reconciliacaoService,
-                                        ReconciliacaoBarcodeRepository reconciliacaoRepository) {
+                                         ReconciliacaoBarcodeRepository reconciliacaoRepository) {
         this.reconciliacaoService = reconciliacaoService;
         this.reconciliacaoRepository = reconciliacaoRepository;
     }
@@ -30,11 +28,8 @@ public class ReconciliacaoBarcodeScheduler {
     public void executarReconciliacaoNocturna() {
         try {
             LOGGER.info("event=reconciliacao.scheduler.iniciada timestamp={}", LocalDateTime.now());
-
             List<ReconciliacaoBarcode> problemas = reconciliacaoService.executarReconciliacao();
-
             enviarAlertas(problemas);
-
             LOGGER.info("event=reconciliacao.scheduler.concluida problemas={} timestamp={}",
                     problemas.size(), LocalDateTime.now());
         } catch (Exception ex) {
@@ -45,7 +40,6 @@ public class ReconciliacaoBarcodeScheduler {
 
     private void enviarAlertas(List<ReconciliacaoBarcode> problemas) {
         List<ReconciliacaoBarcode> naResolvidos = reconciliacaoRepository.findNaoResolvidosSemAlerta();
-
         for (ReconciliacaoBarcode reconciliacao : naResolvidos) {
             try {
                 enviarAlerta(reconciliacao);
@@ -85,10 +79,8 @@ public class ReconciliacaoBarcodeScheduler {
                 reconciliacao.getStatusLocal() != null ? reconciliacao.getStatusLocal() : "N/A"
         );
 
-        LOGGER.warn("event=reconciliacao.alerta.enviado id={} tipo={} gatePass={} timestamp={}",
+        LOGGER.warn("event=reconciliacao.alerta.enviado id={} tipo={} gatePass={} assunto={} mensagem={} timestamp={}",
                 reconciliacao.getId(), reconciliacao.getTipoDesinconia(),
-                reconciliacao.getGatePass().getCodigo(), LocalDateTime.now());
-
-        // TODO: Implementar notificação real (email, Slack, SMS, etc)
+                reconciliacao.getGatePass().getCodigo(), assunto, mensagem, LocalDateTime.now());
     }
 }

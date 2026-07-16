@@ -4,231 +4,263 @@
 
 - Estado: vigente.
 - Arquitetura alvo: monólito modular.
-- Runtime: `backend/cloudport-monolito-navio`, mantido com o nome histórico durante a transição.
-- Módulos incorporados no código: Navio, Navio Siderúrgico, Yard, Gate, Rail, Autenticação e Visibilidade.
-- Estado operacional: o corte de ambiente e a retirada dos deployments legados continuam condicionados à validação de paridade e rollback.
+- Runtime geral: `backend/cloudport-runtime`.
+- Primeiro corte preservado para rollback: `backend/cloudport-monolito-navio`.
+- Módulos incorporados: Autenticação, Gate, Rail, Visibilidade, Yard, Navio e Navio Siderúrgico.
 
-Este documento é a referência principal para estrutura, comunicação, dados, segurança, build e implantação do backend.
+Este documento é a referência principal para estrutura, comunicação, persistência, segurança, build, implantação e rollback do backend.
 
 ## Decisão
 
-O CloudPort evolui como um único produto implantável, dividido internamente em módulos de domínio. Cada módulo conserva responsabilidade, pacotes, contratos e propriedade de dados, mas os módulos incorporados executam no mesmo processo Spring Boot.
+O CloudPort executa suas funcionalidades internas em um único processo Spring Boot, mantendo limites explícitos entre os módulos de negócio.
 
-O runtime consolidado deve garantir:
+O runtime geral deve possuir:
 
-1. um único artefato e processo de aplicação;
-2. dependências direcionais e sem ciclos;
-3. comunicação interna por portas ou eventos;
-4. HTTP e mensageria somente na borda ou durante rollback;
-5. segurança, CORS, Jackson, erros, logs, métricas, tracing e agendamento centralizados;
-6. uma conexão PostgreSQL, com ownership explícito por schema;
-7. históricos Flyway independentes e compatíveis com retorno de aplicação;
-8. apenas um escritor, executor de jobs e grupo ativo de consumidores durante o corte.
+1. um artefato e um processo para o backend;
+2. módulos Maven com responsabilidade e dependências explícitas;
+3. comunicação local por portas, serviços de aplicação e eventos internos;
+4. contratos HTTP preservados na borda para frontend e integrações externas;
+5. segurança, CORS, OpenAPI, cache, banco e infraestrutura transversal centralizados;
+6. persistência compartilhada com ownership de tabelas e schemas por módulo;
+7. possibilidade de rollback enquanto os deployments antigos ainda existirem.
 
-## Runtime e módulos
+## Estado implementado
 
-```text
-cloudport-navio-modules
-├── servico-navio
-├── servico-navio-siderurgico
-├── servico-yard
-├── servico-gate
-├── servico-rail
-├── servico-autenticacao
-├── servico-visibilidade
-└── cloudport-monolito-navio
+| Capacidade | Estado |
+| --- | --- |
+| Processo Spring Boot único | Implementado em `cloudport-runtime` |
+| Autenticação | Incorporada; emissão e validação continuam separadas por componentes internos |
+| Gate | Incorporado |
+| Rail | Incorporado |
+| Visibilidade | Incorporada |
+| Yard | Incorporado |
+| Navio | Incorporado |
+| Navio Siderúrgico | Incorporado |
+| Navio Siderúrgico -> Navio | Chamada local por `CadastroNavioPorta` |
+| Navio -> Yard | Chamadas locais para ordens, work queues e posições reserváveis |
+| Gate -> Autenticação | Consulta local de usuário |
+| Gate -> status do Yard | Consulta local de disponibilidade |
+| TOS | Adaptador HTTP externo |
+| OCR | Adaptador RabbitMQ externo |
+| EDI | Adaptadores externos e mensageria |
+| RabbitMQ e Redis | Infraestrutura externa |
+| PostgreSQL | Uma conexão, sete schemas |
+| Flyway | Um histórico independente por módulo |
+| Segurança e CORS | Uma configuração do runtime |
+| OpenAPI | Um documento consolidado |
+| Cache | Gerenciador composto para Gate e Visibilidade |
+| Teste de contexto | PostgreSQL 16 por Testcontainers |
+| Imagem e Compose | Implementados para o runtime geral |
+| Retirada dos deployments antigos | Pendente de corte operacional e rollback validado |
+
+## Visão de execução
+
+```mermaid
+flowchart TB
+    CLIENTES[Portal, Control Room e clientes externos] --> RUNTIME[cloudport-runtime]
+
+    subgraph RUNTIME[Monólito modular]
+        AUTH[Autenticação]
+        GATE[Gate]
+        RAIL[Rail]
+        VIS[Visibilidade]
+        YARD[Yard]
+        NAVIO[Navio]
+        SIDERURGICO[Navio Siderúrgico]
+
+        SIDERURGICO --> NAVIO
+        SIDERURGICO --> YARD
+        GATE --> AUTH
+        GATE --> YARD
+        VIS --> GATE
+        VIS --> RAIL
+        VIS --> YARD
+        VIS --> NAVIO
+    end
+
+    RUNTIME --> POSTGRES[(PostgreSQL)]
+    RUNTIME --> RABBIT[(RabbitMQ)]
+    RUNTIME --> REDIS[(Redis)]
+    RUNTIME --> EXTERNOS[TOS, OCR, EDI, storage e sistemas externos]
 ```
 
-Os diretórios `servico-*` continuam existindo como limites de módulo e para preservar compilação isolada e rollback. O nome não implica deployment independente no estado alvo.
+As setas internas representam chamadas locais ou eventos internos. HTTP e mensageria permanecem na borda quando a integração atravessa o processo.
 
-| Módulo | Responsabilidade principal |
-| --- | --- |
-| Navio | cadastro canônico, escalas, visitas, planos de estiva e eventos marítimos |
-| Navio Siderúrgico | operações, itens, reservas e regras específicas de carga siderúrgica |
-| Yard | mapa, posições, reservas, movimentos, ordens, work queues e work instructions |
-| Gate | agendamentos, visitas de caminhão, transações, documentos, OCR e TOS externo |
-| Rail | visitas ferroviárias, composição, ordens e movimentos ferroviários |
-| Autenticação | usuários, papéis, políticas, login e emissão de token |
-| Visibilidade | projeções, dashboards, alertas, histórico e streaming operacional |
-
-## Limites e dependências
+## Limites dos módulos
 
 Cada módulo deve:
 
 - possuir pacote raiz próprio;
-- expor operações internas por interfaces pequenas;
-- receber e retornar DTOs de contrato, nunca entidades JPA de outro módulo;
-- acessar somente seus próprios repositories;
-- publicar eventos internos quando não houver necessidade de resposta síncrona;
-- manter suas migrações dentro do próprio artefato;
-- não depender do pacote do runtime.
+- expor operações internas por interfaces ou serviços de aplicação pequenos;
+- não acessar controller, repository ou entidade JPA de outro módulo;
+- não consultar diretamente o schema de outro módulo para evitar um contrato interno;
+- não introduzir dependência cíclica;
+- possuir e versionar suas próprias migrações;
+- publicar evento interno quando a dependência síncrona não for necessária.
 
-Não é permitido:
+### Responsabilidades
 
-- acessar controller, service interno, entidade ou repository de outro módulo para contornar um contrato;
-- criar cliente HTTP entre módulos incorporados;
-- criar dependência cíclica;
-- duplicar cadeia de segurança, CORS, tratamento global de erros ou agendamento dentro do runtime;
-- criar novo executável Spring Boot para funcionalidade interna sem nova decisão arquitetural.
+| Módulo | Responsabilidade principal |
+| --- | --- |
+| Autenticação | login, emissão de JWT, usuários, papéis e permissões |
+| Gate | agendamentos, visitas de caminhão, transações, documentos e integrações de gate |
+| Rail | visitas ferroviárias, composições, ordens e operações ferroviárias |
+| Visibilidade | dashboards, histórico, alertas e projeções de leitura |
+| Yard | mapa, posições, reservas, ordens, work queues e work instructions |
+| Navio | cadastro canônico, escalas e estiva |
+| Navio Siderúrgico | visitas operacionais, itens, reservas, integração com Yard e regras siderúrgicas |
+| Integrações | TOS, OCR, EDI, webhooks, storage e mensageria externa |
 
-Os testes ArchUnit do runtime verificam ausência de ciclos, dependência de módulo para o runtime, uso de adaptadores HTTP pelo runtime e acesso direto a repositories de outro módulo.
+## Comunicação
 
-## Comunicação interna
+### Permitido internamente
 
-### Portas locais implementadas
+- chamada direta por porta/interface ou serviço público do módulo proprietário;
+- DTO interno estável, sem expor entidade JPA;
+- evento interno no mesmo processo;
+- transação coordenada somente quando a operação for realmente atômica.
 
-| Origem | Destino | Porta | Implementação local |
-| --- | --- | --- | --- |
-| Navio Siderúrgico | Navio | `CadastroNavioPorta` | `CadastroNavioLocalAdapter` |
-| Navio Siderúrgico | Yard | `OrdemPatioYardCliente` | `OrdemPatioLocalAdapter` |
-| Navio Siderúrgico | Yard | `PosicaoPatioYardCliente` | `PosicaoPatioLocalAdapter` |
-| Gate | Yard | `ClienteStatusPatio` | `StatusPatioLocalAdapter` |
-| Gate | Autenticação | `AutenticacaoClient` | `AutenticacaoLocalAdapter` |
+### Permitido na borda
 
-Os nomes históricos terminados em `Cliente` foram mantidos para reduzir impacto de migração, mas agora representam portas. Os adaptadores `*HttpAdapter` são registrados somente quando a propriedade de integração está em `http`. No runtime consolidado, as propriedades ficam em `local`.
+- HTTP para TOS e outros sistemas externos;
+- RabbitMQ para OCR, EDI, interoperabilidade e eventos externos;
+- Redis para cache e projeções;
+- storage local, objeto ou serviço externo por adaptador.
 
-### Eventos
+### Transitório para rollback
 
-Eventos Spring internos podem substituir chamadas síncronas quando o consumidor não precisa responder à mesma transação. RabbitMQ permanece válido para integrações externas, desacoplamento temporal real e coexistência com deployments ainda não cortados.
+- clientes HTTP legados condicionados por propriedade;
+- `X-CloudPort-Service-Key` somente quando a chamada atravessar deployments antigos;
+- imagens e configurações dos runtimes anteriores enquanto o rollback não tiver sido encerrado.
 
-Consumidores externos devem ser idempotentes. Eventos públicos devem possuir versão, `eventId`, `occurredAt`, `correlationId`, origem e chave de agregação. Eventos internos não devem ser publicados externamente sem adaptação explícita.
+### Não permitido para código novo
 
-## Ownership de schemas e tabelas
+- cliente HTTP entre módulos que executam no `cloudport-runtime`;
+- compartilhamento de repository JPA;
+- acesso direto à entidade interna de outro módulo;
+- novo executável Spring Boot para funcionalidade interna sem nova decisão arquitetural;
+- duplicação de segurança, CORS ou OpenAPI no runtime geral.
 
-O runtime usa uma conexão PostgreSQL e um schema por módulo:
+## Persistência e Flyway
 
-| Schema | Proprietário | Local das migrações |
-| --- | --- | --- |
-| `cloudport_navio` | Navio | `classpath:cloudport/migrations/navio` |
-| `cloudport_siderurgico` | Navio Siderúrgico | `classpath:cloudport/migrations/navio-siderurgico` |
-| `cloudport_yard` | Yard | `classpath:cloudport/migrations/yard` |
-| `cloudport_gate` | Gate | `classpath:cloudport/migrations/gate` |
-| `cloudport_rail` | Rail | `classpath:cloudport/migrations/rail` |
-| `cloudport_autenticacao` | Autenticação | `classpath:cloudport/migrations/autenticacao` |
-| `cloudport_visibilidade` | Visibilidade | `classpath:cloudport/migrations/visibilidade` |
+O runtime usa uma conexão PostgreSQL e preserva ownership por schema:
 
-A regra de ownership é objetiva: toda tabela, índice, sequence, constraint, view ou função criada por uma migração localizada no artefato de um módulo pertence àquele módulo. Somente o módulo proprietário pode alterar sua estrutura.
+| Schema | Módulo proprietário |
+| --- | --- |
+| `cloudport_autenticacao` | Autenticação |
+| `cloudport_gate` | Gate |
+| `cloudport_rail` | Rail |
+| `cloudport_visibilidade` | Visibilidade |
+| `cloudport_yard` | Yard |
+| `cloudport_navio` | Navio |
+| `cloudport_siderurgico` | Navio Siderúrgico |
 
-Regras adicionais:
+O runtime cria sete objetos Flyway independentes antes do `EntityManagerFactory`. Cada histórico utiliza somente as migrações do artefato proprietário.
 
-1. repositories permanecem no módulo proprietário;
-2. joins entre schemas não substituem portas;
-3. uma foreign key entre schemas exige decisão registrada e não transfere ownership;
-4. projeções de Visibilidade armazenam cópias de leitura e não se tornam fonte de verdade;
-5. renomear ou mover tabela exige migração do proprietário, período de compatibilidade e plano de retorno;
-6. nomes de schema são validados antes de configurar o Flyway.
+Regras:
 
-## Flyway e compatibilidade
-
-O runtime cria um objeto Flyway por módulo, todos antes do `EntityManagerFactory`. Cada schema conserva sua própria tabela `flyway_schema_history`.
-
-Durante a janela de rollback:
-
-- não editar migração já aplicada;
-- corrigir por nova versão;
-- não renumerar históricos existentes;
-- executar `validate` em todos os schemas antes do corte;
-- usar `expand and contract`;
-- adicionar estruturas antes de remover ou renomear;
-- manter campos antigos enquanto o binário anterior puder voltar;
-- fazer backfill idempotente;
-- adiar `DROP`, redução de tamanho, tipo incompatível e `NOT NULL` sem valor padrão;
-- tratar rollback normal como troca de aplicação e roteamento, nunca como downgrade automático do banco.
-
-Mudança destrutiva só pode ocorrer depois do encerramento formal da janela de rollback e da retirada da versão anterior.
-
-## Execução única
-
-O corte usa três controles independentes:
-
-| Controle | Propriedade | Runtime ativo | Legado em coexistência |
-| --- | --- | --- | --- |
-| Comandos de escrita | `cloudport.runtime.writes-enabled` | `true` | `false` |
-| Jobs | `cloudport.runtime.jobs-enabled` | `true` | `false` |
-| Consumidores RabbitMQ | `cloudport.runtime.consumers-enabled` | `true` | `false` |
-
-Com escrita desativada, `POST`, `PUT`, `PATCH` e `DELETE` retornam `503`. Com jobs desativados, o agendamento não é habilitado. Com consumidores desativados, os containers RabbitMQ não iniciam.
-
-Jobs críticos também usam `pg_try_advisory_xact_lock`. O bloqueio distribuído é a proteção contra duas instâncias do mesmo runtime compartilhando PostgreSQL, mas não substitui a configuração correta de escritor, jobs e consumidores.
-
-Comandos e consumidores devem possuir chave de idempotência ou estado persistente quando puderem ser repetidos por retry, redelivery ou falha após commit.
-
-## Configuração transversal central
-
-O runtime é responsável por:
-
-- parent Maven, versões, `dependencyManagement`, `pluginManagement` e requisitos de Java/Maven;
-- uma cadeia de segurança stateless;
-- emissão e validação de token por componentes internos do módulo Autenticação;
-- conversão de `roles` e `role` para autoridades Spring Security;
-- uma política CORS;
-- um `ObjectMapper` com Java Time, UTC e contrato consistente;
-- tratamento global de erros com `codigo`, `mensagem`, `detalhes`, `correlationId`, caminho, status e timestamp;
-- propagação de `X-Correlation-Id` e `traceId` no MDC;
-- métricas HTTP e exportação Prometheus;
-- documentação OpenAPI consolidada;
-- scheduler central condicionado por propriedade;
-- cliente HTTP comum para integrações realmente externas;
-- conversor JSON principal do RabbitMQ.
-
-Configurações isoladas continuam nos artefatos apenas para execução standalone e são excluídas do component scan do runtime.
+1. uma versão Flyway não pode ser reutilizada dentro do mesmo módulo;
+2. migrações aplicadas não devem ser alteradas;
+3. mudanças de compatibilidade usam `expand and contract`;
+4. remoções destrutivas não podem ocorrer na mesma entrega que retira o deployment antigo;
+5. joins entre schemas não substituem contratos de módulo;
+6. nomes de schema são validados antes do uso.
 
 ## Segurança
 
-O runtime:
+O runtime geral:
 
-- mantém sessão stateless;
-- exige segredo HS256 com pelo menos 32 bytes;
-- libera somente login, health, documentação e assets públicos necessários;
-- protege as demais rotas por JWT e autorização de método;
-- aplica CORS em um único ponto;
-- conserva `X-CloudPort-Service-Key` apenas para comunicação com deployments legados durante a janela de rollback.
+- expõe uma única `SecurityFilterChain`;
+- valida JWT HS256 e converte claims de papéis para autoridades Spring;
+- mantém a aplicação stateless;
+- centraliza CORS;
+- libera somente autenticação, health, documentação e assets públicos necessários;
+- mantém o filtro de credencial interna apenas para compatibilidade com deployments legados;
+- exige segredo JWT com no mínimo 32 bytes;
+- publica um único OpenAPI consolidado.
 
-Chamadas locais não usam credencial de serviço. A credencial e seus segredos só podem ser removidos depois que nenhum tráfego operacional depender dos adaptadores HTTP legados.
+## Cache, mensageria e integrações
 
-## Build e empacotamento
+O cache do runtime combina:
 
-Os módulos produzem JARs de biblioteca no perfil `modulo-monolito`. O runtime depende desses artefatos e gera o único JAR executável.
+- Caffeine para contratos TOS do Gate;
+- Redis para projeções da Visibilidade.
 
-```bash
-cd backend/cloudport-navio-modules
-mvn -B -Pmodulo-monolito -pl :cloudport-monolito-navio -am test package
+RabbitMQ permanece externo porque representa integração temporal, OCR, EDI e eventos publicados. Incorporar o módulo não transforma automaticamente esses contratos externos em chamadas diretas.
+
+Durante o corte, somente uma instância pode consumir cada fila e executar cada job. Deployments antigos devem iniciar com consumidores, jobs e escrita desativados.
+
+## Build
+
+O runtime geral é construído pelo reator:
+
+```text
+backend/cloudport-modules
+├── servico-autenticacao
+├── servico-gate
+├── servico-rail
+├── servico-visibilidade
+├── servico-yard
+├── servico-navio
+├── servico-navio-siderurgico
+└── cloudport-runtime
 ```
 
-As migrações e demais recursos são publicados dentro do artefato proprietário. O runtime não adiciona diretórios de fontes de irmãos por plugin Maven.
+Comandos:
 
-A imagem Docker compila os sete módulos, incorpora o frontend do Control Room e inicia somente o JAR consolidado.
+```bash
+cd backend/cloudport-modules
+mvn -B -Dspring-boot.repackage.skip=true \
+  -pl :cloudport-runtime -am \
+  -DskipTests install
+mvn -B -pl :cloudport-runtime test package
+```
 
-## Implantação e rollback
+O `Dockerfile` da raiz do runtime gera um único JAR executável e executa como usuário não privilegiado.
 
-O deployment legado não é removido no mesmo passo em que o módulo é incorporado. A sequência obrigatória é:
+## Implantação
 
-1. validar build, testes, OpenAPI e ausência de rotas duplicadas;
-2. validar todos os históricos Flyway e dados essenciais;
-3. criar backup e registrar o ponto de restauração;
-4. iniciar o monólito com escrita, jobs e consumidores ativos;
-5. manter legados sem escrita, jobs e consumidores;
-6. direcionar cada rota para exatamente um backend;
-7. executar smoke e comparação funcional;
-8. ensaiar retorno para os binários legados sobre os mesmos schemas;
-9. observar o runtime pelo período definido pela operação;
-10. somente depois remover deployments, imagens, credenciais e variáveis legadas.
+O Compose em `deploy/cloudport-runtime/docker-compose.yml` inicia:
 
-O rollback para o legado exige primeiro retirar e parar o monólito. Nunca podem existir dois escritores ou dois grupos ativos de consumidores para o mesmo domínio.
+- PostgreSQL;
+- RabbitMQ;
+- Redis;
+- `cloudport-runtime`.
 
-O procedimento detalhado está em `docs/operacao-corte-rollback-navio.md`.
+O runtime geral é o único escritor e executor de jobs no perfil consolidado. O proxy ou frontend deve usar uma única origem de API.
 
-## Critérios para concluir a migração
+### Critérios para retirar os deployments antigos
 
-A migração só é considerada concluída quando:
+1. paridade dos endpoints usados;
+2. autenticação e autorização validadas;
+3. migrações e dados compatíveis;
+4. somente uma execução de jobs e consumidores;
+5. frontend e integrações externas testados;
+6. health, logs, métricas e alertas disponíveis;
+7. testes unitários, integração, contrato e e2e aprovados;
+8. proxy apontando para o runtime geral;
+9. rollback testado;
+10. branch sincronizada e sem conflitos.
 
-- todos os módulos estão no mesmo runtime em produção;
-- nenhuma chamada HTTP ocorre entre módulos incorporados;
-- contratos externos mantêm paridade;
-- uma única origem de API atende o frontend;
-- todos os schemas e históricos Flyway estão validados;
-- jobs, consumidores e comandos executam uma única vez;
-- testes de arquitetura passam;
-- logs, métricas, tracing e erros usam o padrão central;
-- rollback foi ensaiado;
-- deployments e credenciais legadas foram removidos de forma controlada.
+## Rollback
+
+Enquanto os deployments antigos existirem, o rollback deve:
+
+1. interromper o runtime geral antes de reativar escrita, jobs ou consumidores antigos;
+2. preservar schemas e históricos Flyway compatíveis;
+3. redirecionar a origem de API para o deployment anterior;
+4. reativar variáveis e adaptadores legados documentados;
+5. impedir escrita concorrente entre os dois modelos;
+6. não tentar desfazer migração aditiva já aplicada.
+
+O `cloudport-monolito-navio` pode ser utilizado como rollback intermediário do domínio Navio. A retirada definitiva dele e dos serviços antigos ocorrerá somente após a estabilização do runtime geral.
+
+## Pendências arquiteturais
+
+- executar e testar o corte operacional do runtime geral;
+- criar smoke completo incluindo RabbitMQ, Redis, Gate, Rail e Visibilidade;
+- centralizar tratamento de erros, logs, métricas e tracing ainda definidos localmente;
+- substituir eventos periódicos internos por eventos no processo quando aplicável;
+- remover clientes e credenciais HTTP legados após encerrar o rollback;
+- consolidar versões e plugins em parent Maven compartilhado;
+- renomear artefatos `servico-*` somente após estabilização dos pipelines.

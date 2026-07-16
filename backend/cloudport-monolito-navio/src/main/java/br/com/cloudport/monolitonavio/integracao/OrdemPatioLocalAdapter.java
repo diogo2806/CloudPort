@@ -14,24 +14,26 @@ import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
 import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
 
 @Component
 @ConditionalOnProperty(name = "cloudport.modulo.yard.integracao", havingValue = "local")
-public class OrdemPatioLocalAdapter implements OrdemPatioYardCliente {
+public class OrdemPatioLocalAdapter extends OrdemPatioYardCliente {
 
     private final OrdemTrabalhoPatioServico ordemServico;
     private final WorkQueuePatioServico workQueueServico;
 
     public OrdemPatioLocalAdapter(OrdemTrabalhoPatioServico ordemServico,
-                                  WorkQueuePatioServico workQueueServico) {
+                                   WorkQueuePatioServico workQueueServico) {
+        super(new RestTemplateBuilder(), "http://yard-local.invalid");
         this.ordemServico = ordemServico;
         this.workQueueServico = workQueueServico;
     }
 
     @Override
     public OrdemPatioYardRespostaDTO criarOuReutilizarOrdem(ItemOperacaoNavio item,
-                                                              ReservaPosicaoPatioNavio reserva) {
+                                                               ReservaPosicaoPatioNavio reserva) {
         OrdemPatioYardRequisicaoDTO contrato = OrdemPatioYardRequisicaoDTO.de(item, reserva);
         OrdemTrabalhoPatioRequisicaoDto requisicao = new OrdemTrabalhoPatioRequisicaoDto();
         requisicao.setCodigoConteiner(contrato.getCodigoConteiner());
@@ -82,8 +84,8 @@ public class OrdemPatioLocalAdapter implements OrdemPatioYardCliente {
 
     @Override
     public OrdemPatioYardRespostaDTO atualizarPrioridade(Long ordemId,
-                                                          Integer prioridadeOperacional,
-                                                          Boolean prioridadeBusca) {
+                                                           Integer prioridadeOperacional,
+                                                           Boolean prioridadeBusca) {
         AtualizacaoPrioridadeOrdemTrabalhoDto dto = new AtualizacaoPrioridadeOrdemTrabalhoDto();
         dto.setPrioridadeOperacional(prioridadeOperacional);
         dto.setPrioridadeBusca(prioridadeBusca);

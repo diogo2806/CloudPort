@@ -5,15 +5,17 @@ import br.com.cloudport.servicoyard.patio.dto.PosicaoReservaPatioDto;
 import br.com.cloudport.servicoyard.patio.servico.ConsultaReservaPatioServico;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
 
 @Component
 @ConditionalOnProperty(name = "cloudport.modulo.yard.integracao", havingValue = "local")
-public class PosicaoPatioLocalAdapter implements PosicaoPatioYardCliente {
+public class PosicaoPatioLocalAdapter extends PosicaoPatioYardCliente {
 
     private final ConsultaReservaPatioServico consultaReservaPatioServico;
 
     public PosicaoPatioLocalAdapter(ConsultaReservaPatioServico consultaReservaPatioServico) {
+        super(new RestTemplateBuilder(), "http://yard-local.invalid");
         this.consultaReservaPatioServico = consultaReservaPatioServico;
     }
 

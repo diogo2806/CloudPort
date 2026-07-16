@@ -2,6 +2,7 @@ package br.com.cloudport.visibilidade.service;
 
 import br.com.cloudport.visibilidade.entity.EventoProcessado;
 import br.com.cloudport.visibilidade.exception.ConflitoIdentidadeEventoException;
+import br.com.cloudport.visibilidade.repository.EventoProcessadoInsercaoRepository;
 import br.com.cloudport.visibilidade.repository.EventoProcessadoRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -26,11 +27,15 @@ public class ProcessamentoEventoIdempotenteService {
     private static final int TAMANHO_MAXIMO_TIPO = 100;
 
     private final EventoProcessadoRepository eventoProcessadoRepository;
+    private final EventoProcessadoInsercaoRepository eventoProcessadoInsercaoRepository;
     private final ObjectWriter escritorCanonico;
 
-    public ProcessamentoEventoIdempotenteService(EventoProcessadoRepository eventoProcessadoRepository,
-                                                  ObjectMapper objectMapper) {
+    public ProcessamentoEventoIdempotenteService(
+            EventoProcessadoRepository eventoProcessadoRepository,
+            EventoProcessadoInsercaoRepository eventoProcessadoInsercaoRepository,
+            ObjectMapper objectMapper) {
         this.eventoProcessadoRepository = eventoProcessadoRepository;
+        this.eventoProcessadoInsercaoRepository = eventoProcessadoInsercaoRepository;
         ObjectMapper mapperCanonico = objectMapper.copy();
         mapperCanonico.enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY);
         mapperCanonico.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
@@ -47,7 +52,7 @@ public class ProcessamentoEventoIdempotenteService {
         String tipoEvento = extrairTipo(evento);
         String hashPayload = calcularHashPayload(evento);
 
-        int inseridos = eventoProcessadoRepository.inserirSeAusente(
+        int inseridos = eventoProcessadoInsercaoRepository.inserirSeAusente(
                 identidadeEvento, tipoEvento, hashPayload);
         if (inseridos == 1) {
             processamento.accept(identidadeEvento);

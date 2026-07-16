@@ -1,0 +1,110 @@
+name: cloudport-navio
+
+services:
+  postgres-navio:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_NAVIO_DATABASE:-cloudport_navio_runtime}
+      POSTGRES_USER: ${POSTGRES_NAVIO_USERNAME:-cloudport}
+      POSTGRES_PASSWORD: ${POSTGRES_NAVIO_PASSWORD:-cloudport-local}
+    volumes:
+      - cloudport-navio-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - cloudport-navio
+
+  cloudport-monolito-navio:
+    profiles: ["monolito"]
+    build:
+      context: ../..
+      dockerfile: backend/cloudport-monolito-navio/Dockerfile
+    restart: unless-stopped
+    environment:
+      MONOLITO_NAVIO_SERVER_PORT: 8086
+      MONOLITO_NAVIO_DB_URL: jdbc:postgresql://postgres-navio:5432/${POSTGRES_NAVIO_DATABASE:-cloudport_navio_runtime}
+      MONOLITO_NAVIO_DB_USERNAME: ${POSTGRES_NAVIO_USERNAME:-cloudport}
+      MONOLITO_NAVIO_DB_PASSWORD: ${POSTGRES_NAVIO_PASSWORD:-cloudport-local}
+      MONOLITO_NAVIO_SCHEMA: ${MONOLITO_NAVIO_SCHEMA:-cloudport_navio}
+      MONOLITO_SIDERURGICO_SCHEMA: ${MONOLITO_SIDERURGICO_SCHEMA:-cloudport_siderurgico}
+      YARD_SERVICE_URL: ${YARD_SERVICE_URL:-http://host.docker.internal:8081}
+      YARD_RECONCILIACAO_MS: ${YARD_RECONCILIACAO_MS:-60000}
+      NAVIO_SINCRONIZACAO_MS: ${NAVIO_SINCRONIZACAO_MS:-300000}
+      JWT_SECRET: ${JWT_SECRET:-cloudport-local-jwt-secret-with-32-bytes}
+      CLOUDPORT_INTERNAL_SERVICE_KEY: ${CLOUDPORT_INTERNAL_SERVICE_KEY:-cloudport-local-service-key}
+      SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:8086}
+      CONTROL_ROOM_BASE_API_URL: ${CONTROL_ROOM_BASE_API_URL:-}
+      CONTROL_ROOM_TRUSTED_PARENT_ORIGINS: ${CONTROL_ROOM_TRUSTED_PARENT_ORIGINS:-http://localhost:4200}
+    ports:
+      - "${MONOLITO_NAVIO_PUBLIC_PORT:-8086}:8086"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres-navio:
+        condition: service_healthy
+    networks:
+      - cloudport-navio
+
+  servico-navio:
+    profiles: ["legado"]
+    build:
+      context: ../../backend/servico-navio
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NAVIO_SERVER_PORT: 8084
+      NAVIO_DB_URL: jdbc:postgresql://postgres-navio:5432/${POSTGRES_NAVIO_DATABASE:-cloudport_navio_runtime}
+      NAVIO_DB_USERNAME: ${POSTGRES_NAVIO_USERNAME:-cloudport}
+      NAVIO_DB_PASSWORD: ${POSTGRES_NAVIO_PASSWORD:-cloudport-local}
+      NAVIO_FLYWAY_SCHEMA: ${MONOLITO_NAVIO_SCHEMA:-cloudport_navio}
+      JWT_SECRET: ${JWT_SECRET:-cloudport-local-jwt-secret-with-32-bytes}
+      CLOUDPORT_INTERNAL_SERVICE_KEY: ${CLOUDPORT_INTERNAL_SERVICE_KEY:-cloudport-local-service-key}
+      SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:4201}
+    ports:
+      - "${NAVIO_PUBLIC_PORT:-8084}:8084"
+    depends_on:
+      postgres-navio:
+        condition: service_healthy
+    networks:
+      - cloudport-navio
+
+  servico-navio-siderurgico:
+    profiles: ["legado"]
+    build:
+      context: ../..
+      dockerfile: backend/servico-navio-siderurgico/Dockerfile
+    restart: unless-stopped
+    environment:
+      SIDERURGICO_SERVER_PORT: 8085
+      SIDERURGICO_DB_URL: jdbc:postgresql://postgres-navio:5432/${POSTGRES_NAVIO_DATABASE:-cloudport_navio_runtime}
+      SIDERURGICO_DB_USERNAME: ${POSTGRES_NAVIO_USERNAME:-cloudport}
+      SIDERURGICO_DB_PASSWORD: ${POSTGRES_NAVIO_PASSWORD:-cloudport-local}
+      SIDERURGICO_FLYWAY_SCHEMA: ${MONOLITO_SIDERURGICO_SCHEMA:-cloudport_siderurgico}
+      NAVIO_SERVICE_URL: http://servico-navio:8084
+      YARD_SERVICE_URL: ${YARD_SERVICE_URL:-http://host.docker.internal:8081}
+      YARD_RECONCILIACAO_MS: ${YARD_RECONCILIACAO_MS:-60000}
+      JWT_SECRET: ${JWT_SECRET:-cloudport-local-jwt-secret-with-32-bytes}
+      CLOUDPORT_INTERNAL_SERVICE_KEY: ${CLOUDPORT_INTERNAL_SERVICE_KEY:-cloudport-local-service-key}
+      SIDERURGICO_SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:4201}
+    ports:
+      - "${SIDERURGICO_PUBLIC_PORT:-8085}:8085"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres-navio:
+        condition: service_healthy
+      servico-navio:
+        condition: service_started
+    networks:
+      - cloudport-navio
+
+volumes:
+  cloudport-navio-postgres:
+
+networks:
+  cloudport-navio:
+    name: cloudport-navio

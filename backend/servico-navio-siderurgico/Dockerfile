@@ -6,6 +6,11 @@ COPY frontend/servico-navio-siderurgico/ ./
 RUN npm run build
 
 FROM maven:3.9.6-eclipse-temurin-17 AS backend-build
+WORKDIR /workspace/backend
+COPY backend/cloudport-contracts/pom.xml cloudport-contracts/pom.xml
+COPY backend/cloudport-contracts/src cloudport-contracts/src
+RUN mvn -B -f cloudport-contracts/pom.xml -DskipTests install
+
 WORKDIR /workspace/backend/servico-navio-siderurgico
 COPY backend/servico-navio-siderurgico/pom.xml ./
 COPY backend/servico-navio-siderurgico/src ./src

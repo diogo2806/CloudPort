@@ -2,7 +2,7 @@ package br.com.cloudport.servicoyard.patio.listatrabalho.dto;
 
 import java.util.List;
 
-public class AtualizacaoWorkQueueOrdensDto {
+public class AtualizacaoWorkQueueOrdensDto extends ComandoMotivadoDto {
 
     private List<Long> ordemIds;
 

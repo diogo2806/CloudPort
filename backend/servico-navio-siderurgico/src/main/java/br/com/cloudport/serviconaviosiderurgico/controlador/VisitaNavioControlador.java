@@ -1,5 +1,6 @@
 package br.com.cloudport.serviconaviosiderurgico.controlador;
 
+import br.com.cloudport.contracts.api.ComandoMotivado;
 import br.com.cloudport.serviconaviosiderurgico.dominio.FaseVisitaNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.StatusItemCarga;
 import br.com.cloudport.serviconaviosiderurgico.dominio.TipoMovimentoNavio;
@@ -124,17 +125,20 @@ public class VisitaNavioControlador {
     }
 
     @PutMapping("/{id}/itens/{itemId}")
-    public ItemOperacaoNavioDTO atualizarItem(@PathVariable Long id, @PathVariable Long itemId, @Valid @RequestBody ItemOperacaoNavioDTO dto) {
+    public ItemOperacaoNavioDTO atualizarItem(@PathVariable Long id, @PathVariable Long itemId,
+                                               @Valid @RequestBody ItemOperacaoNavioDTO dto) {
         return itemServico.atualizar(id, itemId, dto);
     }
 
     @PatchMapping("/{id}/itens/{itemId}/status")
-    public ItemOperacaoNavioDTO alterarStatusItem(@PathVariable Long id, @PathVariable Long itemId, @Valid @RequestBody AtualizarStatusItemNavioDTO dto) {
+    public ItemOperacaoNavioDTO alterarStatusItem(@PathVariable Long id, @PathVariable Long itemId,
+                                                   @Valid @RequestBody AtualizarStatusItemNavioDTO dto) {
         return itemServico.alterarStatus(id, itemId, dto.status(), dto.usuario(), dto.observacao());
     }
 
     @PatchMapping("/{id}/itens/{itemId}/bloqueio")
-    public ItemOperacaoNavioDTO alterarBloqueioItem(@PathVariable Long id, @PathVariable Long itemId, @RequestBody BloqueioItemNavioDTO dto) {
+    public ItemOperacaoNavioDTO alterarBloqueioItem(@PathVariable Long id, @PathVariable Long itemId,
+                                                     @RequestBody BloqueioItemNavioDTO dto) {
         return itemServico.alterarBloqueio(id, itemId, dto);
     }
 
@@ -151,12 +155,14 @@ public class VisitaNavioControlador {
 
     @PostMapping("/{id}/plano-estiva")
     @ResponseStatus(HttpStatus.CREATED)
-    public PlanoEstivaNavioDTO criarPlano(@PathVariable Long id, @RequestBody(required = false) PlanoEstivaNavioDTO dto) {
+    public PlanoEstivaNavioDTO criarPlano(@PathVariable Long id,
+                                           @RequestBody(required = false) PlanoEstivaNavioDTO dto) {
         return planoServico.criar(id, dto);
     }
 
     @PutMapping("/{id}/plano-estiva/{planoId}/posicoes")
-    public PlanoEstivaNavioDTO atualizarPosicoes(@PathVariable Long id, @PathVariable Long planoId, @Valid @RequestBody List<PosicaoEstivaNavioDTO> posicoes) {
+    public PlanoEstivaNavioDTO atualizarPosicoes(@PathVariable Long id, @PathVariable Long planoId,
+                                                  @Valid @RequestBody List<PosicaoEstivaNavioDTO> posicoes) {
         return planoServico.atualizarPosicoes(id, planoId, posicoes);
     }
 
@@ -186,7 +192,8 @@ public class VisitaNavioControlador {
     }
 
     @PostMapping("/{id}/integracao-patio/reservas")
-    public List<ReservaPatioNavioDTO> gerarReservasPatio(@PathVariable Long id, @RequestBody(required = false) ComandoGeracaoReservasPatioDTO dto) {
+    public List<ReservaPatioNavioDTO> gerarReservasPatio(@PathVariable Long id,
+                                                         @RequestBody(required = false) ComandoGeracaoReservasPatioDTO dto) {
         return integracaoNavioPatioServico.gerarReservasDaVisita(id, dto);
     }
 
@@ -196,7 +203,8 @@ public class VisitaNavioControlador {
     }
 
     @PostMapping("/{id}/integracao-patio/gerar-ordens")
-    public ResultadoGeracaoOrdensPatioDTO gerarOrdensPatio(@PathVariable Long id, @RequestBody(required = false) ComandoGeracaoOrdensPatioDTO dto) {
+    public ResultadoGeracaoOrdensPatioDTO gerarOrdensPatio(@PathVariable Long id,
+                                                            @RequestBody(required = false) ComandoGeracaoOrdensPatioDTO dto) {
         return integracaoNavioPatioServico.gerarOrdensDaVisita(id, dto);
     }
 
@@ -207,19 +215,23 @@ public class VisitaNavioControlador {
 
     @PatchMapping("/{id}/integracao-patio/ordens/{ordemId}/prioridade")
     public OrdemPatioDaVisitaDTO atualizarPrioridadeOrdemPatio(@PathVariable Long id,
-                                                               @PathVariable Long ordemId,
-                                                               @Valid @RequestBody ComandoPrioridadeOrdemPatioDTO dto) {
+                                                                @PathVariable Long ordemId,
+                                                                @Valid @RequestBody ComandoPrioridadeOrdemPatioDTO dto) {
         return operacaoOrdemPatioNavioServico.atualizarPrioridade(id, ordemId, dto);
     }
 
     @PatchMapping("/{id}/integracao-patio/ordens/{ordemId}/suspender")
-    public OrdemPatioDaVisitaDTO suspenderOrdemPatio(@PathVariable Long id, @PathVariable Long ordemId) {
-        return operacaoOrdemPatioNavioServico.suspender(id, ordemId);
+    public OrdemPatioDaVisitaDTO suspenderOrdemPatio(@PathVariable Long id,
+                                                      @PathVariable Long ordemId,
+                                                      @Valid @RequestBody ComandoMotivado comando) {
+        return operacaoOrdemPatioNavioServico.suspender(id, ordemId, comando);
     }
 
     @PatchMapping("/{id}/integracao-patio/ordens/{ordemId}/retomar")
-    public OrdemPatioDaVisitaDTO retomarOrdemPatio(@PathVariable Long id, @PathVariable Long ordemId) {
-        return operacaoOrdemPatioNavioServico.retomar(id, ordemId);
+    public OrdemPatioDaVisitaDTO retomarOrdemPatio(@PathVariable Long id,
+                                                    @PathVariable Long ordemId,
+                                                    @Valid @RequestBody ComandoMotivado comando) {
+        return operacaoOrdemPatioNavioServico.retomar(id, ordemId, comando);
     }
 
     @GetMapping("/{id}/integracao-patio/filas")
@@ -243,7 +255,9 @@ public class VisitaNavioControlador {
     }
 
     @PostMapping("/{id}/integracao-patio/replanejar")
-    public ResultadoReplanejamentoPatioNavioDTO replanejarPatio(@PathVariable Long id, @RequestBody(required = false) ComandoReplanejamentoPatioNavioDTO dto) {
+    public ResultadoReplanejamentoPatioNavioDTO replanejarPatio(
+            @PathVariable Long id,
+            @RequestBody(required = false) ComandoReplanejamentoPatioNavioDTO dto) {
         return integracaoNavioPatioServico.replanejarPatioDaVisita(id, dto);
     }
 

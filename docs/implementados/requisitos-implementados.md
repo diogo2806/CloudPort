@@ -45,6 +45,7 @@ Não criar outros documentos, arquivos de evidência, logs, históricos ou rascu
 9. Enviar JWT, usuário, origem e `X-Correlation-Id` nas ações.
 10. Exibir erro com `codigo`, `mensagem`, `detalhes` e `correlationId`.
 11. Executar consultas do snapshot em paralelo, aplicar resultado atomicamente e impedir sobreposição.
+12. Solicitar motivo antes de alterações de fase, prioridade, suspensão, retomada, reset, cancelamento e alterações administrativas de work queue.
 
 ## Work queues implementadas
 
@@ -61,6 +62,8 @@ Não criar outros documentos, arquivos de evidência, logs, históricos ou rascu
 11. Padronizar a resposta de dispatch.
 12. Auditar criação, ativação, desativação, POW, pool, equipamento, vínculo, dispatch, reset e cancelamento.
 13. Restringir operações por perfil.
+14. Exigir e auditar motivo em ativação, desativação, alteração de POW, pool, equipamento, job list, reset e cancelamento.
+15. Exigir e auditar motivo em alteração de status, prioridade, suspensão e retomada de ordens.
 
 ## Reserva contra mapa real implementada
 
@@ -87,6 +90,8 @@ Não criar outros documentos, arquivos de evidência, logs, históricos ou rascu
 7. Restringir manutenção do cadastro canônico.
 8. Liberar cabeçalhos de correlação no CORS.
 9. Retornar `503` quando uma integração obrigatória falhar, sem mascarar como lista vazia.
+10. Proteger `/api/public/v1/**` por cliente ou aplicação usando `X-CloudPort-Client-Id` e `X-CloudPort-Client-Secret`.
+11. Comparar o segredo do cliente externo em tempo constante e associar a role `INTEGRACAO_EXTERNA`.
 
 ## Scheduler operacional implementado
 
@@ -143,6 +148,9 @@ Não criar outros documentos, arquivos de evidência, logs, históricos ou rascu
 5. Remover inclusão direta de fontes de projetos irmãos.
 6. Publicar recursos e migrações dentro do artefato proprietário.
 7. Atualizar Dockerfile para copiar e compilar todos os módulos pelo reator.
+8. Incluir `cloudport-contracts` no reator Maven, no workflow e nas imagens Docker standalone e consolidada.
+9. Publicar um único OpenAPI no runtime consolidado com segurança JWT e credenciais de cliente externo.
+10. Garantir `operationId` único no OpenAPI consolidado.
 
 ### Schemas, ownership e Flyway
 
@@ -216,6 +224,30 @@ Não criar outros documentos, arquivos de evidência, logs, históricos ou rascu
 5. Definir que rollback troca binário e roteamento sem downgrade de banco.
 6. Definir que deployments, imagens e credenciais legadas só podem ser removidos após paridade, observação e ensaio de retorno.
 
+## Contratos e integrações implementados
+
+1. Criar `backend/cloudport-contracts` com paginação, erro padronizado, comando motivado, envelope de evento versionado e enums externos.
+2. Padronizar respostas paginadas com `conteudo`, `pagina`, `tamanho`, `totalElementos`, `totalPaginas`, `primeira` e `ultima`.
+3. Separar `VisitaNavioResumoDTO` do DTO detalhado da visita.
+4. Separar `WorkQueuePatioResumoDTO` do DTO detalhado que contém a job list.
+5. Centralizar a conversão de `WorkQueuePatioYardDTO` em `ConversorWorkQueuePatioServico`.
+6. Implementar filtros no banco para fase, período, navio, código de visita, berço e linha operadora.
+7. Implementar seleção segura de campos e whitelist de ordenação na API pública.
+8. Padronizar erros do módulo Navio Siderúrgico com código, mensagem, detalhes, correlationId e timestamp.
+9. Gerar e propagar `X-Correlation-Id` nas requisições autenticadas.
+10. Criar o comando `npm run generate:api-types` com `openapi-typescript` e manter snapshot dos tipos gerados.
+11. Criar envelope `EventoIntegracaoV1` com `eventId`, `eventType`, `eventVersion`, `occurredAt`, `correlationId`, `source` e `data`.
+12. Publicar eventos de visita por SSE, WebSocket/STOMP e evento interno Spring.
+13. Expor `GET /api/public/v1/events/stream` e `GET /visitas-navio/{id}/eventos/stream`.
+14. Expor WebSocket em `/ws/integrations` e tópicos versionados em `/topic/v1`.
+15. Proteger a API pública por cadastro de cliente ou aplicação configurado em `CLOUDPORT_PUBLIC_API_CLIENTS`.
+16. Completar BAPLIE, COPRAR e COARRI com validação de tipo, rejeição e auditoria persistente.
+17. Implementar VERMAS, converter peso em quilogramas e atualizar o VGM dos contêineres do Bay Plan.
+18. Persistir status `RECEBIDO`, `PROCESSANDO`, `CONCLUIDO` e `REJEITADO` para cada processamento EDI.
+19. Expor consulta paginada e detalhamento da auditoria EDI.
+20. Permitir reprocessamento motivado de mensagens rejeitadas, com encadeamento da tentativa e limite de cinco execuções.
+21. Retornar `X-EDI-Processing-Id` nos processamentos aceitos.
+
 ## Testes, corte, rollback e observabilidade implementados
 
 1. Criar teste ArchUnit contra ciclo e repository de outro módulo.
@@ -231,6 +263,7 @@ Não criar outros documentos, arquivos de evidência, logs, históricos ou rascu
 11. Publicar métricas de contagem e duração com tags de baixa cardinalidade.
 12. Expor health, métricas e Prometheus no runtime e nos módulos operacionais.
 13. Cobrir filtros de observabilidade por testes unitários.
+14. Testar o parser VERMAS para quilogramas, toneladas e rejeição de mensagem sem VGM.
 
 ## Streaming do Control Room implementado
 
@@ -316,6 +349,20 @@ POST  /visitas-navio/{id}/crane-plan
 GET   /visitas-navio/{id}/produtividade-cais
 GET   /yard/patio/reservas/posicoes
 GET   /yard/patio/reservas/auditoria
+GET   /api/public/v1/vessel-visits
+GET   /api/public/v1/vessel-visits/{id}
+GET   /api/public/v1/vessel-visits/{id}/work-queues
+GET   /api/public/v1/vessel-visits/{id}/work-queues/{workQueueId}
+GET   /api/public/v1/events/stream
+GET   /visitas-navio/{id}/eventos/stream
+POST  /api/edi/baplie/upload
+POST  /api/edi/baplie/texto
+POST  /api/edi/coprar
+POST  /api/edi/coarri
+POST  /api/edi/vermas
+GET   /api/edi/processamentos
+GET   /api/edi/processamentos/{id}
+POST  /api/edi/processamentos/{id}/reprocessar
 POST  /api/scheduler/gerar-plano
 GET   /api/v1/visibilidade/dashboard
 GET   /api/v1/visibilidade/navios
@@ -350,3 +397,5 @@ GET   /api/v1/visibilidade/conteiners/buscar
 17. Testes ArchUnit de ciclos e repositories entre módulos.
 18. Definição de ownership e rollback Flyway.
 19. Preservação dos deployments e credenciais legadas até o aceite operacional.
+20. Contratos paginados, protegidos, filtráveis e versionados da API pública de Navio.
+21. BAPLIE, COPRAR, COARRI e VERMAS com rejeição, auditoria e reprocessamento motivado.

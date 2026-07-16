@@ -11,6 +11,8 @@ FROM maven:3.9.9-eclipse-temurin-17 AS backend-build
 WORKDIR /workspace
 
 COPY backend/cloudport-navio-modules/pom.xml cloudport-navio-modules/pom.xml
+COPY backend/cloudport-contracts/pom.xml cloudport-contracts/pom.xml
+COPY backend/cloudport-contracts/src cloudport-contracts/src
 COPY backend/cloudport-monolito-navio/pom.xml cloudport-monolito-navio/pom.xml
 COPY backend/cloudport-monolito-navio/src cloudport-monolito-navio/src
 COPY backend/servico-navio/pom.xml servico-navio/pom.xml

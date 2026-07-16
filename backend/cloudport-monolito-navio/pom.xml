@@ -18,6 +18,11 @@
     <dependencies>
         <dependency>
             <groupId>br.com.cloudport</groupId>
+            <artifactId>cloudport-contracts</artifactId>
+            <version>${cloudport.modules.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>br.com.cloudport</groupId>
             <artifactId>servico-navio</artifactId>
             <version>${cloudport.modules.version}</version>
         </dependency>

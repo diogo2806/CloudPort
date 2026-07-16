@@ -8,13 +8,6 @@ import java.util.stream.Collectors;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-/**
- * Publica atualizações de Bay Plan em tempo real via WebSocket STOMP.
- * Tópico: /topico/edi/bay-plan/{codigoNavio}
- *
- * O frontend pode se inscrever em /topico/edi/bay-plan/MSC_GULSEUM
- * e receber o delta sempre que um COPRAR ou COARRI chegar.
- */
 @Service
 public class BayPlanPublicadorServico {
 
@@ -27,44 +20,43 @@ public class BayPlanPublicadorServico {
     }
 
     public void publicarCriacaoBaplie(BayPlan bayPlan) {
-        AtualizacaoBayPlanEventoDto evento = new AtualizacaoBayPlanEventoDto();
-        evento.setBayPlanId(bayPlan.getId());
-        evento.setCodigoNavio(bayPlan.getCodigoNavio());
-        evento.setCodigoViagem(bayPlan.getCodigoViagem());
-        evento.setTipoMensagem(TipoMensagemEdi.BAPLIE);
-        evento.setNovoStatus(bayPlan.getStatus());
+        AtualizacaoBayPlanEventoDto evento = eventoBase(bayPlan, TipoMensagemEdi.BAPLIE);
         evento.setContainersAdicionados(bayPlan.getContainers().stream()
                 .map(c -> c.getCodigoContainer())
                 .collect(Collectors.toList()));
-        evento.setTotalContainers(bayPlan.getContainers().size());
         publicar(bayPlan.getCodigoNavio(), evento);
     }
 
     public void publicarAtualizacaoCoprar(BayPlan bayPlan,
-                                          List<String> adicionados,
-                                          List<String> atualizados) {
-        AtualizacaoBayPlanEventoDto evento = new AtualizacaoBayPlanEventoDto();
-        evento.setBayPlanId(bayPlan.getId());
-        evento.setCodigoNavio(bayPlan.getCodigoNavio());
-        evento.setCodigoViagem(bayPlan.getCodigoViagem());
-        evento.setTipoMensagem(TipoMensagemEdi.COPRAR);
-        evento.setNovoStatus(bayPlan.getStatus());
+                                           List<String> adicionados,
+                                           List<String> atualizados) {
+        AtualizacaoBayPlanEventoDto evento = eventoBase(bayPlan, TipoMensagemEdi.COPRAR);
         evento.setContainersAdicionados(adicionados);
         evento.setContainersAtualizados(atualizados);
-        evento.setTotalContainers(bayPlan.getContainers().size());
         publicar(bayPlan.getCodigoNavio(), evento);
     }
 
     public void publicarConfirmacaoCoarri(BayPlan bayPlan, List<String> confirmados) {
+        AtualizacaoBayPlanEventoDto evento = eventoBase(bayPlan, TipoMensagemEdi.COARRI);
+        evento.setContainersAtualizados(confirmados);
+        publicar(bayPlan.getCodigoNavio(), evento);
+    }
+
+    public void publicarAtualizacaoVermas(BayPlan bayPlan, List<String> atualizados) {
+        AtualizacaoBayPlanEventoDto evento = eventoBase(bayPlan, TipoMensagemEdi.VERMAS);
+        evento.setContainersAtualizados(atualizados);
+        publicar(bayPlan.getCodigoNavio(), evento);
+    }
+
+    private AtualizacaoBayPlanEventoDto eventoBase(BayPlan bayPlan, TipoMensagemEdi tipoMensagem) {
         AtualizacaoBayPlanEventoDto evento = new AtualizacaoBayPlanEventoDto();
         evento.setBayPlanId(bayPlan.getId());
         evento.setCodigoNavio(bayPlan.getCodigoNavio());
         evento.setCodigoViagem(bayPlan.getCodigoViagem());
-        evento.setTipoMensagem(TipoMensagemEdi.COARRI);
+        evento.setTipoMensagem(tipoMensagem);
         evento.setNovoStatus(bayPlan.getStatus());
-        evento.setContainersAtualizados(confirmados);
         evento.setTotalContainers(bayPlan.getContainers().size());
-        publicar(bayPlan.getCodigoNavio(), evento);
+        return evento;
     }
 
     private void publicar(String codigoNavio, AtualizacaoBayPlanEventoDto evento) {

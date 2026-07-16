@@ -1,6 +1,8 @@
 package br.com.cloudport.monolitonavio.configuracao;
 
 import br.com.cloudport.monolitonavio.seguranca.InternalServiceAuthenticationFilter;
+import br.com.cloudport.serviconaviosiderurgico.configuracao.CorrelationIdFilter;
+import br.com.cloudport.serviconaviosiderurgico.configuracao.PublicApiClientAuthenticationFilter;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
@@ -47,15 +49,18 @@ public class ConfiguracaoSegurancaMonolito {
     private final String jwtSecret;
     private final String allowedOrigins;
     private final InternalServiceAuthenticationFilter internalServiceAuthenticationFilter;
+    private final PublicApiClientAuthenticationFilter publicApiClientAuthenticationFilter;
 
     public ConfiguracaoSegurancaMonolito(
             @Value("${cloudport.security.jwt.secret}") String jwtSecret,
             @Value("${cloudport.security.cors.allowed-origins:http://localhost:4200,http://localhost:4201}")
                     String allowedOrigins,
-            InternalServiceAuthenticationFilter internalServiceAuthenticationFilter) {
+            InternalServiceAuthenticationFilter internalServiceAuthenticationFilter,
+            PublicApiClientAuthenticationFilter publicApiClientAuthenticationFilter) {
         this.jwtSecret = jwtSecret;
         this.allowedOrigins = allowedOrigins;
         this.internalServiceAuthenticationFilter = internalServiceAuthenticationFilter;
+        this.publicApiClientAuthenticationFilter = publicApiClientAuthenticationFilter;
     }
 
     @Bean
@@ -69,6 +74,7 @@ public class ConfiguracaoSegurancaMonolito {
                         .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .antMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .antMatchers("/api/public/v1/**").hasRole("INTEGRACAO_EXTERNA")
                         .antMatchers(HttpMethod.GET,
                                 "/",
                                 "/index.html",
@@ -87,6 +93,7 @@ public class ConfiguracaoSegurancaMonolito {
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .addFilterBefore(publicApiClientAuthenticationFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(internalServiceAuthenticationFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }
@@ -156,14 +163,16 @@ public class ConfiguracaoSegurancaMonolito {
                 "Authorization",
                 "Content-Type",
                 "Accept",
-                "X-Correlation-Id",
+                CorrelationIdFilter.HEADER,
                 "X-Trace-Id",
                 "traceparent",
                 "Last-Event-ID",
+                PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID,
+                PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET,
                 InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY));
         configuration.setExposedHeaders(Arrays.asList(
                 "Authorization",
-                "X-Correlation-Id",
+                CorrelationIdFilter.HEADER,
                 "X-Trace-Id",
                 "traceparent",
                 "Content-Disposition"));

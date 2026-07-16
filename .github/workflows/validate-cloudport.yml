@@ -29,13 +29,14 @@ jobs:
           - module: backend/servico-yard
             command: >-
               mvn -B
-              -Dtest=OtimizadorRotasPatioServicoTest,OtimizadorDualCyclingServicoTest,WorkQueuePatioServicoTest,WorkQueuePatioControladorAutorizacaoTest,ConsumidoresMigracaoConfiguracaoTest,ObservabilidadeYardFiltroTest
+              -Dtest=OtimizadorRotasPatioServicoTest,OtimizadorDualCyclingServicoTest,WorkQueuePatioServicoTest,WorkQueuePatioControladorAutorizacaoTest,ConsumidoresMigracaoConfiguracaoTest,ObservabilidadeYardFiltroTest,VermasParserTest
               test &&
               mvn -B -DskipTests package
           - module: backend/servico-navio
             command: mvn -B -DskipTests package
           - module: backend/servico-navio-siderurgico
             command: >-
+              mvn -B -f ../cloudport-contracts/pom.xml -DskipTests install &&
               mvn -B
               -Dtest=YardRestTemplateCustomizerContractTest,ObservabilidadeOperacionalFiltroTest,ReservaPatioNavioServicoTest,ReconciliacaoNavioPatioJobTest
               test &&
@@ -44,10 +45,10 @@ jobs:
             command: >-
               mvn -B -Pmodulo-monolito
               -pl :servico-navio,:servico-navio-siderurgico
-              -DskipTests install &&
+              -am -DskipTests install &&
               mvn -B -Pmodulo-monolito
               -pl :cloudport-monolito-navio
-              test package
+              -am test package
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

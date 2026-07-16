@@ -119,6 +119,15 @@ function isFormData(body) {
   return typeof FormData !== 'undefined' && body instanceof FormData;
 }
 
+function commandBody(motivo, extra = {}) {
+  let normalized = String(motivo ?? '').trim();
+  if (!normalized && typeof window !== 'undefined' && typeof window.prompt === 'function') {
+    normalized = String(window.prompt('Informe o motivo da operação administrativa:', '') ?? '').trim();
+  }
+  if (!normalized) throw new Error('O motivo da operação é obrigatório.');
+  return { ...extra, motivo: normalized };
+}
+
 function enrichCommand(path, method, body, session, correlationId) {
   const commandMethod = ['POST', 'PUT', 'PATCH'].includes(method);
   const operationalRoute = path.includes('/visitas-navio/') || path.includes('/yard/patio/');
@@ -235,6 +244,7 @@ export function subscribeSse(path, handlers = {}) {
     const headers = new Headers({ Accept: 'text/event-stream' });
     if (session?.token) headers.set('Authorization', `Bearer ${session.token}`);
     if (lastEventId) headers.set('Last-Event-ID', lastEventId);
+    headers.set('X-Correlation-Id', createCorrelationId());
     handlers.onState?.('CONECTANDO');
     try {
       const response = await fetch(`${runtimeConfig.baseApiUrl}${path}`, {
@@ -286,7 +296,13 @@ export const api = {
   autenticar: (login, senha) => request('/auth/login', { method: 'POST', body: { login, senha } }),
   listarNavios: () => request('/navios-siderurgicos'),
   listarVisitas: () => request('/visitas-navio'),
-  alterarFaseVisita: (visitaId, fase) => request(`/visitas-navio/${visitaId}/fase`, { method: 'PATCH', body: { fase } }),
+  alterarFaseVisita: (visitaId, fase, motivo) => {
+    const comando = commandBody(motivo);
+    return request(`/visitas-navio/${visitaId}/fase`, {
+      method: 'PATCH',
+      body: { fase, observacao: comando.motivo }
+    });
+  },
   listarItensVisita: (visitaId) => request(`/visitas-navio/${visitaId}/itens`),
   obterResumo: (visitaId) => request(`/visitas-navio/${visitaId}/resumo-operacional`),
   listarEventos: (visitaId) => request(`/visitas-navio/${visitaId}/eventos`),
@@ -305,18 +321,18 @@ export const api = {
   listarReservasPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/reservas`),
   gerarOrdensPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/gerar-ordens`, { method: 'POST', body: { tipoMovimento: null, modo: 'SOMENTE_PENDENTES', gerarReservasAutomaticas: true } }),
   listarOrdensPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/ordens`),
-  atualizarPrioridadeOrdemPatio: (visitaId, ordemId, prioridadeOperacional) => request(`/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/prioridade`, { method: 'PATCH', body: { prioridadeOperacional, prioridadeBusca: false } }),
-  suspenderOrdemPatio: (visitaId, ordemId) => request(`/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/suspender`, { method: 'PATCH', body: {} }),
-  retomarOrdemPatio: (visitaId, ordemId) => request(`/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/retomar`, { method: 'PATCH', body: {} }),
+  atualizarPrioridadeOrdemPatio: (visitaId, ordemId, prioridadeOperacional, motivo) => request(`/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/prioridade`, { method: 'PATCH', body: commandBody(motivo, { prioridadeOperacional, prioridadeBusca: false }) }),
+  suspenderOrdemPatio: (visitaId, ordemId, motivo) => request(`/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/suspender`, { method: 'PATCH', body: commandBody(motivo) }),
+  retomarOrdemPatio: (visitaId, ordemId, motivo) => request(`/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/retomar`, { method: 'PATCH', body: commandBody(motivo) }),
   listarFilasPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/filas`),
   listarWorkQueuesPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/work-queues`),
-  ativarWorkQueuePatio: (id) => request(`/yard/patio/work-queues/${id}/ativar`, { method: 'PATCH', body: {} }),
-  desativarWorkQueuePatio: (id) => request(`/yard/patio/work-queues/${id}/desativar`, { method: 'PATCH', body: {} }),
-  atualizarPowWorkQueuePatio: (id, body) => request(`/yard/patio/work-queues/${id}/pow`, { method: 'PATCH', body }),
-  atualizarEquipamentoWorkQueuePatio: (id, body) => request(`/yard/patio/work-queues/${id}/equipamento`, { method: 'PATCH', body }),
+  ativarWorkQueuePatio: (id, motivo) => request(`/yard/patio/work-queues/${id}/ativar`, { method: 'PATCH', body: commandBody(motivo) }),
+  desativarWorkQueuePatio: (id, motivo) => request(`/yard/patio/work-queues/${id}/desativar`, { method: 'PATCH', body: commandBody(motivo) }),
+  atualizarPowWorkQueuePatio: (id, body, motivo) => request(`/yard/patio/work-queues/${id}/pow`, { method: 'PATCH', body: commandBody(motivo, body) }),
+  atualizarEquipamentoWorkQueuePatio: (id, body, motivo) => request(`/yard/patio/work-queues/${id}/equipamento`, { method: 'PATCH', body: commandBody(motivo, body) }),
   despacharWorkQueuePatio: (id, body) => request(`/yard/patio/work-queues/${id}/dispatch`, { method: 'POST', body }),
-  resetarWorkInstructionPatio: (id) => request(`/yard/patio/work-instructions/${id}/reset`, { method: 'POST', body: {} }),
-  cancelarWorkInstructionPatio: (id) => request(`/yard/patio/work-instructions/${id}/cancelar`, { method: 'POST', body: {} }),
+  resetarWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/reset`, { method: 'POST', body: commandBody(motivo) }),
+  cancelarWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/cancelar`, { method: 'POST', body: commandBody(motivo) }),
   listarOrdensSemCoberturaPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/sem-cobertura`),
   listarAlertasIntegracaoPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/alertas`),
   sincronizarStatusPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/sincronizar-status`, { method: 'POST', body: {} }),
@@ -328,7 +344,7 @@ export function formatError(error, fallback = 'Não foi possível concluir a ope
   const payload = error?.payload ?? error?.error ?? {};
   const message = payload?.mensagem ?? payload?.erro ?? payload?.message ?? error?.message ?? fallback;
   const code = payload?.codigo ? ` [${payload.codigo}]` : '';
-  const details = payload?.detalhes ? ` - ${payload.detalhes}` : '';
+  const details = payload?.detalhes ? ` - ${typeof payload.detalhes === 'string' ? payload.detalhes : JSON.stringify(payload.detalhes)}` : '';
   const correlation = payload?.correlationId ? ` (correlationId: ${payload.correlationId})` : '';
   return `${message}${code}${details}${correlation}`;
 }

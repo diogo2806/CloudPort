@@ -26,6 +26,7 @@ import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
@@ -38,11 +39,15 @@ public class ConfiguracaoSeguranca {
 
     private final String jwtSecret;
     private final String allowedOrigins;
+    private final PublicApiClientAuthenticationFilter publicApiClientAuthenticationFilter;
 
-    public ConfiguracaoSeguranca(@Value("${cloudport.security.jwt.secret}") String jwtSecret,
-                                  @Value("${cloudport.security.cors.allowed-origins}") String allowedOrigins) {
+    public ConfiguracaoSeguranca(
+            @Value("${cloudport.security.jwt.secret}") String jwtSecret,
+            @Value("${cloudport.security.cors.allowed-origins}") String allowedOrigins,
+            PublicApiClientAuthenticationFilter publicApiClientAuthenticationFilter) {
         this.jwtSecret = jwtSecret;
         this.allowedOrigins = allowedOrigins;
+        this.publicApiClientAuthenticationFilter = publicApiClientAuthenticationFilter;
     }
 
     @Bean
@@ -52,8 +57,10 @@ public class ConfiguracaoSeguranca {
                 .csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests(authorize -> authorize
-                        .antMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .antMatchers("/api/public/v1/**").hasRole("INTEGRACAO_EXTERNA")
                         .antMatchers(HttpMethod.GET,
                                 "/",
                                 "/index.html",
@@ -70,7 +77,9 @@ public class ConfiguracaoSeguranca {
                                 "/*.woff",
                                 "/*.woff2").permitAll()
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                .addFilterBefore(publicApiClientAuthenticationFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 
@@ -96,11 +105,15 @@ public class ConfiguracaoSeguranca {
             List<String> roles = Optional.ofNullable(jwt.getClaimAsStringList("roles"))
                     .orElseGet(() -> {
                         String role = jwt.getClaimAsString("role");
-                        return StringUtils.hasText(role) ? Collections.singletonList(role) : Collections.emptyList();
+                        return StringUtils.hasText(role)
+                                ? Collections.singletonList(role)
+                                : Collections.emptyList();
                     });
             return roles.stream()
                     .filter(StringUtils::hasText)
-                    .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase(Locale.ROOT))
+                    .map(role -> role.startsWith("ROLE_")
+                            ? role
+                            : "ROLE_" + role.toUpperCase(Locale.ROOT))
                     .distinct()
                     .<GrantedAuthority>map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
@@ -114,19 +127,24 @@ public class ConfiguracaoSeguranca {
                 .map(String::trim)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toList());
-        configuration.setAllowedOrigins(origins.isEmpty() ? Collections.singletonList("http://localhost:4201") : origins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedOrigins(origins.isEmpty()
+                ? Collections.singletonList("http://localhost:4201")
+                : origins);
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",
                 "Accept",
-                "X-Correlation-Id",
+                CorrelationIdFilter.HEADER,
                 "X-Trace-Id",
                 "traceparent",
-                "Last-Event-ID"));
+                "Last-Event-ID",
+                PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID,
+                PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET));
         configuration.setExposedHeaders(Arrays.asList(
                 "Authorization",
-                "X-Correlation-Id",
+                CorrelationIdFilter.HEADER,
                 "X-Trace-Id",
                 "traceparent",
                 "Content-Disposition"));

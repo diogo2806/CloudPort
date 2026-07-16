@@ -1,6 +1,6 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.dto;
 
-public class AtualizacaoWorkQueuePowDto {
+public class AtualizacaoWorkQueuePowDto extends ComandoMotivadoDto {
 
     private String pow;
     private String poolOperacional;

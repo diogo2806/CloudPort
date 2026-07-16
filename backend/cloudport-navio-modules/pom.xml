@@ -145,6 +145,7 @@
     </build>
 
     <modules>
+        <module>../cloudport-contracts</module>
         <module>../servico-navio</module>
         <module>../servico-navio-siderurgico</module>
         <module>../servico-yard</module>

@@ -63,3 +63,13 @@ jobs:
       - name: Compilar
         working-directory: ${{ matrix.module }}
         run: npm run build
+
+  deployment-navio:
+    name: Deploy unificado de Navio
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar Docker Compose
+        run: docker compose -f deploy/navio-monolito/docker-compose.yml --profile monolito config
+      - name: Construir imagem do runtime unificado
+        run: docker build -f backend/cloudport-monolito-navio/Dockerfile -t cloudport-monolito-navio:ci .

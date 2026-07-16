@@ -1,7 +1,12 @@
 package br.com.cloudport.visibilidade.entity;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
 
 @Entity
 @Table(name = "historico_movimento")
@@ -14,11 +19,14 @@ public class HistoricoMovimento {
     @Column(name = "container_id", nullable = false)
     private String containerId;
 
+    @Column(name = "evento_id", unique = true, length = 150)
+    private String eventoId;
+
     @Column(name = "timestamp")
     private LocalDateTime timestamp;
 
     @Column(name = "tipo")
-    private String tipo; // ENTRADA_GATE, ARMAZENAGEM_YARD, etc.
+    private String tipo;
 
     @Column(name = "localizacao")
     private String localizacao;
@@ -32,28 +40,75 @@ public class HistoricoMovimento {
     @Column(name = "equipamento_usado")
     private String equipamentoUsado;
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getContainerId() { return containerId; }
-    public void setContainerId(String containerId) { this.containerId = containerId; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public LocalDateTime getTimestamp() { return timestamp; }
-    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+    public String getContainerId() {
+        return containerId;
+    }
 
-    public String getTipo() { return tipo; }
-    public void setTipo(String tipo) { this.tipo = tipo; }
+    public void setContainerId(String containerId) {
+        this.containerId = containerId;
+    }
 
-    public String getLocalizacao() { return localizacao; }
-    public void setLocalizacao(String localizacao) { this.localizacao = localizacao; }
+    public String getEventoId() {
+        return eventoId;
+    }
 
-    public String getResponsavel() { return responsavel; }
-    public void setResponsavel(String responsavel) { this.responsavel = responsavel; }
+    public void setEventoId(String eventoId) {
+        this.eventoId = eventoId;
+    }
 
-    public String getObservacoes() { return observacoes; }
-    public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
 
-    public String getEquipamentoUsado() { return equipamentoUsado; }
-    public void setEquipamentoUsado(String equipamentoUsado) { this.equipamentoUsado = equipamentoUsado; }
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
+
+    public String getLocalizacao() {
+        return localizacao;
+    }
+
+    public void setLocalizacao(String localizacao) {
+        this.localizacao = localizacao;
+    }
+
+    public String getResponsavel() {
+        return responsavel;
+    }
+
+    public void setResponsavel(String responsavel) {
+        this.responsavel = responsavel;
+    }
+
+    public String getObservacoes() {
+        return observacoes;
+    }
+
+    public void setObservacoes(String observacoes) {
+        this.observacoes = observacoes;
+    }
+
+    public String getEquipamentoUsado() {
+        return equipamentoUsado;
+    }
+
+    public void setEquipamentoUsado(String equipamentoUsado) {
+        this.equipamentoUsado = equipamentoUsado;
+    }
 }

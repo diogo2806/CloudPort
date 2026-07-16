@@ -34,33 +34,34 @@ public class MovimentoConteinerService {
     }
 
     @Transactional
-    public void registrarEntradaGate(String containerId, String responsavel) {
-        registrarMovimento(containerId, STATUS_NO_YARD, "GATE", "ENTRADA",
+    public void registrarEntradaGate(String eventoId, String containerId, String responsavel) {
+        registrarMovimento(eventoId, containerId, STATUS_NO_YARD, "GATE", "ENTRADA",
                 TIPO_ENTRADA_GATE, "GATE_ENTRADA", responsavel, null,
                 "Entrada do conteiner confirmada no gate.", LocalDateTime.now());
     }
 
     @Transactional
-    public void registrarSaidaGate(String containerId, String responsavel) {
-        registrarMovimento(containerId, STATUS_SAIU_DO_PORTO, "GATE", "SAIDA",
+    public void registrarSaidaGate(String eventoId, String containerId, String responsavel) {
+        registrarMovimento(eventoId, containerId, STATUS_SAIU_DO_PORTO, "GATE", "SAIDA",
                 TIPO_SAIDA_GATE, "GATE_SAIDA", responsavel, null,
                 "Saida do conteiner confirmada no gate.", LocalDateTime.now());
     }
 
     @Transactional
-    public void registrarArmazenagemYard(String containerId,
+    public void registrarArmazenagemYard(String eventoId,
+                                         String containerId,
                                          String zona,
                                          String posicao,
                                          String equipamento,
                                          String responsavel) {
         String localizacao = montarLocalizacaoYard(zona, posicao);
-        registrarMovimento(containerId, STATUS_NO_YARD, zona, posicao,
+        registrarMovimento(eventoId, containerId, STATUS_NO_YARD, zona, posicao,
                 TIPO_ARMAZENAGEM_YARD, localizacao, responsavel, equipamento,
                 "Armazenagem do conteiner confirmada no patio.", LocalDateTime.now());
     }
 
     @Transactional
-    public void registrarMovimentoPatio(EventoMovimentoPatioMensagem evento) {
+    public void registrarMovimentoPatio(String eventoId, EventoMovimentoPatioMensagem evento) {
         if (evento == null) {
             throw new IllegalArgumentException("Evento de movimento do patio nao pode ser nulo.");
         }
@@ -73,25 +74,28 @@ public class MovimentoConteinerService {
                 ? LocalDateTime.now()
                 : evento.getRegistradoEm();
 
-        registrarMovimento(evento.getCodigoConteiner(), STATUS_NO_YARD, "YARD", posicao,
+        registrarMovimento(eventoId, evento.getCodigoConteiner(), STATUS_NO_YARD, "YARD", posicao,
                 tipo, montarLocalizacaoYard("YARD", posicao), "YARD", null,
                 observacoes, timestamp);
     }
 
     @Transactional
-    public void registrarMovimentoRail(String containerId,
+    public void registrarMovimentoRail(String eventoId,
+                                       String containerId,
                                        String origem,
                                        String destino,
                                        String equipamento,
                                        String responsavel) {
         String localizacao = montarTrechoRail(origem, destino);
-        registrarMovimento(containerId, STATUS_EM_TRANSITO_RAIL, destino, null,
+        registrarMovimento(eventoId, containerId, STATUS_EM_TRANSITO_RAIL, destino, null,
                 TIPO_MOVIMENTO_RAIL, localizacao, responsavel, equipamento,
                 "Movimento ferroviario do conteiner confirmado.", LocalDateTime.now());
     }
 
     @Transactional
-    public void registrarMovimentoFerroviario(EventoMovimentacaoTremConcluidaMensagem evento) {
+    public void registrarMovimentoFerroviario(
+            String eventoId,
+            EventoMovimentacaoTremConcluidaMensagem evento) {
         if (evento == null) {
             throw new IllegalArgumentException("Evento ferroviario nao pode ser nulo.");
         }
@@ -103,12 +107,13 @@ public class MovimentoConteinerService {
         String observacoes = "ordem=" + valor(evento.getIdOrdemMovimentacao())
                 + "; status=" + valorOuPadrao(evento.getStatusEvento(), "CONCLUIDO");
 
-        registrarMovimento(evento.getCodigoConteiner(), STATUS_EM_TRANSITO_RAIL,
+        registrarMovimento(eventoId, evento.getCodigoConteiner(), STATUS_EM_TRANSITO_RAIL,
                 localizacao, null, tipo, localizacao, "RAIL", null,
                 observacoes, converter(evento.getConcluidoEm()));
     }
 
-    private void registrarMovimento(String containerId,
+    private void registrarMovimento(String eventoId,
+                                    String containerId,
                                     String status,
                                     String zona,
                                     String posicao,
@@ -118,6 +123,7 @@ public class MovimentoConteinerService {
                                     String equipamento,
                                     String observacoes,
                                     LocalDateTime timestamp) {
+        validarEventoId(eventoId);
         validarContainerId(containerId);
         LocalDateTime ocorridoEm = timestamp == null ? LocalDateTime.now() : timestamp;
 
@@ -131,6 +137,7 @@ public class MovimentoConteinerService {
 
         HistoricoMovimento historico = new HistoricoMovimento();
         historico.setContainerId(containerId.trim());
+        historico.setEventoId(eventoId.trim());
         historico.setTimestamp(ocorridoEm);
         historico.setTipo(tipo);
         historico.setLocalizacao(localizacao);
@@ -206,6 +213,12 @@ public class MovimentoConteinerService {
 
     private String normalizarOpcional(String valor) {
         return StringUtils.hasText(valor) ? valor.trim() : null;
+    }
+
+    private void validarEventoId(String eventoId) {
+        if (!StringUtils.hasText(eventoId)) {
+            throw new IllegalArgumentException("eventoId e obrigatorio para registrar movimento.");
+        }
     }
 
     private void validarContainerId(String containerId) {

@@ -1,6 +1,10 @@
 package br.com.cloudport.servicorail.ferrovia.evento;
 
 import br.com.cloudport.servicorail.ferrovia.dto.EventoMovimentacaoTremConcluidaDto;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -12,6 +16,8 @@ import org.springframework.util.Assert;
 public class PublicadorEventoMovimentacaoTrem {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PublicadorEventoMovimentacaoTrem.class);
+    private static final String TIPO_EVENTO = "rail.movimentacao.concluida";
+    private static final int VERSAO_EVENTO = 1;
 
     private final RabbitTemplate rabbitTemplate;
     private final String exchange;
@@ -30,6 +36,14 @@ public class PublicadorEventoMovimentacaoTrem {
         LOGGER.info("event=movimentacao_trem.publicada ordem={} visita={} conteiner={} tipo={}",
                 evento.getIdOrdemMovimentacao(), evento.getIdVisitaTrem(), evento.getCodigoConteiner(),
                 evento.getTipoMovimentacao());
-        rabbitTemplate.convertAndSend(exchange, routingKey, evento);
+
+        Map<String, Object> envelope = new LinkedHashMap<>();
+        envelope.put("eventId", UUID.randomUUID().toString());
+        envelope.put("eventType", TIPO_EVENTO);
+        envelope.put("eventVersion", VERSAO_EVENTO);
+        envelope.put("occurredAt", Instant.now().toString());
+        envelope.put("source", "servico-rail");
+        envelope.put("data", evento);
+        rabbitTemplate.convertAndSend(exchange, routingKey, envelope);
     }
 }

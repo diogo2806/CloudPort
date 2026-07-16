@@ -31,7 +31,7 @@ public class PosicaoPatioYardHttpAdapter implements PosicaoPatioYardCliente {
     @Override
     public List<PosicaoPatioYardDTO> listarPosicoes() {
         ResponseEntity<PosicaoPatioYardDTO[]> resposta = restTemplate.getForEntity(
-                baseUrl + "/yard/patio/posicoes",
+                baseUrl + "/yard/patio/reservas/posicoes",
                 PosicaoPatioYardDTO[].class);
         PosicaoPatioYardDTO[] corpo = resposta.getBody();
         if (corpo == null) {

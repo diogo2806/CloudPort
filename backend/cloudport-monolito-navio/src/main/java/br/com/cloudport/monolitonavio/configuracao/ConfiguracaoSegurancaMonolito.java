@@ -166,6 +166,7 @@ public class ConfiguracaoSegurancaMonolito {
                 CorrelationIdFilter.HEADER,
                 "X-Trace-Id",
                 "traceparent",
+                "Last-Event-ID",
                 PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID,
                 PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET,
                 InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY));
@@ -173,7 +174,8 @@ public class ConfiguracaoSegurancaMonolito {
                 "Authorization",
                 CorrelationIdFilter.HEADER,
                 "X-Trace-Id",
-                "traceparent"));
+                "traceparent",
+                "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

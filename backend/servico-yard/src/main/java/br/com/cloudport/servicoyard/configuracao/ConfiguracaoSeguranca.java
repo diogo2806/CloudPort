@@ -123,6 +123,7 @@ public class ConfiguracaoSeguranca {
                 "X-Correlation-Id",
                 "X-Trace-Id",
                 "traceparent",
+                "Last-Event-ID",
                 InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY
         ));
         configuration.setExposedHeaders(Arrays.asList(

@@ -40,7 +40,7 @@ public class ConfiguracaoSeguranca {
     private final String allowedOrigins;
 
     public ConfiguracaoSeguranca(@Value("${cloudport.security.jwt.secret}") String jwtSecret,
-                                   @Value("${cloudport.security.cors.allowed-origins}") String allowedOrigins) {
+                                  @Value("${cloudport.security.cors.allowed-origins}") String allowedOrigins) {
         this.jwtSecret = jwtSecret;
         this.allowedOrigins = allowedOrigins;
     }
@@ -122,12 +122,14 @@ public class ConfiguracaoSeguranca {
                 "Accept",
                 "X-Correlation-Id",
                 "X-Trace-Id",
-                "traceparent"));
+                "traceparent",
+                "Last-Event-ID"));
         configuration.setExposedHeaders(Arrays.asList(
                 "Authorization",
                 "X-Correlation-Id",
                 "X-Trace-Id",
-                "traceparent"));
+                "traceparent",
+                "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

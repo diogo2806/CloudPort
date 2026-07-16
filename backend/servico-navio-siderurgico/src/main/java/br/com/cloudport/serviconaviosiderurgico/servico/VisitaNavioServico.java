@@ -35,19 +35,22 @@ public class VisitaNavioServico {
     private final EventoVisitaNavioRepositorio eventoRepositorio;
     private final ReservaPosicaoPatioNavioRepositorio reservaRepositorio;
     private final NavioSiderurgicoServico navioServico;
+    private final EventoOperacionalStreamingServico streamingServico;
 
     public VisitaNavioServico(
             VisitaNavioRepositorio visitaRepositorio,
             ItemOperacaoNavioRepositorio itemRepositorio,
             EventoVisitaNavioRepositorio eventoRepositorio,
             ReservaPosicaoPatioNavioRepositorio reservaRepositorio,
-            NavioSiderurgicoServico navioServico
+            NavioSiderurgicoServico navioServico,
+            EventoOperacionalStreamingServico streamingServico
     ) {
         this.visitaRepositorio = visitaRepositorio;
         this.itemRepositorio = itemRepositorio;
         this.eventoRepositorio = eventoRepositorio;
         this.reservaRepositorio = reservaRepositorio;
         this.navioServico = navioServico;
+        this.streamingServico = streamingServico;
     }
 
     @Transactional(readOnly = true)
@@ -194,7 +197,8 @@ public class VisitaNavioServico {
         evento.setUsuario(usuario == null || usuario.isBlank() ? "sistema" : usuario.trim());
         evento.setDadosAntes(antes);
         evento.setDadosDepois(depois);
-        eventoRepositorio.save(evento);
+        EventoVisitaNavio salvo = eventoRepositorio.save(evento);
+        streamingServico.publicar(salvo);
     }
 
     private void cancelarReservasAtivas(VisitaNavio visita, String motivo, String usuario) {

@@ -44,10 +44,10 @@ jobs:
               test package
           - module: backend/cloudport-modules
             command: >-
-              mvn -B -Dspring-boot.repackage.skip=true
+              mvn -q -B -Dspring-boot.repackage.skip=true
               -pl :cloudport-runtime -am
               -DskipTests install &&
-              mvn -B -pl :cloudport-runtime
+              mvn -q -B -pl :cloudport-runtime
               test package
     steps:
       - uses: actions/checkout@v4

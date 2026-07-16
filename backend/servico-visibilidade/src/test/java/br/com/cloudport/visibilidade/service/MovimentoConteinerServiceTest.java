@@ -32,7 +32,8 @@ class MovimentoConteinerServiceTest {
         MovimentoConteinerService service = new MovimentoConteinerService(
                 localizacaoRepository, historicoRepository);
 
-        service.registrarArmazenagemYard("CONT001", "A01", "01-02-03", "RTG-01", "operador");
+        service.registrarArmazenagemYard(
+                "evt-yard-1", "CONT001", "A01", "01-02-03", "RTG-01", "operador");
 
         ArgumentCaptor<ConteinerLocalizacao> localizacaoCaptor =
                 ArgumentCaptor.forClass(ConteinerLocalizacao.class);
@@ -48,6 +49,7 @@ class MovimentoConteinerServiceTest {
                 ArgumentCaptor.forClass(HistoricoMovimento.class);
         verify(historicoRepository).save(historicoCaptor.capture());
         HistoricoMovimento historico = historicoCaptor.getValue();
+        assertEquals("evt-yard-1", historico.getEventoId());
         assertEquals(MovimentoConteinerService.TIPO_ARMAZENAGEM_YARD, historico.getTipo());
         assertEquals("A01-01-02-03", historico.getLocalizacao());
         assertEquals("RTG-01", historico.getEquipamentoUsado());
@@ -62,7 +64,8 @@ class MovimentoConteinerServiceTest {
         MovimentoConteinerService service = new MovimentoConteinerService(
                 localizacaoRepository, historicoRepository);
 
-        service.registrarMovimentoRail("CONT002", "LINHA-1", "PATIO-B", "LOCO-7", null);
+        service.registrarMovimentoRail(
+                "evt-rail-2", "CONT002", "LINHA-1", "PATIO-B", "LOCO-7", null);
 
         ArgumentCaptor<ConteinerLocalizacao> localizacaoCaptor =
                 ArgumentCaptor.forClass(ConteinerLocalizacao.class);
@@ -74,6 +77,7 @@ class MovimentoConteinerServiceTest {
         ArgumentCaptor<HistoricoMovimento> historicoCaptor =
                 ArgumentCaptor.forClass(HistoricoMovimento.class);
         verify(historicoRepository).save(historicoCaptor.capture());
+        assertEquals("evt-rail-2", historicoCaptor.getValue().getEventoId());
         assertEquals("LINHA-1 -> PATIO-B", historicoCaptor.getValue().getLocalizacao());
         assertEquals(MovimentoConteinerService.TIPO_MOVIMENTO_RAIL,
                 historicoCaptor.getValue().getTipo());

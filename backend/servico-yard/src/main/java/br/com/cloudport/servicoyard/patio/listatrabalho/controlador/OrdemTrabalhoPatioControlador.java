@@ -2,12 +2,14 @@ package br.com.cloudport.servicoyard.patio.listatrabalho.controlador;
 
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoPrioridadeOrdemTrabalhoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoStatusOrdemTrabalhoDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoMotivadoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.EstatisticasOtimizacaoRotaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.FilaOrdemTrabalhoPatioDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.AuditoriaComandoPatioServico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OrdemTrabalhoPatioServico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorDualCyclingServico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OtimizadorDualCyclingServico.AnaliseDualCyclingDto;
@@ -35,13 +37,16 @@ public class OrdemTrabalhoPatioControlador {
     private final OrdemTrabalhoPatioServico ordemTrabalhoPatioServico;
     private final OtimizadorRotasPatioServico otimizadorRotas;
     private final OtimizadorDualCyclingServico otimizadorDualCycling;
+    private final AuditoriaComandoPatioServico auditoriaComandoPatioServico;
 
     public OrdemTrabalhoPatioControlador(OrdemTrabalhoPatioServico ordemTrabalhoPatioServico,
                                           OtimizadorRotasPatioServico otimizadorRotas,
-                                          OtimizadorDualCyclingServico otimizadorDualCycling) {
+                                          OtimizadorDualCyclingServico otimizadorDualCycling,
+                                          AuditoriaComandoPatioServico auditoriaComandoPatioServico) {
         this.ordemTrabalhoPatioServico = ordemTrabalhoPatioServico;
         this.otimizadorRotas = otimizadorRotas;
         this.otimizadorDualCycling = otimizadorDualCycling;
+        this.auditoriaComandoPatioServico = auditoriaComandoPatioServico;
     }
 
     @GetMapping
@@ -81,24 +86,42 @@ public class OrdemTrabalhoPatioControlador {
     @PatchMapping("/{id}/status")
     public OrdemTrabalhoPatioRespostaDto atualizarStatus(@PathVariable("id") Long id,
                                                           @Valid @RequestBody AtualizacaoStatusOrdemTrabalhoDto dto) {
-        return ordemTrabalhoPatioServico.atualizarStatus(id, dto);
+        OrdemTrabalhoPatioRespostaDto resposta = ordemTrabalhoPatioServico.atualizarStatus(id, dto);
+        auditoriaComandoPatioServico.registrar(
+                null, id, "STATUS_ORDEM_ALTERADO_COM_MOTIVO", dto,
+                "Novo status=" + dto.getStatusOrdem().name() + "."
+        );
+        return resposta;
     }
 
     @PatchMapping("/{id}/prioridade")
     public OrdemTrabalhoPatioRespostaDto atualizarPrioridade(
             @PathVariable("id") Long id,
             @Valid @RequestBody AtualizacaoPrioridadeOrdemTrabalhoDto dto) {
-        return ordemTrabalhoPatioServico.atualizarPrioridade(id, dto);
+        OrdemTrabalhoPatioRespostaDto resposta = ordemTrabalhoPatioServico.atualizarPrioridade(id, dto);
+        auditoriaComandoPatioServico.registrar(
+                null, id, "PRIORIDADE_ORDEM_ALTERADA_COM_MOTIVO", dto,
+                "Prioridade=" + dto.getPrioridadeOperacional() + "."
+        );
+        return resposta;
     }
 
     @PatchMapping("/{id}/suspender")
-    public OrdemTrabalhoPatioRespostaDto suspender(@PathVariable("id") Long id) {
-        return ordemTrabalhoPatioServico.suspender(id);
+    public OrdemTrabalhoPatioRespostaDto suspender(@PathVariable("id") Long id,
+                                                    @Valid @RequestBody ComandoMotivadoDto comando) {
+        OrdemTrabalhoPatioRespostaDto resposta = ordemTrabalhoPatioServico.suspender(id);
+        auditoriaComandoPatioServico.registrar(null, id, "ORDEM_SUSPENSA_COM_MOTIVO", comando,
+                "Ordem suspensa.");
+        return resposta;
     }
 
     @PatchMapping("/{id}/retomar")
-    public OrdemTrabalhoPatioRespostaDto retomar(@PathVariable("id") Long id) {
-        return ordemTrabalhoPatioServico.retomar(id);
+    public OrdemTrabalhoPatioRespostaDto retomar(@PathVariable("id") Long id,
+                                                  @Valid @RequestBody ComandoMotivadoDto comando) {
+        OrdemTrabalhoPatioRespostaDto resposta = ordemTrabalhoPatioServico.retomar(id);
+        auditoriaComandoPatioServico.registrar(null, id, "ORDEM_RETOMADA_COM_MOTIVO", comando,
+                "Ordem retomada.");
+        return resposta;
     }
 
     @GetMapping("/otimizacao/nearest-neighbor")

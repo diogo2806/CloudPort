@@ -75,7 +75,7 @@ jobs:
           if-no-files-found: error
 
   runtime-geral:
-    name: Runtime geral CloudPort
+    name: Runtime canônico CloudPort
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +84,7 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Compilar e testar runtime geral
+      - name: Compilar e testar runtime canônico
         working-directory: backend/cloudport-modules
         shell: bash
         run: |
@@ -99,7 +99,7 @@ jobs:
           tail -n 300 /tmp/cloudport-runtime.log > /tmp/cloudport-runtime-diagnostico.log
           cat /tmp/cloudport-runtime-diagnostico.log
           exit $status
-      - name: Publicar diagnóstico do runtime geral
+      - name: Publicar diagnóstico do runtime canônico
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -108,7 +108,7 @@ jobs:
           if-no-files-found: error
 
   deployment-geral:
-    name: Imagem e Compose do runtime geral
+    name: Imagem e Compose do runtime canônico
     runs-on: ubuntu-latest
     env:
       POSTGRES_PASSWORD: cloudport-ci-postgres
@@ -121,7 +121,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validar Docker Compose
         run: docker compose -f deploy/cloudport-runtime/docker-compose.yml config
-      - name: Construir imagem do runtime geral
+      - name: Construir imagem do runtime canônico
         run: docker build -f backend/cloudport-runtime/Dockerfile -t cloudport-runtime:ci .
 
   frontend:
@@ -150,26 +150,26 @@ jobs:
         working-directory: ${{ matrix.module }}
         run: npm run build
 
-  deployment-navio:
-    name: Smoke do deploy unificado de Navio
+  rollback-navio:
+    name: Validar runtime anterior de rollback
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validar Docker Compose
+      - name: Validar Docker Compose de rollback
         run: |
-          docker compose -f deploy/navio-monolito/docker-compose.yml --profile monolito config
+          docker compose -f deploy/navio-monolito/docker-compose.yml --profile rollback config
           SMOKE_JWT_SECRET="$(openssl rand -hex 32)" \
           SMOKE_SERVICE_KEY="$(openssl rand -hex 24)" \
           docker compose \
             -f deploy/navio-monolito/docker-compose.yml \
             -f deploy/navio-monolito/docker-compose.smoke.yml \
-            --profile monolito config
-      - name: Executar smoke test completo
+            --profile rollback config
+      - name: Executar smoke do rollback
         run: bash deploy/navio-monolito/smoke-test.sh
       - name: Publicar diagnóstico do smoke
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-navio-diagnostico
+          name: smoke-navio-rollback-diagnostico
           path: /tmp/cloudport-smoke-status.txt
           if-no-files-found: error

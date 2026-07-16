@@ -1,4 +1,4 @@
-name: cloudport-monolito
+name: cloudport-rollback
 
 services:
   postgres-cloudport:
@@ -44,12 +44,13 @@ services:
     networks: [cloudport]
 
   cloudport-monolito:
-    profiles: ["monolito"]
+    profiles: ["rollback"]
     build:
       context: ../..
       dockerfile: backend/cloudport-monolito-navio/Dockerfile
     restart: unless-stopped
     environment:
+      CLOUDPORT_ROLLBACK_ENABLED: "true"
       CLOUDPORT_SERVER_PORT: 8086
       CLOUDPORT_DB_URL: jdbc:postgresql://postgres-cloudport:5432/${POSTGRES_CLOUDPORT_DATABASE:-cloudport_runtime}
       CLOUDPORT_DB_USERNAME: ${POSTGRES_CLOUDPORT_USERNAME:-cloudport}
@@ -61,9 +62,9 @@ services:
       MONOLITO_RAIL_SCHEMA: ${MONOLITO_RAIL_SCHEMA:-cloudport_rail}
       MONOLITO_AUTENTICACAO_SCHEMA: ${MONOLITO_AUTENTICACAO_SCHEMA:-cloudport_autenticacao}
       MONOLITO_VISIBILIDADE_SCHEMA: ${MONOLITO_VISIBILIDADE_SCHEMA:-cloudport_visibilidade}
-      CLOUDPORT_WRITES_ENABLED: "true"
-      CLOUDPORT_JOBS_ENABLED: "true"
-      CLOUDPORT_CONSUMERS_ENABLED: "true"
+      CLOUDPORT_WRITES_ENABLED: ${ROLLBACK_WRITES_ENABLED:-true}
+      CLOUDPORT_JOBS_ENABLED: ${ROLLBACK_JOBS_ENABLED:-true}
+      CLOUDPORT_CONSUMERS_ENABLED: ${ROLLBACK_CONSUMERS_ENABLED:-true}
       SPRING_RABBITMQ_HOST: rabbitmq-cloudport
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${SPRING_RABBITMQ_USERNAME:-guest}
@@ -150,4 +151,4 @@ volumes:
 
 networks:
   cloudport:
-    name: cloudport
+    name: cloudport-rollback

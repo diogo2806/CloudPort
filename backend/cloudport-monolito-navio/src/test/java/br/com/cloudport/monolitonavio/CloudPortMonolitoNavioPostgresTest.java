@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import br.com.cloudport.monolitonavio.integracao.AutenticacaoLocalAdapter;
 import br.com.cloudport.monolitonavio.integracao.CadastroNavioLocalAdapter;
 import br.com.cloudport.monolitonavio.integracao.OrdemPatioLocalAdapter;
+import br.com.cloudport.monolitonavio.integracao.OtimizacaoYardLocalAdapter;
+import br.com.cloudport.monolitonavio.integracao.PlanoOtimizadoYardLocalAdapter;
 import br.com.cloudport.monolitonavio.integracao.PosicaoPatioLocalAdapter;
 import br.com.cloudport.monolitonavio.integracao.StatusPatioLocalAdapter;
 import br.com.cloudport.servicogate.integration.yard.ClienteStatusPatio;
@@ -24,6 +26,10 @@ import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.cliente.NavioCadastroCliente;
 import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente;
 import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardHttpAdapter;
+import br.com.cloudport.serviconaviosiderurgico.cliente.OtimizacaoYardCliente;
+import br.com.cloudport.serviconaviosiderurgico.cliente.OtimizacaoYardHttpAdapter;
+import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardCliente;
+import br.com.cloudport.serviconaviosiderurgico.cliente.PlanoOtimizadoYardHttpAdapter;
 import br.com.cloudport.serviconaviosiderurgico.cliente.PosicaoPatioYardCliente;
 import br.com.cloudport.serviconaviosiderurgico.cliente.PosicaoPatioYardHttpAdapter;
 import br.com.cloudport.serviconaviosiderurgico.controlador.NavioSiderurgicoControlador;
@@ -71,6 +77,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
                 "spring.jpa.properties.hibernate.hbm2ddl.jdbc_metadata_extraction_strategy=individually",
                 "spring.jpa.open-in-view=false",
                 "spring.flyway.enabled=false",
+                "cloudport.rollback.enabled=true",
                 "cloudport.modulo.navio.integracao=local",
                 "cloudport.modulo.yard.integracao=local",
                 "cloudport.modulo.autenticacao.integracao=local",
@@ -133,6 +140,8 @@ class CloudPortMonolitoNavioPostgresTest {
     @Autowired private CadastroNavioPorta cadastroNavioPorta;
     @Autowired private OrdemPatioYardCliente ordemPatioYardCliente;
     @Autowired private PosicaoPatioYardCliente posicaoPatioYardCliente;
+    @Autowired private OtimizacaoYardCliente otimizacaoYardCliente;
+    @Autowired private PlanoOtimizadoYardCliente planoOtimizadoYardCliente;
     @Autowired private ClienteStatusPatio clienteStatusPatio;
     @Autowired private AutenticacaoClient autenticacaoClient;
     @Autowired private ExecucaoUnicaServico execucaoUnicaServico;
@@ -193,11 +202,15 @@ class CloudPortMonolitoNavioPostgresTest {
                 () -> assertInstanceOf(CadastroNavioLocalAdapter.class, cadastroNavioPorta),
                 () -> assertInstanceOf(OrdemPatioLocalAdapter.class, ordemPatioYardCliente),
                 () -> assertInstanceOf(PosicaoPatioLocalAdapter.class, posicaoPatioYardCliente),
+                () -> assertInstanceOf(OtimizacaoYardLocalAdapter.class, otimizacaoYardCliente),
+                () -> assertInstanceOf(PlanoOtimizadoYardLocalAdapter.class, planoOtimizadoYardCliente),
                 () -> assertInstanceOf(StatusPatioLocalAdapter.class, clienteStatusPatio),
                 () -> assertInstanceOf(AutenticacaoLocalAdapter.class, autenticacaoClient),
                 () -> assertTrue(applicationContext.getBeansOfType(NavioCadastroCliente.class).isEmpty()),
                 () -> assertTrue(applicationContext.getBeansOfType(OrdemPatioYardHttpAdapter.class).isEmpty()),
                 () -> assertTrue(applicationContext.getBeansOfType(PosicaoPatioYardHttpAdapter.class).isEmpty()),
+                () -> assertTrue(applicationContext.getBeansOfType(OtimizacaoYardHttpAdapter.class).isEmpty()),
+                () -> assertTrue(applicationContext.getBeansOfType(PlanoOtimizadoYardHttpAdapter.class).isEmpty()),
                 () -> assertTrue(applicationContext.getBeansOfType(ClienteStatusPatioHttpAdapter.class).isEmpty()),
                 () -> assertTrue(applicationContext.getBeansOfType(AutenticacaoHttpAdapter.class).isEmpty()),
                 () -> assertEquals(1, applicationContext.getBeansOfType(SecurityFilterChain.class).size()),

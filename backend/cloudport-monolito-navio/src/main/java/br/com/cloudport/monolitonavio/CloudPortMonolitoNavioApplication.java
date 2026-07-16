@@ -7,10 +7,13 @@ import br.com.cloudport.serviconaviosiderurgico.ServicoNavioSiderurgicoApplicati
 import br.com.cloudport.servicorail.ServicoRailApplication;
 import br.com.cloudport.servicoyard.ServicoYardApplication;
 import br.com.cloudport.visibilidade.VisibilidadeApplication;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.FullyQualifiedAnnotationBeanNameGenerator;
@@ -66,5 +69,19 @@ public class CloudPortMonolitoNavioApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(CloudPortMonolitoNavioApplication.class, args);
+    }
+
+    @Bean
+    ApplicationRunner validarModoRollback(
+            @Value("${cloudport.rollback.enabled:false}") boolean rollbackHabilitado
+    ) {
+        return args -> {
+            if (!rollbackHabilitado) {
+                throw new IllegalStateException(
+                        "cloudport-monolito-navio e exclusivo para rollback. "
+                                + "Ative CLOUDPORT_ROLLBACK_ENABLED=true de forma explicita."
+                );
+            }
+        };
     }
 }

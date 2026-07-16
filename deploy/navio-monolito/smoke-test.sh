@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BASE_COMPOSE="$ROOT_DIR/deploy/navio-monolito/docker-compose.yml"
 SMOKE_COMPOSE="$ROOT_DIR/deploy/navio-monolito/docker-compose.smoke.yml"
 PUBLIC_URL="${MONOLITO_SMOKE_URL:-http://localhost:8086}"
-PROJECT_NAME="${MONOLITO_SMOKE_PROJECT:-cloudport-navio-smoke}"
+PROJECT_NAME="${MONOLITO_SMOKE_PROJECT:-cloudport-navio-rollback-smoke}"
 COMPOSE_LOG="$(mktemp)"
 STATUS_FILE="${SMOKE_STATUS_FILE:-/tmp/cloudport-smoke-status.txt}"
 CURRENT_STAGE="inicializacao"
@@ -13,7 +13,7 @@ CURRENT_STAGE="inicializacao"
 export SMOKE_JWT_SECRET="${SMOKE_JWT_SECRET:-$(openssl rand -hex 32)}"
 export SMOKE_SERVICE_KEY="${SMOKE_SERVICE_KEY:-$(openssl rand -hex 24)}"
 
-COMPOSE=(docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$SMOKE_COMPOSE" --profile monolito)
+COMPOSE=(docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$SMOKE_COMPOSE" --profile rollback)
 
 stage() {
     CURRENT_STAGE="$1"

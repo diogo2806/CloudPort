@@ -472,3 +472,14 @@ GET   /api/v1/visibilidade/conteiners/buscar
 4. Salvar o plano por `POST /visitas-navio/{id}/crane-plan` e recarregar a resposta persistida.
 5. Consumir recursos operacionais, matriz de estados, drill-down e job lists por equipamento.
 6. Executar dispatch e transições oficiais sem voltar aos caminhos legados de mutação.
+
+## INIT10 — runtime canônico e rollback coerente implementado
+
+1. Definir `backend/cloudport-runtime` como ponto de entrada canônico no `README.md`, na documentação do runtime e no runbook operacional.
+2. Apontar build, execução, Docker Compose e validação principal para `backend/cloudport-modules`, `cloudport-runtime` e `deploy/cloudport-runtime/docker-compose.yml`.
+3. Classificar `backend/cloudport-monolito-navio` e `deploy/navio-monolito` exclusivamente como rollback intermediário.
+4. Exigir `CLOUDPORT_ROLLBACK_ENABLED=true` para iniciar o runtime anterior e manter escrita, jobs e consumidores desativados por padrão.
+5. Implementar `OtimizacaoYardLocalAdapter` e `PlanoOtimizadoYardLocalAdapter` no runtime de rollback para satisfazer todas as portas obrigatórias no modo local.
+6. Validar em teste de contexto que os novos adaptadores locais estão registrados e que os adaptadores HTTP correspondentes permanecem ausentes.
+7. Criar o perfil Compose `rollback`, ajustar o smoke e separar sua validação no workflow sem concorrer com o runtime canônico.
+8. Retirar INIT10 das pendências técnicas após registrar a implementação neste arquivo.

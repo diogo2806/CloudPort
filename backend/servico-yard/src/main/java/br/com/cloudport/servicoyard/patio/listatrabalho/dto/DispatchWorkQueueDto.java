@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.dto;
 
 import java.util.List;
+import org.springframework.util.StringUtils;
 
 public class DispatchWorkQueueDto {
 
@@ -9,7 +10,10 @@ public class DispatchWorkQueueDto {
     private Integer limiteOrdens;
     private String operador;
     private String usuario;
+    private String motivo;
     private String observacao;
+    private String origemAcao;
+    private String correlationId;
 
     public List<Long> getOrdemIds() { return ordemIds; }
     public void setOrdemIds(List<Long> ordemIds) { this.ordemIds = ordemIds; }
@@ -21,8 +25,14 @@ public class DispatchWorkQueueDto {
     public void setOperador(String operador) { this.operador = operador; }
     public String getUsuario() { return usuario; }
     public void setUsuario(String usuario) { this.usuario = usuario; }
+    public String getMotivo() { return motivo; }
+    public void setMotivo(String motivo) { this.motivo = motivo; }
     public String getObservacao() { return observacao; }
     public void setObservacao(String observacao) { this.observacao = observacao; }
+    public String getOrigemAcao() { return origemAcao; }
+    public void setOrigemAcao(String origemAcao) { this.origemAcao = origemAcao; }
+    public String getCorrelationId() { return correlationId; }
+    public void setCorrelationId(String correlationId) { this.correlationId = correlationId; }
 
     public boolean somentePendentesEfetivo() {
         return somentePendentes == null || somentePendentes;
@@ -33,12 +43,13 @@ public class DispatchWorkQueueDto {
     }
 
     public String usuarioEfetivo() {
-        if (operador != null && !operador.isBlank()) {
-            return operador.trim();
-        }
-        if (usuario != null && !usuario.isBlank()) {
-            return usuario.trim();
-        }
+        if (StringUtils.hasText(operador)) return operador.trim();
+        if (StringUtils.hasText(usuario)) return usuario.trim();
         return "sistema";
+    }
+
+    public String motivoEfetivo() {
+        if (StringUtils.hasText(motivo)) return motivo.trim();
+        return StringUtils.hasText(observacao) ? observacao.trim() : null;
     }
 }

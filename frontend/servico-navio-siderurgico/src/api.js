@@ -178,7 +178,10 @@ export const api = {
   autenticar: (login, senha) => request('/auth/login', { method: 'POST', body: { login, senha } }),
   listarNavios: () => request('/navios-siderurgicos'),
   listarVisitas: () => request('/visitas-navio'),
-  alterarFaseVisita: (visitaId, fase, motivo) => request(`/visitas-navio/${visitaId}/fase`, { method: 'PATCH', body: { fase, observacao: motivo } }),
+  alterarFaseVisita: (visitaId, fase, motivo) => {
+    const command = commandBody(motivo);
+    return request(`/visitas-navio/${visitaId}/fase`, { method: 'PATCH', body: { fase, observacao: command.motivo } });
+  },
   listarItensVisita: (visitaId) => request(`/visitas-navio/${visitaId}/itens`),
   obterResumo: (visitaId) => request(`/visitas-navio/${visitaId}/resumo-operacional`),
   listarEventos: (visitaId) => request(`/visitas-navio/${visitaId}/eventos`),

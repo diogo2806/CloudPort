@@ -1,5 +1,6 @@
 const SESSION_KEY = 'cloudportControlRoomSession';
 const REQUEST_TIMEOUT_MS = 5000;
+const SSE_RECONNECT_MS = 2000;
 
 let runtimeConfig = {
   baseApiUrl: '',
@@ -107,6 +108,13 @@ function createCorrelationId() {
   return globalThis.crypto?.randomUUID?.() ?? `control-room-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function createTraceId() {
+  const bytes = new Uint8Array(16);
+  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+  else for (let index = 0; index < bytes.length; index += 1) bytes[index] = Math.floor(Math.random() * 256);
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+}
+
 function isFormData(body) {
   return typeof FormData !== 'undefined' && body instanceof FormData;
 }
@@ -136,11 +144,6 @@ function enrichCommand(path, method, body, session, correlationId) {
   return command;
 }
 
-async function parsePayload(response) {
-  const contentType = response.headers.get('content-type') ?? '';
-  return contentType.includes('application/json') ? response.json() : response.text();
-}
-
 async function request(path, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS);
@@ -148,13 +151,16 @@ async function request(path, options = {}) {
   const method = String(options.method ?? 'GET').toUpperCase();
   const publicResource = path.endsWith('/auth/login');
   const correlationId = createCorrelationId();
+  const traceId = createTraceId();
   const body = enrichCommand(path, method, options.body, publicResource ? null : session, correlationId);
   const headers = new Headers(options.headers ?? {});
-  headers.set('Accept', 'application/json');
+  headers.set('Accept', options.accept ?? 'application/json');
   if (body !== undefined && !isFormData(body)) headers.set('Content-Type', 'application/json');
   if (session?.token && !publicResource) {
     headers.set('Authorization', `Bearer ${session.token}`);
     headers.set('X-Correlation-Id', correlationId);
+    headers.set('X-Trace-Id', traceId);
+    headers.set('traceparent', `00-${traceId}-${traceId.slice(0, 16)}-01`);
   }
   try {
     const response = await fetch(`${runtimeConfig.baseApiUrl}${path}`, {
@@ -164,7 +170,12 @@ async function request(path, options = {}) {
       body: body === undefined || isFormData(body) ? body : JSON.stringify(body),
       signal: controller.signal
     });
-    const payload = await parsePayload(response);
+    const contentType = response.headers.get('content-type') ?? '';
+    const payload = options.responseType === 'blob'
+      ? await response.blob()
+      : contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
     if (!response.ok) {
       const error = new Error(payload?.mensagem ?? payload?.erro ?? payload?.message ?? `Falha HTTP ${response.status}`);
       error.payload = payload;
@@ -180,62 +191,105 @@ async function request(path, options = {}) {
   }
 }
 
-function parseSseBlock(block) {
-  let event = 'message';
-  const data = [];
-  for (const line of block.split('\n')) {
-    if (line.startsWith('event:')) event = line.slice(6).trim();
-    if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
-  }
-  const raw = data.join('\n');
-  if (!raw) return { event, data: null };
-  try {
-    return { event, data: JSON.parse(raw) };
-  } catch {
-    return { event, data: raw };
-  }
+async function download(path, filename, accept) {
+  const blob = await request(path, {
+    responseType: 'blob',
+    accept,
+    timeoutMs: 30000
+  });
+  if (typeof document === 'undefined' || typeof URL === 'undefined') return blob;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  return blob;
 }
 
-async function subscribe(path, handlers = {}) {
-  const session = readSession();
-  if (!session?.token) throw new Error('Sessão não autenticada para abrir o stream operacional.');
-  const headers = new Headers({
-    Accept: 'text/event-stream',
-    Authorization: `Bearer ${session.token}`,
-    'X-Correlation-Id': createCorrelationId()
-  });
-  const response = await fetch(`${runtimeConfig.baseApiUrl}${path}`, {
-    method: 'GET',
-    headers,
-    cache: 'no-store',
-    signal: handlers.signal
-  });
-  if (!response.ok) {
-    const payload = await parsePayload(response);
-    const error = new Error(payload?.mensagem ?? payload?.erro ?? payload?.message ?? `Falha HTTP ${response.status}`);
-    error.payload = payload;
-    error.status = response.status;
-    throw error;
+function parseSseBlock(block) {
+  const event = { id: '', name: 'message', data: '' };
+  for (const rawLine of block.split('\n')) {
+    const line = rawLine.replace(/\r$/, '');
+    if (!line || line.startsWith(':')) continue;
+    const separator = line.indexOf(':');
+    const field = separator < 0 ? line : line.slice(0, separator);
+    const value = separator < 0 ? '' : line.slice(separator + 1).replace(/^ /, '');
+    if (field === 'id') event.id = value;
+    else if (field === 'event') event.name = value;
+    else if (field === 'data') event.data += `${value}\n`;
   }
-  if (!response.body) throw new Error('O navegador não disponibilizou o stream SSE.');
-  handlers.onOpen?.();
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    buffer = buffer.replace(/\r\n/g, '\n');
-    let boundary = buffer.indexOf('\n\n');
-    while (boundary >= 0) {
-      const block = buffer.slice(0, boundary).trim();
-      buffer = buffer.slice(boundary + 2);
-      if (block) handlers.onEvent?.(parseSseBlock(block));
-      boundary = buffer.indexOf('\n\n');
+  event.data = event.data.replace(/\n$/, '');
+  if (!event.data) return null;
+  try {
+    event.payload = JSON.parse(event.data);
+  } catch {
+    event.payload = event.data;
+  }
+  return event;
+}
+
+export function subscribeSse(path, handlers = {}) {
+  let closed = false;
+  let lastEventId = '';
+  let controller = null;
+  let reconnectTimer = null;
+
+  const connect = async () => {
+    if (closed) return;
+    controller = new AbortController();
+    const session = readSession();
+    const headers = new Headers({ Accept: 'text/event-stream' });
+    if (session?.token) headers.set('Authorization', `Bearer ${session.token}`);
+    if (lastEventId) headers.set('Last-Event-ID', lastEventId);
+    headers.set('X-Correlation-Id', createCorrelationId());
+    handlers.onState?.('CONECTANDO');
+    try {
+      const response = await fetch(`${runtimeConfig.baseApiUrl}${path}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      if (!response.ok || !response.body) throw new Error(`Falha ao conectar ao stream: HTTP ${response.status}`);
+      handlers.onState?.('CONECTADO');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (!closed) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+        let separator = buffer.indexOf('\n\n');
+        while (separator >= 0) {
+          const block = buffer.slice(0, separator);
+          buffer = buffer.slice(separator + 2);
+          const event = parseSseBlock(block);
+          if (event) {
+            if (event.id) lastEventId = event.id;
+            handlers.onEvent?.(event);
+          }
+          separator = buffer.indexOf('\n\n');
+        }
+      }
+    } catch (error) {
+      if (!closed && error?.name !== 'AbortError') handlers.onError?.(error);
+    } finally {
+      if (!closed) {
+        handlers.onState?.('RECONECTANDO');
+        reconnectTimer = setTimeout(connect, SSE_RECONNECT_MS);
+      }
     }
-  }
-  throw new Error('O stream operacional foi encerrado.');
+  };
+
+  connect();
+  return () => {
+    closed = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    controller?.abort();
+    handlers.onState?.('DESCONECTADO');
+  };
 }
 
 export const api = {
@@ -244,11 +298,24 @@ export const api = {
   listarVisitas: () => request('/visitas-navio'),
   alterarFaseVisita: (visitaId, fase, motivo) => {
     const comando = commandBody(motivo);
-    return request(`/visitas-navio/${visitaId}/fase`, { method: 'PATCH', body: { fase, observacao: comando.motivo } });
+    return request(`/visitas-navio/${visitaId}/fase`, {
+      method: 'PATCH',
+      body: { fase, observacao: comando.motivo }
+    });
   },
   listarItensVisita: (visitaId) => request(`/visitas-navio/${visitaId}/itens`),
   obterResumo: (visitaId) => request(`/visitas-navio/${visitaId}/resumo-operacional`),
   listarEventos: (visitaId) => request(`/visitas-navio/${visitaId}/eventos`),
+  assinarControlRoom: (visitaId, handlers) => subscribeSse(`/visitas-navio/${visitaId}/stream`, handlers),
+  assinarEventos: (visitaId, handlers) => subscribeSse(`/visitas-navio/${visitaId}/eventos/stream`, handlers),
+  obterControlRoom: (visitaId) => request(`/visitas-navio/${visitaId}/control-room`),
+  obterQuayMonitor: (visitaId) => request(`/visitas-navio/${visitaId}/quay-monitor`),
+  otimizarOperacaoGlobal: (visitaId) => request(`/visitas-navio/${visitaId}/otimizacao-global`, { method: 'POST', body: {} }),
+  validarRestricoesEstruturais: (visitaId, configuracao) => request(`/visitas-navio/${visitaId}/validacoes-estruturais`, { method: 'POST', body: configuracao }),
+  baixarRelatorioCsv: (visitaId) => download(`/visitas-navio/${visitaId}/relatorio-operacional-integrado.csv`, `relatorio-operacional-visita-${visitaId}.csv`, 'text/csv'),
+  baixarRelatorioPdf: (visitaId) => download(`/visitas-navio/${visitaId}/relatorio-operacional-integrado.pdf`, `relatorio-operacional-visita-${visitaId}.pdf`, 'application/pdf'),
+  listarTelemetriaEquipamentos: () => request('/yard/patio/equipamentos/telemetria'),
+  assinarTelemetriaEquipamentos: (handlers) => subscribeSse('/yard/patio/equipamentos/telemetria/stream', handlers),
   obterResumoIntegracaoPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio`),
   gerarReservasPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/reservas`, { method: 'POST', body: { tipoReserva: 'TENTATIVA', somentePendentes: true } }),
   listarReservasPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/reservas`),
@@ -270,26 +337,14 @@ export const api = {
   listarAlertasIntegracaoPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/alertas`),
   sincronizarStatusPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/sincronizar-status`, { method: 'POST', body: {} }),
   replanejarPatioVisita: (visitaId, aplicar) => request(`/visitas-navio/${visitaId}/integracao-patio/replanejar`, { method: 'POST', body: { aplicar } }),
-  obterRelatorioOperacionalIntegrado: (visitaId) => request(`/visitas-navio/${visitaId}/relatorio-operacional-integrado`),
-  assinarControlRoom: (visitaId, handlers) => subscribe(`/visitas-navio/${visitaId}/stream`, handlers)
+  obterRelatorioOperacionalIntegrado: (visitaId) => request(`/visitas-navio/${visitaId}/relatorio-operacional-integrado`)
 };
-
-function formatDetails(details) {
-  if (details === null || details === undefined || details === '') return '';
-  if (typeof details === 'string') return details;
-  try {
-    return JSON.stringify(details);
-  } catch {
-    return String(details);
-  }
-}
 
 export function formatError(error, fallback = 'Não foi possível concluir a operação.') {
   const payload = error?.payload ?? error?.error ?? {};
   const message = payload?.mensagem ?? payload?.erro ?? payload?.message ?? error?.message ?? fallback;
   const code = payload?.codigo ? ` [${payload.codigo}]` : '';
-  const formattedDetails = formatDetails(payload?.detalhes);
-  const details = formattedDetails ? ` - ${formattedDetails}` : '';
+  const details = payload?.detalhes ? ` - ${typeof payload.detalhes === 'string' ? payload.detalhes : JSON.stringify(payload.detalhes)}` : '';
   const correlation = payload?.correlationId ? ` (correlationId: ${payload.correlationId})` : '';
   return `${message}${code}${details}${correlation}`;
 }

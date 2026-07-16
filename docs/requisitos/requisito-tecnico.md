@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-16 após implementação do ASYNC10.
+Status: atualizado em 2026-07-16 após implementação de ASYNC10, STATE10 e DATA10.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -27,31 +27,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/OtimizacaoGlobalNavioPatioServico.java` | `otimizar()` | O método monta e devolve um plano em transação somente leitura, mas não possui comando para aplicar ou versionar o resultado. | Persistir uma proposta versionada ou devolver um identificador imutável; criar `novo método sugerido: aplicarPlanoOtimizado()` para efetivar reservas, ordens e work queues com validação de concorrência. |
 | `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/dto/ResultadoReplanejamentoPatioNavioDTO.java` | ganho e risco | Os campos aceitam valores que não correspondem a uma memória de cálculo real. | Preencher os campos com indicadores calculados e rastreáveis do plano aplicado, sem constantes artificiais. |
 
-## 2. Persistência, contratos e estado operacional
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| DATA10 | Validar o plano de guindastes contra work queues reais do Yard antes de persistir. | Cada `workQueueId` pertence à mesma visita, é compatível com berço e porão, está operacionalmente disponível e possui cobertura e recursos válidos; um plano inválido não substitui o plano vigente. | ⬜ Pendente |
-| STATE10 | Unificar as mutações de work queue e work instruction no fluxo que usa recursos reais e a matriz oficial de estados. | Controllers e frontend não conseguem despachar por fila com equipamento textual ou sem cobertura; todas as transições passam por uma única regra, auditam motivo e preservam os vínculos com equipamento, POW, pool e plano. | ⬜ Pendente |
-
-### DATA10 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/QuayBerthCraneServico.java` | `validarAlocacao()` | `workQueueId` é validado apenas como número positivo; existência, visita, status, cobertura, equipamento e compatibilidade não são consultados. | Injetar uma porta de consulta do Yard e validar a fila real antes de aceitar cada alocação. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/QuayBerthCraneServico.java` | `salvarPlano()` e `criarEntidade()` | O plano anterior é removido e o identificador informado é persistido sem vínculo comprovado com o Yard. | Validar o comando completo antes da substituição e persistir referências somente após confirmação da fonte proprietária. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueueOperacaoServico.java` | consulta de work queue e recursos | O Yard possui os vínculos reais, mas não há contrato local específico usado pelo plano de guindastes. | Expor uma porta de leitura que retorne visita, porão, status, cobertura, POW, pool, equipamento e job list necessários à validação. |
-
-### STATE10 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueuePatioServico.java` | `atualizarEquipamento()` e `despachar()` | O fluxo legado grava equipamento como texto e o dispatch apenas exige fila ativa antes de marcar ordens como `EM_EXECUCAO`. | Delegar as mutações ao fluxo operacional que resolve `EquipamentoPatio`, verifica cobertura e aplica a matriz de transições; rejeitar dispatch sem recursos reais válidos. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueueOperacaoServico.java` | `associarRecursos()`, `transicionar()` e `MATRIZ_ESTADOS` | A implementação nova valida equipamento e estados, mas concorre com endpoints legados ainda ativos. | Tornar este serviço a única fonte de mutação e incluir nele o comando de dispatch com as mesmas garantias. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueuePatioControlador.java` | `/pow`, `/equipamento`, `/dispatch`, `/reset`, `/cancelar` | Os contratos antigos continuam acessíveis e contornam parte das validações do fluxo novo. | Fazer os contratos compatíveis delegarem ao serviço único ou removê-los após migração dos consumidores, sem manter dois caminhos de escrita. |
-| `frontend/servico-navio-siderurgico/src/api.js` | métodos de work queue e work instruction | O frontend chama somente os contratos legados para recurso, dispatch, reset e cancelamento. | Migrar para `/recursos-operacionais`, transições da matriz, drill-down e job lists por equipamento. |
-
-## 3. Eventos, integrações e processamento assíncrono
+## 2. Eventos, integrações e processamento assíncrono
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
@@ -76,7 +52,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueueOperacaoServico.java` | `transicionar()` e mutações de recursos | As mudanças persistem e auditam, mas não formam o fluxo interno principal de atualização do módulo Navio Siderúrgico. | Publicar eventos internos após commit com identidade e versão; consumidores devem ser idempotentes. |
 | `backend/servico-navio/src/main/java/br/com/cloudport/serviconavio` | atualização do cadastro canônico | Alterações do domínio não disparam um contrato interno consumido pela projeção siderúrgica. | Publicar evento interno versionado contendo o identificador canônico e os campos alterados. |
 
-## 4. Interface e navegação operacional
+## 3. Interface e navegação operacional
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

@@ -84,26 +84,70 @@ function OrdersTable({ orders, priorities, onPriority, onSuspend, onResume, busy
   </tbody></table></div>;
 }
 
-function WorkQueue({ queue, edit, expanded, priorities, busyKey, onToggle, onEdit, onAction, onInstruction }) {
+function WorkQueue({ queue, edit, expanded, priorities, fetchPriorities, busyKey, onToggle, onEdit, onAction, onInstruction }) {
   const jobs = queue.jobList ?? [];
-  return <article className="queue"><button className="queue-head" onClick={onToggle} aria-expanded={expanded}><span><strong>{queue.identificador}</strong><small>{queue.agrupamento} · {queue.berco || 'sem berço'} · {queue.blocoZona || 'sem zona'}</small></span><span><span className={statusClass(queue.status)}>{queue.status}</span><strong>{jobs.length || queue.totalOrdens || 0} jobs</strong>{expanded ? '▴' : '▾'}</span></button>
-    {expanded && <div className="queue-body"><div className="queue-editor">
-      <label>POW<input value={edit.pow} onChange={(event) => onEdit({ ...edit, pow: event.target.value })} /></label><label>Pool<input value={edit.poolOperacional} onChange={(event) => onEdit({ ...edit, poolOperacional: event.target.value })} /></label><button className="secondary" disabled={busyKey === `pow-${queue.id}`} onClick={() => onAction('pow')}>Salvar POW/pool</button>
-      <label>Equipamento<input value={edit.equipamento} onChange={(event) => onEdit({ ...edit, equipamento: event.target.value })} /></label><button className="secondary" disabled={busyKey === `equipment-${queue.id}`} onClick={() => onAction('equipment')}>Salvar equipamento</button><label>Limite<input type="number" min="1" value={edit.limite ?? ''} onChange={(event) => onEdit({ ...edit, limite: event.target.value ? Number(event.target.value) : null })} /></label>
-    </div><div className="actions">{queue.status === 'ATIVA' ? <button className="warning" onClick={() => onAction('deactivate')}>Desativar</button> : <button onClick={() => onAction('activate')}>Ativar</button>}<button onClick={() => onAction('dispatch')}>Despachar</button></div>
-    {jobs.length ? <div className="table-wrap nested"><table><thead><tr><th>Lote</th><th>Status</th><th>Destino</th><th>Prioridade</th><th>Ações</th></tr></thead><tbody>{jobs.map((job) => <tr key={job.id}><td>{job.codigoLote}</td><td><span className={statusClass(job.statusOrdem)}>{job.statusOrdem}</span></td><td>{job.destino || job.posicaoPlanejada || '—'}</td><td>{priorities[job.id] ?? job.prioridadeOperacional ?? 0}</td><td><div className="actions compact"><button className="small secondary" onClick={() => onInstruction('reset', job)}>Resetar</button><button className="small danger" onClick={() => onInstruction('cancel', job)}>Cancelar</button></div></td></tr>)}</tbody></table></div> : <p className="empty">A fila não possui jobs.</p>}
+  const terminal = (status) => ['CONCLUIDA', 'CANCELADA'].includes(status);
+  return <article className="queue"><button className="queue-head" onClick={onToggle} aria-expanded={expanded}><span><strong>{queue.identificador}</strong><small>{queue.agrupamento} · {queue.berco || 'sem berço'} · porão {queue.porao ?? '—'} · {queue.blocoZona || 'sem zona'}</small></span><span><span className={statusClass(queue.status)}>{queue.status}</span><strong>{jobs.length || queue.totalOrdens || 0} jobs</strong>{expanded ? '▴' : '▾'}</span></button>
+    {expanded && <div className="queue-body">
+      <div className="queue-editor">
+        <label>POW<input value={edit.pow} onChange={(event) => onEdit({ ...edit, pow: event.target.value })} /></label>
+        <label>Pool<input value={edit.poolOperacional} onChange={(event) => onEdit({ ...edit, poolOperacional: event.target.value })} /></label>
+        <button className="secondary" disabled={busyKey === `pow-${queue.id}`} onClick={() => onAction('pow')}>Salvar POW/pool</button>
+        <label>Porão<input type="number" min="0" value={edit.porao ?? ''} onChange={(event) => onEdit({ ...edit, porao: event.target.value ? Number(event.target.value) : null })} /></label>
+        <label>Plano de guindaste<input type="number" min="1" value={edit.planoGuindasteId ?? ''} onChange={(event) => onEdit({ ...edit, planoGuindasteId: event.target.value ? Number(event.target.value) : null })} /></label>
+        <label>Recurso de cais<input type="number" min="1" value={edit.recursoCaisId ?? ''} onChange={(event) => onEdit({ ...edit, recursoCaisId: event.target.value ? Number(event.target.value) : null })} /></label>
+        <label>CHE real<input type="number" min="1" value={edit.equipamentoPatioId ?? ''} onChange={(event) => onEdit({ ...edit, equipamentoPatioId: event.target.value ? Number(event.target.value) : null })} /></label>
+        <button className="secondary" disabled={busyKey === `resources-${queue.id}`} onClick={() => onAction('resources')}>Salvar recursos</button>
+        <label>Limite de dispatch<input type="number" min="1" value={edit.limite ?? ''} onChange={(event) => onEdit({ ...edit, limite: event.target.value ? Number(event.target.value) : null })} /></label>
+      </div>
+      <p className="empty">Guindaste: {queue.planoGuindasteId ?? 'não associado'} · recurso de cais: {queue.recursoCaisId ?? 'não associado'} · CHE: {queue.equipamento || queue.equipamentoPatioId || 'não associado'}</p>
+      <div className="actions">{queue.status === 'ATIVA' ? <button className="warning" onClick={() => onAction('deactivate')}>Desativar</button> : <button onClick={() => onAction('activate')}>Ativar</button>}<button onClick={() => onAction('dispatch')}>Despachar</button></div>
+      {jobs.length ? <div className="table-wrap nested"><table><thead><tr><th>Lote</th><th>Status</th><th>Destino</th><th>Prioridade operacional</th><th>Fetch</th><th>Ações</th></tr></thead><tbody>{jobs.map((job) => <tr key={job.id}>
+        <td>{job.codigoLote}</td><td><span className={statusClass(job.statusOrdem)}>{job.statusOrdem}</span></td><td>{job.destino || job.posicaoPlanejada || '—'}</td>
+        <td><input type="number" min="0" value={priorities[job.id] ?? job.prioridadeOperacional ?? 0} onChange={(event) => onInstruction('edit-priority', job, Number(event.target.value))} /></td>
+        <td><label className="check"><input type="checkbox" checked={fetchPriorities[job.id] ?? !!job.prioridadeBusca} onChange={(event) => onInstruction('edit-fetch', job, event.target.checked)} />Priorizar busca</label></td>
+        <td><div className="actions compact">
+          <button className="small secondary" onClick={() => onInstruction('priority', job)}>Salvar prioridades</button>
+          <button className="small secondary" onClick={() => onInstruction('drilldown', job)}>Detalhes</button>
+          {!terminal(job.statusOrdem) && job.statusOrdem !== 'SUSPENSA' && <button className="small warning" onClick={() => onInstruction('suspend', job)}>Suspender</button>}
+          {['SUSPENSA', 'BLOQUEADA'].includes(job.statusOrdem) && <button className="small" onClick={() => onInstruction('resume', job)}>Retomar</button>}
+          {!terminal(job.statusOrdem) && job.statusOrdem !== 'BLOQUEADA' && <button className="small warning" onClick={() => onInstruction('block', job)}>Bloquear</button>}
+          {job.statusOrdem === 'EM_EXECUCAO' && <button className="small" onClick={() => onInstruction('complete', job)}>Concluir</button>}
+          {!terminal(job.statusOrdem) && <button className="small secondary" onClick={() => onInstruction('reset', job)}>Resetar</button>}
+          {!terminal(job.statusOrdem) && <button className="small danger" onClick={() => onInstruction('cancel', job)}>Cancelar</button>}
+        </div></td>
+      </tr>)}</tbody></table></div> : <p className="empty">A fila não possui jobs.</p>}
     </div>}
   </article>;
+}
+
+function EquipmentJobLists({ panels, onInstruction }) {
+  if (!panels.length) return <p className="empty">Nenhum CHE real possui work queue associada nesta visita.</p>;
+  return <div className="list">{panels.map((panel) => <article key={panel.equipamentoPatioId}>
+    <div><strong>{panel.equipamentoIdentificador}</strong><span className={statusClass(panel.equipamentoStatus)}>{panel.equipamentoStatus}</span></div>
+    <p>{panel.equipamentoTipo} · {panel.totalFilas} fila(s) · {panel.totalInstrucoes} job(s)</p>
+    {(panel.workQueues ?? []).map((queue) => <div key={queue.id} className="actions compact"><span>{queue.identificador} ({queue.totalOrdens})</span>{(queue.jobList ?? []).map((job) => <button key={job.id} className="small secondary" onClick={() => onInstruction('drilldown', job)}>{job.codigoLote}</button>)}</div>)}
+  </article>)}</div>;
+}
+
+function DrillDown({ value, onClose }) {
+  if (!value) return null;
+  const instruction = value.workInstruction ?? {};
+  return <section className="panel"><div className="section-head"><div><span className="eyebrow">Work instruction</span><h2>Drill-down #{instruction.id}</h2></div><button className="small secondary" onClick={onClose}>Fechar</button></div>
+    <div className="metrics"><Metric label="Status" value={instruction.statusOrdem || '—'} detail={instruction.codigoConteiner} /><Metric label="Fila" value={value.workQueue?.identificador || 'Sem fila'} detail={`POW ${value.workQueue?.pow || '—'}`} /><Metric label="CHE" value={value.equipamentoIdentificador || 'Não associado'} detail={`${value.equipamentoTipo || '—'} · ${value.equipamentoStatus || '—'}`} /><Metric label="Prioridades" value={`${instruction.prioridadeOperacional ?? 0}`} detail={instruction.prioridadeBusca ? 'fetch prioritário' : 'fetch normal'} /></div>
+    <p>Próximos estados permitidos: {(value.proximosEstadosPermitidos ?? []).join(', ') || 'nenhum'}</p>
+    <div className="table-wrap"><table><thead><tr><th>Data</th><th>Ação</th><th>Usuário</th><th>Motivo</th><th>Detalhes</th></tr></thead><tbody>{(value.auditoria ?? []).map((entry) => <tr key={entry.id}><td>{dateTime(entry.criadoEm)}</td><td>{entry.acao}</td><td>{entry.usuario}</td><td>{entry.motivo || '—'}</td><td>{entry.detalhes || '—'}</td></tr>)}</tbody></table></div>
+  </section>;
 }
 
 function ControlRoom({ session, onLogout }) {
   const [navios, setNavios] = useState([]); const [visits, setVisits] = useState([]); const [visitId, setVisitId] = useState(null);
   const [summary, setSummary] = useState(EMPTY_SUMMARY); const [integration, setIntegration] = useState(EMPTY_INTEGRATION);
   const [items, setItems] = useState([]); const [events, setEvents] = useState([]); const [reservations, setReservations] = useState([]);
-  const [orders, setOrders] = useState([]); const [queues, setQueues] = useState([]); const [workQueues, setWorkQueues] = useState([]); const [uncovered, setUncovered] = useState([]); const [alerts, setAlerts] = useState([]);
+  const [orders, setOrders] = useState([]); const [queues, setQueues] = useState([]); const [workQueues, setWorkQueues] = useState([]); const [uncovered, setUncovered] = useState([]); const [alerts, setAlerts] = useState([]); const [equipmentPanels, setEquipmentPanels] = useState([]);
   const [statusFilter, setStatusFilter] = useState(''); const [zoneFilter, setZoneFilter] = useState(''); const [severityFilter, setSeverityFilter] = useState('');
-  const [autoRefresh, setAutoRefresh] = useState(true); const [lastUpdate, setLastUpdate] = useState(null); const [expanded, setExpanded] = useState({}); const [edits, setEdits] = useState({}); const [priorities, setPriorities] = useState({});
-  const [busy, setBusy] = useState(false); const [busyKey, setBusyKey] = useState(''); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const [result, setResult] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(true); const [lastUpdate, setLastUpdate] = useState(null); const [expanded, setExpanded] = useState({}); const [edits, setEdits] = useState({}); const [priorities, setPriorities] = useState({}); const [fetchPriorities, setFetchPriorities] = useState({});
+  const [busy, setBusy] = useState(false); const [busyKey, setBusyKey] = useState(''); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const [result, setResult] = useState(null); const [drillDown, setDrillDown] = useState(null);
   const activeRequest = useRef(null);
   const snapshotVersion = useRef(0);
   const selectedVisit = useMemo(() => visits.find((visit) => visit.id === visitId), [visits, visitId]);
@@ -113,11 +157,17 @@ function ControlRoom({ session, onLogout }) {
     if (activeRequest.current?.visitId === id) return activeRequest.current.promise;
     const version = ++snapshotVersion.current;
     if (!silent) setBusy(true);
-    const promise = Promise.all([api.listarItensVisita(id), api.obterResumo(id), api.listarEventos(id), api.obterResumoIntegracaoPatio(id), api.listarReservasPatio(id), api.listarOrdensPatio(id), api.listarFilasPatio(id), api.listarWorkQueuesPatio(id), api.listarOrdensSemCoberturaPatio(id), api.listarAlertasIntegracaoPatio(id)]).then(([newItems, newSummary, newEvents, newIntegration, newReservations, newOrders, newQueues, newWorkQueues, newUncovered, newAlerts]) => {
+    const promise = Promise.all([
+      api.listarItensVisita(id), api.obterResumo(id), api.listarEventos(id), api.obterResumoIntegracaoPatio(id),
+      api.listarReservasPatio(id), api.listarOrdensPatio(id), api.listarFilasPatio(id), api.listarWorkQueuesPatio(id),
+      api.listarOrdensSemCoberturaPatio(id), api.listarAlertasIntegracaoPatio(id), api.listarJobListsEquipamentoPatio(id)
+    ]).then(([newItems, newSummary, newEvents, newIntegration, newReservations, newOrders, newQueues, newWorkQueues, newUncovered, newAlerts, newEquipmentPanels]) => {
       if (version !== snapshotVersion.current) return;
-      setItems(newItems); setSummary(newSummary); setEvents(newEvents); setIntegration(newIntegration); setReservations(newReservations); setOrders(newOrders); setQueues(newQueues); setWorkQueues(newWorkQueues); setUncovered(newUncovered); setAlerts(newAlerts); setLastUpdate(new Date());
-      setPriorities((current) => [...newOrders, ...newWorkQueues.flatMap((queue) => queue.jobList ?? [])].reduce((acc, order) => order.id ? { ...acc, [order.id]: current[order.id] ?? order.prioridadeOperacional ?? order.sequenciaNavio ?? 0 } : acc, {}));
-      setEdits((current) => newWorkQueues.reduce((acc, queue) => ({ ...acc, [queue.id]: current[queue.id] ?? { pow: queue.pow || '', poolOperacional: queue.poolOperacional || '', equipamento: queue.equipamento || '', limite: null } }), {}));
+      setItems(newItems); setSummary(newSummary); setEvents(newEvents); setIntegration(newIntegration); setReservations(newReservations); setOrders(newOrders); setQueues(newQueues); setWorkQueues(newWorkQueues); setUncovered(newUncovered); setAlerts(newAlerts); setEquipmentPanels(newEquipmentPanels); setLastUpdate(new Date());
+      const allOrders = [...newOrders, ...newWorkQueues.flatMap((queue) => queue.jobList ?? [])];
+      setPriorities((current) => allOrders.reduce((acc, order) => order.id ? { ...acc, [order.id]: current[order.id] ?? order.prioridadeOperacional ?? order.sequenciaNavio ?? 0 } : acc, {}));
+      setFetchPriorities((current) => allOrders.reduce((acc, order) => order.id ? { ...acc, [order.id]: current[order.id] ?? !!order.prioridadeBusca } : acc, {}));
+      setEdits((current) => newWorkQueues.reduce((acc, queue) => ({ ...acc, [queue.id]: current[queue.id] ?? { pow: queue.pow || '', poolOperacional: queue.poolOperacional || '', porao: queue.porao ?? null, planoGuindasteId: queue.planoGuindasteId ?? null, recursoCaisId: queue.recursoCaisId ?? null, equipamentoPatioId: queue.equipamentoPatioId ?? null, limite: null } }), {}));
     }).finally(() => {
       if (activeRequest.current?.promise === promise) activeRequest.current = null;
       if (!silent && version === snapshotVersion.current) setBusy(false);
@@ -130,14 +180,49 @@ function ControlRoom({ session, onLogout }) {
   useEffect(() => { if (visitId) loadSnapshot(visitId).catch((reason) => setError(formatError(reason))); }, [visitId, loadSnapshot]);
   useEffect(() => { if (!autoRefresh || !visitId) return undefined; const timer = setInterval(() => loadSnapshot(visitId, true).catch((reason) => setError(formatError(reason))), 30000); return () => clearInterval(timer); }, [autoRefresh, visitId, loadSnapshot]);
 
-  async function action(key, operation, message) { setBusyKey(key); setError(''); setSuccess(''); try { const response = await operation(); if (response !== undefined) setResult(response); setSuccess(message); } catch (reason) { setError(formatError(reason)); } finally { setBusyKey(''); } }
+  async function action(key, operation, message) { setBusyKey(key); setError(''); setSuccess(''); try { const response = await operation(); if (response !== undefined) setResult(response); setSuccess(message); return response; } catch (reason) { setError(formatError(reason)); return undefined; } finally { setBusyKey(''); } }
   const refresh = () => action('refresh', () => loadSnapshot(visitId), 'Control Room atualizado.');
-  async function queueAction(queue, type) { const edit = edits[queue.id]; const operations = { activate: () => api.ativarWorkQueuePatio(queue.id), deactivate: () => api.desativarWorkQueuePatio(queue.id), pow: () => api.atualizarPowWorkQueuePatio(queue.id, { pow: edit.pow || null, poolOperacional: edit.poolOperacional || null }), equipment: () => api.atualizarEquipamentoWorkQueuePatio(queue.id, { equipamento: edit.equipamento || null }), dispatch: () => api.despacharWorkQueuePatio(queue.id, { limiteOrdens: edit.limite || null, observacao: 'Dispatch acionado pelo Control Room React' }) }; await action(`${type}-${queue.id}`, operations[type], 'Work queue atualizada.'); await loadSnapshot(visitId, true); }
-  async function instructionAction(type, order) { await action(`${type}-${order.id}`, () => type === 'reset' ? api.resetarWorkInstructionPatio(order.id) : api.cancelarWorkInstructionPatio(order.id), type === 'reset' ? 'Work instruction resetada.' : 'Work instruction cancelada.'); await loadSnapshot(visitId, true); }
+  const askReason = (label) => { const reason = clean(window.prompt(`Informe o motivo para ${label}:`) ?? ''); return reason || null; };
+
+  async function queueAction(queue, type) {
+    const edit = edits[queue.id];
+    const operations = {
+      activate: () => api.ativarWorkQueuePatio(queue.id),
+      deactivate: () => api.desativarWorkQueuePatio(queue.id),
+      pow: () => api.atualizarPowWorkQueuePatio(queue.id, { pow: edit.pow || null, poolOperacional: edit.poolOperacional || null }),
+      resources: () => { const motivo = askReason('associar recursos operacionais'); return motivo ? api.atualizarRecursosWorkQueuePatio(queue.id, { porao: edit.porao, planoGuindasteId: edit.planoGuindasteId, recursoCaisId: edit.recursoCaisId, equipamentoPatioId: edit.equipamentoPatioId, motivo }) : undefined; },
+      dispatch: () => api.despacharWorkQueuePatio(queue.id, { limiteOrdens: edit.limite || null, observacao: 'Dispatch acionado pelo Control Room React' })
+    };
+    const response = await action(`${type}-${queue.id}`, operations[type], 'Work queue atualizada.');
+    if (response !== undefined) await loadSnapshot(visitId, true);
+  }
+
+  async function instructionAction(type, order, value) {
+    if (type === 'edit-priority') { setPriorities((current) => ({ ...current, [order.id]: value })); return; }
+    if (type === 'edit-fetch') { setFetchPriorities((current) => ({ ...current, [order.id]: value })); return; }
+    if (type === 'drilldown') { const response = await action(`drilldown-${order.id}`, () => api.obterDrillDownWorkInstructionPatio(order.id), 'Drill-down carregado.'); if (response) setDrillDown(response); return; }
+
+    const labels = { suspend: 'suspender a work instruction', resume: 'retomar a work instruction', block: 'bloquear a work instruction', complete: 'concluir a work instruction', priority: 'alterar as prioridades' };
+    const motivo = labels[type] ? askReason(labels[type]) : null;
+    if (labels[type] && !motivo) return;
+    const operations = {
+      reset: () => api.resetarWorkInstructionPatio(order.id),
+      cancel: () => api.cancelarWorkInstructionPatio(order.id),
+      suspend: () => api.suspenderWorkInstructionPatio(order.id, motivo),
+      resume: () => api.retomarWorkInstructionPatio(order.id, motivo),
+      block: () => api.bloquearWorkInstructionPatio(order.id, motivo),
+      complete: () => api.concluirWorkInstructionPatio(order.id, motivo),
+      priority: () => api.atualizarPrioridadesWorkInstructionPatio(order.id, { prioridadeOperacional: priorities[order.id] ?? order.prioridadeOperacional ?? 0, prioridadeBusca: fetchPriorities[order.id] ?? !!order.prioridadeBusca, motivo })
+    };
+    const messages = { reset: 'Work instruction resetada.', cancel: 'Work instruction cancelada.', suspend: 'Work instruction suspensa.', resume: 'Work instruction retomada.', block: 'Work instruction bloqueada.', complete: 'Work instruction concluída.', priority: 'Prioridades atualizadas.' };
+    const response = await action(`${type}-${order.id}`, operations[type], messages[type]);
+    if (response !== undefined) await loadSnapshot(visitId, true);
+  }
+
   function changePriority(order, value, persist) { setPriorities((current) => ({ ...current, [order.id]: value })); if (persist) action(`priority-${order.id}`, () => api.atualizarPrioridadeOrdemPatio(visitId, order.id, value), 'Prioridade atualizada.').then(() => loadSnapshot(visitId, true)); }
 
   const filteredOrders = orders.filter((order) => (!statusFilter || order.statusOrdem === statusFilter) && (!zoneFilter || `${order.origem} ${order.destino} ${order.posicaoPlanejada}`.toUpperCase().includes(zoneFilter.toUpperCase())));
-  const filteredQueues = workQueues.filter((queue) => (!statusFilter || queue.status === statusFilter) && (!zoneFilter || `${queue.identificador} ${queue.berco} ${queue.blocoZona} ${queue.pow} ${queue.poolOperacional}`.toUpperCase().includes(zoneFilter.toUpperCase())));
+  const filteredQueues = workQueues.filter((queue) => (!statusFilter || queue.status === statusFilter) && (!zoneFilter || `${queue.identificador} ${queue.berco} ${queue.blocoZona} ${queue.pow} ${queue.poolOperacional} ${queue.equipamento}`.toUpperCase().includes(zoneFilter.toUpperCase())));
   const filteredAlerts = alerts.filter((alert) => !severityFilter || alert.severidade === severityFilter);
   const imminent = orders.filter((order) => ['PENDENTE', 'EM_EXECUCAO'].includes(order.statusOrdem)).sort((a, b) => (a.sequenciaNavio ?? 999999) - (b.sequenciaNavio ?? 999999)).slice(0, 5);
   const nextPhase = PHASES[selectedVisit?.fase];
@@ -148,7 +233,9 @@ function ControlRoom({ session, onLogout }) {
       <section className="metrics"><Metric label="Progresso" value={`${formatNumber(summary.percentualProgresso, 1)}%`} detail={`${summary.totalItensOperados}/${summary.totalItensPlanejados} itens`} /><Metric label="Peso operado" value={`${formatNumber(summary.pesoOperado, 1)} t`} detail={`${formatNumber(summary.pesoPlanejado, 1)} t planejadas`} /><Metric label="Ordens" value={integration.itensComOrdem} detail={`${integration.ordensEmExecucao} em execução`} /><Metric label="Alertas" value={integration.totalAlertas} detail={integration.statusPredominante} /></section>
       <section className="panel"><div className="section-head"><div><span className="eyebrow">Operação</span><h2>Ações e filtros</h2></div><label className="check"><input type="checkbox" checked={autoRefresh} onChange={() => setAutoRefresh((value) => !value)} />Atualização automática</label></div><div className="actions"><button onClick={() => action('reserve', async () => { await api.gerarReservasPatio(visitId); await loadSnapshot(visitId, true); }, 'Reservas de pátio geradas.')}>Gerar reservas</button><button onClick={() => action('orders', async () => { await api.gerarOrdensPatio(visitId); await loadSnapshot(visitId, true); }, 'Ordens de pátio geradas.')}>Gerar ordens</button><button className="secondary" onClick={() => action('sync', async () => { await api.sincronizarStatusPatio(visitId); await loadSnapshot(visitId, true); }, 'Status sincronizado.')}>Sincronizar Yard</button><button className="secondary" onClick={() => action('simulate', () => api.replanejarPatioVisita(visitId, false), 'Replanejamento simulado.')}>Simular</button><button className="warning" onClick={() => action('apply', async () => { const response = await api.replanejarPatioVisita(visitId, true); await loadSnapshot(visitId, true); return response; }, 'Replanejamento aplicado.')}>Aplicar replanejamento</button><button className="secondary" onClick={() => action('report', () => api.obterRelatorioOperacionalIntegrado(visitId), 'Relatório carregado.')}>Relatório</button></div><div className="filters"><label>Status<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">Todos</option>{['PENDENTE','EM_EXECUCAO','BLOQUEADA','SUSPENSA','CONCLUIDA','CANCELADA'].map((status) => <option key={status}>{status}</option>)}</select></label><label>Bloco/zona<input value={zoneFilter} onChange={(event) => setZoneFilter(event.target.value)} /></label><label>Severidade<select value={severityFilter} onChange={(event) => setSeverityFilter(event.target.value)}><option value="">Todas</option>{['BAIXA','MEDIA','ALTA','CRITICA'].map((severity) => <option key={severity}>{severity}</option>)}</select></label></div></section>
       <section className="panel"><div className="section-head"><div><span className="eyebrow">Execução</span><h2>Movimentos iminentes</h2></div><span>{imminent.length}</span></div><div className="imminent">{imminent.map((order) => <article key={order.id}><span>#{order.sequenciaNavio ?? '—'}</span><strong>{order.codigoLote}</strong><small>{order.origem || '—'} → {order.destino || order.posicaoPlanejada || '—'}</small><span className={statusClass(order.statusOrdem)}>{order.statusOrdem}</span></article>)}{!imminent.length && <p className="empty">Não existem movimentos iminentes.</p>}</div></section>
-      <section className="panel"><div className="section-head"><div><span className="eyebrow">Equipment Control</span><h2>Work queues e job lists</h2></div><span>{filteredQueues.length}</span></div>{filteredQueues.map((queue) => <WorkQueue key={queue.id ?? queue.identificador} queue={queue} expanded={!!expanded[queue.id]} edit={edits[queue.id] ?? { pow: '', poolOperacional: '', equipamento: '', limite: null }} priorities={priorities} busyKey={busyKey} onToggle={() => setExpanded((current) => ({ ...current, [queue.id]: !current[queue.id] }))} onEdit={(edit) => setEdits((current) => ({ ...current, [queue.id]: edit }))} onAction={(type) => queueAction(queue, type)} onInstruction={instructionAction} />)}{!filteredQueues.length && <p className="empty">Nenhuma work queue encontrada.</p>}</section>
+      <section className="panel"><div className="section-head"><div><span className="eyebrow">Equipment Control</span><h2>Work queues e job lists</h2></div><span>{filteredQueues.length}</span></div>{filteredQueues.map((queue) => <WorkQueue key={queue.id ?? queue.identificador} queue={queue} expanded={!!expanded[queue.id]} edit={edits[queue.id] ?? { pow: '', poolOperacional: '', porao: null, planoGuindasteId: null, recursoCaisId: null, equipamentoPatioId: null, limite: null }} priorities={priorities} fetchPriorities={fetchPriorities} busyKey={busyKey} onToggle={() => setExpanded((current) => ({ ...current, [queue.id]: !current[queue.id] }))} onEdit={(edit) => setEdits((current) => ({ ...current, [queue.id]: edit }))} onAction={(type) => queueAction(queue, type)} onInstruction={instructionAction} />)}{!filteredQueues.length && <p className="empty">Nenhuma work queue encontrada.</p>}</section>
+      <section className="panel"><div className="section-head"><div><span className="eyebrow">CHE</span><h2>Job list por equipamento</h2></div><span>{equipmentPanels.length}</span></div><EquipmentJobLists panels={equipmentPanels} onInstruction={instructionAction} /></section>
+      <DrillDown value={drillDown} onClose={() => setDrillDown(null)} />
       <section className="panel"><div className="section-head"><div><span className="eyebrow">Yard</span><h2>Ordens de pátio</h2></div><span>{filteredOrders.length}/{orders.length}</span></div><OrdersTable orders={filteredOrders} priorities={priorities} onPriority={changePriority} onSuspend={(order) => action(`suspend-${order.id}`, async () => { await api.suspenderOrdemPatio(visitId, order.id); await loadSnapshot(visitId, true); }, 'Ordem suspensa.')} onResume={(order) => action(`resume-${order.id}`, async () => { await api.retomarOrdemPatio(visitId, order.id); await loadSnapshot(visitId, true); }, 'Ordem retomada.')} busyKey={busyKey} /></section>
       <div className="columns"><section className="panel"><div className="section-head"><h2>Alertas</h2><span>{filteredAlerts.length}</span></div><div className="list">{filteredAlerts.map((alert, index) => <article key={`${alert.tipo}-${index}`}><div><strong>{alert.tipo}</strong><span className={statusClass(alert.severidade)}>{alert.severidade}</span></div><p>{alert.mensagem}</p></article>)}{!filteredAlerts.length && <p className="empty">Nenhum alerta.</p>}</div></section><section className="panel"><div className="section-head"><h2>Eventos recentes</h2><span>{events.length}</span></div><div className="list scroll">{events.slice(0, 30).map((event) => <article key={event.id}><div><strong>{event.tipoEvento}</strong><time>{dateTime(event.criadoEm)}</time></div><p>{event.descricao}</p><small>{event.usuario}</small></article>)}</div></section></div>
       <div className="columns"><section className="panel"><div className="section-head"><h2>Ordens sem cobertura</h2><span>{uncovered.length}</span></div><OrdersTable orders={uncovered} priorities={priorities} onPriority={() => {}} onSuspend={() => {}} onResume={() => {}} busyKey={busyKey} readOnly /></section><section className="panel"><div className="section-head"><h2>Reservas</h2><span>{reservations.length}</span></div><div className="list scroll">{reservations.map((reservation) => <article key={reservation.id ?? `${reservation.itemOperacaoNavioId}-${reservation.posicaoPatioId}`}><div><strong>{reservation.posicaoPatioId}</strong><span className={statusClass(reservation.status)}>{reservation.status}</span></div><p>Item {reservation.itemOperacaoNavioId} · {reservation.bloco || 'sem bloco'} · {reservation.tipoReserva}</p></article>)}</div></section></div>

@@ -26,16 +26,16 @@ trap cleanup EXIT
 "${COMPOSE[@]}" down -v --remove-orphans || true
 "${COMPOSE[@]}" up -d --build
 
-health_file="$(mktemp)"
+config_file="$(mktemp)"
 ready=false
 for _ in $(seq 1 120); do
-    if curl -fsS "$PUBLIC_URL/actuator/health/readiness" > "$health_file"; then
-        if python3 - "$health_file" <<'PY'
+    if curl -fsS "$PUBLIC_URL/assets/configuracao.json" > "$config_file"; then
+        if python3 - "$config_file" <<'PY'
 import json
 import sys
 with open(sys.argv[1], encoding="utf-8") as response:
     payload = json.load(response)
-if payload.get("status") != "UP":
+if "baseApiUrl" not in payload or "trustedParentOrigins" not in payload:
     raise SystemExit(1)
 PY
         then
@@ -53,10 +53,8 @@ fi
 
 index_file="$(mktemp)"
 curl -fsS "$PUBLIC_URL/" > "$index_file"
-grep -q '<app-root' "$index_file"
+grep -q 'id="root"' "$index_file"
 
-config_file="$(mktemp)"
-curl -fsS "$PUBLIC_URL/assets/configuracao.json" > "$config_file"
 python3 - "$config_file" <<'PY'
 import json
 import sys

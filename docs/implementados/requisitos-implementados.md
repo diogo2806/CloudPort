@@ -143,6 +143,13 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 35. Criar overlay de smoke com PostgreSQL e mock do Yard que exige `X-CloudPort-Service-Key`.
 36. Criar smoke test da imagem iniciada pelo Compose, com credenciais temporarias e limpeza automatica do ambiente.
 37. Validar no smoke frontend React, configuracao dinamica, bloqueio `401`, JWT, persistencia, cadastro canonico local, visita e chamada autenticada ao Yard.
+38. Validar no mesmo contexto a presenca dos controllers dos dois modulos, uma unica cadeia de seguranca e ausencia do cliente HTTP interno.
+39. Colocar os deployments legados em modo somente leitura durante a coexistencia e retornar `503` para comandos de escrita.
+40. Desativar por configuracao os jobs dos deployments legados durante o corte.
+41. Serializar reconciliacao e sincronizacao por `pg_try_advisory_xact_lock`, impedindo execucao simultanea em instancias que compartilham o PostgreSQL.
+42. Criar testes ArchUnit contra dependencias ciclicas, acesso direto a dominio/repository de outro modulo e cliente HTTP entre modulos incorporados.
+43. Validar os dois historicos Flyway sem pendencias e preservar compatibilidade de rollback por estrategia `expand and contract`.
+44. Documentar corte, coexistencia, criterios de aprovacao, rollback e bloqueios operacionais em `docs/operacao-corte-rollback-navio.md`.
 
 ## Documentacao da migracao para monolito modular implementada
 
@@ -153,6 +160,7 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 5. Atualizar o README do frontend para consumir uma unica `baseApiUrl` e nao conhecer hosts de modulos internos.
 6. Marcar `servico-gate` como deployment legado em transicao e remover referencias de documentacao inexistentes.
 7. Atualizar os requisitos pendentes com o roteiro de incorporacao de Yard, Gate, Rail, Autenticacao e Visibilidade.
+8. Criar runbook operacional de corte e rollback do primeiro runtime consolidado.
 
 ## Visibilidade operacional implementada
 
@@ -222,6 +230,11 @@ GET   /api/v1/visibilidade/conteiners/buscar
 15. Testes do throughput real do gate e da ausencia de tempo medio inventado sem ciclo completo.
 16. Teste de inicializacao conjunta dos controllers para impedir rotas ambiguas.
 17. Smoke do Compose com frontend, configuracao dinamica, seguranca, persistencia e integracao autenticada com o Yard.
+18. Teste de paridade estrutural de controllers, seguranca e integracao local no runtime consolidado.
+19. Teste concorrente do bloqueio distribuido PostgreSQL para impedir duas execucoes da mesma chave.
+20. Testes dos filtros de modo somente leitura dos deployments legados.
+21. Testes ArchUnit dos limites, dependencias e ausencia de ciclos dos modulos incorporados.
+22. Validacao Flyway dos dois schemas sem migracoes pendentes.
 
 ## Itens que nao devem voltar como pendencia principal
 
@@ -244,6 +257,7 @@ GET   /api/v1/visibilidade/conteiners/buscar
 17. Definicao e documentacao do monolito modular como arquitetura alvo do CloudPort.
 18. Rotas unicas e metricas baseadas em eventos reais no servico de Visibilidade.
 19. Smoke automatizado da imagem unificada com autenticacao e conexao ao Yard.
+20. Paridade do primeiro corte, bloqueio de escrita legado, jobs sem duplicidade, testes arquiteturais e rollback Flyway documentado.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

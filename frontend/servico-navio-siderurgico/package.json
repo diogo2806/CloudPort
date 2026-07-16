@@ -7,6 +7,7 @@
     "start": "vite --host 0.0.0.0 --port 4201",
     "build": "vite build",
     "test": "node --test src/api.test.js",
+    "test:e2e": "playwright test",
     "generate:api-types": "openapi-typescript http://localhost:8086/api-docs -o src/generated/cloudport-api.d.ts"
   },
   "dependencies": {
@@ -14,6 +15,7 @@
     "react-dom": "19.2.7"
   },
   "devDependencies": {
+    "@playwright/test": "1.55.0",
     "openapi-typescript": "^7.6.1",
     "vite": "8.1.4"
   }

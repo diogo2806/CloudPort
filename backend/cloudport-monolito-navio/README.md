@@ -94,7 +94,11 @@ Os testes do runtime verificam:
 
 ## Execução local
 
+Após os comandos de build anteriores, execute a partir da pasta do runtime:
+
 ```bash
+cd ../cloudport-monolito-navio
+
 export MONOLITO_NAVIO_DB_URL='jdbc:postgresql://localhost:5432/cloudport'
 export MONOLITO_NAVIO_DB_USERNAME='cloudport'
 export MONOLITO_NAVIO_DB_PASSWORD='cloudport'

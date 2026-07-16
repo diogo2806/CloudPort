@@ -1,7 +1,7 @@
 :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #eef3f8; font-synthesis: none; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
-button, input, select { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button { border: 0; border-radius: 9px; padding: 9px 13px; background: #2563eb; color: #fff; font-weight: 800; cursor: pointer; transition: transform .15s ease, opacity .15s ease; }
 button:hover:not(:disabled) { transform: translateY(-1px); }
 button:disabled { cursor: not-allowed; opacity: .55; }
@@ -10,7 +10,9 @@ button.warning { background: #d97706; }
 button.danger { background: #b91c1c; }
 button.small { padding: 6px 9px; font-size: 12px; }
 label { display: grid; gap: 5px; color: #334155; font-size: 12px; font-weight: 800; }
-input, select { width: 100%; border: 1px solid #cbd5e1; border-radius: 9px; padding: 9px 10px; background: #fff; color: #172033; }
+input, select, textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 9px; padding: 9px 10px; background: #fff; color: #172033; }
+textarea { resize: vertical; }
+input[readonly] { background: #f1f5f9; color: #64748b; }
 h1, h2, h3, p { margin-top: 0; }
 small { display: block; color: #64748b; }
 .eyebrow { color: #0284c7; font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
@@ -45,8 +47,8 @@ small { display: block; color: #64748b; }
 .imminent article { display: grid; gap: 6px; padding: 13px; border: 1px solid #dbe4ee; border-radius: 12px; background: #f8fafc; cursor: pointer; }
 .imminent article:hover { border-color: #60a5fa; background: #eff6ff; }
 .status { display: inline-flex; align-items: center; width: fit-content; border-radius: 999px; padding: 4px 8px; background: #e2e8f0; color: #334155; font-size: 11px; font-weight: 900; white-space: nowrap; }
-.status-ativa, .status-concluida, .status-concluido, .status-sincronizado, .status-baixa, .status-partiu { background: #dcfce7; color: #166534; }
-.status-pendente, .status-prevista, .status-media, .status-reservado { background: #fef3c7; color: #92400e; }
+.status-ativa, .status-concluida, .status-concluido, .status-sincronizado, .status-baixa, .status-partiu, .status-validado { background: #dcfce7; color: #166534; }
+.status-pendente, .status-prevista, .status-media, .status-reservado, .status-rascunho { background: #fef3c7; color: #92400e; }
 .status-em-execucao, .status-operando, .status-alta, .status-ordem-gerada { background: #dbeafe; color: #1d4ed8; }
 .status-bloqueada, .status-cancelada, .status-cancelado, .status-critica, .status-erro { background: #fee2e2; color: #991b1b; }
 .status-suspensa, .status-fundeada, .status-atracada, .status-operacao-concluida { background: #f3e8ff; color: #7e22ce; }
@@ -121,8 +123,23 @@ tbody tr:last-child td { border-bottom: 0; }
 .timeline { display: grid; gap: 10px; }
 .timeline article { display: grid; grid-template-columns: 145px 1fr; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; }
 .timeline p { margin: 4px 0; color: #475569; }
+.visit-plan-editor { display: grid; gap: 16px; }
+.editor-block { display: grid; gap: 13px; padding: 15px; border: 1px solid #dbe4ee; border-radius: 13px; background: #f8fafc; }
+.editor-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.editor-title h3 { margin: 0 0 3px; font-size: 16px; }
+.editor-grid { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 10px; }
+.editor-grid .span-2 { grid-column: span 2; }
+.item-editor { display: grid; gap: 13px; padding-top: 14px; border-top: 1px solid #dbe4ee; }
+.plan-editor { background: linear-gradient(135deg, #f8fafc, #eff6ff); }
+.plan-summary { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 8px; }
+.plan-summary span { padding: 11px; border: 1px solid #dbe4ee; border-radius: 10px; background: #fff; color: #475569; font-size: 12px; }
+.plan-summary b { display: block; margin-bottom: 3px; color: #0f172a; font-size: 17px; }
+.validation-result { display: grid; gap: 6px; padding: 12px; border: 1px solid #dbe4ee; border-radius: 10px; background: #fff; }
+.validation-result p { margin: 0; padding: 7px 9px; border-radius: 8px; font-size: 12px; }
+.validation-error { background: #fef2f2; color: #991b1b; }
+.validation-warning { background: #fffbeb; color: #92400e; }
 pre { max-height: 480px; overflow: auto; margin: 0; padding: 14px; border-radius: 10px; background: #0f172a; color: #e2e8f0; font-size: 12px; }
 footer { padding: 5px 2px 22px; color: #64748b; text-align: center; }
 .loading { position: fixed; z-index: 90; right: 18px; bottom: 18px; padding: 10px 14px; border-radius: 999px; background: #0f172a; color: #fff; box-shadow: 0 8px 25px rgba(15,23,42,.25); }
-@media (max-width: 1100px) { .metrics { grid-template-columns: repeat(2, 1fr); } .imminent, .exception-grid, .equipment-grid, .quay-grid { grid-template-columns: repeat(2, 1fr); } .queue-editor { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 760px) { .topbar, .section-head { align-items: flex-start; flex-direction: column; } .content { padding: 10px; } .selector, .metrics, .columns, .filters, .imminent, .queue-editor, .exception-grid, .equipment-grid, .quay-grid, .detail-grid { grid-template-columns: 1fr; } .top-actions { justify-content: flex-start; } .timeline article { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .metrics { grid-template-columns: repeat(2, 1fr); } .imminent, .exception-grid, .equipment-grid, .quay-grid, .editor-grid, .plan-summary { grid-template-columns: repeat(2, 1fr); } .queue-editor { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 760px) { .topbar, .section-head, .editor-title { align-items: flex-start; flex-direction: column; } .content { padding: 10px; } .selector, .metrics, .columns, .filters, .imminent, .queue-editor, .exception-grid, .equipment-grid, .quay-grid, .detail-grid, .editor-grid, .plan-summary { grid-template-columns: 1fr; } .editor-grid .span-2 { grid-column: auto; } .top-actions { justify-content: flex-start; } .timeline article { grid-template-columns: 1fr; } }

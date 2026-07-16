@@ -101,3 +101,74 @@ test('não envia sessão anterior nem metadados operacionais no login', async ()
   assert.equal(requests[0].options.headers.get('X-Correlation-Id'), null);
   assert.deepEqual(JSON.parse(requests[0].options.body), { login: 'diogo', senha: 'senha-segura' });
 });
+
+test('atualiza visita pelo contrato PUT com usuário e correlação', async () => {
+  saveSession({
+    token: jwt({ nome: 'Planejador', roles: ['ROLE_PLANEJADOR'] }),
+    nome: 'Planejador',
+    roles: ['ROLE_PLANEJADOR']
+  });
+
+  await api.atualizarVisita(12, {
+    navioId: 4,
+    codigoVisita: 'VIS-2026-001',
+    fase: 'PREVISTA'
+  });
+
+  assert.equal(requests[0].url, 'http://api.cloudport.test/visitas-navio/12');
+  assert.equal(requests[0].options.method, 'PUT');
+  const body = JSON.parse(requests[0].options.body);
+  assert.equal(body.codigoVisita, 'VIS-2026-001');
+  assert.equal(body.usuario, 'Planejador');
+  assert.equal(body.origemAcao, 'CONTROL_ROOM_NAVIO_PATIO');
+  assert.equal(body.correlationId, requests[0].options.headers.get('X-Correlation-Id'));
+});
+
+test('atualiza item da visita pelo contrato PUT tipado', async () => {
+  saveSession({
+    token: jwt({ nome: 'Planejador', roles: ['ROLE_PLANEJADOR'] }),
+    nome: 'Planejador',
+    roles: ['ROLE_PLANEJADOR']
+  });
+
+  await api.atualizarItemVisita(12, 33, {
+    tipoMovimento: 'EMBARQUE',
+    codigoLote: 'LT-001',
+    produto: 'Bobina laminada',
+    tipoCarga: 'BOBINA',
+    quantidade: 2,
+    pesoTotalToneladas: 41.5
+  });
+
+  assert.equal(requests[0].url, 'http://api.cloudport.test/visitas-navio/12/itens/33');
+  assert.equal(requests[0].options.method, 'PUT');
+  const body = JSON.parse(requests[0].options.body);
+  assert.equal(body.codigoLote, 'LT-001');
+  assert.equal(body.usuario, 'Planejador');
+});
+
+test('valida e conclui plano de estiva por contratos POST distintos', async () => {
+  saveSession({
+    token: jwt({ nome: 'Planejador', roles: ['ROLE_PLANEJADOR'] }),
+    nome: 'Planejador',
+    roles: ['ROLE_PLANEJADOR']
+  });
+
+  await api.validarPlanoEstiva(12, 8);
+  await api.concluirPlanoEstiva(12, 8);
+
+  assert.equal(requests[0].url, 'http://api.cloudport.test/visitas-navio/12/plano-estiva/8/validar');
+  assert.equal(requests[0].options.method, 'POST');
+  assert.equal(requests[1].url, 'http://api.cloudport.test/visitas-navio/12/plano-estiva/8/concluir');
+  assert.equal(requests[1].options.method, 'POST');
+  const conclusionBody = JSON.parse(requests[1].options.body);
+  assert.equal(conclusionBody.usuario, 'Planejador');
+  assert.ok(conclusionBody.correlationId);
+});
+
+test('rejeita identificadores e contratos inválidos antes de chamar a rede', () => {
+  assert.throws(() => api.atualizarVisita(0, { navioId: 1, codigoVisita: 'VIS' }), /visitaId/);
+  assert.throws(() => api.atualizarItemVisita(1, 2, { codigoLote: 'LT' }), /tipoMovimento/);
+  assert.throws(() => api.concluirPlanoEstiva(1, -5), /planoId/);
+  assert.equal(requests.length, 0);
+});

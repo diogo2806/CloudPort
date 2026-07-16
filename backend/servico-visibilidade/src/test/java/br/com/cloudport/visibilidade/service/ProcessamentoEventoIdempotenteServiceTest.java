@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import br.com.cloudport.visibilidade.entity.EventoProcessado;
 import br.com.cloudport.visibilidade.exception.ConflitoIdentidadeEventoException;
+import br.com.cloudport.visibilidade.repository.EventoProcessadoInsercaoRepository;
 import br.com.cloudport.visibilidade.repository.EventoProcessadoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
@@ -31,9 +32,12 @@ class ProcessamentoEventoIdempotenteServiceTest {
     @Mock
     private EventoProcessadoRepository eventoProcessadoRepository;
 
+    @Mock
+    private EventoProcessadoInsercaoRepository eventoProcessadoInsercaoRepository;
+
     @Test
     void deveExecutarEfeitoSomenteNaPrimeiraEntrega() {
-        when(eventoProcessadoRepository.inserirSeAusente(
+        when(eventoProcessadoInsercaoRepository.inserirSeAusente(
                 eq("evt-1"), eq("yard.container.stored"), anyString()))
                 .thenReturn(1);
         ProcessamentoEventoIdempotenteService service = criarService();
@@ -55,7 +59,7 @@ class ProcessamentoEventoIdempotenteServiceTest {
 
     @Test
     void deveIgnorarRedeliveryComMesmoPayloadIndependentementeDaOrdemDosCampos() {
-        when(eventoProcessadoRepository.inserirSeAusente(
+        when(eventoProcessadoInsercaoRepository.inserirSeAusente(
                 eq("evt-2"), eq("gate.container.entered"), anyString()))
                 .thenReturn(1, 0);
         ProcessamentoEventoIdempotenteService service = criarService();
@@ -71,7 +75,7 @@ class ProcessamentoEventoIdempotenteServiceTest {
                 identidade -> execucoes.incrementAndGet()));
 
         ArgumentCaptor<String> hashCaptor = ArgumentCaptor.forClass(String.class);
-        verify(eventoProcessadoRepository).inserirSeAusente(
+        verify(eventoProcessadoInsercaoRepository).inserirSeAusente(
                 eq("evt-2"), eq("gate.container.entered"), hashCaptor.capture());
 
         EventoProcessado existente = new EventoProcessado();
@@ -91,13 +95,13 @@ class ProcessamentoEventoIdempotenteServiceTest {
 
         assertFalse(processado);
         assertEquals(1, execucoes.get());
-        verify(eventoProcessadoRepository, times(2)).inserirSeAusente(
+        verify(eventoProcessadoInsercaoRepository, times(2)).inserirSeAusente(
                 eq("evt-2"), eq("gate.container.entered"), anyString());
     }
 
     @Test
     void deveRejeitarColisaoDeIdentidadeComPayloadDiferente() {
-        when(eventoProcessadoRepository.inserirSeAusente(
+        when(eventoProcessadoInsercaoRepository.inserirSeAusente(
                 eq("evt-3"), eq("navio.arrived"), anyString()))
                 .thenReturn(0);
         EventoProcessado existente = new EventoProcessado();
@@ -144,7 +148,7 @@ class ProcessamentoEventoIdempotenteServiceTest {
 
     @Test
     void devePropagarFalhaDoEfeitoParaPermitirRollbackDaIdentidade() {
-        when(eventoProcessadoRepository.inserirSeAusente(
+        when(eventoProcessadoInsercaoRepository.inserirSeAusente(
                 eq("evt-5"), eq("yard.container.stored"), anyString()))
                 .thenReturn(1);
         ProcessamentoEventoIdempotenteService service = criarService();
@@ -161,6 +165,8 @@ class ProcessamentoEventoIdempotenteServiceTest {
 
     private ProcessamentoEventoIdempotenteService criarService() {
         return new ProcessamentoEventoIdempotenteService(
-                eventoProcessadoRepository, new ObjectMapper());
+                eventoProcessadoRepository,
+                eventoProcessadoInsercaoRepository,
+                new ObjectMapper());
     }
 }

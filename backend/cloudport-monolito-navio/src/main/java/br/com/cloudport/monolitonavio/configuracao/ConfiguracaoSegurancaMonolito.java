@@ -1,6 +1,6 @@
 package br.com.cloudport.monolitonavio.configuracao;
 
-import br.com.cloudport.serviconavio.configuracao.InternalServiceAuthenticationFilter;
+import br.com.cloudport.monolitonavio.seguranca.InternalServiceAuthenticationFilter;
 import br.com.cloudport.serviconaviosiderurgico.configuracao.CorrelationIdFilter;
 import br.com.cloudport.serviconaviosiderurgico.configuracao.PublicApiClientAuthenticationFilter;
 import java.nio.charset.StandardCharsets;
@@ -19,12 +19,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -49,7 +53,8 @@ public class ConfiguracaoSegurancaMonolito {
 
     public ConfiguracaoSegurancaMonolito(
             @Value("${cloudport.security.jwt.secret}") String jwtSecret,
-            @Value("${cloudport.security.cors.allowed-origins:http://localhost:4200,http://localhost:4201}") String allowedOrigins,
+            @Value("${cloudport.security.cors.allowed-origins:http://localhost:4200,http://localhost:4201}")
+                    String allowedOrigins,
             InternalServiceAuthenticationFilter internalServiceAuthenticationFilter,
             PublicApiClientAuthenticationFilter publicApiClientAuthenticationFilter) {
         this.jwtSecret = jwtSecret;
@@ -67,6 +72,7 @@ public class ConfiguracaoSegurancaMonolito {
                 .authorizeRequests(authorize -> authorize
                         .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
+                        .antMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .antMatchers("/api/public/v1/**").hasRole("INTEGRACAO_EXTERNA")
                         .antMatchers(HttpMethod.GET,
@@ -93,6 +99,17 @@ public class ConfiguracaoSegurancaMonolito {
     }
 
     @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
     public JwtDecoder jwtDecoder() {
         if (!StringUtils.hasText(jwtSecret) || jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException("cloudport.security.jwt.secret deve ter ao menos 256 bits (32 bytes)");
@@ -114,12 +131,15 @@ public class ConfiguracaoSegurancaMonolito {
             List<String> roles = Optional.ofNullable(jwt.getClaimAsStringList("roles"))
                     .orElseGet(() -> {
                         String role = jwt.getClaimAsString("role");
-                        return StringUtils.hasText(role) ? Collections.singletonList(role) : Collections.emptyList();
+                        return StringUtils.hasText(role)
+                                ? Collections.singletonList(role)
+                                : Collections.emptyList();
                     });
-
             return roles.stream()
                     .filter(StringUtils::hasText)
-                    .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase(Locale.ROOT))
+                    .map(role -> role.startsWith("ROLE_")
+                            ? role
+                            : "ROLE_" + role.toUpperCase(Locale.ROOT))
                     .distinct()
                     .<GrantedAuthority>map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
@@ -137,7 +157,8 @@ public class ConfiguracaoSegurancaMonolito {
             origins = Arrays.asList("http://localhost:4200", "http://localhost:4201");
         }
         configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",

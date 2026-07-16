@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -17,6 +18,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 @Component
+@ConditionalOnProperty(
+        name = "cloudport.modulo.yard.integracao",
+        havingValue = "http",
+        matchIfMissing = true)
 public class OrdemPatioYardCliente {
 
     private final RestTemplate restTemplate;
@@ -234,6 +239,9 @@ public class OrdemPatioYardCliente {
     public static class AtualizacaoPrioridadeOrdemPatioYardDTO {
         private Integer prioridadeOperacional;
         private Boolean prioridadeBusca;
+
+        public AtualizacaoPrioridadeOrdemPatioYardDTO() {
+        }
 
         public AtualizacaoPrioridadeOrdemPatioYardDTO(Integer prioridadeOperacional, Boolean prioridadeBusca) {
             this.prioridadeOperacional = prioridadeOperacional;

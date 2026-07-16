@@ -5,9 +5,10 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @Configuration
 @EnableConfigurationProperties({
@@ -18,6 +19,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 public class OpenApiConfig {
 
     @Bean
+    @ConditionalOnExpression("'${spring.application.name:servico-gate}' != 'cloudport-runtime'")
     public OpenAPI gateOpenApi() {
         return new OpenAPI()
                 .components(new Components())

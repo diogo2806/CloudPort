@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoautenticacao.config;
 
+import java.util.UUID;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,8 +43,9 @@ public class UserInitializer implements CommandLineRunner {
 
         jdbcTemplate.update(
                 "INSERT INTO users (id, login, password, nome, transportadora_documento, transportadora_nome) " +
-                        "SELECT RANDOM_UUID(), ?, ?, ?, NULL, NULL " +
+                        "SELECT ?, ?, ?, ?, NULL, NULL " +
                         "WHERE NOT EXISTS (SELECT 1 FROM users WHERE login = ?)",
+                UUID.randomUUID(),
                 LOGIN_ADMIN,
                 senhaCodificada,
                 "Administrador do sistema",

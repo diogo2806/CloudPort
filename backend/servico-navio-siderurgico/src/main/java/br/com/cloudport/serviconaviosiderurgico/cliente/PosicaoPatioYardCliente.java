@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -12,6 +13,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 @Component
+@ConditionalOnProperty(
+        name = "cloudport.modulo.yard.integracao",
+        havingValue = "http",
+        matchIfMissing = true)
 public class PosicaoPatioYardCliente {
 
     private final RestTemplate restTemplate;

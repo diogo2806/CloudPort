@@ -1,5 +1,6 @@
 const SESSION_KEY = 'cloudportControlRoomSession';
 const REQUEST_TIMEOUT_MS = 5000;
+const SSE_RECONNECT_MS = 2000;
 
 let runtimeConfig = {
   baseApiUrl: '',
@@ -136,7 +137,7 @@ async function request(path, options = {}) {
   const correlationId = createCorrelationId();
   const body = enrichCommand(path, method, options.body, publicResource ? null : session, correlationId);
   const headers = new Headers(options.headers ?? {});
-  headers.set('Accept', 'application/json');
+  headers.set('Accept', options.accept ?? 'application/json');
   if (body !== undefined && !isFormData(body)) headers.set('Content-Type', 'application/json');
   if (session?.token && !publicResource) {
     headers.set('Authorization', `Bearer ${session.token}`);
@@ -151,7 +152,11 @@ async function request(path, options = {}) {
       signal: controller.signal
     });
     const contentType = response.headers.get('content-type') ?? '';
-    const payload = contentType.includes('application/json') ? await response.json() : await response.text();
+    const payload = options.responseType === 'blob'
+      ? await response.blob()
+      : contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
     if (!response.ok) {
       const error = new Error(payload?.mensagem ?? payload?.erro ?? payload?.message ?? `Falha HTTP ${response.status}`);
       error.payload = payload;
@@ -167,6 +172,106 @@ async function request(path, options = {}) {
   }
 }
 
+async function download(path, filename, accept) {
+  const blob = await request(path, {
+    responseType: 'blob',
+    accept,
+    timeoutMs: 30000
+  });
+  if (typeof document === 'undefined' || typeof URL === 'undefined') return blob;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  return blob;
+}
+
+function parseSseBlock(block) {
+  const event = { id: '', name: 'message', data: '' };
+  for (const rawLine of block.split('\n')) {
+    const line = rawLine.replace(/\r$/, '');
+    if (!line || line.startsWith(':')) continue;
+    const separator = line.indexOf(':');
+    const field = separator < 0 ? line : line.slice(0, separator);
+    const value = separator < 0 ? '' : line.slice(separator + 1).replace(/^ /, '');
+    if (field === 'id') event.id = value;
+    else if (field === 'event') event.name = value;
+    else if (field === 'data') event.data += `${value}\n`;
+  }
+  event.data = event.data.replace(/\n$/, '');
+  if (!event.data) return null;
+  try {
+    event.payload = JSON.parse(event.data);
+  } catch {
+    event.payload = event.data;
+  }
+  return event;
+}
+
+export function subscribeSse(path, handlers = {}) {
+  let closed = false;
+  let lastEventId = '';
+  let controller = null;
+  let reconnectTimer = null;
+
+  const connect = async () => {
+    if (closed) return;
+    controller = new AbortController();
+    const session = readSession();
+    const headers = new Headers({ Accept: 'text/event-stream' });
+    if (session?.token) headers.set('Authorization', `Bearer ${session.token}`);
+    if (lastEventId) headers.set('Last-Event-ID', lastEventId);
+    handlers.onState?.('CONECTANDO');
+    try {
+      const response = await fetch(`${runtimeConfig.baseApiUrl}${path}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      if (!response.ok || !response.body) throw new Error(`Falha ao conectar ao stream: HTTP ${response.status}`);
+      handlers.onState?.('CONECTADO');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (!closed) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+        let separator = buffer.indexOf('\n\n');
+        while (separator >= 0) {
+          const block = buffer.slice(0, separator);
+          buffer = buffer.slice(separator + 2);
+          const event = parseSseBlock(block);
+          if (event) {
+            if (event.id) lastEventId = event.id;
+            handlers.onEvent?.(event);
+          }
+          separator = buffer.indexOf('\n\n');
+        }
+      }
+    } catch (error) {
+      if (!closed && error?.name !== 'AbortError') handlers.onError?.(error);
+    } finally {
+      if (!closed) {
+        handlers.onState?.('RECONECTANDO');
+        reconnectTimer = setTimeout(connect, SSE_RECONNECT_MS);
+      }
+    }
+  };
+
+  connect();
+  return () => {
+    closed = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    controller?.abort();
+    handlers.onState?.('DESCONECTADO');
+  };
+}
+
 export const api = {
   autenticar: (login, senha) => request('/auth/login', { method: 'POST', body: { login, senha } }),
   listarNavios: () => request('/navios-siderurgicos'),
@@ -175,6 +280,15 @@ export const api = {
   listarItensVisita: (visitaId) => request(`/visitas-navio/${visitaId}/itens`),
   obterResumo: (visitaId) => request(`/visitas-navio/${visitaId}/resumo-operacional`),
   listarEventos: (visitaId) => request(`/visitas-navio/${visitaId}/eventos`),
+  assinarEventos: (visitaId, handlers) => subscribeSse(`/visitas-navio/${visitaId}/eventos/stream`, handlers),
+  obterControlRoom: (visitaId) => request(`/visitas-navio/${visitaId}/control-room`),
+  obterQuayMonitor: (visitaId) => request(`/visitas-navio/${visitaId}/quay-monitor`),
+  otimizarOperacaoGlobal: (visitaId) => request(`/visitas-navio/${visitaId}/otimizacao-global`, { method: 'POST', body: {} }),
+  validarRestricoesEstruturais: (visitaId, configuracao) => request(`/visitas-navio/${visitaId}/validacoes-estruturais`, { method: 'POST', body: configuracao }),
+  baixarRelatorioCsv: (visitaId) => download(`/visitas-navio/${visitaId}/relatorio-operacional-integrado.csv`, `relatorio-operacional-visita-${visitaId}.csv`, 'text/csv'),
+  baixarRelatorioPdf: (visitaId) => download(`/visitas-navio/${visitaId}/relatorio-operacional-integrado.pdf`, `relatorio-operacional-visita-${visitaId}.pdf`, 'application/pdf'),
+  listarTelemetriaEquipamentos: () => request('/yard/patio/equipamentos/telemetria'),
+  assinarTelemetriaEquipamentos: (handlers) => subscribeSse('/yard/patio/equipamentos/telemetria/stream', handlers),
   obterResumoIntegracaoPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio`),
   gerarReservasPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/reservas`, { method: 'POST', body: { tipoReserva: 'TENTATIVA', somentePendentes: true } }),
   listarReservasPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/reservas`),

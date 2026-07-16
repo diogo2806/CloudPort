@@ -67,6 +67,7 @@ services:
       CLOUDPORT_SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS}
       CLOUDPORT_RUNTIME_WRITES_ENABLED: "true"
       CLOUDPORT_RUNTIME_JOBS_ENABLED: "true"
+      CLOUDPORT_MODULO_AUTENTICACAO_INTEGRACAO: local
       CLOUDPORT_MODULO_NAVIO_INTEGRACAO: local
       CLOUDPORT_MODULO_YARD_INTEGRACAO: local
       TOS_API_BASE_URL: ${TOS_API_BASE_URL}
@@ -83,7 +84,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 5s
       retries: 30

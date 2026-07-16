@@ -16,6 +16,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - module: backend/servico-autenticacao
+            command: mvn -B -DskipTests package
+          - module: backend/servico-gate
+            command: mvn -B -DskipTests package
+          - module: backend/servico-rail
+            command: mvn -B -DskipTests package
+          - module: backend/servico-visibilidade
+            command: mvn -B test package
           - module: backend/servico-yard
             command: mvn -B -DskipTests package
           - module: backend/servico-navio

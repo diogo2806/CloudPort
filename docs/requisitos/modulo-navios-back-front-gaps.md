@@ -25,6 +25,7 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 5. Integrar o motor real de otimização ao endpoint de replanejamento da visita.
 6. Separar em `/filas` e `/sem-cobertura` as causas sem fila, sem POW, sem equipamento e sem job list.
 7. Evoluir o relatório integrado com produtividade, divergências detalhadas, planejado x realizado e exportação.
+8. Consumir no frontend os contratos de quay/berth/crane, permitindo consultar o monitor, editar/publicar o plano e acompanhar a produtividade do cais.
 
 ## Pendências do Control Room
 
@@ -32,7 +33,7 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 2. Criar drill-down da work instruction com eventos, auditoria, divergências, reserva, item de navio e movimento de pátio.
 3. Diferenciar visualmente sem fila, sem POW, sem equipamento, sem job list, posição inválida, reserva bloqueada e divergência Navio x Pátio.
 4. Criar painel de CHE/job list por equipamento.
-5. Criar Quay Monitor quando os contratos de berth/crane estiverem disponíveis.
+5. Criar a tela de Quay Monitor consumindo os contratos de berth/crane, com linha do tempo, alertas, progresso, MPH e ETC por guindaste.
 6. Expandir para os demais backends o contrato de erro com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp já aplicado no `servico-visibilidade`.
 7. Criar e2e para login/SSO, job list, dispatch, reset, cancelamento e indisponibilidade do Yard.
 
@@ -105,12 +106,12 @@ Ainda falta:
 
 ### 3. Work queues e cobertura operacional
 
-Já entregue: vínculo persistente `workQueueId`, endpoint `PATCH /yard/patio/work-queues/{id}/ordens`, auditoria de criação/status/POW/equipamento/vínculo/dispatch/reset/cancelamento e limite real no dispatch.
+Já entregue: vínculo persistente `workQueueId`, endpoint `PATCH /yard/patio/work-queues/{id}/ordens`, auditoria de criação/status/POW/equipamento/vínculo/dispatch/reset/cancelamento e limite real no dispatch. O plano de guindastes também persiste porão, recurso de cais e `workQueueId` por alocação.
 
 Ainda falta:
 
 1. Auditar suspensão, retomada, bloqueio e conclusão.
-2. Associar work queue a porão, plano de guindaste e recurso de cais.
+2. Validar no Yard a existência, cobertura e compatibilidade da work queue informada no plano de guindastes.
 3. Associar fila a CHE real.
 4. Auditar prioridade de fetch/busca separadamente da prioridade operacional.
 5. Criar matriz oficial de transição de work instruction.
@@ -120,15 +121,7 @@ Ainda falta:
 
 O scheduler não gera mais equipamentos, contêineres ou coordenadas aleatórias e exige dados operacionais reais. Falta conectar esse contrato ao replanejamento da visita, considerando ETA, ETB, ETD, cutoff, mapa, bloqueios, capacidade, dual-cycling e rehandle.
 
-### 5. Quay/berth/crane
-
-```text
-GET  /visitas-navio/{id}/quay-monitor
-POST /visitas-navio/{id}/crane-plan
-GET  /visitas-navio/{id}/produtividade-cais
-```
-
-### 6. Contratos externos e EDI
+### 5. Contratos externos e EDI
 
 1. Proteger `/api/public/v1` por client/app.
 2. Implementar filtros, paginação, campos selecionáveis, `correlationId`, erro padronizado e OpenAPI.
@@ -136,7 +129,7 @@ GET  /visitas-navio/{id}/produtividade-cais
 4. Completar BAPLIE, COPRAR, COARRI e VERMAS com validação, rejeição, reprocessamento e auditoria.
 5. Separar eventos internos do monólito de eventos publicados para integrações externas.
 
-### 7. Testes e observabilidade
+### 6. Testes e observabilidade
 
 1. Testar o proxy de work queues com sucesso, retorno vazio legítimo e falha do Yard convertida em `503` enquanto o Yard permanecer externo.
 2. Criar testes de contrato entre os módulos Navio Siderúrgico, Yard e Navio, cobrindo chamada local no monólito e adaptadores HTTP legados com `X-CloudPort-Service-Key`.
@@ -146,6 +139,7 @@ GET  /visitas-navio/{id}/produtividade-cais
 6. Adicionar logs estruturados, métricas e tracing com módulo, visita, item, reserva, ordem, work queue e `correlationId`.
 7. Validar o OpenAPI consolidado e ausência de rotas duplicadas.
 8. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ e todos os mapeamentos de controller.
+9. Criar testes de integração do crane plan com work queues reais do Yard e testes frontend do Quay Monitor.
 
 ## P1
 
@@ -173,7 +167,7 @@ GET  /visitas-navio/{id}/produtividade-cais
 2. Expirar e auditar reservas automaticamente.
 3. Replanejar usando mapa e otimização real.
 4. Atualizar o Control Room por eventos, sem polling.
-5. Integrar quay/berth/crane às filas e ordens.
+5. Validar quay/berth/crane contra work queues, ordens e recursos reais do Yard.
 6. Padronizar, versionar, paginar e proteger contratos externos.
 7. Cobrir o fluxo por testes de service, controller, contrato e frontend.
 8. Rastrear o fluxo por logs, métricas e tracing.

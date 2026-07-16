@@ -1,7 +1,8 @@
 package br.com.cloudport.serviconaviosiderurgico.servico;
 
-import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente;
+import br.com.cloudport.contracts.api.ComandoMotivado;
 import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardCliente.OrdemPatioYardRespostaDTO;
+import br.com.cloudport.serviconaviosiderurgico.cliente.OrdemPatioYardComandoCliente;
 import br.com.cloudport.serviconaviosiderurgico.dominio.TipoMovimentoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dto.ComandoPrioridadeOrdemPatioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.OrdemPatioDaVisitaDTO;
@@ -16,33 +17,30 @@ public class OperacaoOrdemPatioNavioServico {
 
     private final VisitaNavioServico visitaServico;
     private final SincronizadorStatusNavioPatioServico sincronizador;
-    private final OrdemPatioYardCliente ordemPatioYardCliente;
+    private final OrdemPatioYardComandoCliente comandoCliente;
 
     public OperacaoOrdemPatioNavioServico(
             VisitaNavioServico visitaServico,
             SincronizadorStatusNavioPatioServico sincronizador,
-            OrdemPatioYardCliente ordemPatioYardCliente
+            OrdemPatioYardComandoCliente comandoCliente
     ) {
         this.visitaServico = visitaServico;
         this.sincronizador = sincronizador;
-        this.ordemPatioYardCliente = ordemPatioYardCliente;
+        this.comandoCliente = comandoCliente;
     }
 
     @Transactional
     public OrdemPatioDaVisitaDTO atualizarPrioridade(Long visitaId, Long ordemId, ComandoPrioridadeOrdemPatioDTO comando) {
         var visita = visitaServico.buscarEntidade(visitaId);
         visitaServico.validarVisitaEditavel(visita);
-        OrdemPatioYardRespostaDTO resposta = ordemPatioYardCliente.atualizarPrioridade(
-                ordemId,
-                comando.prioridadeOperacional(),
-                comando.prioridadeBuscaEfetiva()
-        );
+        OrdemPatioYardRespostaDTO resposta = comandoCliente.atualizarPrioridade(ordemId, comando);
         validarResposta(visitaId, ordemId, resposta);
         visitaServico.registrarEvento(
                 visita,
                 null,
                 "PRIORIDADE_ORDEM_PATIO_ATUALIZADA",
-                "Prioridade da ordem de patio " + ordemId + " atualizada para " + comando.prioridadeOperacional() + ".",
+                "Prioridade da ordem de patio " + ordemId + " atualizada para "
+                        + comando.prioridadeOperacional() + ". Motivo: " + comando.motivo().trim(),
                 comando.usuarioEfetivo(),
                 null,
                 String.valueOf(comando.prioridadeOperacional())
@@ -51,18 +49,18 @@ public class OperacaoOrdemPatioNavioServico {
     }
 
     @Transactional
-    public OrdemPatioDaVisitaDTO suspender(Long visitaId, Long ordemId) {
+    public OrdemPatioDaVisitaDTO suspender(Long visitaId, Long ordemId, ComandoMotivado comando) {
         var visita = visitaServico.buscarEntidade(visitaId);
         visitaServico.validarVisitaEditavel(visita);
-        OrdemPatioYardRespostaDTO resposta = ordemPatioYardCliente.suspender(ordemId);
+        OrdemPatioYardRespostaDTO resposta = comandoCliente.suspender(ordemId, comando);
         validarResposta(visitaId, ordemId, resposta);
         sincronizador.sincronizarStatus(visitaId);
         visitaServico.registrarEvento(
                 visita,
                 null,
                 "ORDEM_PATIO_SUSPENSA",
-                "Ordem de patio " + ordemId + " suspensa a partir do Control Room.",
-                "sistema",
+                "Ordem de patio " + ordemId + " suspensa. Motivo: " + comando.motivoNormalizado(),
+                comando.usuarioEfetivo("sistema"),
                 null,
                 resposta.getStatusOrdem()
         );
@@ -70,18 +68,18 @@ public class OperacaoOrdemPatioNavioServico {
     }
 
     @Transactional
-    public OrdemPatioDaVisitaDTO retomar(Long visitaId, Long ordemId) {
+    public OrdemPatioDaVisitaDTO retomar(Long visitaId, Long ordemId, ComandoMotivado comando) {
         var visita = visitaServico.buscarEntidade(visitaId);
         visitaServico.validarVisitaEditavel(visita);
-        OrdemPatioYardRespostaDTO resposta = ordemPatioYardCliente.retomar(ordemId);
+        OrdemPatioYardRespostaDTO resposta = comandoCliente.retomar(ordemId, comando);
         validarResposta(visitaId, ordemId, resposta);
         sincronizador.sincronizarStatus(visitaId);
         visitaServico.registrarEvento(
                 visita,
                 null,
                 "ORDEM_PATIO_RETOMADA",
-                "Ordem de patio " + ordemId + " retomada a partir do Control Room.",
-                "sistema",
+                "Ordem de patio " + ordemId + " retomada. Motivo: " + comando.motivoNormalizado(),
+                comando.usuarioEfetivo("sistema"),
                 null,
                 resposta.getStatusOrdem()
         );
@@ -102,7 +100,6 @@ public class OperacaoOrdemPatioNavioServico {
 
     private OrdemPatioDaVisitaDTO converter(OrdemPatioYardRespostaDTO ordem) {
         TipoMovimentoNavio tipoMovimento = tipoMovimentoNavio(ordem.getTipoMovimento());
-        String destinoFormatado = ordem.posicaoDestinoFormatada();
         return new OrdemPatioDaVisitaDTO(
                 ordem.getId(),
                 ordem.getVisitaNavioId(),
@@ -112,7 +109,7 @@ public class OperacaoOrdemPatioNavioServico {
                 ordem.getStatusOrdem(),
                 tipoMovimento == TipoMovimentoNavio.DESCARGA ? "NAVIO" : ordem.getDestino(),
                 tipoMovimento == TipoMovimentoNavio.EMBARQUE ? "NAVIO" : ordem.getDestino(),
-                destinoFormatado,
+                ordem.posicaoDestinoFormatada(),
                 null,
                 ordem.getSequenciaNavio(),
                 ordem.getPrioridadeOperacional()

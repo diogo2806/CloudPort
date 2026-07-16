@@ -1,49 +1,61 @@
-# Serviço Gate
+# Módulo Gate
 
-O serviço **servico-gate** atua como orquestrador das integrações de gate do CloudPort. Ele expõe APIs REST, troca mensagens via RabbitMQ e se integra com o TOS, storage de documentos e serviços de autenticação.
+> Estado de transição: `servico-gate` ainda pode ser executado como aplicação Spring Boot independente, mas a arquitetura alvo do CloudPort é um monólito modular. Novas funcionalidades internas não devem ampliar o acoplamento distribuído deste deployment.
 
-- Visão completa da arquitetura: [`docs/servico-gate-architecture.md`](../../docs/servico-gate-architecture.md)
-- Procedimentos operacionais padrão: [`docs/servico-gate-operacoes.md`](../../docs/servico-gate-operacoes.md)
-- Scripts REST para testes manuais: [`tools/api/servico-gate.http`](../../tools/api/servico-gate.http)
+A decisão arquitetural e as regras de migração estão em [`../../docs/arquitetura-monolito-modular.md`](../../docs/arquitetura-monolito-modular.md).
 
-## Pré-requisitos
+## Responsabilidade
 
-- JDK 11 ou superior
-- Maven 3.8+
-- PostgreSQL com uma base dedicada
-- Instância RabbitMQ acessível
+O módulo Gate concentra as integrações e operações de gate do CloudPort. Atualmente ele:
+
+- expõe APIs REST de gate;
+- troca mensagens com integrações assíncronas por RabbitMQ;
+- integra com TOS e storage de documentos;
+- valida autenticação e autorização do modelo legado;
+- persiste seus dados no PostgreSQL configurado para o deployment.
+
+Após a incorporação ao runtime monolítico, os contratos REST externos devem ser preservados, enquanto chamadas para outros módulos CloudPort devem migrar para portas locais.
+
+## Pré-requisitos do deployment legado
+
+- JDK 11 ou superior;
+- Maven 3.8+;
+- PostgreSQL;
+- RabbitMQ para os fluxos que utilizam mensageria;
+- variáveis de ambiente das integrações externas.
 
 ## Configuração
 
-1. Copie o arquivo `env.example` na raiz do projeto para `.env` e ajuste as variáveis que começam com `GATE_`, `TOS_API_` e `DOCUMENT_STORAGE_`.
-2. Exporte as variáveis no terminal com `export $(grep -v '^#' .env | xargs)` ou configure-as no serviço de execução.
-3. Garanta que o banco de dados configurado em `GATE_DB_URL` exista. Exemplo:
-   ```bash
-   createdb servico_gate
-   ```
+Configure as variáveis `GATE_*`, `TOS_API_*` e `DOCUMENT_STORAGE_*` no ambiente de execução. Garanta que o banco indicado em `GATE_DB_URL` exista e esteja acessível.
 
-## Execução
+Exemplo de criação de banco para desenvolvimento:
 
-Na raiz do projeto, execute o comando abaixo para iniciar o serviço:
+```bash
+createdb servico_gate
+```
+
+## Execução isolada durante a transição
 
 ```bash
 cd backend/servico-gate
 mvn spring-boot:run
 ```
 
-Por padrão o serviço inicia na porta definida em `GATE_SERVER_PORT` (8082).
+A porta padrão é `8082`, podendo ser alterada por `GATE_SERVER_PORT`.
 
-Para levantar a stack completa com PostgreSQL, RabbitMQ, Redis e mocks de integrações, utilize o [`docker-compose`](../../docker/docker-compose.yml):
-
-```bash
-cp env.example .env
-docker compose -f docker/docker-compose.yml up --build
-```
+A execução isolada é um mecanismo de compatibilidade e rollback. O roteamento de produção deve possuir uma única origem ativa para cada rota, evitando que o deployment legado e o monólito processem a mesma escrita.
 
 ## Testes
-
-Para rodar os testes automatizados:
 
 ```bash
 mvn test
 ```
+
+## Regras para a migração
+
+- manter controllers e contratos REST estáveis;
+- mover regras de comunicação com Yard, autenticação e demais domínios para portas internas;
+- manter TOS, OCR, documentos e mensageria como adaptadores externos;
+- não compartilhar entidades JPA ou repositories com outro módulo;
+- desativar jobs e consumidores duplicados antes do corte de ambiente;
+- remover este deployment somente após validar paridade, segurança, dados, observabilidade e rollback.

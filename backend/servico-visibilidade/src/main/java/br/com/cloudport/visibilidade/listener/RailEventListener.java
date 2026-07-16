@@ -3,6 +3,7 @@ package br.com.cloudport.visibilidade.listener;
 import br.com.cloudport.visibilidade.config.RabbitMQConfig;
 import br.com.cloudport.visibilidade.dto.evento.EventoMovimentacaoTremConcluidaMensagem;
 import br.com.cloudport.visibilidade.service.MovimentoConteinerService;
+import br.com.cloudport.visibilidade.service.ProcessamentoEventoIdempotenteService;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
@@ -16,39 +17,40 @@ import org.springframework.util.StringUtils;
 public class RailEventListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RailEventListener.class);
+    private static final String ORIGEM = "RAIL";
 
     private final MovimentoConteinerService movimentoConteinerService;
+    private final ProcessamentoEventoIdempotenteService processamentoEventoService;
 
-    public RailEventListener(MovimentoConteinerService movimentoConteinerService) {
+    public RailEventListener(MovimentoConteinerService movimentoConteinerService,
+                             ProcessamentoEventoIdempotenteService processamentoEventoService) {
         this.movimentoConteinerService = movimentoConteinerService;
+        this.processamentoEventoService = processamentoEventoService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.VISIBILIDADE_RAIL_QUEUE)
     public void handleRailEvent(Map<String, Object> event) {
         String eventType = texto(event, "eventType");
-
-        if ("rail.container.moved".equals(eventType)) {
-            processarEventoLegado(event);
-            return;
-        }
-        if ("rail.movimentacao.concluida".equals(eventType)
-                || StringUtils.hasText(texto(event, "codigoConteiner"))) {
-            processarEventoOperacional(event);
-            return;
-        }
-
         if (!StringUtils.hasText(eventType)) {
-            LOGGER.warn("Evento ferroviario ignorado porque nao corresponde a um contrato conhecido.");
-        } else {
-            LOGGER.debug("Evento ferroviario sem processador registrado. eventType={}", eventType);
+            throw new IllegalArgumentException("Evento ferroviario sem eventType.");
+        }
+
+        switch (eventType) {
+            case "rail.container.moved":
+                processarEventoLegado(event, eventType);
+                break;
+            case "rail.movimentacao.concluida":
+                processarEventoOperacional(event, eventType);
+                break;
+            default:
+                LOGGER.debug("Evento ferroviario sem processador registrado. eventType={}", eventType);
         }
     }
 
-    private void processarEventoLegado(Map<String, Object> event) {
+    private void processarEventoLegado(Map<String, Object> event, String eventType) {
         String containerId = primeiroTexto(event, "containerId", "codigoConteiner");
         if (!StringUtils.hasText(containerId)) {
-            LOGGER.warn("Evento rail.container.moved ignorado porque containerId nao foi informado.");
-            return;
+            throw new IllegalArgumentException("Evento rail.container.moved sem containerId.");
         }
 
         String origem = texto(event, "origem");
@@ -56,13 +58,21 @@ public class RailEventListener {
         String equipamento = primeiroTexto(event, "equipamentoId", "equipamento", "locomotivaId");
         String responsavel = primeiroTexto(event, "responsavel", "usuario", "operatorId");
 
-        movimentoConteinerService.registrarMovimentoRail(
-                containerId, origem, destino, equipamento, responsavel);
-        LOGGER.info("Movimento ferroviario legado registrado. containerId={} origem={} destino={}",
-                containerId, origem, destino);
+        boolean processado = processamentoEventoService.processarUmaVez(
+                ORIGEM,
+                eventType,
+                event,
+                eventoId -> movimentoConteinerService.registrarMovimentoRail(
+                        eventoId, containerId, origem, destino, equipamento, responsavel));
+        if (processado) {
+            LOGGER.info("Movimento ferroviario legado registrado. containerId={} origem={} destino={}",
+                    containerId, origem, destino);
+        } else {
+            LOGGER.debug("Redelivery ferroviario legado ignorado. containerId={}", containerId);
+        }
     }
 
-    private void processarEventoOperacional(Map<String, Object> event) {
+    private void processarEventoOperacional(Map<String, Object> event, String eventType) {
         EventoMovimentacaoTremConcluidaMensagem mensagem = new EventoMovimentacaoTremConcluidaMensagem();
         mensagem.setIdVisitaTrem(longo(event, "idVisitaTrem"));
         mensagem.setIdOrdemMovimentacao(longo(event, "idOrdemMovimentacao"));
@@ -72,14 +82,24 @@ public class RailEventListener {
         mensagem.setStatusEvento(texto(event, "statusEvento"));
 
         if (!StringUtils.hasText(mensagem.getCodigoConteiner())) {
-            LOGGER.warn("Evento rail.movimentacao.concluida ignorado porque codigoConteiner nao foi informado.");
-            return;
+            throw new IllegalArgumentException(
+                    "Evento rail.movimentacao.concluida sem codigoConteiner.");
         }
 
-        movimentoConteinerService.registrarMovimentoFerroviario(mensagem);
-        LOGGER.info("Movimento ferroviario real registrado. containerId={} visita={} ordem={} tipo={}",
-                mensagem.getCodigoConteiner(), mensagem.getIdVisitaTrem(),
-                mensagem.getIdOrdemMovimentacao(), mensagem.getTipoMovimentacao());
+        boolean processado = processamentoEventoService.processarUmaVez(
+                ORIGEM,
+                eventType,
+                event,
+                eventoId -> movimentoConteinerService.registrarMovimentoFerroviario(
+                        eventoId, mensagem));
+        if (processado) {
+            LOGGER.info("Movimento ferroviario real registrado. containerId={} visita={} ordem={} tipo={}",
+                    mensagem.getCodigoConteiner(), mensagem.getIdVisitaTrem(),
+                    mensagem.getIdOrdemMovimentacao(), mensagem.getTipoMovimentacao());
+        } else {
+            LOGGER.debug("Redelivery ferroviario ignorado. containerId={}",
+                    mensagem.getCodigoConteiner());
+        }
     }
 
     private OffsetDateTime dataHora(Map<String, Object> event, String chave) {
@@ -90,8 +110,9 @@ public class RailEventListener {
         try {
             return OffsetDateTime.parse(valor);
         } catch (DateTimeParseException ex) {
-            LOGGER.warn("Data invalida recebida no evento ferroviario. campo={} valor={}", chave, valor);
-            return null;
+            throw new IllegalArgumentException(
+                    "Data invalida recebida no evento ferroviario. campo=" + chave + "; valor=" + valor,
+                    ex);
         }
     }
 

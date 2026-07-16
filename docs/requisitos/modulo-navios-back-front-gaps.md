@@ -59,11 +59,11 @@ As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-mon
 
 ## Pendências da migração para monólito modular
 
-O runtime `backend/cloudport-monolito-navio` já executa `servico-navio` e `servico-navio-siderurgico` no mesmo processo, consome os dois como módulos Maven reais, carrega as migrações publicadas pelos próprios artefatos, incorpora o frontend Angular, expõe configuração dinâmica, possui Compose com perfis `monolito` e `legado`, usa a porta local do cadastro canônico, migra separadamente os dois schemas, possui segurança centralizada e inicia com PostgreSQL real em teste cobrindo todos os repositórios JPA.
+O runtime `backend/cloudport-monolito-navio` já executa `servico-navio` e `servico-navio-siderurgico` no mesmo processo, consome os dois como módulos Maven reais, carrega as migrações publicadas pelos próprios artefatos, incorpora o frontend React, expõe configuração dinâmica, possui Compose com perfis `monolito` e `legado`, usa a porta local do cadastro canônico, migra separadamente os dois schemas, possui segurança centralizada, inicia com PostgreSQL real em teste cobrindo todos os repositórios JPA e possui smoke automatizado da imagem iniciada pelo Compose.
 
 Ainda falta:
 
-1. Validar paridade de endpoints, jobs agendados, segurança, frontend, integrações e dados antes de retirar os deployments legados de Navio e Navio Siderúrgico.
+1. Completar a paridade de endpoints, jobs agendados, segurança, integrações e dados antes de retirar os deployments legados de Navio e Navio Siderúrgico. O smoke já cobre inicialização, frontend, configuração dinâmica, bloqueio sem autenticação, JWT, persistência e chamada autenticada ao Yard.
 2. Garantir que somente uma instância execute cada job, consumidor e caminho de escrita durante o corte.
 3. Substituir chamadas HTTP restantes entre módulos incorporados por portas ou eventos internos, mantendo adaptadores HTTP apenas durante a transição.
 4. Criar testes de arquitetura que impeçam dependências cíclicas, acesso direto a repositories/entidades de outro módulo e clientes HTTP entre módulos incorporados.
@@ -149,10 +149,9 @@ GET  /visitas-navio/{id}/produtividade-cais
 4. Testar reserva contra mapa real: inexistente, ocupada, já reservada e mapa vazio.
 5. Criar e2e do fluxo operacional completo.
 6. Adicionar logs estruturados, métricas e tracing com módulo, visita, item, reserva, ordem, work queue e `correlationId`.
-7. Criar smoke test da imagem iniciada pelo Compose, cobrindo frontend, configuração dinâmica, autenticação e conexão com o Yard.
-8. Criar testes que comprovem que jobs e consumidores não executam em duplicidade durante o corte para o monólito.
-9. Validar o OpenAPI consolidado e ausência de rotas duplicadas.
-10. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ e todos os mapeamentos de controller.
+7. Criar testes que comprovem que jobs e consumidores não executam em duplicidade durante o corte para o monólito.
+8. Validar o OpenAPI consolidado e ausência de rotas duplicadas.
+9. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ e todos os mapeamentos de controller.
 
 ## P1
 

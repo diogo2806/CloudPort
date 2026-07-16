@@ -1,101 +1,92 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-16 após implementação do ASYNC10.
+Status: atualizado em 2026-07-16 após auditoria da branch main.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
-## 1. Arquitetura e fluxos principais
+## 1. Inicialização e fluxos principais
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| ARCH10 | Substituir a chamada HTTP interna do otimizador do Yard por uma porta local no runtime modular. | A otimização Navio + Pátio executa no `cloudport-runtime` por chamada local ao módulo Yard; o adaptador HTTP permanece condicionado somente ao modo de rollback. | ⬜ Pendente |
-| BUS10 | Aplicar o resultado real do otimizador no replanejamento de pátio. | O replanejamento usa o plano calculado para atualizar reservas, posições, ordens e vínculos operacionais em uma transação, compensa o estado anterior em falha e calcula ganho e risco com dados do plano. | ⬜ Pendente |
+| INIT10 | Tornar o `cloudport-runtime` o ponto de entrada canônico e manter o runtime anterior somente para rollback. | Build, execução, Compose e documentação principal apontam para `backend/cloudport-runtime`; o runtime anterior inicia apenas em configuração de rollback coerente, sem portas obrigatórias sem implementação. | ⬜ Pendente |
 
-### ARCH10 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/cliente/OtimizacaoYardCliente.java` | `otimizar(Map<String, Object>)` | O componente sempre usa `RestTemplate` para chamar `/api/scheduler/gerar-plano`, mesmo quando Navio Siderúrgico e Yard executam no mesmo processo. | Transformar o cliente em porta e manter esta implementação como adaptador HTTP condicionado ao modo de rollback. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/scheduler/servico/PredictiveSchedulerService.java` | `gerarPlanoOperacional(...)` | O serviço real do otimizador já está incorporado ao runtime, mas não é chamado diretamente pelo módulo consumidor. | Criar adaptador local que converta o contrato de entrada e invoque o serviço do Yard sem atravessar HTTP. |
-| `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/CloudPortRuntimeApplication.java` | composição dos módulos | O runtime incorpora os dois módulos, porém não registra uma implementação local para o contrato de otimização. | Registrar a implementação local como padrão do runtime e impedir a ativação simultânea dos adaptadores local e HTTP. |
-
-### BUS10 — arquivos e métodos
+### INIT10 — arquivos e métodos
 
 | Caminho completo | Método/campo/contrato | Como está | O que fazer |
 |---|---|---|---|
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/IntegracaoNavioPatioServico.java` | `replanejarPatioDaVisita()` | O fluxo apenas troca reservas item a item; não consome o plano do otimizador e retorna ganho fixo `12` e risco derivado somente da existência de falhas. | Consumir um resultado de otimização identificável, validar todas as posições e recursos e aplicar as mudanças de forma atômica. Calcular ganho e risco a partir do plano aplicado. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/OtimizacaoGlobalNavioPatioServico.java` | `otimizar()` | O método monta e devolve um plano em transação somente leitura, mas não possui comando para aplicar ou versionar o resultado. | Persistir uma proposta versionada ou devolver um identificador imutável; criar `novo método sugerido: aplicarPlanoOtimizado()` para efetivar reservas, ordens e work queues com validação de concorrência. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/dto/ResultadoReplanejamentoPatioNavioDTO.java` | ganho e risco | Os campos aceitam valores que não correspondem a uma memória de cálculo real. | Preencher os campos com indicadores calculados e rastreáveis do plano aplicado, sem constantes artificiais. |
+| `README.md` | arquitetura, compilação e execução | Apresenta `cloudport-monolito-navio` como runtime principal, embora a decisão vigente defina `cloudport-runtime` como runtime geral. | Apontar comandos e execução principal para `cloudport-runtime` e identificar o runtime anterior apenas como rollback. |
+| `backend/cloudport-monolito-navio/src/main/java/br/com/cloudport/monolitonavio/CloudPortMonolitoNavioApplication.java` | `@ComponentScan` | Carrega serviços que exigem `OtimizacaoYardCliente` e `PlanoOtimizadoYardCliente`. | Registrar implementações compatíveis com o modo de rollback ou excluir explicitamente os fluxos indisponíveis. |
+| `backend/cloudport-monolito-navio/src/main/resources/application.properties` | `cloudport.modulo.yard.integracao=local` | O modo local desativa os adaptadores HTTP, mas os adaptadores locais de otimização existem somente em `backend/cloudport-runtime`. | Configurar o rollback de acordo com os adaptadores registrados ou incorporar as portas locais obrigatórias. |
+| `docs/arquitetura-monolito-modular.md` | runtime geral e rollback | Define corretamente `cloudport-runtime` como alvo e `cloudport-monolito-navio` como primeiro corte de rollback. | Manter esta decisão como fonte única e eliminar orientações concorrentes. |
 
 ## 2. Persistência, contratos e estado operacional
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| DATA10 | Validar o plano de guindastes contra work queues reais do Yard antes de persistir. | Cada `workQueueId` pertence à mesma visita, é compatível com berço e porão, está operacionalmente disponível e possui cobertura e recursos válidos; um plano inválido não substitui o plano vigente. | ⬜ Pendente |
-| STATE10 | Unificar as mutações de work queue e work instruction no fluxo que usa recursos reais e a matriz oficial de estados. | Controllers e frontend não conseguem despachar por fila com equipamento textual ou sem cobertura; todas as transições passam por uma única regra, auditam motivo e preservam os vínculos com equipamento, POW, pool e plano. | ⬜ Pendente |
+| DATA10 | Validar o plano de guindastes contra work queues reais do Yard antes de persistir. | Cada `workQueueId` pertence à mesma visita, é compatível com berço e porão, está disponível e possui cobertura e recursos válidos; plano inválido não substitui o vigente. | ⬜ Pendente |
+| BUS10 | Concluir a aplicação idempotente e compatível do plano otimizado no Yard. | A aplicação rejeita fila incompatível com o bloco e registra de forma única o `planoId`, retornando o resultado anterior em repetição segura sem reaplicar alterações. | 🟡 Em andamento |
 
 ### DATA10 — arquivos e métodos
 
 | Caminho completo | Método/campo/contrato | Como está | O que fazer |
 |---|---|---|---|
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/QuayBerthCraneServico.java` | `validarAlocacao()` | `workQueueId` é validado apenas como número positivo; existência, visita, status, cobertura, equipamento e compatibilidade não são consultados. | Injetar uma porta de consulta do Yard e validar a fila real antes de aceitar cada alocação. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/QuayBerthCraneServico.java` | `salvarPlano()` e `criarEntidade()` | O plano anterior é removido e o identificador informado é persistido sem vínculo comprovado com o Yard. | Validar o comando completo antes da substituição e persistir referências somente após confirmação da fonte proprietária. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueueOperacaoServico.java` | consulta de work queue e recursos | O Yard possui os vínculos reais, mas não há contrato local específico usado pelo plano de guindastes. | Expor uma porta de leitura que retorne visita, porão, status, cobertura, POW, pool, equipamento e job list necessários à validação. |
+| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/QuayBerthCraneServico.java` | `validarAlocacao()` | `workQueueId` é validado somente como número positivo; existência, visita, status, cobertura, equipamento e compatibilidade não são consultados. | Injetar porta de consulta do Yard e validar a fila real antes de aceitar cada alocação. |
+| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/QuayBerthCraneServico.java` | `salvarPlano()` | O plano anterior é substituído e o ID informado é persistido sem confirmação da fonte proprietária. | Validar o comando completo antes da substituição e persistir referências somente após confirmação do Yard. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueueOperacaoServico.java` | consulta de fila e recursos | O Yard possui os vínculos necessários, mas não expõe uma porta local usada pelo plano de guindastes. | Expor contrato de leitura com visita, porão, status, POW, pool, equipamento, recurso de cais e job list. |
 
-### STATE10 — arquivos e métodos
+### BUS10 — arquivos e métodos
 
 | Caminho completo | Método/campo/contrato | Como está | O que fazer |
 |---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueuePatioServico.java` | `atualizarEquipamento()` e `despachar()` | O fluxo legado grava equipamento como texto e o dispatch apenas exige fila ativa antes de marcar ordens como `EM_EXECUCAO`. | Delegar as mutações ao fluxo operacional que resolve `EquipamentoPatio`, verifica cobertura e aplica a matriz de transições; rejeitar dispatch sem recursos reais válidos. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueueOperacaoServico.java` | `associarRecursos()`, `transicionar()` e `MATRIZ_ESTADOS` | A implementação nova valida equipamento e estados, mas concorre com endpoints legados ainda ativos. | Tornar este serviço a única fonte de mutação e incluir nele o comando de dispatch com as mesmas garantias. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueuePatioControlador.java` | `/pow`, `/equipamento`, `/dispatch`, `/reset`, `/cancelar` | Os contratos antigos continuam acessíveis e contornam parte das validações do fluxo novo. | Fazer os contratos compatíveis delegarem ao serviço único ou removê-los após migração dos consumidores, sem manter dois caminhos de escrita. |
-| `frontend/servico-navio-siderurgico/src/api.js` | métodos de work queue e work instruction | O frontend chama somente os contratos legados para recurso, dispatch, reset e cancelamento. | Migrar para `/recursos-operacionais`, transições da matriz, drill-down e job lists por equipamento. |
+| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/AplicacaoPlanoOtimizadoNavioPatioServico.java` | `replanejar()` e `gerarPlanoId()` | O fluxo já aplica o plano real, calcula indicadores e compensa falhas, mas o ID determinístico não é persistido como aplicação única. | Criar `novo método sugerido: buscarOuRegistrarAplicacaoPlano()` para reutilizar resultado concluído e impedir aplicação concorrente do mesmo plano. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/PlanoOtimizadoPatioServico.java` | `selecionarFila()` | Sem candidata do mesmo `blocoZona`, retorna a primeira fila do equipamento e pode vincular a ordem a outro bloco. | Rejeitar o plano quando não houver fila compatível; não usar fallback para zona diferente. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/PlanoOtimizadoPatioServico.java` | `aplicar()` | `planoId` aparece apenas no histórico e não diferencia primeira aplicação, repetição ou execução em andamento. | Persistir identidade, visita, status e resultado na mesma transação das alterações do Yard. |
 
 ## 3. Eventos, integrações e processamento assíncrono
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| ASYNC20 | Tornar o processamento EDI idempotente e desacoplado da requisição HTTP. | A combinação de tipo, identificadores `UNB`/`UNH` e referência possui unicidade; a recepção é persistida antes da confirmação e o processamento ocorre por worker com retentativa segura e quarentena. | ⬜ Pendente |
-| ASYNC30 | Usar eventos internos como fluxo principal de atualização Yard → Navio e Navio canônico → projeção siderúrgica. | Alterações relevantes publicam eventos no processo e atualizam os consumidores imediatamente; os jobs periódicos permanecem apenas para reconciliação de perdas, sem varrer toda a base como mecanismo principal. | ⬜ Pendente |
+| ASYNC20 | Fazer todos os ingressos EDI usarem a recepção idempotente e o worker transacional. | HTTP e RabbitMQ registram a mesma identidade antes de confirmar; nenhum listener chama o processador diretamente ou converte falha em sucesso; worker e retentativa respeitam o controle de execução. | 🟡 Em andamento |
+| ASYNC30 | Usar eventos internos como fluxo principal de atualização Yard → Navio e Navio canônico → projeção siderúrgica. | Mudanças publicam eventos no processo e atualizam consumidores imediatamente; jobs periódicos apenas reconciliam perdas. | ⬜ Pendente |
 
 ### ASYNC20 — arquivos e métodos
 
 | Caminho completo | Método/campo/contrato | Como está | O que fazer |
 |---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/modelo/ProcessamentoEdi.java` | `referenciaMensagem`, `tentativa` | A entidade armazena referência, mas não possui chave idempotente nem identificadores `UNB` e `UNH` separados. | Persistir os identificadores normalizados e uma chave idempotente imutável. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/repositorio/ProcessamentoEdiRepositorio.java` | consultas do processamento | Não existe consulta ou trava por chave natural capaz de reutilizar uma recepção já registrada. | Adicionar busca e inserção atômica por chave idempotente e tratar conflito de unicidade como redelivery, não como novo processamento. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiAuditoriaServico.java` | `processarInterno()` | Cada chamada cria um novo registro e executa a operação de negócio de forma síncrona na mesma requisição. | Separar recepção de execução: gravar `RECEBIDO`, publicar em outbox ou fila transacional, processar por worker e mover falhas esgotadas para quarentena. |
-| `backend/servico-yard/src/main/resources/db/migration/V100__edi_processamento_auditoria.sql` | tabela `edi_processamento` | A estrutura não impede mensagens equivalentes de gerar processamentos paralelos ou repetidos. | Criar migration aditiva com colunas de identidade, índice único e estado necessário à retentativa assíncrona. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/controlador/EdiIntegracaoControlador.java` | recepção EDI HTTP | Os endpoints persistem a recepção idempotente e retornam `202` com o processamento. | Preservar este fluxo como contrato único de entrada assíncrona. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/mensagem/EdiMensagemListenerServico.java` | `receberCoprar()` e `receberCoarri()` | Os listeners chamam `EdiProcessadorServico` diretamente e capturam exceções sem propagá-las, contornando idempotência, retentativa e quarentena. | Registrar a recepção idempotente e deixar o worker processar; falha de recepção deve impedir confirmação da mensagem. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiProcessamentoWorker.java` | `executar()` | O componente agendado não está condicionado a `cloudport.runtime.jobs-enabled`. | Condicionar criação ou execução ao controle de jobs do runtime. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiAuditoriaServico.java` | chave, retentativa e quarentena | O fluxo auditado está implementado, mas é ignorado pelos listeners RabbitMQ. | Reutilizar o mesmo contrato em todos os canais de entrada. |
 
 ### ASYNC30 — arquivos e métodos
 
 | Caminho completo | Método/campo/contrato | Como está | O que fazer |
 |---|---|---|---|
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/ReconciliacaoNavioPatioJob.java` | `reconciliarVisitasAtivas()` | A cada ciclo, o job busca todas as visitas e consulta o estado do Yard para atualizar os itens. | Consumir eventos internos de criação e mudança de ordem, reserva e movimento; manter o job apenas para reparar eventos perdidos. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/SincronizacaoCadastroCanonicoJob.java` | `sincronizarCadastroCanonico()` | A projeção siderúrgica é sincronizada periodicamente, mesmo com Navio incorporado ao mesmo processo. | Publicar evento interno quando o cadastro canônico mudar e atualizar somente a projeção afetada. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueueOperacaoServico.java` | `transicionar()` e mutações de recursos | As mudanças persistem e auditam, mas não formam o fluxo interno principal de atualização do módulo Navio Siderúrgico. | Publicar eventos internos após commit com identidade e versão; consumidores devem ser idempotentes. |
-| `backend/servico-navio/src/main/java/br/com/cloudport/serviconavio` | atualização do cadastro canônico | Alterações do domínio não disparam um contrato interno consumido pela projeção siderúrgica. | Publicar evento interno versionado contendo o identificador canônico e os campos alterados. |
+| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/ReconciliacaoNavioPatioJob.java` | `reconciliarVisitasAtivas()` | Varre todas as visitas não terminais para consultar o Yard. | Consumir eventos internos de ordem, reserva e movimento e manter o job apenas para reparar perdas. |
+| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/SincronizacaoCadastroCanonicoJob.java` | `sincronizarCadastroCanonico()` | Sincroniza periodicamente toda a projeção siderúrgica. | Publicar evento do cadastro canônico e atualizar somente a projeção afetada. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueueOperacaoServico.java` | `transicionar()` e recursos | Persiste e audita, mas não publica evento interno para Navio Siderúrgico. | Publicar evento após commit com identidade e versão; consumidor deve ser idempotente. |
+| `backend/servico-navio/src/main/java/br/com/cloudport/serviconavio` | atualização canônica | Alterações do domínio não disparam contrato interno para a projeção. | Publicar evento versionado com ID canônico e campos alterados. |
 
 ## 4. Interface e navegação operacional
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| UI10 | Expor no frontend a edição de visita e item e a conclusão do plano de estiva. | Usuário autorizado consegue editar dados pelos contratos existentes e concluir o plano após validação, com retorno de erro exibido sem atualizar a tela como sucesso. | ⬜ Pendente |
-| UI20 | Tornar o Quay Monitor e o painel de equipamentos operacionais, não apenas consultivos. | O frontend salva plano de guindastes com work queues validadas, exibe drill-down de work instruction e usa job lists por equipamento e transições oficiais. | ⬜ Pendente |
+| UI10 | Expor no frontend a edição de visita e item e a conclusão do plano de estiva. | Usuário autorizado edita pelos contratos existentes e conclui o plano após validação, sem atualizar a tela como sucesso quando a persistência falhar. | ⬜ Pendente |
+| UI20 | Concluir a operação do Quay Monitor com o plano de guindastes real. | O frontend carrega o monitor do backend, salva plano com work queues validadas e mantém drill-down, job lists e transições oficiais. | 🟡 Em andamento |
 
 ### UI10 — arquivos e métodos
 
 | Caminho completo | Método/campo/contrato | Como está | O que fazer |
 |---|---|---|---|
-| `frontend/servico-navio-siderurgico/src/api.js` | objeto `api` | Não há métodos para `PUT /visitas-navio/{id}`, `PUT /visitas-navio/{id}/itens/{itemId}` ou `POST /visitas-navio/{id}/plano-estiva/{planoId}/concluir`. | Adicionar clientes tipados para os três contratos e propagar motivo, usuário e correlação quando aplicável. |
-| `frontend/servico-navio-siderurgico/src/AdvancedApp.jsx` | fluxo de visita, itens e plano | A interface permite ações operacionais de pátio, mas não oferece formulários de edição nem publicação do plano. | Criar formulários com estado de carregamento, validação do contrato, confirmação de conclusão e recarga somente após resposta persistida. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/controlador/VisitaNavioControlador.java` | `atualizar()`, `atualizarItem()` e `concluirPlano()` | Os endpoints existem e são alcançáveis no backend, porém não possuem consumidor na interface operacional. | Preservar os contratos e garantir que o frontend use os identificadores retornados, sem criar rota concorrente. |
+| `frontend/servico-navio-siderurgico/src/api.js` | objeto `api` | Não há clientes para atualizar visita, atualizar item ou concluir plano de estiva. | Adicionar chamadas aos contratos existentes com usuário e correlação. |
+| `frontend/servico-navio-siderurgico/src/App.jsx` | fluxo de visita, itens e plano | Não oferece formulários de edição nem conclusão do plano. | Criar formulários, confirmação e recarga somente após resposta persistida. |
+| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/controlador/VisitaNavioControlador.java` | `atualizar()`, `atualizarItem()` e `concluirPlano()` | Os endpoints existem, mas não possuem consumidor na interface. | Preservar os contratos e conectá-los à interface sem rota concorrente. |
 
 ### UI20 — arquivos e métodos
 
 | Caminho completo | Método/campo/contrato | Como está | O que fazer |
 |---|---|---|---|
-| `frontend/servico-navio-siderurgico/src/api.js` | `obterQuayMonitor()` e métodos de work queue | O Quay Monitor é somente leitura e as operações de fila usam os endpoints legados. | Adicionar gravação de `POST /visitas-navio/{id}/crane-plan`, consulta do plano, recursos operacionais, drill-down, matriz de estados e job lists por equipamento. |
-| `frontend/servico-navio-siderurgico/src/AdvancedApp.jsx` | `QuayMonitor`, `CheDetail` e `WorkQueue` | Os componentes exibem dados, mas não conectam o plano de guindastes nem os controles novos do Yard ao fluxo real. | Permitir selecionar work queue válida por alocação, salvar o plano, abrir drill-down e executar somente transições permitidas pelo backend. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/controlador/QuayBerthCraneControlador.java` | contratos de plano e monitor | O backend possui leitura e gravação, mas a gravação não é usada pela interface. | Manter uma única rota de gravação e retornar os dados necessários para atualização imediata do monitor. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueueOperacaoControlador.java` | `/recursos-operacionais`, `/drill-down`, `/matriz-estados` e `/equipamentos/job-lists` | Os contratos robustos existem, mas não são consumidos pelo Control Room. | Fazer a interface utilizar esses contratos como fonte de verdade para ações e detalhamento. |
+| `frontend/servico-navio-siderurgico/src/api.js` | Quay Monitor e Yard | Já expõe recursos, dispatch, transições, drill-down, matriz e job lists, mas não chama `POST /visitas-navio/{id}/crane-plan`. | Adicionar gravação do plano e usar a resposta persistida. |
+| `frontend/servico-navio-siderurgico/src/App.jsx` | `QuayMonitor`, `EquipmentPanel`, `WorkQueue` e `InstructionDrawer` | Job lists, recursos e drill-down usam os contratos novos. O monitor é derivado localmente das filas e não carrega `GET /quay-monitor`; não há editor de guindastes. | Carregar o monitor real, selecionar filas elegíveis e salvar o plano validado. |
+| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/controlador/QuayBerthCraneControlador.java` | `GET /quay-monitor` e `POST /crane-plan` | Os contratos existem, mas não são usados integralmente pela interface. | Manter uma única rota de gravação e alimentar o monitor com a resposta real. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueueOperacaoControlador.java` | recursos, transições e drill-down | Os contratos robustos já são consumidos pelo Control Room. | Preservá-los como única fonte de verdade para as ações da interface. |

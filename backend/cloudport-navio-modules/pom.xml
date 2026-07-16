@@ -9,9 +9,10 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>cloudport-navio-modules</name>
-    <description>Reator Maven dos modulos Navio, Navio Siderurgico e runtime unificado</description>
+    <description>Reator Maven dos contratos, modulos Navio, Navio Siderurgico e runtime unificado</description>
 
     <modules>
+        <module>../cloudport-contracts</module>
         <module>../servico-navio</module>
         <module>../servico-navio-siderurgico</module>
         <module>../cloudport-monolito-navio</module>

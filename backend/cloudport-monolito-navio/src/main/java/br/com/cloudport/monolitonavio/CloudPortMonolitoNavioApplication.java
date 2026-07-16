@@ -15,11 +15,9 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.FullyQualifiedAnnotationBeanNameGenerator;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootConfiguration
 @EnableAutoConfiguration
-@EnableScheduling
 @EntityScan(basePackages = {
         "br.com.cloudport.serviconavio",
         "br.com.cloudport.serviconaviosiderurgico",

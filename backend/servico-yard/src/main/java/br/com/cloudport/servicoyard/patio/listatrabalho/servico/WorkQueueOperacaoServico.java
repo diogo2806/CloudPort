@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.servico;
 
+import br.com.cloudport.contracts.evento.EventoOperacaoPatioV1;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoPrioridadesWorkInstructionDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueRecursosDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoWorkInstructionDto;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,15 +45,18 @@ public class WorkQueueOperacaoServico {
     private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
     private final HistoricoWorkInstructionRepositorio historicoRepositorio;
     private final EquipamentoPatioRepositorio equipamentoRepositorio;
+    private final ApplicationEventPublisher eventPublisher;
 
     public WorkQueueOperacaoServico(WorkQueuePatioRepositorio workQueueRepositorio,
                                      OrdemTrabalhoPatioRepositorio ordemRepositorio,
                                      HistoricoWorkInstructionRepositorio historicoRepositorio,
-                                     EquipamentoPatioRepositorio equipamentoRepositorio) {
+                                     EquipamentoPatioRepositorio equipamentoRepositorio,
+                                     ApplicationEventPublisher eventPublisher) {
         this.workQueueRepositorio = workQueueRepositorio;
         this.ordemRepositorio = ordemRepositorio;
         this.historicoRepositorio = historicoRepositorio;
         this.equipamentoRepositorio = equipamentoRepositorio;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -76,6 +81,7 @@ public class WorkQueueOperacaoServico {
                         + "; equipamentoPatioId=" + dto.getEquipamentoPatioId()
                         + metadados(dto.getOrigemAcao(), dto.getCorrelationId()),
                 usuarioEfetivo(dto.getUsuario()));
+        publicarEvento(salva, null, "WORK_QUEUE_RECURSOS_ASSOCIADOS", null, null, dto.getCorrelationId());
         return WorkQueuePatioRespostaDto.deEntidade(salva, listarOrdens(salva.getId()));
     }
 
@@ -130,7 +136,13 @@ public class WorkQueueOperacaoServico {
                     usuarioEfetivo(dto.getUsuario()));
         }
         ordem.setAtualizadoEm(LocalDateTime.now());
-        return OrdemTrabalhoPatioRespostaDto.deEntidade(ordemRepositorio.save(ordem));
+        OrdemTrabalhoPatio salva = ordemRepositorio.save(ordem);
+        if (salva.getWorkQueueId() != null) {
+            publicarEvento(buscarFila(salva.getWorkQueueId()), salva.getId(),
+                    "WORK_INSTRUCTION_PRIORIDADE_ALTERADA",
+                    salva.getStatusOrdem().name(), salva.getStatusOrdem().name(), dto.getCorrelationId());
+        }
+        return OrdemTrabalhoPatioRespostaDto.deEntidade(salva);
     }
 
     @Transactional(readOnly = true)
@@ -195,9 +207,9 @@ public class WorkQueueOperacaoServico {
     }
 
     private OrdemTrabalhoPatioRespostaDto transicionar(Long ordemId,
-                                                        StatusOrdemTrabalhoPatio destino,
-                                                        String acao,
-                                                        ComandoWorkInstructionDto dto) {
+                                                         StatusOrdemTrabalhoPatio destino,
+                                                         String acao,
+                                                         ComandoWorkInstructionDto dto) {
         OrdemTrabalhoPatio ordem = buscarOrdem(ordemId);
         StatusOrdemTrabalhoPatio origem = ordem.getStatusOrdem();
         if (!MATRIZ_ESTADOS.getOrDefault(origem, Set.of()).contains(destino)) {
@@ -212,11 +224,32 @@ public class WorkQueueOperacaoServico {
                 "estadoAnterior=" + origem + "; estadoAtual=" + destino
                         + metadados(dto.getOrigemAcao(), dto.getCorrelationId()),
                 usuarioEfetivo(dto.getUsuario()));
+        if (salva.getWorkQueueId() != null) {
+            publicarEvento(buscarFila(salva.getWorkQueueId()), salva.getId(), acao,
+                    origem.name(), destino.name(), dto.getCorrelationId());
+        }
         return OrdemTrabalhoPatioRespostaDto.deEntidade(salva);
     }
 
+    private void publicarEvento(WorkQueuePatio fila,
+                                 Long ordemId,
+                                 String tipoAlteracao,
+                                 String statusAnterior,
+                                 String statusAtual,
+                                 String correlationId) {
+        eventPublisher.publishEvent(EventoOperacaoPatioV1.criar(
+                fila.getVisitaNavioId(),
+                fila.getId(),
+                ordemId,
+                tipoAlteracao,
+                statusAnterior,
+                statusAtual,
+                correlationId
+        ));
+    }
+
     private JobListEquipamentoDto montarPainelEquipamento(EquipamentoPatio equipamento,
-                                                           List<WorkQueuePatio> filas) {
+                                                            List<WorkQueuePatio> filas) {
         List<WorkQueuePatioRespostaDto> filasDto = filas.stream()
                 .map(fila -> WorkQueuePatioRespostaDto.deEntidade(fila, listarOrdens(fila.getId())))
                 .toList();

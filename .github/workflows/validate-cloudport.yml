@@ -42,24 +42,32 @@ jobs:
         run: ${{ matrix.command }}
 
   frontend:
-    name: Frontend Angular
+    name: Frontend ${{ matrix.name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        module:
-          - frontend/cloudport
-          - frontend/servico-navio-siderurgico
+        include:
+          - name: Portal Angular
+            module: frontend/cloudport
+            install: npm ci
+            test: ''
+          - name: Control Room React
+            module: frontend/servico-navio-siderurgico
+            install: npm install --no-audit --no-fund
+            test: npm test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: ${{ matrix.module }}/package-lock.json
       - name: Instalar dependencias
         working-directory: ${{ matrix.module }}
-        run: npm ci
+        run: ${{ matrix.install }}
+      - name: Testar
+        if: matrix.test != ''
+        working-directory: ${{ matrix.module }}
+        run: ${{ matrix.test }}
       - name: Compilar
         working-directory: ${{ matrix.module }}
         run: npm run build

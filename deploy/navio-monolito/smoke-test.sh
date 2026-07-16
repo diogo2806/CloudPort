@@ -240,16 +240,32 @@ assert reservas[0]["status"] == "CONSUMIDA"
 PY
 
 stage "validando relatorio operacional integrado"
-relatorio_response="$(request_json GET "/visitas-navio/$visita_id/relatorio-operacional-integrado")"
-python3 - "$visita_id" "$relatorio_response" <<'PY'
+relatorio_file="$(mktemp)"
+relatorio_status="$(curl -sS -o "$relatorio_file" -w '%{http_code}' \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'X-Correlation-Id: cloudport-smoke-flow' \
+    -H 'traceparent: 00-0123456789abcdef0123456789abcdef-0123456789abcdef-01' \
+    "$PUBLIC_URL/visitas-navio/$visita_id/relatorio-operacional-integrado")"
+printf 'RELATORIO_HTTP_STATUS=%s\n' "$relatorio_status" >> "$STATUS_FILE"
+if [[ "$relatorio_status" != "200" ]]; then
+    echo "[smoke] resposta do relatório:" >&2
+    cat "$relatorio_file" >&2
+    exit 1
+fi
+python3 - "$visita_id" "$relatorio_file" <<'PY'
 import json
 import sys
 visita_id = int(sys.argv[1])
-relatorio = json.loads(sys.argv[2])
-assert relatorio["visita"]["id"] == visita_id
-assert len(relatorio["itens"]) == 1
-assert len(relatorio["reservasPatio"]) == 1
-assert len(relatorio["ordensPatio"]) == 1
+with open(sys.argv[2], encoding="utf-8") as arquivo:
+    relatorio = json.load(arquivo)
+try:
+    assert relatorio["visita"]["id"] == visita_id
+    assert len(relatorio["itens"]) == 1
+    assert len(relatorio["reservasPatio"]) == 1
+    assert len(relatorio["ordensPatio"]) == 1
+except (AssertionError, KeyError, TypeError):
+    print(json.dumps(relatorio, ensure_ascii=False, indent=2), file=sys.stderr)
+    raise
 PY
 
 stage "smoke test concluido"

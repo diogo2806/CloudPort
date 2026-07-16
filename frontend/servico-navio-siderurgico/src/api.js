@@ -191,25 +191,6 @@ async function request(path, options = {}) {
   }
 }
 
-function normalizeYardQueryResult(payload) {
-  if (Array.isArray(payload)) {
-    return {
-      dados: payload,
-      status: 'CONFIRMADA',
-      confirmado: true,
-      fonte: 'YARD',
-      motivoDegradacao: null
-    };
-  }
-  return {
-    dados: Array.isArray(payload?.dados) ? payload.dados : [],
-    status: payload?.status ?? 'CONFIRMADA',
-    confirmado: payload?.confirmado !== false,
-    fonte: payload?.fonte ?? 'YARD',
-    motivoDegradacao: payload?.motivoDegradacao ?? null
-  };
-}
-
 async function download(path, filename, accept) {
   const blob = await request(path, {
     responseType: 'blob',
@@ -311,16 +292,24 @@ export function subscribeSse(path, handlers = {}) {
   };
 }
 
+async function resolveEquipamentoPatioId(body = {}) {
+  if (body.equipamentoPatioId) return body.equipamentoPatioId;
+  const identificador = String(body.equipamento ?? '').trim();
+  if (!identificador) throw new Error('Selecione um equipamento operacional cadastrado no Yard.');
+  const equipamentos = await request('/yard/patio/equipamentos');
+  const equipamento = equipamentos.find((item) => String(item.identificador).toUpperCase() === identificador.toUpperCase());
+  if (!equipamento) throw new Error('O equipamento informado não existe no cadastro operacional do Yard.');
+  if (equipamento.status !== 'OPERACIONAL') throw new Error('O equipamento informado não está operacional.');
+  return equipamento.id;
+}
+
 export const api = {
   autenticar: (login, senha) => request('/auth/login', { method: 'POST', body: { login, senha } }),
   listarNavios: () => request('/navios-siderurgicos'),
   listarVisitas: () => request('/visitas-navio'),
   alterarFaseVisita: (visitaId, fase, motivo) => {
     const comando = commandBody(motivo);
-    return request(`/visitas-navio/${visitaId}/fase`, {
-      method: 'PATCH',
-      body: { fase, observacao: comando.motivo }
-    });
+    return request(`/visitas-navio/${visitaId}/fase`, { method: 'PATCH', body: { fase, observacao: comando.motivo } });
   },
   listarItensVisita: (visitaId) => request(`/visitas-navio/${visitaId}/itens`),
   obterResumo: (visitaId) => request(`/visitas-navio/${visitaId}/resumo-operacional`),
@@ -343,16 +332,29 @@ export const api = {
   atualizarPrioridadeOrdemPatio: (visitaId, ordemId, prioridadeOperacional, motivo) => request(`/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/prioridade`, { method: 'PATCH', body: commandBody(motivo, { prioridadeOperacional, prioridadeBusca: false }) }),
   suspenderOrdemPatio: (visitaId, ordemId, motivo) => request(`/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/suspender`, { method: 'PATCH', body: commandBody(motivo) }),
   retomarOrdemPatio: (visitaId, ordemId, motivo) => request(`/visitas-navio/${visitaId}/integracao-patio/ordens/${ordemId}/retomar`, { method: 'PATCH', body: commandBody(motivo) }),
-  listarFilasPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/filas`).then(normalizeYardQueryResult),
+  listarFilasPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/filas`),
   listarWorkQueuesPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/work-queues`),
+  listarEquipamentosPatio: () => request('/yard/patio/equipamentos'),
+  associarRecursosWorkQueuePatio: (id, body, motivo) => request(`/yard/patio/work-queues/${id}/recursos-operacionais`, { method: 'PATCH', body: commandBody(motivo, body) }),
   ativarWorkQueuePatio: (id, motivo) => request(`/yard/patio/work-queues/${id}/ativar`, { method: 'PATCH', body: commandBody(motivo) }),
   desativarWorkQueuePatio: (id, motivo) => request(`/yard/patio/work-queues/${id}/desativar`, { method: 'PATCH', body: commandBody(motivo) }),
-  atualizarPowWorkQueuePatio: (id, body, motivo) => request(`/yard/patio/work-queues/${id}/pow`, { method: 'PATCH', body: commandBody(motivo, body) }),
-  atualizarEquipamentoWorkQueuePatio: (id, body, motivo) => request(`/yard/patio/work-queues/${id}/equipamento`, { method: 'PATCH', body: commandBody(motivo, body) }),
-  despacharWorkQueuePatio: (id, body) => request(`/yard/patio/work-queues/${id}/dispatch`, { method: 'POST', body }),
+  atualizarPowWorkQueuePatio: (id, body, motivo) => request(`/yard/patio/work-queues/${id}/recursos-operacionais`, { method: 'PATCH', body: commandBody(motivo, { pow: body?.pow ?? null, poolOperacional: body?.poolOperacional ?? null }) }),
+  atualizarEquipamentoWorkQueuePatio: async (id, body, motivo) => {
+    const equipamentoPatioId = await resolveEquipamentoPatioId(body);
+    return request(`/yard/patio/work-queues/${id}/recursos-operacionais`, { method: 'PATCH', body: commandBody(motivo, { equipamentoPatioId }) });
+  },
+  despacharWorkQueuePatio: (id, body = {}, motivo) => request(`/yard/patio/work-queues/${id}/dispatch`, { method: 'POST', body: commandBody(motivo ?? body.motivo ?? body.observacao, body) }),
+  suspenderWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/suspender`, { method: 'POST', body: commandBody(motivo) }),
+  retomarWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/retomar`, { method: 'POST', body: commandBody(motivo) }),
+  bloquearWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/bloquear`, { method: 'POST', body: commandBody(motivo) }),
+  concluirWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/concluir`, { method: 'POST', body: commandBody(motivo) }),
   resetarWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/reset`, { method: 'POST', body: commandBody(motivo) }),
   cancelarWorkInstructionPatio: (id, motivo) => request(`/yard/patio/work-instructions/${id}/cancelar`, { method: 'POST', body: commandBody(motivo) }),
-  listarOrdensSemCoberturaPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/sem-cobertura`).then(normalizeYardQueryResult),
+  obterWorkInstructionDrillDown: (id) => request(`/yard/patio/work-instructions/${id}/drill-down`),
+  listarMatrizEstadosWorkInstruction: () => request('/yard/patio/work-instructions/matriz-estados'),
+  listarJobListsPorEquipamento: (visitaId) => request(`/yard/patio/equipamentos/job-lists?visitaNavioId=${encodeURIComponent(visitaId)}`),
+  obterJobListEquipamento: (equipamentoId, visitaId) => request(`/yard/patio/equipamentos/${equipamentoId}/job-list?visitaNavioId=${encodeURIComponent(visitaId)}`),
+  listarOrdensSemCoberturaPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/sem-cobertura`),
   listarAlertasIntegracaoPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/alertas`),
   sincronizarStatusPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/sincronizar-status`, { method: 'POST', body: {} }),
   replanejarPatioVisita: (visitaId, aplicar) => request(`/visitas-navio/${visitaId}/integracao-patio/replanejar`, { method: 'POST', body: { aplicar } }),

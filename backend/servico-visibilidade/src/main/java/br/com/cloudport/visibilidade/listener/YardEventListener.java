@@ -4,9 +4,11 @@ import br.com.cloudport.visibilidade.config.RabbitMQConfig;
 import br.com.cloudport.visibilidade.dto.evento.EventoMovimentoPatioMensagem;
 import br.com.cloudport.visibilidade.service.CapacidadeYardService;
 import br.com.cloudport.visibilidade.service.MovimentoConteinerService;
+import br.com.cloudport.visibilidade.service.ProcessamentoEventoIdempotenteService;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -20,11 +22,14 @@ public class YardEventListener {
 
     private final MovimentoConteinerService movimentoConteinerService;
     private final CapacidadeYardService capacidadeYardService;
+    private final ProcessamentoEventoIdempotenteService processamentoEventoIdempotenteService;
 
     public YardEventListener(MovimentoConteinerService movimentoConteinerService,
-                             CapacidadeYardService capacidadeYardService) {
+                             CapacidadeYardService capacidadeYardService,
+                             ProcessamentoEventoIdempotenteService processamentoEventoIdempotenteService) {
         this.movimentoConteinerService = movimentoConteinerService;
         this.capacidadeYardService = capacidadeYardService;
+        this.processamentoEventoIdempotenteService = processamentoEventoIdempotenteService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.VISIBILIDADE_YARD_QUEUE)
@@ -64,10 +69,12 @@ public class YardEventListener {
         String equipamento = primeiroTexto(event, "equipamentoId", "equipamento", "cheId");
         String responsavel = primeiroTexto(event, "responsavel", "usuario", "operatorId");
 
-        movimentoConteinerService.registrarArmazenagemYard(
-                containerId, zona, posicao, equipamento, responsavel);
-        LOGGER.info("Armazenagem de conteiner registrada. containerId={} zona={} posicao={}",
-                containerId, zona, posicao);
+        processarUmaVez(event, identidadeEvento -> {
+            movimentoConteinerService.registrarArmazenagemYard(
+                    identidadeEvento, containerId, zona, posicao, equipamento, responsavel);
+            LOGGER.info("Armazenagem de conteiner registrada. containerId={} zona={} posicao={}",
+                    containerId, zona, posicao);
+        });
     }
 
     private void processarMovimentoOperacional(Map<String, Object> event) {
@@ -86,10 +93,12 @@ public class YardEventListener {
             return;
         }
 
-        movimentoConteinerService.registrarMovimentoPatio(mensagem);
-        LOGGER.info("Movimento real de patio registrado. containerId={} tipo={} linha={} coluna={} camada={}",
-                mensagem.getCodigoConteiner(), mensagem.getTipoMovimento(), mensagem.getLinha(),
-                mensagem.getColuna(), mensagem.getCamadaOperacional());
+        processarUmaVez(event, identidadeEvento -> {
+            movimentoConteinerService.registrarMovimentoPatio(identidadeEvento, mensagem);
+            LOGGER.info("Movimento real de patio registrado. containerId={} tipo={} linha={} coluna={} camada={}",
+                    mensagem.getCodigoConteiner(), mensagem.getTipoMovimento(), mensagem.getLinha(),
+                    mensagem.getColuna(), mensagem.getCamadaOperacional());
+        });
     }
 
     private void processarCapacidade(Map<String, Object> event) {
@@ -108,8 +117,18 @@ public class YardEventListener {
             return;
         }
 
-        capacidadeYardService.atualizarOcupacao(zona, ocupacaoAtual);
-        LOGGER.info("Ocupacao do patio atualizada. zona={} ocupacaoAtual={}", zona, ocupacaoAtual);
+        processarUmaVez(event, identidadeEvento -> {
+            capacidadeYardService.atualizarOcupacao(zona, ocupacaoAtual);
+            LOGGER.info("Ocupacao do patio atualizada. zona={} ocupacaoAtual={}", zona, ocupacaoAtual);
+        });
+    }
+
+    private void processarUmaVez(Map<String, Object> event, Consumer<String> processamento) {
+        boolean processado = processamentoEventoIdempotenteService.processarUmaVez(event, processamento);
+        if (!processado) {
+            LOGGER.info("Redelivery de evento de patio ignorada. eventType={} identidade={}",
+                    texto(event, "eventType"), primeiroTexto(event, "eventId", "messageId"));
+        }
     }
 
     private LocalDateTime dataHora(Map<String, Object> event, String chave) {

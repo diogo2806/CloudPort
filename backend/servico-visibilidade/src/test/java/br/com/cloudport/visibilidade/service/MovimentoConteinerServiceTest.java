@@ -27,12 +27,13 @@ class MovimentoConteinerServiceTest {
     private HistoricoMovimentoRepository historicoRepository;
 
     @Test
-    void devePersistirLocalizacaoEHistoricoAoArmazenarNoPatio() {
+    void devePersistirLocalizacaoHistoricoEIdentidadeAoArmazenarNoPatio() {
         when(localizacaoRepository.findByContainerId("CONT001")).thenReturn(Optional.empty());
         MovimentoConteinerService service = new MovimentoConteinerService(
                 localizacaoRepository, historicoRepository);
 
-        service.registrarArmazenagemYard("CONT001", "A01", "01-02-03", "RTG-01", "operador");
+        service.registrarArmazenagemYard(
+                "evt-yard-1", "CONT001", "A01", "01-02-03", "RTG-01", "operador");
 
         ArgumentCaptor<ConteinerLocalizacao> localizacaoCaptor =
                 ArgumentCaptor.forClass(ConteinerLocalizacao.class);
@@ -48,6 +49,7 @@ class MovimentoConteinerServiceTest {
                 ArgumentCaptor.forClass(HistoricoMovimento.class);
         verify(historicoRepository).save(historicoCaptor.capture());
         HistoricoMovimento historico = historicoCaptor.getValue();
+        assertEquals("evt-yard-1", historico.getEventoId());
         assertEquals(MovimentoConteinerService.TIPO_ARMAZENAGEM_YARD, historico.getTipo());
         assertEquals("A01-01-02-03", historico.getLocalizacao());
         assertEquals("RTG-01", historico.getEquipamentoUsado());

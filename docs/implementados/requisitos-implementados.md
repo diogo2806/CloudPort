@@ -35,7 +35,7 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 
 ## Control Room implementado
 
-1. Criar painel Angular Navio + Patio com filtros, movimentos iminentes, filas, reservas, ordens, alertas e excecoes.
+1. Criar painel React Navio + Patio com filtros, movimentos iminentes, filas, reservas, ordens, alertas e excecoes.
 2. Permitir gerar reservas, gerar ordens, sincronizar, replanejar, priorizar, suspender e retomar ordens.
 3. Carregar e renderizar work queues persistentes com job list expansivel.
 4. Permitir ativar/desativar fila, editar POW/pool/equipamento, executar dispatch, resetar e cancelar work instruction.
@@ -46,6 +46,10 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 9. Enviar JWT, usuario autenticado, origem da acao e `X-Correlation-Id` nas chamadas operacionais.
 10. Exibir `codigo`, `mensagem`, `detalhes` e `correlationId` quando retornados pelo backend.
 11. Executar as consultas do snapshot em paralelo, aplicar o resultado de forma atomica e impedir atualizacoes sobrepostas.
+12. Migrar o Control Room de Angular para React 19 com Vite 8, preservando os contratos REST e o comportamento operacional.
+13. Remover dependencias, configuracoes, componentes, services, interceptors e testes legados do Angular no modulo siderurgico.
+14. Preservar configuracao em runtime, login proprio, SSO do portal, autorizacao por roles e enriquecimento dos comandos operacionais.
+15. Validar o cliente React com testes Node e executar teste e build Vite no workflow do repositorio.
 
 ## Work queues implementadas
 
@@ -132,13 +136,23 @@ Nao criar outros documentos, arquivos de evidencia, logs, historicos ou rascunho
 24. Publicar as migracoes de `servico-navio` em `cloudport/migrations/navio` dentro do proprio artefato Maven.
 25. Publicar as migracoes de `servico-navio-siderurgico` em `cloudport/migrations/navio-siderurgico` dentro do proprio artefato Maven.
 26. Remover do runtime a copia direta de recursos a partir dos diretorios irmaos dos dois servicos.
-27. Incorporar o frontend Angular do Control Room na imagem do runtime unificado.
+27. Incorporar o frontend React do Control Room na imagem do runtime unificado.
 28. Expor `GET /assets/configuracao.json` dinamicamente para configurar API e origens confiaveis sem reconstruir o frontend.
 29. Criar Compose com perfis `monolito` e `legado` para corte, comparacao e retorno controlado.
 30. Usar no Compose uma unica instancia PostgreSQL com os schemas e historicos Flyway preservados.
 31. Apontar a configuracao local do portal para o Control Room servido pelo runtime unificado em `8086`.
 32. Validar no CI a sintaxe do Compose e a construcao completa da imagem Docker com backend e frontend.
 33. Documentar a troca de perfil, a preservacao do volume e os cuidados para evitar jobs duplicados.
+
+## Documentacao da migracao para monolito modular implementada
+
+1. Criar `README.md` na raiz como entrada principal da documentacao do sistema.
+2. Registrar o monolito modular como arquitetura alvo e impedir a criacao indiscriminada de novos microsservicos internos.
+3. Documentar o estado atual, o estado alvo, os limites de dominio, comunicacao, persistencia, seguranca, observabilidade, build, deployment e rollback em `docs/arquitetura-monolito-modular.md`.
+4. Adicionar guia de compilacao, teste, configuracao, banco e Docker em `backend/cloudport-monolito-navio/README.md`.
+5. Atualizar o README do frontend para consumir uma unica `baseApiUrl` e nao conhecer hosts de modulos internos.
+6. Marcar `servico-gate` como deployment legado em transicao e remover referencias de documentacao inexistentes.
+7. Atualizar os requisitos pendentes com o roteiro de incorporacao de Yard, Gate, Rail, Autenticacao e Visibilidade.
 
 ## Contratos de API implementados
 
@@ -161,10 +175,10 @@ POST  /api/scheduler/gerar-plano
 
 ## Testes implementados
 
-1. Testes de contrato Angular para work queues, job list, dispatch, reset e cancelamento.
-2. Testes de componente para filtros, totalizacao, expansao e acoes operacionais.
-3. Testes do scheduler com dados reais, quantidades inconsistentes, conflito no mesmo berco e simultaneidade em bercos diferentes.
-4. Teste do contrato de dispatch atualizado no componente.
+1. Testes do cliente React para roles, erros padronizados, `correlationId`, consulta de work queues e enriquecimento do dispatch.
+2. Teste que garante que o login nao reutiliza JWT nem metadados operacionais de uma sessao anterior.
+3. Validacao do teste e build Vite do Control Room no workflow do repositorio.
+4. Testes do scheduler com dados reais, quantidades inconsistentes, conflito no mesmo berco e simultaneidade em bercos diferentes.
 5. Testes da porta local de cadastro canonico usada pelo runtime unificado de Navio.
 6. Testes da configuracao Flyway modular e da seguranca CORS do runtime unificado.
 7. Validacao do build do runtime usando dependencias Maven reais dos modulos, sem inclusao direta dos diretorios de fontes.
@@ -191,6 +205,8 @@ POST  /api/scheduler/gerar-plano
 14. Inicializacao validada contra PostgreSQL real com os dois schemas e todos os repositorios JPA.
 15. Migracoes Flyway publicadas e carregadas a partir dos artefatos Maven dos respectivos modulos.
 16. Imagem unificada com frontend incorporado, configuracao dinamica e Compose de transicao entre perfis.
+17. Definicao e documentacao do monolito modular como arquitetura alvo do CloudPort.
+18. Control Room siderurgico executando em React/Vite sem dependencias Angular.
 
 ## Arquivos de execucao consolidados e removidos de `docs/requisitos`
 

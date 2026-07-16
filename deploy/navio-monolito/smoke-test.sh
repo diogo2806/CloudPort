@@ -8,6 +8,7 @@ PUBLIC_URL="${MONOLITO_SMOKE_URL:-http://localhost:8086}"
 PROJECT_NAME="${MONOLITO_SMOKE_PROJECT:-cloudport-navio-smoke}"
 COMPOSE_LOG="$(mktemp)"
 STATUS_FILE="${SMOKE_STATUS_FILE:-/tmp/cloudport-smoke-status.txt}"
+INDEX_CAPTURE="/tmp/cloudport-smoke-index.html"
 CURRENT_STAGE="inicializacao"
 
 export SMOKE_JWT_SECRET="${SMOKE_JWT_SECRET:-$(openssl rand -hex 32)}"
@@ -70,9 +71,8 @@ if [[ "$ready" != "true" ]]; then
 fi
 
 stage "validando frontend React"
-index_file="$(mktemp)"
-curl -fsS "$PUBLIC_URL/" > "$index_file"
-grep -q 'id="root"' "$index_file"
+curl -fsS "$PUBLIC_URL/" > "$INDEX_CAPTURE"
+grep -q 'id="root"' "$INDEX_CAPTURE"
 
 stage "validando configuracao de runtime"
 python3 - "$config_file" <<'PY'

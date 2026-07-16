@@ -9,6 +9,8 @@ import io.github.resilience4j.retry.RetryConfig;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
@@ -73,7 +75,7 @@ public class TosClientConfig {
         return registry.circuitBreaker("tosApi");
     }
 
-    @Bean
+    @Bean(name = "tosCacheManager")
     public CacheManager cacheManager(TosProperties properties) {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager(
                 TosCacheNames.BOOKING,
@@ -84,6 +86,13 @@ public class TosClientConfig {
                 .expireAfterWrite(properties.getCache().getTtl()));
         cacheManager.setAllowNullValues(false);
         return cacheManager;
+    }
+
+    @Bean(name = "cacheManager")
+    @ConditionalOnExpression("'${spring.application.name:servico-gate}' != 'cloudport-runtime'")
+    public CacheManager cacheManagerStandalone(
+            @Qualifier("tosCacheManager") CacheManager tosCacheManager) {
+        return tosCacheManager;
     }
 
     private ExchangeFilterFunction logRequest() {

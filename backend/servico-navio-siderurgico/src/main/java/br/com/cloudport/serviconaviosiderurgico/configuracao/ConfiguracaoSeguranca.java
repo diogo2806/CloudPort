@@ -139,13 +139,15 @@ public class ConfiguracaoSeguranca {
                 CorrelationIdFilter.HEADER,
                 "X-Trace-Id",
                 "traceparent",
+                "Last-Event-ID",
                 PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID,
                 PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET));
         configuration.setExposedHeaders(Arrays.asList(
                 "Authorization",
                 CorrelationIdFilter.HEADER,
                 "X-Trace-Id",
-                "traceparent"));
+                "traceparent",
+                "Content-Disposition"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -10,8 +10,6 @@ import br.com.cloudport.servicoyard.edi.modelo.StatusProcessamentoEdi;
 import br.com.cloudport.servicoyard.edi.modelo.TipoMensagemEdi;
 import br.com.cloudport.servicoyard.edi.servico.BayPlanServico;
 import br.com.cloudport.servicoyard.edi.servico.EdiAuditoriaServico;
-import br.com.cloudport.servicoyard.edi.servico.EdiProcessadorServico;
-import br.com.cloudport.servicoyard.edi.servico.ResultadoProcessamentoEdi;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoMotivadoDto;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,100 +34,92 @@ public class EdiIntegracaoControlador {
     private static final String HEADER_CORRELATION_ID = "X-Correlation-Id";
     private static final String HEADER_PROCESSAMENTO_ID = "X-EDI-Processing-Id";
 
-    private final EdiProcessadorServico processador;
     private final EdiAuditoriaServico auditoria;
     private final BayPlanServico bayPlanServico;
 
-    public EdiIntegracaoControlador(EdiProcessadorServico processador,
-                                     EdiAuditoriaServico auditoria,
+    public EdiIntegracaoControlador(EdiAuditoriaServico auditoria,
                                      BayPlanServico bayPlanServico) {
-        this.processador = processador;
         this.auditoria = auditoria;
         this.bayPlanServico = bayPlanServico;
     }
 
     @PostMapping(value = "/baplie/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<BayPlanRespostaDto> uploadBaplie(
+    public ResponseEntity<ProcessamentoEdiRespostaDto> uploadBaplie(
             @RequestParam("arquivo") MultipartFile arquivo,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) throws IOException {
         if (arquivo.isEmpty()) {
             throw new IllegalArgumentException("BAPLIE: o arquivo enviado esta vazio.");
         }
         String conteudo = new String(arquivo.getBytes(), StandardCharsets.UTF_8);
-        ResultadoProcessamentoEdi resultado = auditoria.processar(
+        ProcessamentoEdiRespostaDto processamento = auditoria.receber(
                 TipoMensagemEdi.BAPLIE,
                 conteudo,
                 null,
                 null,
                 arquivo.getOriginalFilename(),
-                correlationId,
-                () -> processador.processarBaplie(conteudo)
+                correlationId
         );
-        return resposta(resultado);
+        return respostaAceita(processamento);
     }
 
     @PostMapping(value = "/baplie/texto", consumes = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<BayPlanRespostaDto> receberBaplieTexto(
+    public ResponseEntity<ProcessamentoEdiRespostaDto> receberBaplieTexto(
             @RequestBody String conteudoEdifact,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
-        ResultadoProcessamentoEdi resultado = auditoria.processar(
+        ProcessamentoEdiRespostaDto processamento = auditoria.receber(
                 TipoMensagemEdi.BAPLIE,
                 conteudoEdifact,
                 null,
                 null,
                 null,
-                correlationId,
-                () -> processador.processarBaplie(conteudoEdifact)
+                correlationId
         );
-        return resposta(resultado);
+        return respostaAceita(processamento);
     }
 
     @PostMapping("/coprar")
-    public ResponseEntity<BayPlanRespostaDto> receberCoprar(
+    public ResponseEntity<ProcessamentoEdiRespostaDto> receberCoprar(
             @Valid @RequestBody CoprarMensagemDto dto,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
-        ResultadoProcessamentoEdi resultado = auditoria.processar(
+        ProcessamentoEdiRespostaDto processamento = auditoria.receber(
                 TipoMensagemEdi.COPRAR,
                 dto.getConteudoEdifact(),
                 dto.getCodigoNavio(),
                 dto.getCodigoViagem(),
                 dto.getReferenciaMensagem(),
-                correlationId,
-                () -> processador.processarCoprar(dto)
+                correlationId
         );
-        return resposta(resultado);
+        return respostaAceita(processamento);
     }
 
     @PostMapping("/coarri")
-    public ResponseEntity<BayPlanRespostaDto> receberCoarri(
+    public ResponseEntity<ProcessamentoEdiRespostaDto> receberCoarri(
             @Valid @RequestBody CoarriMensagemDto dto,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
-        ResultadoProcessamentoEdi resultado = auditoria.processar(
+        ProcessamentoEdiRespostaDto processamento = auditoria.receber(
                 TipoMensagemEdi.COARRI,
                 dto.getConteudoEdifact(),
                 dto.getCodigoNavio(),
                 dto.getCodigoViagem(),
                 dto.getReferenciaMensagem(),
-                correlationId,
-                () -> processador.processarCoarri(dto)
+                correlationId
         );
-        return resposta(resultado);
+        return respostaAceita(processamento);
     }
 
     @PostMapping("/vermas")
-    public ResponseEntity<BayPlanRespostaDto> receberVermas(
+    public ResponseEntity<ProcessamentoEdiRespostaDto> receberVermas(
             @Valid @RequestBody VermasMensagemDto dto,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
-        ResultadoProcessamentoEdi resultado = auditoria.processar(
+        ProcessamentoEdiRespostaDto processamento = auditoria.receber(
                 TipoMensagemEdi.VERMAS,
                 dto.getConteudoEdifact(),
                 dto.getCodigoNavio(),
                 dto.getCodigoViagem(),
                 dto.getReferenciaMensagem(),
-                correlationId,
-                () -> processador.processarVermas(dto)
+                correlationId
         );
-        return resposta(resultado);
+        return respostaAceita(processamento);
     }
 
     @GetMapping("/processamentos")
@@ -147,17 +137,14 @@ public class EdiIntegracaoControlador {
     }
 
     @PostMapping("/processamentos/{id}/reprocessar")
-    public ResponseEntity<ResultadoProcessamentoEdi> reprocessar(
+    public ResponseEntity<ProcessamentoEdiRespostaDto> reprocessar(
             @PathVariable Long id,
             @Valid @RequestBody ComandoMotivadoDto comando,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
         if (comando.getCorrelationId() == null || comando.getCorrelationId().isBlank()) {
             comando.setCorrelationId(correlationId);
         }
-        ResultadoProcessamentoEdi resultado = auditoria.reprocessar(id, comando);
-        return ResponseEntity.ok()
-                .header(HEADER_PROCESSAMENTO_ID, resultado.processamento().id().toString())
-                .body(resultado);
+        return respostaAceita(auditoria.reprocessar(id, comando));
     }
 
     @GetMapping("/bay-plan/{id}")
@@ -175,9 +162,10 @@ public class EdiIntegracaoControlador {
         return ResponseEntity.ok(bayPlanServico.listarAtivos());
     }
 
-    private ResponseEntity<BayPlanRespostaDto> resposta(ResultadoProcessamentoEdi resultado) {
-        return ResponseEntity.ok()
-                .header(HEADER_PROCESSAMENTO_ID, resultado.processamento().id().toString())
-                .body(resultado.bayPlan());
+    private ResponseEntity<ProcessamentoEdiRespostaDto> respostaAceita(
+            ProcessamentoEdiRespostaDto processamento) {
+        return ResponseEntity.accepted()
+                .header(HEADER_PROCESSAMENTO_ID, processamento.id().toString())
+                .body(processamento);
     }
 }

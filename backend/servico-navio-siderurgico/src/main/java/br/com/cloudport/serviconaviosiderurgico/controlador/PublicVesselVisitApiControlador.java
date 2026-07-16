@@ -10,6 +10,7 @@ import br.com.cloudport.serviconaviosiderurgico.dto.ReservaPatioNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.VisitaNavioDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.VisitaNavioResumoDTO;
 import br.com.cloudport.serviconaviosiderurgico.dto.WorkQueuePatioDaVisitaDTO;
+import br.com.cloudport.serviconaviosiderurgico.dto.WorkQueuePatioResumoDTO;
 import br.com.cloudport.serviconaviosiderurgico.servico.ConsultaPublicaVisitaNavioServico;
 import br.com.cloudport.serviconaviosiderurgico.servico.ConversorWorkQueuePatioServico;
 import br.com.cloudport.serviconaviosiderurgico.servico.IntegracaoNavioPatioServico;
@@ -56,12 +57,12 @@ public class PublicVesselVisitApiControlador {
     private final SeletorCamposPublicos seletorCampos;
 
     public PublicVesselVisitApiControlador(VisitaNavioServico visitaNavioServico,
-                                            ConsultaPublicaVisitaNavioServico consultaPublicaServico,
-                                            PlanoEstivaNavioServico planoEstivaNavioServico,
-                                            IntegracaoNavioPatioServico integracaoNavioPatioServico,
-                                            OrdemPatioYardCliente ordemPatioYardCliente,
-                                            ConversorWorkQueuePatioServico conversorWorkQueue,
-                                            SeletorCamposPublicos seletorCampos) {
+                                             ConsultaPublicaVisitaNavioServico consultaPublicaServico,
+                                             PlanoEstivaNavioServico planoEstivaNavioServico,
+                                             IntegracaoNavioPatioServico integracaoNavioPatioServico,
+                                             OrdemPatioYardCliente ordemPatioYardCliente,
+                                             ConversorWorkQueuePatioServico conversorWorkQueue,
+                                             SeletorCamposPublicos seletorCampos) {
         this.visitaNavioServico = visitaNavioServico;
         this.consultaPublicaServico = consultaPublicaServico;
         this.planoEstivaNavioServico = planoEstivaNavioServico;
@@ -121,23 +122,26 @@ public class PublicVesselVisitApiControlador {
     }
 
     @GetMapping("/vessel-visits/{id}/work-queues")
-    public PaginaResposta<WorkQueuePatioDaVisitaDTO> listarWorkQueues(
+    public PaginaResposta<WorkQueuePatioResumoDTO> listarWorkQueues(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "50") int tamanho) {
-        visitaNavioServico.buscarEntidade(id);
-        try {
-            List<WorkQueuePatioDaVisitaDTO> filas = ordemPatioYardCliente.listarWorkQueuesDaVisita(id).stream()
-                    .map(conversorWorkQueue::converter)
-                    .toList();
-            return paginar(filas, pagina, tamanho);
-        } catch (RuntimeException ex) {
-            throw new ResponseStatusException(
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "Nao foi possivel consultar as work queues no servico-yard.",
-                    ex
-            );
-        }
+        List<WorkQueuePatioResumoDTO> filas = consultarWorkQueues(id).stream()
+                .map(WorkQueuePatioResumoDTO::de)
+                .toList();
+        return paginar(filas, pagina, tamanho);
+    }
+
+    @GetMapping("/vessel-visits/{id}/work-queues/{workQueueId}")
+    public WorkQueuePatioDaVisitaDTO detalharWorkQueue(@PathVariable Long id,
+                                                        @PathVariable Long workQueueId) {
+        return consultarWorkQueues(id).stream()
+                .filter(fila -> workQueueId.equals(fila.id()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Work queue nao encontrada para a visita informada."
+                ));
     }
 
     @GetMapping("/vessel-visits/{id}/events")
@@ -166,6 +170,21 @@ public class PublicVesselVisitApiControlador {
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "50") int tamanho) {
         return paginar(integracaoNavioPatioServico.listarReservasDaVisita(visitaNavioId), pagina, tamanho);
+    }
+
+    private List<WorkQueuePatioDaVisitaDTO> consultarWorkQueues(Long visitaId) {
+        visitaNavioServico.buscarEntidade(visitaId);
+        try {
+            return ordemPatioYardCliente.listarWorkQueuesDaVisita(visitaId).stream()
+                    .map(conversorWorkQueue::converter)
+                    .toList();
+        } catch (RuntimeException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Nao foi possivel consultar as work queues no servico-yard.",
+                    ex
+            );
+        }
     }
 
     private <T> PaginaResposta<T> paginar(List<T> valores, int pagina, int tamanho) {

@@ -15,6 +15,7 @@ import br.com.cloudport.serviconavio.navio.controlador.NavioControlador;
 import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.cliente.NavioCadastroCliente;
 import br.com.cloudport.serviconaviosiderurgico.controlador.NavioSiderurgicoControlador;
+import br.com.cloudport.serviconaviosiderurgico.controlador.QuayBerthCraneControlador;
 import br.com.cloudport.serviconaviosiderurgico.controlador.VisitaNavioControlador;
 import br.com.cloudport.serviconaviosiderurgico.porta.CadastroNavioPorta;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.EventoVisitaNavioRepositorio;
@@ -23,6 +24,7 @@ import br.com.cloudport.serviconaviosiderurgico.repositorio.ItemOperacaoNavioRep
 import br.com.cloudport.serviconaviosiderurgico.repositorio.NavioSiderurgicoRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.OperacaoSiderurgicaRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.PlanoEstivaNavioRepositorio;
+import br.com.cloudport.serviconaviosiderurgico.repositorio.PlanoGuindasteVisitaRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.PosicaoEstivaNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ReservaPosicaoPatioNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.VisitaNavioRepositorio;
@@ -107,6 +109,7 @@ class CloudPortMonolitoNavioPostgresTest {
     @Autowired private PosicaoEstivaNavioRepositorio posicaoEstivaNavioRepositorio;
     @Autowired private EventoVisitaNavioRepositorio eventoVisitaNavioRepositorio;
     @Autowired private ReservaPosicaoPatioNavioRepositorio reservaPosicaoPatioNavioRepositorio;
+    @Autowired private PlanoGuindasteVisitaRepositorio planoGuindasteVisitaRepositorio;
 
     @Test
     void deveAplicarMigracoesReaisNosDoisSchemas() {
@@ -141,7 +144,8 @@ class CloudPortMonolitoNavioPostgresTest {
                 () -> assertEquals(1, applicationContext.getBeansOfType(SecurityFilterChain.class).size()),
                 () -> assertEquals(1, applicationContext.getBeansOfType(NavioControlador.class).size()),
                 () -> assertEquals(1, applicationContext.getBeansOfType(NavioSiderurgicoControlador.class).size()),
-                () -> assertEquals(1, applicationContext.getBeansOfType(VisitaNavioControlador.class).size())
+                () -> assertEquals(1, applicationContext.getBeansOfType(VisitaNavioControlador.class).size()),
+                () -> assertEquals(1, applicationContext.getBeansOfType(QuayBerthCraneControlador.class).size())
         );
     }
 
@@ -189,7 +193,8 @@ class CloudPortMonolitoNavioPostgresTest {
                 () -> assertEquals(0, planoEstivaNavioRepositorio.count()),
                 () -> assertEquals(0, posicaoEstivaNavioRepositorio.count()),
                 () -> assertEquals(0, eventoVisitaNavioRepositorio.count()),
-                () -> assertEquals(0, reservaPosicaoPatioNavioRepositorio.count())
+                () -> assertEquals(0, reservaPosicaoPatioNavioRepositorio.count()),
+                () -> assertEquals(0, planoGuindasteVisitaRepositorio.count())
         );
     }
 

@@ -2,20 +2,13 @@ package br.com.cloudport.servicogate.config;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
+@Component
 @ConfigurationProperties(prefix = "cloudport.gate.ocr")
 public class OcrIntegrationProperties {
 
-    private String solicitacaoQueue = "gate.ocr.solicitacoes";
     private Duration tempoMaximoProcessamento = Duration.ofSeconds(10);
-
-    public String getSolicitacaoQueue() {
-        return solicitacaoQueue;
-    }
-
-    public void setSolicitacaoQueue(String solicitacaoQueue) {
-        this.solicitacaoQueue = solicitacaoQueue;
-    }
 
     public Duration getTempoMaximoProcessamento() {
         return tempoMaximoProcessamento;

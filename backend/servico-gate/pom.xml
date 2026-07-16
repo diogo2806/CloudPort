@@ -8,14 +8,13 @@
         <version>2.7.18</version>
         <relativePath/>
     </parent>
-        <groupId>br.com.cloudport</groupId>
-        <artifactId>servico-gate</artifactId>
+    <groupId>br.com.cloudport</groupId>
+    <artifactId>servico-gate</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>servico-gate</name>
     <description>Serviço de orquestração e integração de gate</description>
     <properties>
         <java.version>17</java.version>
-        <amqp-client.version>5.31.0</amqp-client.version>
         <commons-compress.version>1.28.0</commons-compress.version>
         <jackson.version>2.21.4</jackson.version>
         <json-smart.version>2.6.0</json-smart.version>
@@ -95,11 +94,6 @@
                 <groupId>org.apache.tomcat.embed</groupId>
                 <artifactId>tomcat-embed-el</artifactId>
                 <version>${tomcat.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.rabbitmq</groupId>
-                <artifactId>amqp-client</artifactId>
-                <version>${amqp-client.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.nimbusds</groupId>
@@ -206,16 +200,6 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-ui</artifactId>
             <version>1.8.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-logging</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.github.resilience4j</groupId>

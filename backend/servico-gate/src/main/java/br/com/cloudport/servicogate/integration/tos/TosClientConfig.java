@@ -76,7 +76,7 @@ public class TosClientConfig {
     }
 
     @Bean(name = "tosCacheManager")
-    public CacheManager tosCacheManager(TosProperties properties) {
+    public CacheManager cacheManager(TosProperties properties) {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager(
                 TosCacheNames.BOOKING,
                 TosCacheNames.CONTAINER_STATUS,

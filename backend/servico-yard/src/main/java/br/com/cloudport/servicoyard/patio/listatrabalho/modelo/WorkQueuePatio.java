@@ -30,6 +30,12 @@ public class WorkQueuePatio {
     @Column(name = "porao")
     private Integer porao;
 
+    @Column(name = "plano_guindaste_id")
+    private Long planoGuindasteId;
+
+    @Column(name = "recurso_cais_id")
+    private Long recursoCaisId;
+
     @Column(name = "bloco_zona", length = 60)
     private String blocoZona;
 
@@ -44,6 +50,9 @@ public class WorkQueuePatio {
 
     @Column(name = "equipamento", length = 80)
     private String equipamento;
+
+    @Column(name = "equipamento_patio_id")
+    private Long equipamentoPatioId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -68,6 +77,10 @@ public class WorkQueuePatio {
     public void setBerco(String berco) { this.berco = berco; }
     public Integer getPorao() { return porao; }
     public void setPorao(Integer porao) { this.porao = porao; }
+    public Long getPlanoGuindasteId() { return planoGuindasteId; }
+    public void setPlanoGuindasteId(Long planoGuindasteId) { this.planoGuindasteId = planoGuindasteId; }
+    public Long getRecursoCaisId() { return recursoCaisId; }
+    public void setRecursoCaisId(Long recursoCaisId) { this.recursoCaisId = recursoCaisId; }
     public String getBlocoZona() { return blocoZona; }
     public void setBlocoZona(String blocoZona) { this.blocoZona = blocoZona; }
     public Integer getSequenciaInicial() { return sequenciaInicial; }
@@ -78,6 +91,8 @@ public class WorkQueuePatio {
     public void setPoolOperacional(String poolOperacional) { this.poolOperacional = poolOperacional; }
     public String getEquipamento() { return equipamento; }
     public void setEquipamento(String equipamento) { this.equipamento = equipamento; }
+    public Long getEquipamentoPatioId() { return equipamentoPatioId; }
+    public void setEquipamentoPatioId(Long equipamentoPatioId) { this.equipamentoPatioId = equipamentoPatioId; }
     public StatusWorkQueuePatio getStatus() { return status; }
     public void setStatus(StatusWorkQueuePatio status) { this.status = status; }
     public Integer getPrioridadeOperacional() { return prioridadeOperacional; }

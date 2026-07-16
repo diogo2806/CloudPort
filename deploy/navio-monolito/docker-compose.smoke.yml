@@ -1,34 +1,14 @@
 services:
-  yard-smoke:
-    image: python:3.12-alpine
-    restart: "no"
-    working_dir: /app
-    command: ["python", "/app/yard_mock.py"]
+  cloudport-monolito:
     environment:
-      CLOUDPORT_INTERNAL_SERVICE_KEY: ${SMOKE_SERVICE_KEY:?SMOKE_SERVICE_KEY obrigatoria}
-    volumes:
-      - ./smoke/yard_mock.py:/app/yard_mock.py:ro
-    healthcheck:
-      test:
-        - CMD
-        - python
-        - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health', timeout=2).read()"
-      interval: 2s
-      timeout: 3s
-      retries: 30
-    networks:
-      - cloudport-navio
-
-  cloudport-monolito-navio:
-    environment:
-      YARD_SERVICE_URL: http://yard-smoke:8081
       YARD_RECONCILIACAO_MS: 3600000
       NAVIO_SINCRONIZACAO_MS: 3600000
       JWT_SECRET: ${SMOKE_JWT_SECRET:?SMOKE_JWT_SECRET obrigatoria}
       CLOUDPORT_INTERNAL_SERVICE_KEY: ${SMOKE_SERVICE_KEY:?SMOKE_SERVICE_KEY obrigatoria}
       SECURITY_CORS_ALLOWED_ORIGINS: http://portal-smoke.local,http://localhost:8086
       CONTROL_ROOM_TRUSTED_PARENT_ORIGINS: http://portal-smoke.local
-    depends_on:
-      yard-smoke:
-        condition: service_healthy
+      CLOUDPORT_WRITES_ENABLED: "true"
+      CLOUDPORT_JOBS_ENABLED: "false"
+      CLOUDPORT_CONSUMERS_ENABLED: "false"
+      SPRING_RABBITMQ_LISTENER_SIMPLE_AUTO_STARTUP: "false"
+      SPRING_RABBITMQ_LISTENER_DIRECT_AUTO_STARTUP: "false"

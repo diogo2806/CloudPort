@@ -4,127 +4,38 @@ import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.ReservaPosicaoPatioNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.TipoMovimentoNavio;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
 
-@Component
-public class OrdemPatioYardCliente {
+/**
+ * Porta de integração com o módulo Yard.
+ *
+ * <p>No runtime monolítico a implementação é local. O adaptador HTTP é mantido
+ * apenas para execução isolada e rollback durante a migração.</p>
+ */
+public interface OrdemPatioYardCliente {
 
-    private final RestTemplate restTemplate;
-    private final String baseUrl;
+    OrdemPatioYardRespostaDTO criarOuReutilizarOrdem(ItemOperacaoNavio item,
+                                                       ReservaPosicaoPatioNavio reserva);
 
-    public OrdemPatioYardCliente(
-            RestTemplateBuilder restTemplateBuilder,
-            @Value("${cloudport.integracao.yard.base-url:http://localhost:8081}") String baseUrl
-    ) {
-        this.restTemplate = restTemplateBuilder
-                .requestFactory(HttpComponentsClientHttpRequestFactory.class)
-                .build();
-        this.baseUrl = removerBarraFinal(baseUrl);
-    }
+    List<OrdemPatioYardRespostaDTO> listarOrdensDaVisita(Long visitaNavioId);
 
-    public OrdemPatioYardRespostaDTO criarOuReutilizarOrdem(ItemOperacaoNavio item, ReservaPosicaoPatioNavio reserva) {
-        OrdemPatioYardRequisicaoDTO requisicao = OrdemPatioYardRequisicaoDTO.de(item, reserva);
-        return restTemplate.postForObject(baseUrl + "/yard/patio/ordens/navio", requisicao, OrdemPatioYardRespostaDTO.class);
-    }
+    List<FilaOrdemPatioYardDTO> listarFilasDaVisita(Long visitaNavioId);
 
-    public List<OrdemPatioYardRespostaDTO> listarOrdensDaVisita(Long visitaNavioId) {
-        ResponseEntity<OrdemPatioYardRespostaDTO[]> resposta = restTemplate.getForEntity(
-                baseUrl + "/yard/patio/ordens/visita-navio/{visitaNavioId}",
-                OrdemPatioYardRespostaDTO[].class,
-                visitaNavioId
-        );
-        OrdemPatioYardRespostaDTO[] corpo = resposta.getBody();
-        if (corpo == null) {
-            return List.of();
-        }
-        return Arrays.stream(corpo).filter(Objects::nonNull).toList();
-    }
+    List<WorkQueuePatioYardDTO> listarWorkQueuesDaVisita(Long visitaNavioId);
 
-    public List<FilaOrdemPatioYardDTO> listarFilasDaVisita(Long visitaNavioId) {
-        ResponseEntity<FilaOrdemPatioYardDTO[]> resposta = restTemplate.getForEntity(
-                baseUrl + "/yard/patio/ordens/visita-navio/{visitaNavioId}/filas",
-                FilaOrdemPatioYardDTO[].class,
-                visitaNavioId
-        );
-        FilaOrdemPatioYardDTO[] corpo = resposta.getBody();
-        if (corpo == null) {
-            return List.of();
-        }
-        return Arrays.stream(corpo).filter(Objects::nonNull).toList();
-    }
+    List<OrdemPatioYardRespostaDTO> listarOrdensSemCobertura(Long visitaNavioId);
 
-    public List<WorkQueuePatioYardDTO> listarWorkQueuesDaVisita(Long visitaNavioId) {
-        ResponseEntity<WorkQueuePatioYardDTO[]> resposta = restTemplate.getForEntity(
-                baseUrl + "/yard/patio/work-queues?visitaNavioId={visitaNavioId}",
-                WorkQueuePatioYardDTO[].class,
-                visitaNavioId
-        );
-        WorkQueuePatioYardDTO[] corpo = resposta.getBody();
-        if (corpo == null) {
-            return List.of();
-        }
-        return Arrays.stream(corpo).filter(Objects::nonNull).toList();
-    }
+    OrdemPatioYardRespostaDTO atualizarPrioridade(Long ordemId,
+                                                   Integer prioridadeOperacional,
+                                                   Boolean prioridadeBusca);
 
-    public List<OrdemPatioYardRespostaDTO> listarOrdensSemCobertura(Long visitaNavioId) {
-        ResponseEntity<OrdemPatioYardRespostaDTO[]> resposta = restTemplate.getForEntity(
-                baseUrl + "/yard/patio/ordens/visita-navio/{visitaNavioId}/sem-cobertura",
-                OrdemPatioYardRespostaDTO[].class,
-                visitaNavioId
-        );
-        OrdemPatioYardRespostaDTO[] corpo = resposta.getBody();
-        if (corpo == null) {
-            return List.of();
-        }
-        return Arrays.stream(corpo).filter(Objects::nonNull).toList();
-    }
+    OrdemPatioYardRespostaDTO suspender(Long ordemId);
 
-    public OrdemPatioYardRespostaDTO atualizarPrioridade(Long ordemId, Integer prioridadeOperacional, Boolean prioridadeBusca) {
-        AtualizacaoPrioridadeOrdemPatioYardDTO requisicao = new AtualizacaoPrioridadeOrdemPatioYardDTO(prioridadeOperacional, prioridadeBusca);
-        return restTemplate.patchForObject(
-                baseUrl + "/yard/patio/ordens/{ordemId}/prioridade",
-                requisicao,
-                OrdemPatioYardRespostaDTO.class,
-                ordemId
-        );
-    }
+    OrdemPatioYardRespostaDTO retomar(Long ordemId);
 
-    public OrdemPatioYardRespostaDTO suspender(Long ordemId) {
-        return restTemplate.patchForObject(
-                baseUrl + "/yard/patio/ordens/{ordemId}/suspender",
-                null,
-                OrdemPatioYardRespostaDTO.class,
-                ordemId
-        );
-    }
-
-    public OrdemPatioYardRespostaDTO retomar(Long ordemId) {
-        return restTemplate.patchForObject(
-                baseUrl + "/yard/patio/ordens/{ordemId}/retomar",
-                null,
-                OrdemPatioYardRespostaDTO.class,
-                ordemId
-        );
-    }
-
-    private String removerBarraFinal(String valor) {
-        if (!StringUtils.hasText(valor)) {
-            return "http://localhost:8081";
-        }
-        return valor.endsWith("/") ? valor.substring(0, valor.length() - 1) : valor;
-    }
-
-    public static class OrdemPatioYardRequisicaoDTO {
+    class OrdemPatioYardRequisicaoDTO {
         private String codigoConteiner;
         private String tipoCarga;
         private String destino;
@@ -141,9 +52,12 @@ public class OrdemPatioYardCliente {
         private Integer sequenciaNavio;
         private Integer prioridadeOperacional;
 
-        public static OrdemPatioYardRequisicaoDTO de(ItemOperacaoNavio item, ReservaPosicaoPatioNavio reserva) {
-            if (reserva == null || reserva.getLinha() == null || reserva.getColuna() == null || !StringUtils.hasText(reserva.getCamada())) {
-                throw new IllegalArgumentException("A ordem real do yard exige reserva ativa com linha, coluna e camada.");
+        public static OrdemPatioYardRequisicaoDTO de(ItemOperacaoNavio item,
+                                                      ReservaPosicaoPatioNavio reserva) {
+            if (reserva == null || reserva.getLinha() == null || reserva.getColuna() == null
+                    || !StringUtils.hasText(reserva.getCamada())) {
+                throw new IllegalArgumentException(
+                        "A ordem real do yard exige reserva ativa com linha, coluna e camada.");
             }
             OrdemPatioYardRequisicaoDTO dto = new OrdemPatioYardRequisicaoDTO();
             dto.codigoConteiner = item.getCodigoLote();
@@ -185,10 +99,7 @@ public class OrdemPatioYardCliente {
         }
 
         private static String statusDestino(TipoMovimentoNavio tipoMovimento) {
-            if (tipoMovimento == TipoMovimentoNavio.EMBARQUE) {
-                return "DESPACHADO";
-            }
-            return "ARMAZENADO";
+            return tipoMovimento == TipoMovimentoNavio.EMBARQUE ? "DESPACHADO" : "ARMAZENADO";
         }
 
         private static String tipoOrigem(TipoMovimentoNavio tipoMovimento) {
@@ -231,11 +142,15 @@ public class OrdemPatioYardCliente {
         public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
     }
 
-    public static class AtualizacaoPrioridadeOrdemPatioYardDTO {
+    class AtualizacaoPrioridadeOrdemPatioYardDTO {
         private Integer prioridadeOperacional;
         private Boolean prioridadeBusca;
 
-        public AtualizacaoPrioridadeOrdemPatioYardDTO(Integer prioridadeOperacional, Boolean prioridadeBusca) {
+        public AtualizacaoPrioridadeOrdemPatioYardDTO() {
+        }
+
+        public AtualizacaoPrioridadeOrdemPatioYardDTO(Integer prioridadeOperacional,
+                                                       Boolean prioridadeBusca) {
             this.prioridadeOperacional = prioridadeOperacional;
             this.prioridadeBusca = prioridadeBusca;
         }
@@ -246,7 +161,7 @@ public class OrdemPatioYardCliente {
         public void setPrioridadeBusca(Boolean prioridadeBusca) { this.prioridadeBusca = prioridadeBusca; }
     }
 
-    public static class OrdemPatioYardRespostaDTO {
+    class OrdemPatioYardRespostaDTO {
         private Long id;
         private String codigoConteiner;
         private String destino;
@@ -293,7 +208,7 @@ public class OrdemPatioYardCliente {
         }
     }
 
-    public static class FilaOrdemPatioYardDTO {
+    class FilaOrdemPatioYardDTO {
         private String identificador;
         private String agrupamento;
         private Long visitaNavioId;
@@ -324,7 +239,7 @@ public class OrdemPatioYardCliente {
         public void setOrdens(List<OrdemPatioYardRespostaDTO> ordens) { this.ordens = ordens; }
     }
 
-    public static class WorkQueuePatioYardDTO {
+    class WorkQueuePatioYardDTO {
         private Long id;
         private String identificador;
         private String agrupamento;

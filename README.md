@@ -1,116 +1,109 @@
 # CloudPort
 
-O CloudPort é uma plataforma para operações portuárias, com módulos de navio, carga siderúrgica, pátio, gate, ferrovia, autenticação e visibilidade operacional.
+O CloudPort é uma plataforma para operações portuárias com módulos de Navio, carga siderúrgica, Yard, Gate, Rail, Autenticação e Visibilidade.
 
-## Diretriz arquitetural vigente
+## Arquitetura vigente
 
-O backend está migrando de vários microsserviços implantáveis para um **monólito modular**.
+O backend alvo é um **monólito modular**:
 
-A decisão significa:
+- um processo Spring Boot e uma origem de API;
+- limites de domínio preservados por módulos, pacotes, portas e eventos;
+- chamadas locais entre módulos incorporados;
+- segurança, CORS, Jackson, erros, logs, métricas, tracing e agendamento centralizados;
+- PostgreSQL compartilhado, com schema e histórico Flyway próprios por módulo;
+- HTTP e mensageria restritos a integrações externas ou ao período de rollback.
 
-- um único processo Spring Boot para os módulos já migrados;
-- limites de domínio preservados por módulos, pacotes, portas e adaptadores;
-- chamadas locais entre módulos que executam no mesmo processo;
-- uma única configuração de segurança, observabilidade e execução por runtime;
-- banco PostgreSQL compartilhado, mantendo inicialmente um schema e um histórico Flyway por módulo;
-- HTTP e mensageria apenas para integrações externas ou módulos que ainda não foram incorporados.
+Não devem ser criados novos microsserviços para funcionalidades internas sem decisão arquitetural explícita.
 
-Não devem ser criados novos microsserviços para funcionalidades internas do CloudPort sem uma decisão arquitetural explícita.
+## Estado da migração
 
-## Estado atual da migração
-
-| Componente | Estado | Execução atual |
+| Componente | Estado no código | Estado operacional |
 | --- | --- | --- |
-| Navio | Incorporado | Módulo Maven carregado pelo `cloudport-monolito-navio` |
-| Navio Siderúrgico | Incorporado | Módulo Maven carregado pelo `cloudport-monolito-navio` |
-| Yard | Em transição | Deployment legado acessado pelo runtime de Navio |
-| Gate | Em transição | Deployment legado |
-| Rail | Em transição | Deployment legado |
-| Autenticação | Em transição | Emissor de JWT ainda separado |
-| Visibilidade | Em transição | Deployment legado |
-| Frontend principal | Migrado | Portal React em `frontend/cloudport` |
-| Control Room | Migrado | Aplicação React incorporada ao runtime consolidado |
+| Navio | Incorporado | corte condicionado à validação de ambiente |
+| Navio Siderúrgico | Incorporado | corte condicionado à validação de ambiente |
+| Yard | Incorporado | deployment legado preservado para rollback |
+| Gate | Incorporado | deployment legado preservado para rollback |
+| Rail | Incorporado | deployment legado preservado para rollback |
+| Autenticação | Incorporado | deployment e credenciais legadas preservados para rollback |
+| Visibilidade | Incorporado | deployment legado preservado para rollback |
+| Portal principal | React | consome uma origem de API configurável |
+| Control Room | React incorporado | servido pelo runtime consolidado |
 
-Os diretórios `backend/servico-*` continuam existindo para preservar os limites dos módulos e permitir rollback durante a transição. O prefixo `servico-` não define a arquitetura alvo nem exige deployment separado.
+Os diretórios `backend/servico-*` representam módulos. Eles continuam compiláveis isoladamente durante a janela de retorno, mas não definem a arquitetura alvo.
 
-## Arquitetura do primeiro corte consolidado
+## Visão do runtime
 
 ```mermaid
 flowchart LR
-    FE[Portal React] --> API[cloudport-monolito-navio :8086]
-    FE --> CR[Control Room React]
+    FE[Portal e Control Room] --> API[cloudport-monolito :8086]
 
-    subgraph MONOLITO[Monólito modular]
-        API --> NAVIO[Módulo Navio]
-        API --> SIDERURGICO[Módulo Navio Siderúrgico]
-        SIDERURGICO -->|porta local| NAVIO
+    subgraph API[Monólito modular]
+        AUTH[Autenticação]
+        GATE[Gate]
+        RAIL[Rail]
+        YARD[Yard]
+        NAVIO[Navio]
+        SID[Navio Siderúrgico]
+        VIS[Visibilidade]
+
+        SID -->|porta local| NAVIO
+        SID -->|portas locais| YARD
+        GATE -->|porta local| YARD
+        GATE -->|porta local| AUTH
     end
 
-    NAVIO --> DBN[(schema cloudport_navio)]
-    SIDERURGICO --> DBS[(schema cloudport_siderurgico)]
-    NAVIO -->|integração transitória HTTP| YARD[servico-yard]
-    AUTH[servico-autenticacao] -->|JWT HS256| API
+    API --> PG[(PostgreSQL: 7 schemas)]
+    API --> MQ[(RabbitMQ)]
+    API --> REDIS[(Redis)]
+    API --> EXT[EDI, TOS, OCR, storage e sistemas externos]
 ```
-
-A documentação detalhada está em [`docs/arquitetura-monolito-modular.md`](docs/arquitetura-monolito-modular.md).
 
 ## Estrutura relevante
 
 ```text
 backend/
-├── cloudport-navio-modules/       # reator Maven do corte consolidado
+├── cloudport-navio-modules/       # parent e reator Maven
 ├── cloudport-monolito-navio/      # runtime Spring Boot único
-├── servico-navio/                 # módulo de domínio Navio
-├── servico-navio-siderurgico/     # módulo de domínio siderúrgico
-├── servico-yard/                  # módulo/deployment legado em transição
-├── servico-gate/                  # módulo/deployment legado em transição
-├── servico-rail/                  # módulo/deployment legado em transição
-├── servico-autenticacao/          # módulo/deployment legado em transição
-└── servico-visibilidade/          # módulo/deployment legado em transição
+├── servico-navio/
+├── servico-navio-siderurgico/
+├── servico-yard/
+├── servico-gate/
+├── servico-rail/
+├── servico-autenticacao/
+└── servico-visibilidade/
 
 frontend/
 ├── cloudport/                     # portal principal React
-└── servico-navio-siderurgico/     # Control Room React incorporado ao runtime
+└── servico-navio-siderurgico/     # Control Room React
 ```
 
-## Compilar e testar o runtime consolidado
+## Compilar e testar
 
-Pré-requisitos: JDK 17, Maven 3.9+ e Docker disponível para os testes com Testcontainers.
+Pré-requisitos: JDK 17, Maven 3.9+ e Docker.
 
 ```bash
 cd backend/cloudport-navio-modules
-
-mvn -B -Pmodulo-monolito \
-  -pl :servico-navio,:servico-navio-siderurgico \
-  -DskipTests install
-
-mvn -B -Pmodulo-monolito \
-  -pl :cloudport-monolito-navio \
-  test package
+mvn -B -Pmodulo-monolito -pl :cloudport-monolito-navio -am test package
 ```
 
-O build valida o runtime com PostgreSQL real, os dois schemas, os históricos Flyway independentes e os repositórios JPA dos módulos incorporados.
+O build inclui os sete módulos e valida PostgreSQL/Testcontainers, históricos Flyway, segurança única, portas locais e regras ArchUnit.
 
-## Executar o runtime consolidado
+## Executar
 
 Variáveis mínimas:
 
 ```bash
-export MONOLITO_NAVIO_DB_URL='jdbc:postgresql://localhost:5432/cloudport'
-export MONOLITO_NAVIO_DB_USERNAME='cloudport'
-export MONOLITO_NAVIO_DB_PASSWORD='cloudport'
-export JWT_SECRET='substitua-por-um-segredo-com-pelo-menos-32-bytes'
+export CLOUDPORT_DB_URL='jdbc:postgresql://localhost:5432/cloudport'
+export CLOUDPORT_DB_USERNAME='cloudport'
+export CLOUDPORT_DB_PASSWORD='cloudport'
+export JWT_SECRET='substitua-por-segredo-com-pelo-menos-32-bytes'
 ```
 
-Variáveis opcionais ou transitórias:
+Infraestrutura:
 
 ```bash
-export MONOLITO_NAVIO_SERVER_PORT='8086'
-export MONOLITO_NAVIO_SCHEMA='cloudport_navio'
-export MONOLITO_SIDERURGICO_SCHEMA='cloudport_siderurgico'
-export YARD_SERVICE_URL='http://localhost:8081'
-export CLOUDPORT_INTERNAL_SERVICE_KEY='chave-de-integracao-interna'
-export SECURITY_CORS_ALLOWED_ORIGINS='http://localhost:4200,http://localhost:4201'
+export SPRING_RABBITMQ_HOST='localhost'
+export SPRING_REDIS_HOST='localhost'
 ```
 
 Após compilar:
@@ -119,20 +112,21 @@ Após compilar:
 java -jar backend/cloudport-monolito-navio/target/cloudport-monolito-navio-*.jar
 ```
 
-Também é possível construir a imagem a partir da raiz do repositório:
+## Docker Compose
 
 ```bash
-docker build -f backend/cloudport-monolito-navio/Dockerfile -t cloudport-monolito-navio .
+docker compose \
+  -f deploy/navio-monolito/docker-compose.yml \
+  --profile monolito \
+  up -d --build
 ```
 
-## Frontend
+O perfil `legado` existe para comparação e rollback. Ele deve permanecer com escrita, jobs e consumidores desativados enquanto o monólito estiver ativo.
 
-O portal principal e o Control Room usam React 19 com Vite 8. Ambos consomem URLs configuradas em tempo de execução por `assets/configuracao.json`, sem acoplar os componentes aos hosts dos módulos internos.
+## Documentação
 
-Consulte [`frontend/cloudport/README.md`](frontend/cloudport/README.md) para instalação, build e testes do portal.
-
-## Documentação de evolução
-
-- Arquitetura e regras de migração: [`docs/arquitetura-monolito-modular.md`](docs/arquitetura-monolito-modular.md)
+- Arquitetura: [`docs/arquitetura-monolito-modular.md`](docs/arquitetura-monolito-modular.md)
+- Corte e rollback: [`docs/operacao-corte-rollback-navio.md`](docs/operacao-corte-rollback-navio.md)
+- Runtime: [`backend/cloudport-monolito-navio/README.md`](backend/cloudport-monolito-navio/README.md)
 - Pendências: [`docs/requisitos/modulo-navios-back-front-gaps.md`](docs/requisitos/modulo-navios-back-front-gaps.md)
-- Entregas concluídas: [`docs/implementados/requisitos-implementados.md`](docs/implementados/requisitos-implementados.md)
+- Entregas: [`docs/implementados/requisitos-implementados.md`](docs/implementados/requisitos-implementados.md)

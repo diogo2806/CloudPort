@@ -7,6 +7,8 @@ public class AtualizacaoWorkQueueRecursosDto {
     private Integer porao;
     private Long planoGuindasteId;
     private Long recursoCaisId;
+    private String pow;
+    private String poolOperacional;
     private Long equipamentoPatioId;
     @NotBlank
     private String motivo;
@@ -20,6 +22,10 @@ public class AtualizacaoWorkQueueRecursosDto {
     public void setPlanoGuindasteId(Long planoGuindasteId) { this.planoGuindasteId = planoGuindasteId; }
     public Long getRecursoCaisId() { return recursoCaisId; }
     public void setRecursoCaisId(Long recursoCaisId) { this.recursoCaisId = recursoCaisId; }
+    public String getPow() { return pow; }
+    public void setPow(String pow) { this.pow = pow; }
+    public String getPoolOperacional() { return poolOperacional; }
+    public void setPoolOperacional(String poolOperacional) { this.poolOperacional = poolOperacional; }
     public Long getEquipamentoPatioId() { return equipamentoPatioId; }
     public void setEquipamentoPatioId(Long equipamentoPatioId) { this.equipamentoPatioId = equipamentoPatioId; }
     public String getMotivo() { return motivo; }

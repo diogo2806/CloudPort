@@ -1,21 +1,27 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.servico;
 
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoPrioridadesWorkInstructionDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueEquipamentoDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueuePowDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueRecursosDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoWorkInstructionDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.DispatchWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.HistoricoOperacaoPatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.JobListEquipamentoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRespostaDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ResultadoDispatchWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkInstructionDrillDownDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.HistoricoOperacaoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
+import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusWorkQueuePatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.WorkQueuePatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.HistoricoWorkInstructionRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.WorkQueuePatioRepositorio;
 import br.com.cloudport.servicoyard.patio.modelo.EquipamentoPatio;
+import br.com.cloudport.servicoyard.patio.modelo.StatusEquipamento;
 import br.com.cloudport.servicoyard.patio.repositorio.EquipamentoPatioRepositorio;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -23,14 +29,17 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -56,6 +65,9 @@ public class WorkQueueOperacaoServico {
 
     @Transactional
     public WorkQueuePatioRespostaDto associarRecursos(Long workQueueId, AtualizacaoWorkQueueRecursosDto dto) {
+        if (dto == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Os recursos operacionais devem ser informados.");
+        }
         WorkQueuePatio fila = buscarFila(workQueueId);
         EquipamentoPatio equipamento = dto.getEquipamentoPatioId() == null
                 ? null
@@ -64,6 +76,12 @@ public class WorkQueueOperacaoServico {
         fila.setPorao(dto.getPorao());
         fila.setPlanoGuindasteId(dto.getPlanoGuindasteId());
         fila.setRecursoCaisId(dto.getRecursoCaisId());
+        if (dto.getPow() != null) {
+            fila.setPow(normalizarOpcional(dto.getPow()));
+        }
+        if (dto.getPoolOperacional() != null) {
+            fila.setPoolOperacional(normalizarOpcional(dto.getPoolOperacional()));
+        }
         fila.setEquipamentoPatioId(equipamento == null ? null : equipamento.getId());
         fila.setEquipamento(equipamento == null ? null : equipamento.getIdentificador());
         fila.setAtualizadoEm(LocalDateTime.now());
@@ -73,10 +91,123 @@ public class WorkQueueOperacaoServico {
                 "porao=" + dto.getPorao()
                         + "; planoGuindasteId=" + dto.getPlanoGuindasteId()
                         + "; recursoCaisId=" + dto.getRecursoCaisId()
+                        + "; pow=" + valor(fila.getPow(), "SEM_POW")
+                        + "; poolOperacional=" + valor(fila.getPoolOperacional(), "SEM_POOL")
                         + "; equipamentoPatioId=" + dto.getEquipamentoPatioId()
                         + metadados(dto.getOrigemAcao(), dto.getCorrelationId()),
                 usuarioEfetivo(dto.getUsuario()));
         return WorkQueuePatioRespostaDto.deEntidade(salva, listarOrdens(salva.getId()));
+    }
+
+    @Transactional
+    public WorkQueuePatioRespostaDto atualizarPow(Long workQueueId, AtualizacaoWorkQueuePowDto dto) {
+        if (dto == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "POW e pool operacional devem ser informados.");
+        }
+        WorkQueuePatio fila = buscarFila(workQueueId);
+        fila.setPow(normalizarOpcional(dto.getPow()));
+        fila.setPoolOperacional(normalizarOpcional(dto.getPoolOperacional()));
+        fila.setAtualizadoEm(LocalDateTime.now());
+        WorkQueuePatio salva = workQueueRepositorio.save(fila);
+        registrarHistorico(fila.getId(), null, "WORK_QUEUE_COBERTURA_ATUALIZADA", dto.getMotivo(),
+                "pow=" + valor(fila.getPow(), "SEM_POW")
+                        + "; poolOperacional=" + valor(fila.getPoolOperacional(), "SEM_POOL")
+                        + metadados(dto.getOrigemAcao(), dto.getCorrelationId()),
+                usuarioEfetivo(dto.getUsuario()));
+        return WorkQueuePatioRespostaDto.deEntidade(salva, listarOrdens(salva.getId()));
+    }
+
+    @Transactional
+    public WorkQueuePatioRespostaDto atualizarEquipamento(Long workQueueId, AtualizacaoWorkQueueEquipamentoDto dto) {
+        if (dto == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O equipamento deve ser informado.");
+        }
+        WorkQueuePatio fila = buscarFila(workQueueId);
+        EquipamentoPatio equipamento = StringUtils.hasText(dto.getEquipamento())
+                ? buscarEquipamentoPorIdentificador(dto.getEquipamento())
+                : null;
+        fila.setEquipamentoPatioId(equipamento == null ? null : equipamento.getId());
+        fila.setEquipamento(equipamento == null ? null : equipamento.getIdentificador());
+        fila.setAtualizadoEm(LocalDateTime.now());
+        WorkQueuePatio salva = workQueueRepositorio.save(fila);
+        registrarHistorico(fila.getId(), null, "WORK_QUEUE_EQUIPAMENTO_REAL_ATUALIZADO", dto.getMotivo(),
+                "equipamentoPatioId=" + fila.getEquipamentoPatioId()
+                        + "; equipamento=" + valor(fila.getEquipamento(), "SEM_EQUIPAMENTO")
+                        + metadados(dto.getOrigemAcao(), dto.getCorrelationId()),
+                usuarioEfetivo(dto.getUsuario()));
+        return WorkQueuePatioRespostaDto.deEntidade(salva, listarOrdens(salva.getId()));
+    }
+
+    @Transactional
+    public ResultadoDispatchWorkQueueDto despachar(Long workQueueId, DispatchWorkQueueDto dto) {
+        DispatchWorkQueueDto comando = dto == null ? new DispatchWorkQueueDto() : dto;
+        String motivo = comando.motivoEfetivo();
+        if (!StringUtils.hasText(motivo)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "O motivo do dispatch deve ser informado.");
+        }
+
+        WorkQueuePatio fila = buscarFila(workQueueId);
+        EquipamentoPatio equipamento = validarCoberturaParaDispatch(fila);
+        Set<Long> idsSelecionados = CollectionUtils.isEmpty(comando.getOrdemIds())
+                ? Set.of()
+                : comando.getOrdemIds().stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        int limite = comando.limiteOrdensEfetivo();
+        int despachadas = 0;
+        int ignoradas = 0;
+
+        for (OrdemTrabalhoPatio ordem : listarOrdens(fila.getId())) {
+            if (despachadas >= limite) {
+                ignoradas++;
+                continue;
+            }
+            if (!idsSelecionados.isEmpty() && !idsSelecionados.contains(ordem.getId())) {
+                continue;
+            }
+            if (comando.somentePendentesEfetivo()
+                    && ordem.getStatusOrdem() != StatusOrdemTrabalhoPatio.PENDENTE) {
+                ignoradas++;
+                continue;
+            }
+            if (!MATRIZ_ESTADOS.getOrDefault(ordem.getStatusOrdem(), Set.of())
+                    .contains(StatusOrdemTrabalhoPatio.EM_EXECUCAO)) {
+                ignoradas++;
+                continue;
+            }
+            transicionar(ordem,
+                    StatusOrdemTrabalhoPatio.EM_EXECUCAO,
+                    "WORK_INSTRUCTION_DESPACHADA",
+                    motivo,
+                    comando.usuarioEfetivo(),
+                    comando.getOrigemAcao(),
+                    comando.getCorrelationId(),
+                    "workQueueId=" + fila.getId()
+                            + "; equipamentoPatioId=" + equipamento.getId()
+                            + "; pow=" + fila.getPow()
+                            + "; poolOperacional=" + fila.getPoolOperacional()
+                            + "; planoGuindasteId=" + fila.getPlanoGuindasteId()
+                            + "; recursoCaisId=" + fila.getRecursoCaisId());
+            despachadas++;
+        }
+
+        registrarHistorico(fila.getId(), null, "WORK_QUEUE_DESPACHADA", motivo,
+                "despachadas=" + despachadas
+                        + "; ignoradas=" + ignoradas
+                        + "; equipamentoPatioId=" + equipamento.getId()
+                        + "; pow=" + fila.getPow()
+                        + "; poolOperacional=" + fila.getPoolOperacional()
+                        + "; planoGuindasteId=" + fila.getPlanoGuindasteId()
+                        + "; recursoCaisId=" + fila.getRecursoCaisId()
+                        + metadados(comando.getOrigemAcao(), comando.getCorrelationId()),
+                comando.usuarioEfetivo());
+
+        return new ResultadoDispatchWorkQueueDto(
+                fila.getId(),
+                despachadas,
+                ignoradas,
+                "Dispatch executado para a work queue " + fila.getIdentificador() + ".",
+                listarOrdens(fila.getId()).stream().map(OrdemTrabalhoPatioRespostaDto::deEntidade).toList()
+        );
     }
 
     @Transactional
@@ -97,6 +228,16 @@ public class WorkQueueOperacaoServico {
     @Transactional
     public OrdemTrabalhoPatioRespostaDto concluir(Long ordemId, ComandoWorkInstructionDto dto) {
         return transicionar(ordemId, StatusOrdemTrabalhoPatio.CONCLUIDA, "WORK_INSTRUCTION_CONCLUIDA", dto);
+    }
+
+    @Transactional
+    public OrdemTrabalhoPatioRespostaDto resetar(Long ordemId, ComandoWorkInstructionDto dto) {
+        return transicionar(ordemId, StatusOrdemTrabalhoPatio.PENDENTE, "WORK_INSTRUCTION_RESETADA", dto);
+    }
+
+    @Transactional
+    public OrdemTrabalhoPatioRespostaDto cancelar(Long ordemId, ComandoWorkInstructionDto dto) {
+        return transicionar(ordemId, StatusOrdemTrabalhoPatio.CANCELADA, "WORK_INSTRUCTION_CANCELADA", dto);
     }
 
     @Transactional
@@ -198,7 +339,29 @@ public class WorkQueueOperacaoServico {
                                                         StatusOrdemTrabalhoPatio destino,
                                                         String acao,
                                                         ComandoWorkInstructionDto dto) {
+        if (dto == null || !StringUtils.hasText(dto.getMotivo())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "O motivo da transicao deve ser informado.");
+        }
         OrdemTrabalhoPatio ordem = buscarOrdem(ordemId);
+        return transicionar(ordem,
+                destino,
+                acao,
+                dto.getMotivo(),
+                usuarioEfetivo(dto.getUsuario()),
+                dto.getOrigemAcao(),
+                dto.getCorrelationId(),
+                null);
+    }
+
+    private OrdemTrabalhoPatioRespostaDto transicionar(OrdemTrabalhoPatio ordem,
+                                                        StatusOrdemTrabalhoPatio destino,
+                                                        String acao,
+                                                        String motivo,
+                                                        String usuario,
+                                                        String origemAcao,
+                                                        String correlationId,
+                                                        String detalhesAdicionais) {
         StatusOrdemTrabalhoPatio origem = ordem.getStatusOrdem();
         if (!MATRIZ_ESTADOS.getOrDefault(origem, Set.of()).contains(destino)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -208,11 +371,53 @@ public class WorkQueueOperacaoServico {
         ordem.setAtualizadoEm(LocalDateTime.now());
         ordem.setConcluidoEm(destino == StatusOrdemTrabalhoPatio.CONCLUIDA ? LocalDateTime.now() : null);
         OrdemTrabalhoPatio salva = ordemRepositorio.save(ordem);
-        registrarHistorico(ordem.getWorkQueueId(), ordem.getId(), acao, dto.getMotivo(),
-                "estadoAnterior=" + origem + "; estadoAtual=" + destino
-                        + metadados(dto.getOrigemAcao(), dto.getCorrelationId()),
-                usuarioEfetivo(dto.getUsuario()));
+        String detalhes = "estadoAnterior=" + origem + "; estadoAtual=" + destino;
+        if (StringUtils.hasText(detalhesAdicionais)) {
+            detalhes += "; " + detalhesAdicionais;
+        }
+        registrarHistorico(ordem.getWorkQueueId(), ordem.getId(), acao, motivo,
+                detalhes + metadados(origemAcao, correlationId), usuario);
         return OrdemTrabalhoPatioRespostaDto.deEntidade(salva);
+    }
+
+    private EquipamentoPatio validarCoberturaParaDispatch(WorkQueuePatio fila) {
+        if (fila.getStatus() != StatusWorkQueuePatio.ATIVA) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A work queue precisa estar ativa para dispatch.");
+        }
+        List<String> recursosAusentes = new ArrayList<>();
+        if (!StringUtils.hasText(fila.getPow())) {
+            recursosAusentes.add("POW");
+        }
+        if (!StringUtils.hasText(fila.getPoolOperacional())) {
+            recursosAusentes.add("pool operacional");
+        }
+        if (fila.getPlanoGuindasteId() == null) {
+            recursosAusentes.add("plano de guindaste");
+        }
+        if (fila.getRecursoCaisId() == null) {
+            recursosAusentes.add("recurso de cais");
+        }
+        if (fila.getEquipamentoPatioId() == null) {
+            recursosAusentes.add("CHE real");
+        }
+        if (!recursosAusentes.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Dispatch bloqueado por cobertura operacional incompleta: "
+                            + String.join(", ", recursosAusentes) + ".");
+        }
+
+        EquipamentoPatio equipamento = buscarEquipamento(fila.getEquipamentoPatioId());
+        if (equipamento.getStatusOperacional() != StatusEquipamento.OPERACIONAL) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "O CHE " + equipamento.getIdentificador() + " nao esta operacional.");
+        }
+        if (!StringUtils.hasText(fila.getEquipamento())
+                || !equipamento.getIdentificador().equalsIgnoreCase(fila.getEquipamento().trim())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "O vinculo textual do equipamento diverge do CHE real associado. Reassocie os recursos operacionais.");
+        }
+        return equipamento;
     }
 
     private JobListEquipamentoDto montarPainelEquipamento(EquipamentoPatio equipamento,
@@ -254,6 +459,13 @@ public class WorkQueueOperacaoServico {
                         "CHE de patio nao encontrado."));
     }
 
+    private EquipamentoPatio buscarEquipamentoPorIdentificador(String identificador) {
+        String normalizado = normalizarOpcional(identificador);
+        return equipamentoRepositorio.findByIdentificador(normalizado)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "CHE de patio nao encontrado para o identificador informado."));
+    }
+
     private void registrarHistorico(Long workQueueId,
                                      Long ordemId,
                                      String acao,
@@ -264,7 +476,7 @@ public class WorkQueueOperacaoServico {
         historico.setWorkQueueId(workQueueId);
         historico.setOrdemTrabalhoPatioId(ordemId);
         historico.setAcao(acao);
-        historico.setUsuario(usuario);
+        historico.setUsuario(StringUtils.hasText(usuario) ? usuario.trim() : "sistema");
         historico.setMotivo(limitar(motivo, 500));
         historico.setDetalhes(limitar(detalhes, 2000));
         historico.setCriadoEm(LocalDateTime.now());
@@ -284,6 +496,10 @@ public class WorkQueueOperacaoServico {
     private String metadados(String origemAcao, String correlationId) {
         return "; origemAcao=" + valor(origemAcao, "NAO_INFORMADA")
                 + "; correlationId=" + valor(correlationId, "NAO_INFORMADO");
+    }
+
+    private String normalizarOpcional(String valor) {
+        return StringUtils.hasText(valor) ? valor.trim().toUpperCase(Locale.ROOT) : null;
     }
 
     private String valor(String valor, String padrao) {
@@ -306,6 +522,7 @@ public class WorkQueueOperacaoServico {
                 StatusOrdemTrabalhoPatio.SUSPENSA,
                 StatusOrdemTrabalhoPatio.CANCELADA));
         matriz.put(StatusOrdemTrabalhoPatio.EM_EXECUCAO, estados(
+                StatusOrdemTrabalhoPatio.PENDENTE,
                 StatusOrdemTrabalhoPatio.CONCLUIDA,
                 StatusOrdemTrabalhoPatio.BLOQUEADA,
                 StatusOrdemTrabalhoPatio.SUSPENSA,

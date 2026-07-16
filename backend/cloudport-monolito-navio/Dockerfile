@@ -2,8 +2,8 @@
 # docker build -f backend/cloudport-monolito-navio/Dockerfile -t cloudport-monolito-navio .
 FROM node:22-alpine AS frontend-build
 WORKDIR /workspace/frontend/servico-navio-siderurgico
-COPY frontend/servico-navio-siderurgico/package*.json ./
-RUN npm ci
+COPY frontend/servico-navio-siderurgico/package.json ./
+RUN npm install --no-audit --no-fund
 COPY frontend/servico-navio-siderurgico/ ./
 RUN npm run build
 

@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-16 após implementação do SEC10.
+Status: atualizado em 2026-07-16 após implementação do ERR10.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -9,7 +9,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
 | ARCH10 | Substituir a chamada HTTP interna do otimizador do Yard por uma porta local no runtime modular. | A otimização Navio + Pátio executa no `cloudport-runtime` por chamada local ao módulo Yard; o adaptador HTTP permanece condicionado somente ao modo de rollback. | ⬜ Pendente |
-| ERR10 | Impedir que falhas obrigatórias do Yard sejam convertidas em respostas locais de sucesso. | Falhas na consulta de filas ou ordens sem cobertura retornam erro tipado e status coerente; cálculo local alternativo só é usado quando um modo de contingência explícito estiver habilitado. | ⬜ Pendente |
 | BUS10 | Aplicar o resultado real do otimizador no replanejamento de pátio. | O replanejamento usa o plano calculado para atualizar reservas, posições, ordens e vínculos operacionais em uma transação, compensa o estado anterior em falha e calcula ganho e risco com dados do plano. | ⬜ Pendente |
 
 ### ARCH10 — arquivos e métodos
@@ -19,14 +18,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/cliente/OtimizacaoYardCliente.java` | `otimizar(Map<String, Object>)` | O componente sempre usa `RestTemplate` para chamar `/api/scheduler/gerar-plano`, mesmo quando Navio Siderúrgico e Yard executam no mesmo processo. | Transformar o cliente em porta e manter esta implementação como adaptador HTTP condicionado ao modo de rollback. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/scheduler/servico/PredictiveSchedulerService.java` | `gerarPlanoOperacional(...)` | O serviço real do otimizador já está incorporado ao runtime, mas não é chamado diretamente pelo módulo consumidor. | Criar adaptador local que converta o contrato de entrada e invoque o serviço do Yard sem atravessar HTTP. |
 | `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/CloudPortRuntimeApplication.java` | composição dos módulos | O runtime incorpora os dois módulos, porém não registra uma implementação local para o contrato de otimização. | Registrar a implementação local como padrão do runtime e impedir a ativação simultânea dos adaptadores local e HTTP. |
-
-### ERR10 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/IntegracaoNavioPatioServico.java` | `listarFilasOperacionaisDaVisita()` | Qualquer `RuntimeException` da integração é capturada e substituída por filas derivadas localmente, fazendo uma indisponibilidade parecer uma resposta válida. | Propagar exceção de integração tipada e retornar `503` quando o Yard obrigatório estiver indisponível; permitir derivação local somente sob configuração explícita de contingência. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/IntegracaoNavioPatioServico.java` | `listarOrdensSemCoberturaDaVisita()` | Em falha, o método devolve uma heurística baseada em prioridade, sequência e destino, sem comprovar o estado real de cobertura no Yard. | Remover o fallback implícito e consultar a fonte real; em contingência habilitada, identificar a resposta como degradada e não como estado operacional confirmado. |
-| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/cliente/OrdemPatioYardCliente.java` | contratos de filas e cobertura | O contrato não diferencia falha obrigatória, resposta vazia legítima e modo degradado. | Definir erros e resultado degradado de forma explícita, preservando a distinção até controller e frontend. |
 
 ### BUS10 — arquivos e métodos
 

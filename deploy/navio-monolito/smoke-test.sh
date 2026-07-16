@@ -6,26 +6,40 @@ BASE_COMPOSE="$ROOT_DIR/deploy/navio-monolito/docker-compose.yml"
 SMOKE_COMPOSE="$ROOT_DIR/deploy/navio-monolito/docker-compose.smoke.yml"
 PUBLIC_URL="${MONOLITO_SMOKE_URL:-http://localhost:8086}"
 PROJECT_NAME="${MONOLITO_SMOKE_PROJECT:-cloudport-navio-smoke}"
+COMPOSE_LOG="$(mktemp)"
 
 export SMOKE_JWT_SECRET="${SMOKE_JWT_SECRET:-$(openssl rand -hex 32)}"
 export SMOKE_SERVICE_KEY="${SMOKE_SERVICE_KEY:-$(openssl rand -hex 24)}"
 
 COMPOSE=(docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$SMOKE_COMPOSE" --profile monolito)
 
+stage() {
+    echo "[smoke] $1"
+}
+
 cleanup() {
     local exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
+        echo "[smoke] falha detectada; ultimas linhas da construcao:" >&2
+        tail -n 120 "$COMPOSE_LOG" >&2 || true
         "${COMPOSE[@]}" ps || true
-        "${COMPOSE[@]}" logs --no-color || true
+        "${COMPOSE[@]}" logs --no-color --tail 160 || true
     fi
-    "${COMPOSE[@]}" down -v --remove-orphans || true
+    "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
     exit "$exit_code"
 }
 trap cleanup EXIT
 
-"${COMPOSE[@]}" down -v --remove-orphans || true
-"${COMPOSE[@]}" up -d --build
+stage "limpando ambiente anterior"
+"${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
 
+stage "construindo e iniciando PostgreSQL, monolito e Yard simulado"
+if ! "${COMPOSE[@]}" up -d --build >"$COMPOSE_LOG" 2>&1; then
+    echo "[smoke] falha ao construir ou iniciar o ambiente" >&2
+    exit 1
+fi
+
+stage "aguardando configuracao dinamica"
 config_file="$(mktemp)"
 ready=false
 for _ in $(seq 1 120); do
@@ -51,10 +65,12 @@ if [[ "$ready" != "true" ]]; then
     exit 1
 fi
 
+stage "validando frontend React"
 index_file="$(mktemp)"
 curl -fsS "$PUBLIC_URL/" > "$index_file"
 grep -q 'id="root"' "$index_file"
 
+stage "validando configuracao de runtime"
 python3 - "$config_file" <<'PY'
 import json
 import sys
@@ -66,12 +82,14 @@ if payload.get("trustedParentOrigins") != ["http://portal-smoke.local"]:
     raise SystemExit("origens confiaveis divergentes")
 PY
 
+stage "validando bloqueio sem autenticacao"
 unauthorized_status="$(curl -sS -o /tmp/cloudport-smoke-unauthorized.json -w '%{http_code}' "$PUBLIC_URL/visitas-navio")"
 if [[ "$unauthorized_status" != "401" ]]; then
     echo "API sem autenticacao deveria responder 401, mas respondeu $unauthorized_status." >&2
     exit 1
 fi
 
+stage "gerando JWT temporario"
 TOKEN="$(python3 - <<'PY'
 import base64
 import hashlib
@@ -120,16 +138,20 @@ request_json() {
     fi
 }
 
+stage "criando cadastro canonico"
 canonical_response="$(request_json POST /navios '{"nome":"Navio Smoke","codigoImo":"IMO1234567","paisBandeira":"Brasil","empresaArmadora":"CloudPort","capacidadeTeu":1000,"loaMetros":200.50,"caladoMaximoMetros":12.40,"callSign":"SMOKE"}')"
 canonical_id="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["identificador"])' <<< "$canonical_response")"
 
+stage "criando extensao siderurgica"
 siderurgico_response="$(request_json POST /navios-siderurgicos "{\"navioCadastroId\":$canonical_id,\"nome\":\"Navio Smoke\",\"codigoImo\":\"IMO1234567\",\"paisBandeira\":\"Brasil\",\"empresaArmadora\":\"CloudPort\",\"tipoNavio\":\"CARGUEIRO\",\"loaMetros\":200.50,\"dwtToneladas\":50000,\"quantidadePoroes\":5,\"status\":\"PLANEJADO\"}")"
 siderurgico_id="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<< "$siderurgico_response")"
 
+stage "criando visita"
 visita_response="$(request_json POST /visitas-navio "{\"navioId\":$siderurgico_id,\"codigoVisita\":\"SMOKE-001\",\"fase\":\"PREVISTA\"}")"
 visita_id="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<< "$visita_response")"
 
+stage "validando integracao autenticada com o Yard"
 work_queues_response="$(request_json GET "/visitas-navio/$visita_id/integracao-patio/work-queues")"
 python3 -c 'import json,sys; assert json.load(sys.stdin) == []' <<< "$work_queues_response"
 
-echo "Smoke test do runtime unificado concluido com sucesso."
+stage "smoke test concluido com sucesso"

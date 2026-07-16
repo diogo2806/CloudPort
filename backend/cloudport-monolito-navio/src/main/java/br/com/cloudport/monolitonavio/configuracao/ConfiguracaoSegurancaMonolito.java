@@ -143,10 +143,16 @@ public class ConfiguracaoSegurancaMonolito {
                 "Content-Type",
                 "Accept",
                 CorrelationIdFilter.HEADER,
+                "X-Trace-Id",
+                "traceparent",
                 PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID,
                 PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET,
                 InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY));
-        configuration.setExposedHeaders(Arrays.asList("Authorization", CorrelationIdFilter.HEADER));
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                CorrelationIdFilter.HEADER,
+                "X-Trace-Id",
+                "traceparent"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(1));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

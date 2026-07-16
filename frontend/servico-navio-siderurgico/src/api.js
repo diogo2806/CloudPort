@@ -112,7 +112,10 @@ function isFormData(body) {
 }
 
 function commandBody(motivo, extra = {}) {
-  const normalized = String(motivo ?? '').trim();
+  let normalized = String(motivo ?? '').trim();
+  if (!normalized && typeof window !== 'undefined' && typeof window.prompt === 'function') {
+    normalized = String(window.prompt('Informe o motivo da operação administrativa:', '') ?? '').trim();
+  }
   if (!normalized) throw new Error('O motivo da operação é obrigatório.');
   return { ...extra, motivo: normalized };
 }
@@ -143,7 +146,7 @@ async function request(path, options = {}) {
   const body = enrichCommand(path, method, options.body, publicResource ? null : session, correlationId);
   const headers = new Headers(options.headers ?? {});
   headers.set('Accept', 'application/json');
-  headers.set('X-Correlation-Id', correlationId);
+  if (!publicResource) headers.set('X-Correlation-Id', correlationId);
   if (body !== undefined && !isFormData(body)) headers.set('Content-Type', 'application/json');
   if (session?.token && !publicResource) headers.set('Authorization', `Bearer ${session.token}`);
   try {

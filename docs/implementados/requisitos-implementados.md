@@ -399,3 +399,15 @@ GET   /api/v1/visibilidade/conteiners/buscar
 19. Preservação dos deployments e credenciais legadas até o aceite operacional.
 20. Contratos paginados, protegidos, filtráveis e versionados da API pública de Navio.
 21. BAPLIE, COPRAR, COARRI e VERMAS com rejeição, auditoria e reprocessamento motivado.
+
+## Idempotência dos consumidores de Visibilidade implementada
+
+1. Exigir `eventId` ou `messageId` nos eventos conhecidos de Yard, Gate, Rail e Navio.
+2. Registrar identidade, tipo e hash canônico do payload em `visibilidade_evento_processado`.
+3. Inserir a identidade com unicidade no PostgreSQL antes de aplicar o efeito.
+4. Executar deduplicação, atualização da projeção e gravação do histórico na mesma transação.
+5. Ignorar redelivery com a mesma identidade e o mesmo payload sem reaplicar o efeito.
+6. Rejeitar colisão de identidade quando o tipo ou o payload forem divergentes.
+7. Vincular `HistoricoMovimento.eventoId` ao evento externo e impedir histórico duplicado por índice único.
+8. Reverter a identidade persistida quando o efeito falhar, permitindo retentativa segura.
+9. Cobrir primeira entrega, redelivery, colisão, envelope inválido e propagação de falha por testes unitários.

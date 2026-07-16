@@ -1,14 +1,15 @@
 package br.com.cloudport.serviconaviosiderurgico.servico;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import br.com.cloudport.serviconaviosiderurgico.dominio.FaseVisitaNavio;
+import br.com.cloudport.serviconaviosiderurgico.dominio.ItemOperacaoNavio;
 import br.com.cloudport.serviconaviosiderurgico.dominio.VisitaNavio;
-import br.com.cloudport.serviconaviosiderurgico.repositorio.VisitaNavioRepositorio;
+import br.com.cloudport.serviconaviosiderurgico.repositorio.ItemOperacaoNavioRepositorio;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 class ReconciliacaoNavioPatioJobTest {
 
     @Mock
-    private VisitaNavioRepositorio visitaRepositorio;
+    private ItemOperacaoNavioRepositorio itemRepositorio;
     @Mock
     private SincronizadorStatusNavioPatioServico sincronizadorStatus;
     @Mock
@@ -32,7 +33,7 @@ class ReconciliacaoNavioPatioJobTest {
     @BeforeEach
     void configurar() {
         job = new ReconciliacaoNavioPatioJob(
-                visitaRepositorio,
+                itemRepositorio,
                 sincronizadorStatus,
                 execucaoUnicaServico
         );
@@ -45,15 +46,17 @@ class ReconciliacaoNavioPatioJobTest {
 
         job.reconciliarVisitasAtivas();
 
-        verify(visitaRepositorio, never()).findAllByOrderByEtaDesc();
+        verify(itemRepositorio, never())
+                .findTop100ByStatusIntegracaoPatioInOrderByAtualizadoEmAsc(anyCollection());
         verify(sincronizadorStatus, never()).sincronizarStatus(any());
     }
 
     @Test
-    void deveExecutarUmaVezEApenasParaVisitasNaoTerminais() {
-        VisitaNavio ativa = visita(42L, FaseVisitaNavio.OPERANDO);
-        VisitaNavio encerrada = visita(43L, FaseVisitaNavio.PARTIU);
-        when(visitaRepositorio.findAllByOrderByEtaDesc()).thenReturn(List.of(ativa, encerrada));
+    void deveExecutarUmaVezEApenasParaVisitasComPendencias() {
+        VisitaNavio visita42 = visita(42L);
+        VisitaNavio visita43 = visita(43L);
+        when(itemRepositorio.findTop100ByStatusIntegracaoPatioInOrderByAtualizadoEmAsc(anyCollection()))
+                .thenReturn(List.of(item(visita42), item(visita42), item(visita43)));
         when(execucaoUnicaServico.executarSeDisponivel(anyString(), any(Runnable.class)))
                 .thenAnswer(invocacao -> {
                     Runnable operacao = invocacao.getArgument(1);
@@ -61,17 +64,23 @@ class ReconciliacaoNavioPatioJobTest {
                     return true;
                 });
         when(sincronizadorStatus.sincronizarStatus(42L)).thenReturn(1);
+        when(sincronizadorStatus.sincronizarStatus(43L)).thenReturn(0);
 
         job.reconciliarVisitasAtivas();
 
         verify(sincronizadorStatus).sincronizarStatus(42L);
-        verify(sincronizadorStatus, never()).sincronizarStatus(43L);
+        verify(sincronizadorStatus).sincronizarStatus(43L);
     }
 
-    private VisitaNavio visita(Long id, FaseVisitaNavio fase) {
+    private VisitaNavio visita(Long id) {
         VisitaNavio visita = new VisitaNavio();
         ReflectionTestUtils.setField(visita, "id", id);
-        visita.setFase(fase);
         return visita;
+    }
+
+    private ItemOperacaoNavio item(VisitaNavio visita) {
+        ItemOperacaoNavio item = new ItemOperacaoNavio();
+        item.setVisitaNavio(visita);
+        return item;
     }
 }

@@ -136,6 +136,11 @@ function enrichCommand(path, method, body, session, correlationId) {
   return command;
 }
 
+async function parsePayload(response) {
+  const contentType = response.headers.get('content-type') ?? '';
+  return contentType.includes('application/json') ? response.json() : response.text();
+}
+
 async function request(path, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS);
@@ -146,9 +151,11 @@ async function request(path, options = {}) {
   const body = enrichCommand(path, method, options.body, publicResource ? null : session, correlationId);
   const headers = new Headers(options.headers ?? {});
   headers.set('Accept', 'application/json');
-  if (!publicResource) headers.set('X-Correlation-Id', correlationId);
   if (body !== undefined && !isFormData(body)) headers.set('Content-Type', 'application/json');
-  if (session?.token && !publicResource) headers.set('Authorization', `Bearer ${session.token}`);
+  if (session?.token && !publicResource) {
+    headers.set('Authorization', `Bearer ${session.token}`);
+    headers.set('X-Correlation-Id', correlationId);
+  }
   try {
     const response = await fetch(`${runtimeConfig.baseApiUrl}${path}`, {
       ...options,
@@ -157,8 +164,7 @@ async function request(path, options = {}) {
       body: body === undefined || isFormData(body) ? body : JSON.stringify(body),
       signal: controller.signal
     });
-    const contentType = response.headers.get('content-type') ?? '';
-    const payload = contentType.includes('application/json') ? await response.json() : await response.text();
+    const payload = await parsePayload(response);
     if (!response.ok) {
       const error = new Error(payload?.mensagem ?? payload?.erro ?? payload?.message ?? `Falha HTTP ${response.status}`);
       error.payload = payload;
@@ -174,13 +180,71 @@ async function request(path, options = {}) {
   }
 }
 
+function parseSseBlock(block) {
+  let event = 'message';
+  const data = [];
+  for (const line of block.split('\n')) {
+    if (line.startsWith('event:')) event = line.slice(6).trim();
+    if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
+  }
+  const raw = data.join('\n');
+  if (!raw) return { event, data: null };
+  try {
+    return { event, data: JSON.parse(raw) };
+  } catch {
+    return { event, data: raw };
+  }
+}
+
+async function subscribe(path, handlers = {}) {
+  const session = readSession();
+  if (!session?.token) throw new Error('Sessão não autenticada para abrir o stream operacional.');
+  const headers = new Headers({
+    Accept: 'text/event-stream',
+    Authorization: `Bearer ${session.token}`,
+    'X-Correlation-Id': createCorrelationId()
+  });
+  const response = await fetch(`${runtimeConfig.baseApiUrl}${path}`, {
+    method: 'GET',
+    headers,
+    cache: 'no-store',
+    signal: handlers.signal
+  });
+  if (!response.ok) {
+    const payload = await parsePayload(response);
+    const error = new Error(payload?.mensagem ?? payload?.erro ?? payload?.message ?? `Falha HTTP ${response.status}`);
+    error.payload = payload;
+    error.status = response.status;
+    throw error;
+  }
+  if (!response.body) throw new Error('O navegador não disponibilizou o stream SSE.');
+  handlers.onOpen?.();
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    buffer = buffer.replace(/\r\n/g, '\n');
+    let boundary = buffer.indexOf('\n\n');
+    while (boundary >= 0) {
+      const block = buffer.slice(0, boundary).trim();
+      buffer = buffer.slice(boundary + 2);
+      if (block) handlers.onEvent?.(parseSseBlock(block));
+      boundary = buffer.indexOf('\n\n');
+    }
+  }
+  throw new Error('O stream operacional foi encerrado.');
+}
+
 export const api = {
   autenticar: (login, senha) => request('/auth/login', { method: 'POST', body: { login, senha } }),
   listarNavios: () => request('/navios-siderurgicos'),
   listarVisitas: () => request('/visitas-navio'),
   alterarFaseVisita: (visitaId, fase, motivo) => {
-    const command = commandBody(motivo);
-    return request(`/visitas-navio/${visitaId}/fase`, { method: 'PATCH', body: { fase, observacao: command.motivo } });
+    const comando = commandBody(motivo);
+    return request(`/visitas-navio/${visitaId}/fase`, { method: 'PATCH', body: { fase, observacao: comando.motivo } });
   },
   listarItensVisita: (visitaId) => request(`/visitas-navio/${visitaId}/itens`),
   obterResumo: (visitaId) => request(`/visitas-navio/${visitaId}/resumo-operacional`),
@@ -206,14 +270,26 @@ export const api = {
   listarAlertasIntegracaoPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/alertas`),
   sincronizarStatusPatio: (visitaId) => request(`/visitas-navio/${visitaId}/integracao-patio/sincronizar-status`, { method: 'POST', body: {} }),
   replanejarPatioVisita: (visitaId, aplicar) => request(`/visitas-navio/${visitaId}/integracao-patio/replanejar`, { method: 'POST', body: { aplicar } }),
-  obterRelatorioOperacionalIntegrado: (visitaId) => request(`/visitas-navio/${visitaId}/relatorio-operacional-integrado`)
+  obterRelatorioOperacionalIntegrado: (visitaId) => request(`/visitas-navio/${visitaId}/relatorio-operacional-integrado`),
+  assinarControlRoom: (visitaId, handlers) => subscribe(`/visitas-navio/${visitaId}/stream`, handlers)
 };
+
+function formatDetails(details) {
+  if (details === null || details === undefined || details === '') return '';
+  if (typeof details === 'string') return details;
+  try {
+    return JSON.stringify(details);
+  } catch {
+    return String(details);
+  }
+}
 
 export function formatError(error, fallback = 'Não foi possível concluir a operação.') {
   const payload = error?.payload ?? error?.error ?? {};
   const message = payload?.mensagem ?? payload?.erro ?? payload?.message ?? error?.message ?? fallback;
   const code = payload?.codigo ? ` [${payload.codigo}]` : '';
-  const details = payload?.detalhes && Object.keys(payload.detalhes).length ? ` - ${JSON.stringify(payload.detalhes)}` : '';
+  const formattedDetails = formatDetails(payload?.detalhes);
+  const details = formattedDetails ? ` - ${formattedDetails}` : '';
   const correlation = payload?.correlationId ? ` (correlationId: ${payload.correlationId})` : '';
   return `${message}${code}${details}${correlation}`;
 }

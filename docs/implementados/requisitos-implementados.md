@@ -411,3 +411,48 @@ GET   /api/v1/visibilidade/conteiners/buscar
 7. Vincular `HistoricoMovimento.eventoId` ao evento externo e impedir histórico duplicado por índice único.
 8. Reverter a identidade persistida quando o efeito falhar, permitindo retentativa segura.
 9. Cobrir primeira entrega, redelivery, colisão, envelope inválido e propagação de falha por testes unitários.
+
+## ARCH10 — otimização Yard por porta local implementada
+
+1. Transformar `OtimizacaoYardCliente` em porta do módulo Navio Siderúrgico.
+2. Manter `OtimizacaoYardHttpAdapter` condicionado ao modo `http` de rollback.
+3. Registrar `OtimizacaoYardLocalAdapter` no `cloudport-runtime` para chamar `PredictiveSchedulerService` no mesmo processo.
+4. Configurar o runtime geral com `cloudport.modulo.yard.integracao=local`.
+5. Impedir ativação simultânea dos adaptadores local e HTTP pela condição de propriedade.
+
+## DATA10 — validação de crane plan contra o Yard implementada
+
+1. Criar `ConsultaWorkQueueYardPorta` e implementações local e HTTP condicionadas ao modo de integração.
+2. Consultar work queues da mesma visita antes de substituir o plano de guindastes.
+3. Validar visita, berço, porão, fila ativa, POW, pool, CHE operacional, recurso de cais e work instructions elegíveis.
+4. Impedir a reutilização da mesma work queue em duas alocações do mesmo plano.
+5. Rejeitar a gravação completa antes da remoção do plano vigente quando qualquer alocação for incompatível.
+
+## STATE10 — estado operacional de work queues implementado
+
+1. Concentrar dispatch e transições de work instruction em `WorkQueueOperacaoServico`.
+2. Validar fila ativa, POW, pool, plano de guindaste, recurso de cais e `EquipamentoPatio` operacional antes do dispatch.
+3. Aplicar uma matriz oficial de estados para suspensão, retomada, bloqueio, conclusão, reset e cancelamento.
+4. Resolver o equipamento real por ID ou identificador e preservar o vínculo da fila.
+5. Auditar motivo, usuário, origem e `correlationId` nas mutações operacionais.
+6. Fazer os endpoints compatíveis de POW e equipamento delegarem ao serviço operacional.
+7. Migrar o Control Room para recursos operacionais, dispatch robusto, transições oficiais, drill-down e job lists por equipamento.
+
+## ASYNC30 — eventos internos e reconciliação seletiva implementados
+
+1. Publicar `EventoOperacaoPatioV1` após mutações de work queue, recursos, dispatch e work instruction.
+2. Consumir eventos do Yard após commit e sincronizar imediatamente somente a visita afetada.
+3. Publicar `EventoCadastroNavioV1` ao criar, atualizar ou remover o cadastro canônico.
+4. Atualizar ou cancelar somente a projeção siderúrgica afetada pelo evento do cadastro canônico.
+5. Persistir `eventoId` em `evento_interno_processado` e aplicar o efeito na mesma transação para ignorar redelivery.
+6. Limitar a reconciliação Yard → Navio aos itens pendentes mais antigos e a reconciliação canônica às projeções desatualizadas.
+7. Manter os jobs condicionados a `cloudport.runtime.jobs-enabled` e protegidos por execução única.
+
+## UI20 — Quay Monitor operacional implementado
+
+1. Carregar o Quay Monitor e o plano de guindastes persistido pelo backend.
+2. Permitir criar e editar alocações com berço, guindaste, porão, work queue, sequência, janela, movimentos e produtividade.
+3. Validar work queue operacional no frontend e repetir a validação contra a fonte real do Yard no backend.
+4. Salvar o plano por `POST /visitas-navio/{id}/crane-plan` e recarregar a resposta persistida.
+5. Consumir recursos operacionais, matriz de estados, drill-down e job lists por equipamento.
+6. Executar dispatch e transições oficiais sem voltar aos caminhos legados de mutação.

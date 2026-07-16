@@ -3,10 +3,12 @@ package br.com.cloudport.servicoyard.patio.listatrabalho.controlador;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoPrioridadesWorkInstructionDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.AtualizacaoWorkQueueRecursosDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.ComandoWorkInstructionDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.EquipamentoOperacionalDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.JobListEquipamentoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkInstructionDrillDownDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRespostaDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueueValidacaoPlanoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueueOperacaoServico;
 import java.util.List;
 import java.util.Map;
@@ -33,39 +35,50 @@ public class WorkQueueOperacaoControlador {
     }
 
     @PatchMapping("/work-queues/{id}/recursos-operacionais")
-    public WorkQueuePatioRespostaDto associarRecursos(@PathVariable Long id,
-                                                       @Valid @RequestBody AtualizacaoWorkQueueRecursosDto dto) {
+    public WorkQueuePatioRespostaDto associarRecursos(
+            @PathVariable Long id,
+            @Valid @RequestBody AtualizacaoWorkQueueRecursosDto dto
+    ) {
         return servico.associarRecursos(id, dto);
     }
 
     @PostMapping("/work-instructions/{id}/suspender")
-    public OrdemTrabalhoPatioRespostaDto suspender(@PathVariable Long id,
-                                                    @Valid @RequestBody ComandoWorkInstructionDto dto) {
+    public OrdemTrabalhoPatioRespostaDto suspender(
+            @PathVariable Long id,
+            @Valid @RequestBody ComandoWorkInstructionDto dto
+    ) {
         return servico.suspender(id, dto);
     }
 
     @PostMapping("/work-instructions/{id}/retomar")
-    public OrdemTrabalhoPatioRespostaDto retomar(@PathVariable Long id,
-                                                  @Valid @RequestBody ComandoWorkInstructionDto dto) {
+    public OrdemTrabalhoPatioRespostaDto retomar(
+            @PathVariable Long id,
+            @Valid @RequestBody ComandoWorkInstructionDto dto
+    ) {
         return servico.retomar(id, dto);
     }
 
     @PostMapping("/work-instructions/{id}/bloquear")
-    public OrdemTrabalhoPatioRespostaDto bloquear(@PathVariable Long id,
-                                                   @Valid @RequestBody ComandoWorkInstructionDto dto) {
+    public OrdemTrabalhoPatioRespostaDto bloquear(
+            @PathVariable Long id,
+            @Valid @RequestBody ComandoWorkInstructionDto dto
+    ) {
         return servico.bloquear(id, dto);
     }
 
     @PostMapping("/work-instructions/{id}/concluir")
-    public OrdemTrabalhoPatioRespostaDto concluir(@PathVariable Long id,
-                                                   @Valid @RequestBody ComandoWorkInstructionDto dto) {
+    public OrdemTrabalhoPatioRespostaDto concluir(
+            @PathVariable Long id,
+            @Valid @RequestBody ComandoWorkInstructionDto dto
+    ) {
         return servico.concluir(id, dto);
     }
 
     @PatchMapping("/work-instructions/{id}/prioridades")
     public OrdemTrabalhoPatioRespostaDto atualizarPrioridades(
             @PathVariable Long id,
-            @Valid @RequestBody AtualizacaoPrioridadesWorkInstructionDto dto) {
+            @Valid @RequestBody AtualizacaoPrioridadesWorkInstructionDto dto
+    ) {
         return servico.atualizarPrioridades(id, dto);
     }
 
@@ -79,16 +92,30 @@ public class WorkQueueOperacaoControlador {
         return servico.matrizOficialEstados();
     }
 
+    @GetMapping("/equipamentos")
+    public List<EquipamentoOperacionalDto> listarEquipamentos() {
+        return servico.listarEquipamentos();
+    }
+
     @GetMapping("/equipamentos/job-lists")
     public List<JobListEquipamentoDto> listarJobListsPorEquipamento(
-            @RequestParam(name = "visitaNavioId", required = false) Long visitaNavioId) {
+            @RequestParam(name = "visitaNavioId", required = false) Long visitaNavioId
+    ) {
         return servico.listarJobListsPorEquipamento(visitaNavioId);
     }
 
     @GetMapping("/equipamentos/{id}/job-list")
     public JobListEquipamentoDto obterJobListEquipamento(
             @PathVariable Long id,
-            @RequestParam(name = "visitaNavioId", required = false) Long visitaNavioId) {
+            @RequestParam(name = "visitaNavioId", required = false) Long visitaNavioId
+    ) {
         return servico.obterJobListEquipamento(id, visitaNavioId);
+    }
+
+    @GetMapping("/work-queues/validacao-plano")
+    public List<WorkQueueValidacaoPlanoDto> consultarValidacaoPlano(
+            @RequestParam(name = "visitaNavioId") Long visitaNavioId
+    ) {
+        return servico.consultarValidacaoPlano(visitaNavioId);
     }
 }

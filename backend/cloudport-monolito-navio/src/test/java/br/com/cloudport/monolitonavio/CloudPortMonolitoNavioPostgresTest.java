@@ -1,13 +1,22 @@
 package br.com.cloudport.monolitonavio;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import br.com.cloudport.monolitonavio.integracao.CadastroNavioLocalAdapter;
 import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
 import br.com.cloudport.serviconavio.estiva.repositorio.AtribuicaoEstivaRepositorio;
 import br.com.cloudport.serviconavio.estiva.repositorio.PlanoEstivaRepositorio;
+import br.com.cloudport.serviconavio.navio.controlador.NavioControlador;
 import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
+import br.com.cloudport.serviconaviosiderurgico.cliente.NavioCadastroCliente;
+import br.com.cloudport.serviconaviosiderurgico.controlador.NavioSiderurgicoControlador;
+import br.com.cloudport.serviconaviosiderurgico.controlador.VisitaNavioControlador;
+import br.com.cloudport.serviconaviosiderurgico.porta.CadastroNavioPorta;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.EventoVisitaNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ItemCargaSiderurgicaRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ItemOperacaoNavioRepositorio;
@@ -17,12 +26,23 @@ import br.com.cloudport.serviconaviosiderurgico.repositorio.PlanoEstivaNavioRepo
 import br.com.cloudport.serviconaviosiderurgico.repositorio.PosicaoEstivaNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ReservaPosicaoPatioNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.VisitaNavioRepositorio;
+import br.com.cloudport.serviconaviosiderurgico.servico.ExecucaoUnicaServico;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -37,6 +57,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
                 "spring.jpa.open-in-view=false",
                 "spring.flyway.enabled=false",
                 "cloudport.modulo.navio.integracao=local",
+                "cloudport.runtime.writes-enabled=true",
+                "cloudport.runtime.jobs-enabled=false",
                 "cloudport.integracao.yard.reconciliacao-ms=3600000",
                 "cloudport.integracao.navio.sincronizacao-ms=3600000",
                 "cloudport.security.jwt.secret=cloudport-test-secret-with-at-least-32-characters",
@@ -65,7 +87,13 @@ class CloudPortMonolitoNavioPostgresTest {
         registry.add("cloudport.monolito.schema.siderurgico", () -> SCHEMA_SIDERURGICO);
     }
 
+    @Autowired private ApplicationContext applicationContext;
     @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private CadastroNavioPorta cadastroNavioPorta;
+    @Autowired private ExecucaoUnicaServico execucaoUnicaServico;
+    @Autowired private PlatformTransactionManager transactionManager;
+    @Autowired @Qualifier("flywayNavio") private Flyway flywayNavio;
+    @Autowired @Qualifier("flywayNavioSiderurgico") private Flyway flywayNavioSiderurgico;
     @Autowired private NavioRepositorio navioRepositorio;
     @Autowired private EscalaRepositorio escalaRepositorio;
     @Autowired private PlanoEstivaRepositorio planoEstivaRepositorio;
@@ -93,6 +121,60 @@ class CloudPortMonolitoNavioPostgresTest {
     }
 
     @Test
+    void deveValidarCompatibilidadeDosHistoricosFlywaySemPendencias() {
+        flywayNavio.validate();
+        flywayNavioSiderurgico.validate();
+
+        assertAll(
+                () -> assertEquals(0, flywayNavio.info().pending().length),
+                () -> assertEquals(0, flywayNavioSiderurgico.info().pending().length),
+                () -> assertTrue(quantidadeMigracoesAplicadas(SCHEMA_NAVIO) > 0),
+                () -> assertTrue(quantidadeMigracoesAplicadas(SCHEMA_SIDERURGICO) > 0)
+        );
+    }
+
+    @Test
+    void deveCarregarParidadeDeEndpointsSegurancaEIntegracaoLocal() {
+        assertAll(
+                () -> assertInstanceOf(CadastroNavioLocalAdapter.class, cadastroNavioPorta),
+                () -> assertTrue(applicationContext.getBeansOfType(NavioCadastroCliente.class).isEmpty()),
+                () -> assertEquals(1, applicationContext.getBeansOfType(SecurityFilterChain.class).size()),
+                () -> assertEquals(1, applicationContext.getBeansOfType(NavioControlador.class).size()),
+                () -> assertEquals(1, applicationContext.getBeansOfType(NavioSiderurgicoControlador.class).size()),
+                () -> assertEquals(1, applicationContext.getBeansOfType(VisitaNavioControlador.class).size())
+        );
+    }
+
+    @Test
+    void deveImpedirExecucaoDuplicadaDoMesmoJobEntreInstancias() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        CountDownLatch primeiraExecucaoIniciada = new CountDownLatch(1);
+        CountDownLatch liberarPrimeiraExecucao = new CountDownLatch(1);
+        TransactionTemplate transacao = new TransactionTemplate(transactionManager);
+
+        try {
+            Future<Boolean> primeiraExecucao = executor.submit(() -> Boolean.TRUE.equals(transacao.execute(status ->
+                    execucaoUnicaServico.executarSeDisponivel("teste:job-unico", () -> {
+                        primeiraExecucaoIniciada.countDown();
+                        aguardar(liberarPrimeiraExecucao);
+                    }))));
+
+            assertTrue(primeiraExecucaoIniciada.await(10, SECONDS));
+
+            Boolean segundaExecucao = transacao.execute(status ->
+                    execucaoUnicaServico.executarSeDisponivel("teste:job-unico", () -> {
+                    }));
+
+            assertFalse(Boolean.TRUE.equals(segundaExecucao));
+            liberarPrimeiraExecucao.countDown();
+            assertTrue(primeiraExecucao.get(10, SECONDS));
+        } finally {
+            liberarPrimeiraExecucao.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     void deveInicializarEConsultarTodosOsRepositoriosJpa() {
         assertAll(
                 () -> assertEquals(0, navioRepositorio.count()),
@@ -109,6 +191,17 @@ class CloudPortMonolitoNavioPostgresTest {
                 () -> assertEquals(0, eventoVisitaNavioRepositorio.count()),
                 () -> assertEquals(0, reservaPosicaoPatioNavioRepositorio.count())
         );
+    }
+
+    private void aguardar(CountDownLatch latch) {
+        try {
+            if (!latch.await(10, SECONDS)) {
+                throw new IllegalStateException("Tempo excedido aguardando liberacao do bloqueio.");
+            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Thread interrompida durante o teste de execucao unica.", ex);
+        }
     }
 
     private int quantidadeSchemas(String schema) {

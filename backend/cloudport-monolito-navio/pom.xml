@@ -20,6 +20,7 @@
     <properties>
         <java.version>17</java.version>
         <cloudport.modules.version>0.0.1-SNAPSHOT</cloudport.modules.version>
+        <archunit.version>1.4.2</archunit.version>
         <jackson.version>2.21.4</jackson.version>
         <spring-framework.version>5.3.39</spring-framework.version>
         <spring-security.version>5.8.16</spring-security.version>
@@ -185,6 +186,12 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

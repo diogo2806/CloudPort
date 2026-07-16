@@ -19,9 +19,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
@@ -43,39 +45,49 @@ public class PublicApiClientAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/api/public/v1/");
+        return CorsUtils.isPreFlightRequest(request)
+                || !request.getRequestURI().startsWith("/api/public/v1/");
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        if (clientes.isEmpty()) {
-            escreverErro(response, request, HttpStatus.SERVICE_UNAVAILABLE,
-                    "CLIENTES_PUBLICOS_NAO_CONFIGURADOS",
-                    "Nenhum cliente foi configurado para a API publica.");
-            return;
-        }
+        SecurityContextHolder.clearContext();
+        try {
+            if (clientes.isEmpty()) {
+                escreverErro(response, request, HttpStatus.SERVICE_UNAVAILABLE,
+                        "CLIENTES_PUBLICOS_NAO_CONFIGURADOS",
+                        "Nenhum cliente foi configurado para a API publica.");
+                return;
+            }
 
-        String clientId = request.getHeader(HEADER_CLIENT_ID);
-        String clientSecret = request.getHeader(HEADER_CLIENT_SECRET);
-        String segredoEsperado = StringUtils.hasText(clientId) ? clientes.get(clientId.trim()) : null;
-        if (!StringUtils.hasText(clientSecret) || segredoEsperado == null || !segredoValido(segredoEsperado, clientSecret)) {
-            escreverErro(response, request, HttpStatus.UNAUTHORIZED,
-                    "CLIENTE_PUBLICO_INVALIDO",
-                    "Credenciais do cliente ou aplicacao invalidas.");
-            return;
-        }
+            String clientId = request.getHeader(HEADER_CLIENT_ID);
+            String clientSecret = request.getHeader(HEADER_CLIENT_SECRET);
+            String segredoEsperado = StringUtils.hasText(clientId) ? clientes.get(clientId.trim()) : null;
+            if (!StringUtils.hasText(clientSecret)
+                    || segredoEsperado == null
+                    || !segredoValido(segredoEsperado, clientSecret)) {
+                escreverErro(response, request, HttpStatus.UNAUTHORIZED,
+                        "CLIENTE_PUBLICO_INVALIDO",
+                        "Credenciais do cliente ou aplicacao invalidas.");
+                return;
+            }
 
-        String clientIdNormalizado = clientId.trim();
-        UsernamePasswordAuthenticationToken autenticacao = new UsernamePasswordAuthenticationToken(
-                "client:" + clientIdNormalizado,
-                null,
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_INTEGRACAO_EXTERNA"))
-        );
-        request.setAttribute(ATRIBUTO_CLIENT_ID, clientIdNormalizado);
-        SecurityContextHolder.getContext().setAuthentication(autenticacao);
-        filterChain.doFilter(request, response);
+            String clientIdNormalizado = clientId.trim();
+            UsernamePasswordAuthenticationToken autenticacao = new UsernamePasswordAuthenticationToken(
+                    "client:" + clientIdNormalizado,
+                    null,
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_INTEGRACAO_EXTERNA"))
+            );
+            SecurityContext contexto = SecurityContextHolder.createEmptyContext();
+            contexto.setAuthentication(autenticacao);
+            request.setAttribute(ATRIBUTO_CLIENT_ID, clientIdNormalizado);
+            SecurityContextHolder.setContext(contexto);
+            filterChain.doFilter(request, response);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 
     private Map<String, String> carregarClientes(String configuracao) {

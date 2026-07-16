@@ -1,7 +1,12 @@
 package br.com.cloudport.visibilidade.entity;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
 
 @Entity
 @Table(name = "historico_movimento")
@@ -14,11 +19,14 @@ public class HistoricoMovimento {
     @Column(name = "container_id", nullable = false)
     private String containerId;
 
+    @Column(name = "evento_id", length = 150, unique = true)
+    private String eventoId;
+
     @Column(name = "timestamp")
     private LocalDateTime timestamp;
 
     @Column(name = "tipo")
-    private String tipo; // ENTRADA_GATE, ARMAZENAGEM_YARD, etc.
+    private String tipo;
 
     @Column(name = "localizacao")
     private String localizacao;
@@ -32,12 +40,14 @@ public class HistoricoMovimento {
     @Column(name = "equipamento_usado")
     private String equipamentoUsado;
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public String getContainerId() { return containerId; }
     public void setContainerId(String containerId) { this.containerId = containerId; }
+
+    public String getEventoId() { return eventoId; }
+    public void setEventoId(String eventoId) { this.eventoId = eventoId; }
 
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }

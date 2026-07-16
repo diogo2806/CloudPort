@@ -60,14 +60,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Portal Angular
+          - name: Portal React
             module: frontend/cloudport
-            install: npm ci
-            test: ''
           - name: Control Room React
             module: frontend/servico-navio-siderurgico
-            install: npm install --no-audit --no-fund
-            test: npm test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -75,11 +71,10 @@ jobs:
           node-version: '22'
       - name: Instalar dependencias
         working-directory: ${{ matrix.module }}
-        run: ${{ matrix.install }}
+        run: npm install --no-audit --no-fund
       - name: Testar
-        if: matrix.test != ''
         working-directory: ${{ matrix.module }}
-        run: ${{ matrix.test }}
+        run: npm test
       - name: Compilar
         working-directory: ${{ matrix.module }}
         run: npm run build

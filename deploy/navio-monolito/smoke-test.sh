@@ -168,11 +168,11 @@ item_id="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<< "
 
 stage "reservando posicao no mapa real"
 reservas_response="$(request_json POST "/visitas-navio/$visita_id/integracao-patio/reservas" '{"tipoReserva":"DEFINITIVA","somentePendentes":true,"usuario":"cloudport-smoke"}')"
-python3 - "$item_id" <<'PY' <<< "$reservas_response"
+python3 - "$item_id" "$reservas_response" <<'PY'
 import json
 import sys
-reservas = json.load(sys.stdin)
 item_id = int(sys.argv[1])
+reservas = json.loads(sys.argv[2])
 assert len(reservas) == 1
 assert reservas[0]["itemOperacaoNavioId"] == item_id
 assert reservas[0]["posicaoPatioId"] == "101"
@@ -184,10 +184,10 @@ PY
 
 stage "gerando ordem real no Yard"
 geracao_response="$(request_json POST "/visitas-navio/$visita_id/integracao-patio/gerar-ordens" '{"tipoMovimento":"DESCARGA","modo":"SOMENTE_PENDENTES","usuario":"cloudport-smoke","gerarReservasAutomaticas":false}')"
-python3 - <<'PY' <<< "$geracao_response"
+python3 - "$geracao_response" <<'PY'
 import json
 import sys
-resultado = json.load(sys.stdin)
+resultado = json.loads(sys.argv[1])
 assert resultado["totalOrdensCriadas"] == 1
 assert resultado["totalItensComErro"] == 0
 assert resultado["errosPorItem"] == []
@@ -195,11 +195,11 @@ PY
 
 stage "validando work queue e job list por equipamento"
 work_queues_response="$(request_json GET "/visitas-navio/$visita_id/integracao-patio/work-queues")"
-python3 - "$item_id" <<'PY' <<< "$work_queues_response"
+python3 - "$item_id" "$work_queues_response" <<'PY'
 import json
 import sys
-filas = json.load(sys.stdin)
 item_id = int(sys.argv[1])
+filas = json.loads(sys.argv[2])
 assert len(filas) == 1
 assert filas[0]["equipamento"] == "RTG-SMOKE-01"
 assert filas[0]["status"] == "ATIVA"
@@ -209,10 +209,10 @@ PY
 
 stage "sincronizando conclusao do Yard"
 resumo_response="$(request_json POST "/visitas-navio/$visita_id/integracao-patio/sincronizar-status")"
-python3 - <<'PY' <<< "$resumo_response"
+python3 - "$resumo_response" <<'PY'
 import json
 import sys
-resumo = json.load(sys.stdin)
+resumo = json.loads(sys.argv[1])
 assert resumo["totalItens"] == 1
 assert resumo["itensComOrdem"] == 1
 assert resumo["ordensConcluidas"] == 1
@@ -222,32 +222,34 @@ PY
 stage "validando consumo da reserva e item operado"
 itens_response="$(request_json GET "/visitas-navio/$visita_id/itens")"
 reservas_response="$(request_json GET "/visitas-navio/$visita_id/integracao-patio/reservas")"
-python3 - <<'PY' <<< "$itens_response"
+python3 - "$itens_response" <<'PY'
 import json
 import sys
-itens = json.load(sys.stdin)
+itens = json.loads(sys.argv[1])
 assert len(itens) == 1
 assert itens[0]["status"] == "OPERADO"
 assert itens[0]["statusIntegracaoPatio"] == "SINCRONIZADO"
 assert itens[0]["posicaoPatioReal"] == "1-2-3"
 PY
-python3 - <<'PY' <<< "$reservas_response"
+python3 - "$reservas_response" <<'PY'
 import json
 import sys
-reservas = json.load(sys.stdin)
+reservas = json.loads(sys.argv[1])
 assert len(reservas) == 1
 assert reservas[0]["status"] == "CONSUMIDA"
 PY
 
 stage "validando relatorio operacional integrado"
 relatorio_response="$(request_json GET "/visitas-navio/$visita_id/relatorio-operacional-integrado")"
-python3 - "$visita_id" <<'PY' <<< "$relatorio_response"
+python3 - "$visita_id" "$relatorio_response" <<'PY'
 import json
 import sys
-relatorio = json.load(sys.stdin)
-assert relatorio["visita"]["id"] == int(sys.argv[1])
+visita_id = int(sys.argv[1])
+relatorio = json.loads(sys.argv[2])
+assert relatorio["visita"]["id"] == visita_id
 assert len(relatorio["itens"]) == 1
-assert len(relatorio["reservas"]) == 1
+assert len(relatorio["reservasPatio"]) == 1
+assert len(relatorio["ordensPatio"]) == 1
 PY
 
 stage "smoke test concluido"

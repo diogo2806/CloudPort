@@ -32,7 +32,12 @@ function normalizeRole(role) {
   return normalized.startsWith('ROLE_') ? normalized : `ROLE_${normalized}`;
 }
 
+function storageAvailable() {
+  return typeof sessionStorage !== 'undefined';
+}
+
 export function readSession() {
+  if (!storageAvailable()) return null;
   const raw = sessionStorage.getItem(SESSION_KEY);
   if (!raw) return null;
   try {
@@ -67,12 +72,12 @@ export function saveSession(response) {
     nome: payload.nome ?? source.nome ?? source.name ?? source.login ?? payload.sub ?? 'operador',
     roles
   };
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  if (storageAvailable()) sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
   return session;
 }
 
 export function clearSession() {
-  sessionStorage.removeItem(SESSION_KEY);
+  if (storageAvailable()) sessionStorage.removeItem(SESSION_KEY);
 }
 
 export function hasAnyRole(session, ...roles) {
@@ -91,24 +96,58 @@ export async function loadRuntimeConfig() {
   return runtimeConfig;
 }
 
-function correlationId() {
+export function setRuntimeConfigForTests(config = {}) {
+  runtimeConfig = {
+    baseApiUrl: normalizeBaseUrl(config.baseApiUrl),
+    trustedParentOrigins: Array.isArray(config.trustedParentOrigins) ? config.trustedParentOrigins : []
+  };
+}
+
+function createCorrelationId() {
   return globalThis.crypto?.randomUUID?.() ?? `control-room-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function isFormData(body) {
+  return typeof FormData !== 'undefined' && body instanceof FormData;
+}
+
+function enrichCommand(path, method, body, session, correlationId) {
+  const commandMethod = ['POST', 'PUT', 'PATCH'].includes(method);
+  const operationalRoute = path.includes('/visitas-navio/') || path.includes('/yard/patio/');
+  if (!session?.token || !commandMethod || !operationalRoute || !body || Array.isArray(body) || typeof body !== 'object' || isFormData(body)) {
+    return body;
+  }
+  const command = {
+    ...body,
+    usuario: body.usuario ?? session.nome,
+    origemAcao: body.origemAcao ?? 'CONTROL_ROOM_NAVIO_PATIO',
+    correlationId: body.correlationId ?? correlationId
+  };
+  if (path.endsWith('/dispatch')) command.operador = session.nome;
+  return command;
 }
 
 async function request(path, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS);
   const session = readSession();
+  const method = String(options.method ?? 'GET').toUpperCase();
+  const publicResource = path.endsWith('/auth/login');
+  const correlationId = createCorrelationId();
+  const body = enrichCommand(path, method, options.body, publicResource ? null : session, correlationId);
   const headers = new Headers(options.headers ?? {});
   headers.set('Accept', 'application/json');
-  headers.set('X-Correlation-Id', correlationId());
-  if (options.body !== undefined && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
-  if (session?.token) headers.set('Authorization', `Bearer ${session.token}`);
+  if (body !== undefined && !isFormData(body)) headers.set('Content-Type', 'application/json');
+  if (session?.token && !publicResource) {
+    headers.set('Authorization', `Bearer ${session.token}`);
+    headers.set('X-Correlation-Id', correlationId);
+  }
   try {
     const response = await fetch(`${runtimeConfig.baseApiUrl}${path}`, {
       ...options,
+      method,
       headers,
-      body: options.body === undefined || options.body instanceof FormData ? options.body : JSON.stringify(options.body),
+      body: body === undefined || isFormData(body) ? body : JSON.stringify(body),
       signal: controller.signal
     });
     const contentType = response.headers.get('content-type') ?? '';

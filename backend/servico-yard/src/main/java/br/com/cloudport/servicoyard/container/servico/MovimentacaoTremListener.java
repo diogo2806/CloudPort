@@ -17,7 +17,9 @@ public class MovimentacaoTremListener {
         this.processadorMovimentacaoTremService = processadorMovimentacaoTremService;
     }
 
-    @RabbitListener(queues = "${cloudport.yard.integracoes.ferrovia.queue}")
+    @RabbitListener(
+            queues = "${cloudport.yard.integracoes.ferrovia.queue}",
+            autoStartup = "${cloudport.runtime.consumers-enabled:true}")
     public void aoReceberMovimentacao(MovimentacaoTremConcluidaEventoDto evento) {
         LOGGER.info("event=movimentacao_trem.recebida ordem={} visita={} conteiner={}",
                 evento != null ? evento.getIdOrdemMovimentacao() : null,

@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `STATE30` e auditoria dos jobs do Navio Siderúrgico.
+Status: atualizado em 2026-07-17 após auditoria da branch main.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -63,7 +63,15 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
+| ASYNC40 | Reabrir o controle dos agendamentos de Visibilidade para falhar fechado sem habilitação explícita. | `VisibilidadeDashboardJob` só é registrado quando `cloudport.runtime.jobs-enabled=true`; a ausência da propriedade não publica dashboards nem detecta alertas automaticamente em serviços standalone, coexistência ou rollback. | ⬜ Pendente |
 | ASYNC80 | Desabilitar por padrão os jobs do Navio Siderúrgico quando a flag canônica não estiver configurada. | Os jobs de expiração de reservas, reconciliação Navio × Pátio e sincronização do cadastro canônico só são registrados quando `cloudport.runtime.jobs-enabled=true`; a ausência da propriedade não inicia processamento real em serviços standalone, coexistência ou rollback. | ⬜ Pendente |
+
+### ASYNC40 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-visibilidade/src/main/java/br/com/cloudport/visibilidade/service/VisibilidadeDashboardJob.java` | `@ConditionalOnProperty` | O job foi separado do serviço, mas usa `matchIfMissing = true`. Quando `cloudport.runtime.jobs-enabled` está ausente, o bean continua registrado e executa `publicarDashboard()` e `detectarAlertasAutomaticos()`, contrariando o controle canônico que mantém legados sem jobs durante coexistência. | Alterar a condição para falhar fechada quando a propriedade estiver ausente, preservando `havingValue = "true"`; a execução standalone deve exigir habilitação explícita em sua configuração de implantação. |
+| `docs/implementados/requisitos-implementados.md` | seção `ASYNC40 — agendamentos de visibilidade condicionados implementado` | O registro considera `matchIfMissing=true` parte da conclusão, embora isso habilite processamento real sem autorização explícita e mantenha a fonte de verdade concorrente. | Manter `ASYNC40` reaberto no backlog até a condição exigir explicitamente `cloudport.runtime.jobs-enabled=true`; após a correção comprovada, atualizar o histórico de implementação de forma coerente. |
 
 ### ASYNC80 — arquivos e métodos
 

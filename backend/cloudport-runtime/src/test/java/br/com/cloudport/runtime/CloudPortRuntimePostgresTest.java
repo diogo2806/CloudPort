@@ -47,6 +47,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
                 "cloudport.modulo.yard.integracao=local",
                 "cloudport.security.jwt.secret=cloudport-runtime-test-secret-with-32-bytes",
                 "cloudport.security.internal-service-key=cloudport-runtime-test-service-key",
+                "cloudport.security.public-api.clients=runtime-test-client:runtime-public-client-secret-with-32-bytes",
                 "api.security.token.secret=cloudport-runtime-test-secret-with-32-bytes",
                 "jwt.secret=cloudport-runtime-test-secret-with-32-bytes",
                 "app.security.cors.allowed-origins=http://localhost:4200",

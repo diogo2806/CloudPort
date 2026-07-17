@@ -33,15 +33,39 @@ public class EstivagemPlan {
     @Column(name = "bay_plan_id")
     private Long bayPlanId;
 
+    @Column(name = "navio_cadastro_id")
+    private Long navioCadastroId;
+
+    @Column(name = "visita_navio_id")
+    private Long visitaNavioId;
+
+    @Column(name = "codigo_visita", length = 60)
+    private String codigoVisita;
+
+    @Column(name = "versao_navio_canonico")
+    private Long versaoNavioCanonico;
+
+    @Column(name = "versao_visita")
+    private Long versaoVisita;
+
     @Column(name = "codigo_navio", nullable = false, length = 50)
     private String codigoNavio;
 
     @Column(name = "codigo_viagem", nullable = false, length = 30)
     private String codigoViagem;
 
+    @Column(name = "perfil_geometria_id")
+    private Long perfilGeometriaId;
+
+    @Column(name = "perfil_geometria_versao")
+    private Long perfilGeometriaVersao;
+
+    @Column(name = "condicao_carregamento", length = 80)
+    private String condicaoCarregamento;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private StatusEstivagemPlan status;
+    private StatusEstivagemPlan status = StatusEstivagemPlan.RASCUNHO;
 
     @Column(name = "comprimento_lpp")
     private Double comprimentoLpp;
@@ -174,10 +198,6 @@ public class EstivagemPlan {
 
     @Column(name = "atualizado_em")
     private LocalDateTime atualizadoEm;
-
-    public EstivagemPlan() {
-        this.status = StatusEstivagemPlan.RASCUNHO;
-    }
 
     @PrePersist
     @PreUpdate

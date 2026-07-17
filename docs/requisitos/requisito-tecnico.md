@@ -10,7 +10,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | ARCH20 | Vincular os planejadores de estiva ao navio e à visita canônicos. | Planos de contêineres e bobinas persistem os identificadores canônicos de navio e visita; IMO, nome e viagem não possuem cadastro concorrente, e perfis estruturais ficam vinculados e versionados sob a mesma identidade. | ⬜ Pendente |
 | DATA30 | Substituir a malha artificial do Vessel Planner pela geometria real do navio. | O plano usa bays, rows, tiers, hatch covers, slots restritos, tomadas reefer e limites de pilha do perfil versionado; posições do Bay Plan são preservadas e a operação é bloqueada quando o perfil estiver ausente ou incompatível. | ⬜ Pendente |
-| INT20 | Preservar os atributos operacionais e de segurança recebidos no BAPLIE. | Navio e viagem são validados sem identificadores sintéticos; pesos são normalizados por unidade; posição, operação, cheio/vazio, VGM quando presente, reefer, carga perigosa e OOG são persistidos em campos próprios e chegam ao planejador sem inferência textual. | ⬜ Pendente |
+| INT20 | Preservar os atributos operacionais e de segurança recebidos no BAPLIE. | Navio e viagem são validados sem identificadores sintéticos; pesos são normalizados por unidade; posição, operação, cheio/vazio, VGM, reefer, carga perigosa e OOG são persistidos em campos próprios e chegam ao planejador sem inferência textual. | ⬜ Pendente |
 
 ### ARCH20 — arquivos e métodos
 
@@ -68,12 +68,13 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/otimizacao/PredictiveReshuffflingServico.java` | `executarReshuffflingConteiner()` | Chama `registrarOrdem()` sem reservar destino nem guardar identidade idempotente do plano. | Reservar a posição e criar/reutilizar a ordem na mesma transação; conflito deve cancelar a tentativa e recalcular. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/OrdemTrabalhoPatioServico.java` | `registrarOrdem()`, `validarDestinoPatio()` | Para o reshuffling, `exigirPosicaoReal=false` permite coordenada inexistente. | Exigir posição real e validação de placement para todo `REMANEJAMENTO`. |
 
-## 3. Autorização operacional
+## 3. Autenticação e autorização
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
 | SEC20 | Restringir criação, alteração e aprovação de planos de estiva a perfis autorizados. | Escritas do Vessel Planner e da estiva de bobinas exigem planejamento ou administração; leitura segue a matriz definida, usuário sem permissão recebe `403` e o backend protege o fluxo independentemente do menu. | ⬜ Pendente |
 | SEC30 | Eliminar credenciais funcionais e segredos criptográficos padrão dos serviços standalone. | Serviços que validam JWT ou autenticam clientes públicos falham na inicialização quando os segredos obrigatórios não forem fornecidos; nenhuma credencial conhecida do repositório habilita acesso, assinatura ou validação em runtime. | ⬜ Pendente |
+| SEC40 | Autenticar senhas como dados opacos, sem normalização ou bloqueio de caracteres antes da verificação do hash. | O login encaminha ao `AuthenticationManager` exatamente a sequência de caracteres recebida como senha; validações estruturais são aplicadas somente na criação ou troca da credencial, e senhas já persistidas continuam autenticáveis sem transformação silenciosa. | ⬜ Pendente |
 
 ### SEC20 — arquivos e métodos
 
@@ -90,6 +91,13 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-navio-siderurgico/src/main/resources/application.properties` | `cloudport.security.jwt.secret` | O serviço standalone usa por padrão `chave-local-para-desenvolvimento-123456`, que possui tamanho aceito pelo decoder e é conhecido por qualquer pessoa com acesso ao repositório. | Remover o fallback e exigir segredo externo com validação de presença e tamanho antes de expor endpoints autenticados. |
 | `backend/servico-navio-siderurgico/src/main/resources/application.properties` e `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/configuracao/PublicApiClientAuthenticationFilter.java` | `cloudport.security.public-api.clients`, `carregarClientes()` | A configuração padrão `cloudport-local:troque-esta-chave-publica` é carregada como cliente válido e concede `ROLE_INTEGRACAO_EXTERNA` para `/api/public/v1/**`. | Remover o cliente funcional padrão, exigir configuração externa e falhar fechado sem credenciais válidas. |
 | `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/configuracao/ConfiguracaoSeguranca.java` | `jwtDecoder()` e cadeia `/api/public/v1/**` | O decoder valida apenas presença e 32 bytes; portanto aceita o segredo conhecido, enquanto o filtro autentica o cliente padrão antes do `BearerTokenAuthenticationFilter`. | Rejeitar valores sentinela de desenvolvimento e garantir que o profile operacional não inicialize com credenciais documentadas ou defaults reutilizáveis. |
+
+### SEC40 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-autenticacao/src/main/java/br/com/cloudport/servicoautenticacao/controllers/AuthenticationController.java` | `login()` | Antes de criar `UsernamePasswordAuthenticationToken`, o fluxo substitui a senha recebida pelo resultado de `SanitizadorEntrada.sanitizarSenha()`. | Encaminhar a senha original ao `AuthenticationManager` e limitar o tratamento do endpoint a presença, tamanho máximo de transporte e proteção contra payload inválido, sem alterar o segredo. |
+| `backend/servico-autenticacao/src/main/java/br/com/cloudport/servicoautenticacao/app/configuracoes/validacao/SanitizadorEntrada.java` | `sanitizarSenha()` | Aplica normalização Unicode NFKC e rejeita `<` e `>`, embora a senha de autenticação deva ser comparada ao hash como sequência opaca; o método não é usado na criação de credenciais, somente no login. | Remover o método do fluxo de autenticação; criar validação específica para definição de nova senha, sem normalizar silenciosamente credenciais existentes. |
 
 ## 4. Processamento assíncrono
 

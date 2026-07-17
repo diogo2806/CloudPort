@@ -42,7 +42,8 @@ class TransferenciaLocomotivaServicoTest {
         servico = new TransferenciaLocomotivaServico(
                 transferenciaRepositorio,
                 visitaTremRepositorio,
-                new SanitizadorEntrada());
+                new SanitizadorEntrada(),
+                Optional.empty());
     }
 
     @Test

@@ -8,14 +8,10 @@ import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.EquipamentoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.PosicaoPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.servico.OtimizadorPesquisaOperacionalPatioServico.ResultadoOtimizacao;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -26,51 +22,46 @@ public class AutomacaoPatioServico {
     private final ConteinerPatioRepositorio conteinerPatioRepositorio;
     private final EquipamentoPatioRepositorio equipamentoPatioRepositorio;
     private final PosicaoPatioRepositorio posicaoPatioRepositorio;
+    private final OtimizadorPesquisaOperacionalPatioServico otimizador;
 
-    public AutomacaoPatioServico(ConteinerPatioRepositorio conteinerPatioRepositorio,
-                                 EquipamentoPatioRepositorio equipamentoPatioRepositorio,
-                                 PosicaoPatioRepositorio posicaoPatioRepositorio) {
+    public AutomacaoPatioServico(
+            ConteinerPatioRepositorio conteinerPatioRepositorio,
+            EquipamentoPatioRepositorio equipamentoPatioRepositorio,
+            PosicaoPatioRepositorio posicaoPatioRepositorio,
+            OtimizadorPesquisaOperacionalPatioServico otimizador
+    ) {
         this.conteinerPatioRepositorio = conteinerPatioRepositorio;
         this.equipamentoPatioRepositorio = equipamentoPatioRepositorio;
         this.posicaoPatioRepositorio = posicaoPatioRepositorio;
+        this.otimizador = otimizador;
     }
 
     @Transactional
     public RespostaAutoplanejamentoDto executarAutoplanejamento() {
-        List<ConteinerPatio> conteineres = conteinerPatioRepositorio.findAll();
+        List<ConteinerPatio> inventario = conteinerPatioRepositorio.findAll();
         List<EquipamentoPatio> equipamentos = equipamentoPatioRepositorio.findAll();
-        List<PosicaoPatio> posicoes = posicaoPatioRepositorio.findAll();
-        Set<Long> posicoesOcupadas = conteineres.stream()
-                .filter(this::ocupaPosicaoAtiva)
-                .map(ConteinerPatio::getPosicao)
-                .map(PosicaoPatio::getId)
-                .filter(id -> id != null)
-                .collect(Collectors.toCollection(HashSet::new));
+        List<PosicaoPatio> posicoes = posicaoPatioRepositorio.findAllByOrderByLinhaAscColunaAscCamadaOperacionalAsc();
+        List<ConteinerPatio> candidatos = inventario.stream()
+                .filter(this::ehCandidatoAAutoplanejamento)
+                .toList();
 
+        ResultadoOtimizacao resultado = otimizador.otimizar(
+                candidatos,
+                posicoes,
+                equipamentos,
+                inventario);
         List<ConteinerPatio> conteineresPlanejados = new ArrayList<>();
         List<String> containersPlanificados = new ArrayList<>();
         List<String> containersException = new ArrayList<>();
 
-        for (ConteinerPatio conteiner : conteineres) {
-            if (!ehCandidatoAAutoplanejamento(conteiner)) {
-                continue;
-            }
-
-            Optional<PosicaoPatio> melhorPosicao = encontrarMelhorPosicao(
-                    conteiner, posicoes, equipamentos, conteineres, posicoesOcupadas);
-            if (melhorPosicao.isEmpty()) {
-                containersException.add(conteiner.getCodigo() + " (sem posição disponível)");
-                continue;
-            }
-
-            PosicaoPatio posicaoSelecionada = melhorPosicao.get();
-            if (posicaoSelecionada.getId() == null || !posicoesOcupadas.add(posicaoSelecionada.getId())) {
-                throw new IllegalStateException("A posição selecionada não pôde ser reservada no lote de autoplanejamento.");
-            }
-            conteiner.setPosicao(posicaoSelecionada);
+        for (Map.Entry<ConteinerPatio, PosicaoPatio> alocacao : resultado.getAlocacoes().entrySet()) {
+            ConteinerPatio conteiner = alocacao.getKey();
+            conteiner.setPosicao(alocacao.getValue());
             conteineresPlanejados.add(conteiner);
             containersPlanificados.add(conteiner.getCodigo());
         }
+        resultado.getMotivosNaoAlocacao().forEach((conteiner, motivo) ->
+                containersException.add(conteiner.getCodigo() + " (" + motivo + ")"));
 
         if (!conteineresPlanejados.isEmpty()) {
             conteinerPatioRepositorio.saveAll(conteineresPlanejados);
@@ -78,7 +69,7 @@ public class AutomacaoPatioServico {
         }
 
         return new RespostaAutoplanejamentoDto(
-                conteineres.size(),
+                candidatos.size(),
                 containersPlanificados.size(),
                 containersException.size(),
                 containersPlanificados,
@@ -87,64 +78,10 @@ public class AutomacaoPatioServico {
     }
 
     private boolean ehCandidatoAAutoplanejamento(ConteinerPatio conteiner) {
-        if (conteiner.getPosicao() != null || conteiner.getCarga() == null
-                || !StringUtils.hasText(conteiner.getCarga().getDescricao())) {
-            return false;
-        }
-
-        String descricao = conteiner.getCarga().getDescricao().toUpperCase(Locale.ROOT);
-        return !descricao.contains("PERIGOSA") && !descricao.contains("IMO");
-    }
-
-    private Optional<PosicaoPatio> encontrarMelhorPosicao(ConteinerPatio conteiner,
-                                                           List<PosicaoPatio> posicoes,
-                                                           List<EquipamentoPatio> equipamentos,
-                                                           List<ConteinerPatio> conteineres,
-                                                           Set<Long> posicoesOcupadas) {
-        return posicoes.stream()
-                .filter(posicao -> posicao.getId() != null)
-                .filter(posicao -> !estaOcupada(posicao, posicoesOcupadas))
-                .filter(posicao -> ehCompativel(conteiner, posicao, equipamentos))
-                .sorted(Comparator
-                        .comparingInt((PosicaoPatio posicao) -> calcularRehandles(posicao, conteineres))
-                        .thenComparing(PosicaoPatio::getLinha)
-                        .thenComparing(PosicaoPatio::getColuna)
-                        .thenComparing(PosicaoPatio::getId))
-                .findFirst();
-    }
-
-    private boolean estaOcupada(PosicaoPatio posicao, Set<Long> posicoesOcupadas) {
-        return posicoesOcupadas.contains(posicao.getId());
-    }
-
-    private boolean ocupaPosicaoAtiva(ConteinerPatio conteiner) {
-        return conteiner.getPosicao() != null
+        return conteiner != null
+                && conteiner.getPosicao() == null
                 && conteiner.getStatus() != StatusConteiner.LIBERADO
-                && conteiner.getStatus() != StatusConteiner.DESPACHADO;
-    }
-
-    private boolean ehCompativel(ConteinerPatio conteiner,
-                                  PosicaoPatio posicao,
-                                  List<EquipamentoPatio> equipamentos) {
-        String cargaDesc = conteiner.getCarga() != null && StringUtils.hasText(conteiner.getCarga().getDescricao())
-                ? conteiner.getCarga().getDescricao().toUpperCase(Locale.ROOT)
-                : "";
-
-        if (cargaDesc.contains("REEFER") || cargaDesc.contains("REFRIGERADO")) {
-            return equipamentos.stream()
-                    .anyMatch(equipamento -> equipamento.getLinha().equals(posicao.getLinha())
-                            && equipamento.getColuna().equals(posicao.getColuna()));
-        }
-
-        return true;
-    }
-
-    private int calcularRehandles(PosicaoPatio posicao, List<ConteinerPatio> conteineres) {
-        return (int) conteineres.stream()
-                .filter(this::ocupaPosicaoAtiva)
-                .map(ConteinerPatio::getPosicao)
-                .filter(posicaoOcupada -> posicaoOcupada.getColuna().equals(posicao.getColuna()))
-                .filter(posicaoOcupada -> posicaoOcupada.getLinha() < posicao.getLinha())
-                .count();
+                && conteiner.getStatus() != StatusConteiner.DESPACHADO
+                && StringUtils.hasText(conteiner.getCodigo());
     }
 }

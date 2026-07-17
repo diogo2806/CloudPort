@@ -483,3 +483,12 @@ GET   /api/v1/visibilidade/conteiners/buscar
 6. Validar em teste de contexto que os novos adaptadores locais estão registrados e que os adaptadores HTTP correspondentes permanecem ausentes.
 7. Criar o perfil Compose `rollback`, ajustar o smoke e separar sua validação no workflow sem concorrer com o runtime canônico.
 8. Retirar INIT10 das pendências técnicas após registrar a implementação neste arquivo.
+
+## ASYNC40 — agendamentos de visibilidade condicionados implementado
+
+1. Remover `@Scheduled` de `VisibilidadeDashboardService`, preservando `publicarDashboard()` e `detectarAlertasAutomaticos()` para chamadas explícitas.
+2. Criar `VisibilidadeDashboardJob` como único componente responsável pelos agendamentos periódicos de publicação e detecção automática.
+3. Condicionar o job à propriedade canônica `cloudport.runtime.jobs-enabled=true`, com `matchIfMissing=true` para preservar a execução standalone padrão.
+4. Usar `visibilidade.dashboard.refresh-ms` para a publicação e `visibilidade.alertas.refresh-ms` para a detecção automática.
+5. Cobrir criação condicional, delegação ao serviço e concentração das anotações de agendamento por testes unitários.
+6. Retirar ASYNC40 das pendências técnicas após registrar a implementação neste arquivo.

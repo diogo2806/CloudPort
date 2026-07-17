@@ -1,8 +1,6 @@
 package br.com.cloudport.servicoyard.edi.modelo;
 
 import java.time.LocalDateTime;
-import javax.persistence.AttributeOverride;
-import javax.persistence.AttributeOverrides;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
@@ -38,11 +36,6 @@ public class BayPlanContainer {
     private String isoCode;
 
     @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "bay", column = @Column(name = "bay")),
-        @AttributeOverride(name = "row_bay", column = @Column(name = "row_bay")),
-        @AttributeOverride(name = "tier", column = @Column(name = "tier"))
-    })
     private PosicaoBay posicaoBay;
 
     @Column(name = "porto_carga", length = 10)
@@ -165,10 +158,7 @@ public class BayPlanContainer {
         }
     }
 
-    public Double getPesoOperacionalKg() {
-        return pesoVgmKg != null ? pesoVgmKg : pesoKg;
-    }
-
+    public Double getPesoOperacionalKg() { return pesoVgmKg != null ? pesoVgmKg : pesoKg; }
     public Long getId() { return id; }
     public BayPlan getBayPlan() { return bayPlan; }
     public void setBayPlan(BayPlan bayPlan) { this.bayPlan = bayPlan; }

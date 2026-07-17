@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `SEC40`.
+Status: atualizado em 2026-07-17 após implementação do requisito `ASYNC60`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -96,7 +96,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
 | ASYNC50 | Subordinar o reshuffling noturno ao controle canônico de jobs. | `executarReshuffflingNoturno()` só é registrado com `cloudport.runtime.jobs-enabled=true`; deployments de rollback não analisam candidatos nem criam ordens, enquanto chamadas explícitas permanecem disponíveis. | ⬜ Pendente |
-| ASYNC60 | Subordinar a reconciliação noturna de barcode ao controle canônico de jobs e impedir execução concorrente. | O cron de reconciliação só é registrado quando `cloudport.runtime.jobs-enabled=true`; uma única instância reivindica cada ciclo e cada alerta pendente antes do envio, sem duplicar reconciliações ou notificações durante coexistência, restart ou retry. | ⬜ Pendente |
 
 ### ASYNC50 — arquivos e métodos
 
@@ -104,14 +103,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/otimizacao/PredictiveReshuffflingServico.java` | `executarReshuffflingNoturno()` | O `@Scheduled` está no serviço e não consulta `cloudport.runtime.jobs-enabled`; runtime e standalone podem executar o mesmo cron. | Criar `novo método sugerido: PredictiveReshuffflingJob.executar()`, condicionado pela propriedade canônica, e manter o caso de uso sem anotação. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/ServicoYardApplication.java` e `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/CloudPortRuntimeApplication.java` | `@EnableScheduling` e component scan | Ambos carregam scheduling e o serviço do Yard. | Garantir que somente a instância com jobs habilitados registre o cron, sem criar flag concorrente. |
-
-### ASYNC60 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/scheduler/ReconciliacaoBarcodeScheduler.java` | classe, `executarReconciliacaoNocturna()` | O componente possui `@Scheduled` sem `@ConditionalOnProperty`; captura qualquer exceção e conclui o disparo, enquanto runtime e serviço standalone podem registrar o mesmo cron. | Condicionar o job a `cloudport.runtime.jobs-enabled=true`, separar o caso de uso do agendamento e propagar falha do ciclo para permitir recuperação coerente. |
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/scheduler/ReconciliacaoBarcodeScheduler.java` | `enviarAlertas()` e `enviarAlerta()` | A consulta `findNaoResolvidosSemAlerta()` não reivindica os registros; duas instâncias podem carregar e enviar o mesmo alerta antes de qualquer uma persistir a confirmação. | Criar `novo método sugerido: reivindicarAlertasPendentes()` com lease ou transição atômica e identidade idempotente por ocorrência/canal; somente a instância proprietária pode enviar e confirmar. |
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/ServicoGateApplication.java` e `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/CloudPortRuntimeApplication.java` | `@EnableScheduling` e component scan | Ambos habilitam scheduling e o runtime carrega `br.com.cloudport.servicogate`, permitindo duplicidade durante coexistência ou rollback. | Manter scheduling habilitado, mas registrar o job apenas na instância canônica e usar coordenação persistente quando houver mais de uma réplica habilitada. |
 
 ## 5. Interface operacional React
 

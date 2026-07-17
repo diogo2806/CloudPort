@@ -5,7 +5,6 @@ import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
-import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 import {
   ControlRoomPage,
@@ -22,6 +21,7 @@ import {
   YardMapPage,
   YardMovementsPage,
   YardPositionsPage,
+  YardReceivingPlanPage,
   YardResourcesPage,
   YardWorkListPage
 } from './pages/YardPages.jsx';
@@ -45,11 +45,11 @@ const FALLBACK_NAVIGATION = [
   { group: 'Ferrovia', items: [
     { label: 'Visitas', path: '/home/ferrovia/visitas', roles: [] },
     { label: 'Importar manifesto', path: '/home/ferrovia/visitas/importar', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
-    { label: 'Lista de trabalho', path: '/home/ferrovia/lista-trabalho', roles: [] },
-    { label: 'Locomotivas para navio', path: '/home/ferrovia/locomotivas', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] }
+    { label: 'Lista de trabalho', path: '/home/ferrovia/lista-trabalho', roles: [] }
   ] },
   { group: 'Pátio', items: [
     { label: 'Mapa', path: '/home/patio/mapa', roles: [] },
+    { label: 'Planejamento de recebimento', path: '/home/patio/planejamento-recebimento', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Lista de trabalho', path: '/home/patio/lista-trabalho', roles: [] },
     { label: 'Posições', path: '/home/patio/posicoes', roles: [] },
     { label: 'Movimentações', path: '/home/patio/movimentacoes', roles: [] },
@@ -139,8 +139,8 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDirectVesselReleasePage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
-  if (path === '/home/ferrovia/locomotivas') return <RailLocomotiveTransfersPage />;
   if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage navigate={navigate} />;
+  if (path === '/home/patio/planejamento-recebimento') return <YardReceivingPlanPage navigate={navigate} />;
   if (path === '/home/patio/posicoes') return <YardPositionsPage navigate={navigate} />;
   if (path === '/home/patio/lista-trabalho') return <YardWorkListPage navigate={navigate} session={session} />;
   if (path === '/home/patio/movimentacoes' || path === '/home/patio/movimentacao') return <YardMovementsPage navigate={navigate} />;

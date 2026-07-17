@@ -31,7 +31,9 @@ Após a incorporação ao runtime monolítico, os contratos REST externos devem 
 
 Configure as variáveis `GATE_*`, `TOS_API_*` e `DOCUMENT_STORAGE_*` no ambiente de execução. Garanta que o banco configurado exista e esteja acessível.
 
-A recuperação periódica de OCR usa o controle canônico `cloudport.runtime.jobs-enabled`, exposto pela variável `CLOUDPORT_JOBS_ENABLED`. O runtime escritor deve usar `true`. Qualquer deployment legado ou de rollback em coexistência deve usar `CLOUDPORT_JOBS_ENABLED=false`; o upload e a submissão imediata de documentos permanecem disponíveis, mas o recuperador periódico não é registrado.
+A recuperação periódica de OCR e a reconciliação noturna de barcode usam o controle canônico `cloudport.runtime.jobs-enabled`, exposto pela variável `CLOUDPORT_JOBS_ENABLED`. O runtime escritor deve usar `true`. Qualquer deployment legado ou de rollback em coexistência deve usar `CLOUDPORT_JOBS_ENABLED=false`; chamadas explícitas e submissões imediatas permanecem disponíveis, mas os agendamentos periódicos não são registrados.
+
+Quando houver mais de uma réplica com jobs habilitados, o ciclo de barcode é serializado por advisory lock no PostgreSQL. Cada alerta é reivindicado individualmente com token e lease persistidos, e reutiliza a mesma chave de idempotência em restart ou retry. `GATE_RECONCILIACAO_ALERTA_LEASE` define o prazo para recuperar uma reivindicação interrompida e usa `PT2M` por padrão.
 
 Exemplo de criação de banco para desenvolvimento:
 

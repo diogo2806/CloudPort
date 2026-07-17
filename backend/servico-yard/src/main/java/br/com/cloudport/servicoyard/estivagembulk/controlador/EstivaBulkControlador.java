@@ -3,20 +3,21 @@ package br.com.cloudport.servicoyard.estivagembulk.controlador;
 import br.com.cloudport.servicoyard.estivagembulk.dto.AnaliseEmpilhamentoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.EstabilidadeEstrutural;
 import br.com.cloudport.servicoyard.estivagembulk.dto.NavioGranelDto;
-import br.com.cloudport.servicoyard.estivagembulk.dto.PlanoEstivaBulkDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicaoBobinaDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicionarBobinaRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
-import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
 import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
+import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
+import br.com.cloudport.servicoyard.seguranca.PoliticaAutorizacaoEstiva;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,21 +37,25 @@ public class EstivaBulkControlador {
         this.navioRepositorio = navioRepositorio;
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/navios")
     public ResponseEntity<NavioGranel> registrarNavio(@RequestBody NavioGranelDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(servico.registrarNavio(dto));
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/navios")
     public ResponseEntity<List<NavioGranel>> listarNavios() {
         return ResponseEntity.ok(navioRepositorio.findByIsTemplateFalseOrderByNomeAsc());
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/navios/templates")
     public ResponseEntity<List<NavioGranel>> listarTemplates() {
         return ResponseEntity.ok(navioRepositorio.findByIsTemplateTrue());
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos")
     public ResponseEntity<?> criarPlano(@RequestBody Map<String, Object> body) {
         Long navioId = Long.valueOf(body.get("navioId").toString());
@@ -65,6 +70,7 @@ public class EstivaBulkControlador {
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/planos/{id}")
     public ResponseEntity<?> buscarPlano(@PathVariable Long id) {
         try {
@@ -74,6 +80,7 @@ public class EstivaBulkControlador {
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos/{id}/bobinas")
     public ResponseEntity<BobinaManifesto> adicionarBobina(
             @PathVariable Long id, @RequestBody BobinaManifesto bobina) {
@@ -84,6 +91,7 @@ public class EstivaBulkControlador {
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos/{id}/posicionar")
     public ResponseEntity<?> posicionarBobina(
             @PathVariable Long id, @RequestBody PosicionarBobinaRequisicaoDto req) {
@@ -98,6 +106,7 @@ public class EstivaBulkControlador {
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/planos/{id}/tanktop")
     public ResponseEntity<List<PressaoTanktopDto>> analisarTanktop(@PathVariable Long id) {
         try {
@@ -107,6 +116,7 @@ public class EstivaBulkControlador {
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/planos/{id}/empilhamento/{poraoId}")
     public ResponseEntity<AnaliseEmpilhamentoDto> analisarEmpilhamento(
             @PathVariable Long id, @PathVariable Long poraoId) {
@@ -117,6 +127,7 @@ public class EstivaBulkControlador {
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/planos/{id}/estabilidade")
     public ResponseEntity<EstabilidadeEstrutural> calcularEstabilidade(@PathVariable Long id) {
         try {
@@ -126,15 +137,19 @@ public class EstivaBulkControlador {
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos/{id}/tacktop")
     public ResponseEntity<TacktopDto> calcularTacktop(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.calcularTacktop(id));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos/{id}/validar")
     public ResponseEntity<?> validarEAprovar(@PathVariable Long id) {
         try {
@@ -147,6 +162,7 @@ public class EstivaBulkControlador {
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/planos/{id}/relatorio")
     public ResponseEntity<?> relatorio(@PathVariable Long id) {
         try {

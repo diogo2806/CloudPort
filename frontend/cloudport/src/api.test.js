@@ -12,7 +12,8 @@ import {
   readSession,
   request,
   saveSession,
-  sanitizeText
+  sanitizeText,
+  subscribeSessionExpired
 } from './api.js';
 
 function createStorage() {
@@ -85,6 +86,33 @@ test('cliente HTTP adiciona JWT, correlationId e contexto operacional', async ()
   assert.equal(body.origemAcao, 'PORTAL_CLOUDPORT_REACT');
 });
 
+test('resposta 401 encerra a sessão em memória e impede novas chamadas sem token', async () => {
+  saveSession({ token: jwt({ nome: 'Diogo', roles: ['PLANEJADOR'], exp: Math.floor(Date.now() / 1000) + 3600 }) });
+  let expirations = 0;
+  let protectedCalls = 0;
+  const unsubscribe = subscribeSessionExpired(() => { expirations += 1; });
+  globalThis.fetch = async (url) => {
+    if (url === '/assets/configuracao.json') {
+      return new Response(JSON.stringify({ baseApiUrl: 'http://localhost:8080' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    protectedCalls += 1;
+    return new Response(JSON.stringify({ mensagem: 'Token expirado' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  };
+  await loadRuntimeConfig();
+
+  try {
+    await assert.rejects(request('/api/usuarios'), (error) => error.status === 401);
+    assert.equal(readSession(), null);
+    assert.equal(expirations, 1);
+    assert.equal(protectedCalls, 1);
+
+    await assert.rejects(request('/api/usuarios'), (error) => error.status === 401);
+    assert.equal(protectedCalls, 1);
+  } finally {
+    unsubscribe();
+  }
+});
+
 test('login envia a senha sem sanitização destrutiva', async () => {
   const calls = [];
   globalThis.fetch = async (url, options = {}) => {
@@ -149,6 +177,7 @@ test('comandos motivados do pátio rejeitam motivo vazio antes da requisição',
 });
 
 test('consulta de posições operacionais usa contrato de reservas e restrições reais', async () => {
+  saveSession({ token: jwt({ nome: 'Diogo', roles: ['PLANEJADOR'], exp: Math.floor(Date.now() / 1000) + 3600 }) });
   const calls = [];
   globalThis.fetch = async (url, options = {}) => {
     calls.push({ url, options });

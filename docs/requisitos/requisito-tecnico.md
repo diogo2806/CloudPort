@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após auditoria da branch `main`, comparação com a base documental operacional e detalhamento das demandas React de Pátio, navio siderúrgico e navio de contêiner.
+Status: atualizado em 2026-07-17 após auditoria da branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 

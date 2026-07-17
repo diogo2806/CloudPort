@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após auditoria da branch `main`.
+Status: atualizado em 2026-07-17 após implementação do requisito `ASYNC70`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -71,16 +71,3 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `frontend/cloudport/src/pages/OperationalPages.jsx` | `GenericDatasetPage()` e `DATASET_ROUTES` do Gate | As rotas usam `api.obterCentralGate()` como se a resposta inteira fosse uma lista paginada. `normalizePage()` não reconhece o campo `agendamentos`, produz zero linhas e a tela mostra estado vazio mesmo com registros retornados. | Fornecer ao componente somente `response.agendamentos` ou adicionar um seletor explícito por rota; não converter o objeto consolidado inteiro em lista. |
 | `frontend/cloudport/src/api.js` | `obterCentralGate()` | O método retorna corretamente o objeto consolidado da API, sem normalização para as telas genéricas. | Manter o objeto para o dashboard e criar um método ou adaptador específico que retorne `agendamentos` para as rotas tabulares. |
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/cidadao/centralacao/dto/CentralAcaoAgendamentoRespostaDTO.java` | campo `agendamentos` | O backend publica a coleção em uma propriedade própria, ao lado de `usuario` e `situacaoPatio`. | Preservar o contrato e fazer as telas consumirem a propriedade correta. |
-
-## 5. Processamento assíncrono
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| ASYNC70 | Desabilitar o worker EDI quando a propriedade canônica de jobs não estiver explicitamente habilitada. | `EdiProcessamentoWorker` só é criado quando `cloudport.runtime.jobs-enabled=true`; ausência da propriedade ou valor `false` não inicia polling nem reivindica mensagens, evitando que serviços standalone de coexistência processem a mesma fila do runtime. | ⬜ Pendente |
-
-### ASYNC70 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiProcessamentoWorker.java` | `@ConditionalOnProperty` e `executar()` | A condição usa `matchIfMissing = true`. Assim, qualquer deployment que não declare a propriedade cria o worker e executa polling a cada segundo, mesmo que apenas a instância canônica deva processar a mesma fila do runtime. | Alterar a condição para exigir explicitamente `cloudport.runtime.jobs-enabled=true`, sem habilitação por ausência da propriedade. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiProcessamentoWorkerServico.java` | `processarProximo()` | O método reivindica e processa mensagens reais da fila persistente; portanto, a criação indevida do worker pode concorrer com o runtime ativo. | Manter a reivindicação transacional existente, mas garantir que somente deployments explicitamente habilitados chamem o método pelo agendamento. |

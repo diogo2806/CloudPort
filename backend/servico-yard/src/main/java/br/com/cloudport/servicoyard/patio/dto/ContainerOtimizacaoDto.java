@@ -13,7 +13,8 @@ public class ContainerOtimizacaoDto {
     @NotBlank
     private String codigo;
 
-    @NotNull
+    private LocalDateTime etaChegada;
+
     private LocalDateTime etaPartida;
 
     private BigDecimal pesoToneladas;
@@ -23,6 +24,26 @@ public class ContainerOtimizacaoDto {
     private String destino;
 
     private String restricoes;
+
+    private String categoria;
+
+    private String armador;
+
+    private String visitaSaida;
+
+    private Integer comprimentoPes;
+
+    private String tipoEquipamento;
+
+    private String estadoCarga;
+
+    private Boolean refrigerado;
+
+    private Boolean perigoso;
+
+    private String classeImo;
+
+    private String numeroOnu;
 
     public ContainerOtimizacaoDto() {
     }
@@ -34,7 +55,7 @@ public class ContainerOtimizacaoDto {
     }
 
     public ContainerOtimizacaoDto(Long id, String codigo, LocalDateTime etaPartida,
-                                  BigDecimal pesoToneladas, String tipoCarga, String destino) {
+                                   BigDecimal pesoToneladas, String tipoCarga, String destino) {
         this.id = id;
         this.codigo = codigo;
         this.etaPartida = etaPartida;
@@ -57,6 +78,14 @@ public class ContainerOtimizacaoDto {
 
     public void setCodigo(String codigo) {
         this.codigo = codigo;
+    }
+
+    public LocalDateTime getEtaChegada() {
+        return etaChegada;
+    }
+
+    public void setEtaChegada(LocalDateTime etaChegada) {
+        this.etaChegada = etaChegada;
     }
 
     public LocalDateTime getEtaPartida() {
@@ -97,5 +126,85 @@ public class ContainerOtimizacaoDto {
 
     public void setRestricoes(String restricoes) {
         this.restricoes = restricoes;
+    }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
+    }
+
+    public String getArmador() {
+        return armador;
+    }
+
+    public void setArmador(String armador) {
+        this.armador = armador;
+    }
+
+    public String getVisitaSaida() {
+        return visitaSaida;
+    }
+
+    public void setVisitaSaida(String visitaSaida) {
+        this.visitaSaida = visitaSaida;
+    }
+
+    public Integer getComprimentoPes() {
+        return comprimentoPes;
+    }
+
+    public void setComprimentoPes(Integer comprimentoPes) {
+        this.comprimentoPes = comprimentoPes;
+    }
+
+    public String getTipoEquipamento() {
+        return tipoEquipamento;
+    }
+
+    public void setTipoEquipamento(String tipoEquipamento) {
+        this.tipoEquipamento = tipoEquipamento;
+    }
+
+    public String getEstadoCarga() {
+        return estadoCarga;
+    }
+
+    public void setEstadoCarga(String estadoCarga) {
+        this.estadoCarga = estadoCarga;
+    }
+
+    public Boolean getRefrigerado() {
+        return refrigerado;
+    }
+
+    public void setRefrigerado(Boolean refrigerado) {
+        this.refrigerado = refrigerado;
+    }
+
+    public Boolean getPerigoso() {
+        return perigoso;
+    }
+
+    public void setPerigoso(Boolean perigoso) {
+        this.perigoso = perigoso;
+    }
+
+    public String getClasseImo() {
+        return classeImo;
+    }
+
+    public void setClasseImo(String classeImo) {
+        this.classeImo = classeImo;
+    }
+
+    public String getNumeroOnu() {
+        return numeroOnu;
+    }
+
+    public void setNumeroOnu(String numeroOnu) {
+        this.numeroOnu = numeroOnu;
     }
 }

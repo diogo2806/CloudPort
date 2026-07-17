@@ -1,14 +1,14 @@
-# Requisitos técnicos pendentes — CloudPort
+# Requisitos técnicos — CloudPort
 
-Status: atualizado em 2026-07-17 após auditoria da branch main.
+Status: implementado em 2026-07-17 a partir da auditoria da branch `main`.
 
-Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
+Este arquivo registra os requisitos técnicos implementáveis e comprovados no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
 ## 1. Persistência e consistência do autoplanejamento do pátio
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| DATA20 | Tornar o autoplanejamento do Yard seguro para contêineres ainda sem posição e impedir alocações concorrentes na mesma posição. | `POST /api/yard/patio/automacao/executar-autoplanejamento` processa contêineres sem posição sem lançar `NullPointerException`, seleciona cada posição considerando as alocações feitas no mesmo ciclo e persiste o lote de forma coerente, sem duas unidades ocuparem a mesma posição. | ⬜ Pendente |
+| DATA20 | Tornar o autoplanejamento do Yard seguro para contêineres ainda sem posição e impedir alocações concorrentes na mesma posição. | `POST /api/yard/patio/automacao/executar-autoplanejamento` processa contêineres sem posição sem lançar `NullPointerException`, seleciona cada posição considerando as alocações feitas no mesmo ciclo e persiste o lote de forma coerente, sem duas unidades ocuparem a mesma posição. | ✅ Concluído |
 
 ### DATA20 — arquivos e métodos
 
@@ -22,7 +22,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| SEC10 | Calcular a expiração do JWT a partir de um instante absoluto, sem depender do fuso horário da JVM. | Tokens emitidos pelo endpoint de autenticação expiram exatamente após a duração configurada em qualquer fuso do host; emissor e Resource Server usam o mesmo segredo e o instante `exp` é gerado com `Instant`/`Clock`, sem conversão de `LocalDateTime` por offset fixo. | ⬜ Pendente |
+| SEC10 | Calcular a expiração do JWT a partir de um instante absoluto, sem depender do fuso horário da JVM. | Tokens emitidos pelo endpoint de autenticação expiram exatamente após a duração configurada em qualquer fuso do host; emissor e Resource Server usam o mesmo segredo e o instante `exp` é gerado com `Instant`/`Clock`, sem conversão de `LocalDateTime` por offset fixo. | ✅ Concluído |
 
 ### SEC10 — arquivos e métodos
 
@@ -36,8 +36,8 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| ASYNC10 | Validar eventos ferroviários antes de registrá-los como processados e impedir confirmação definitiva de mensagens funcionalmente inválidas. | Eventos sem `containerId`/`codigoConteiner`, com tipo não suportado ou com campos obrigatórios inválidos não ficam gravados como processados; falhas transitórias provocam rollback e redelivery, enquanto rejeições definitivas são classificadas e encaminhadas de forma explícita sem bloquear correções legítimas. | ⬜ Pendente |
-| ASYNC20 | Desacoplar o processamento OCR da transação de upload e publicar estados somente após persistência confirmada. | O upload persiste o documento e conclui a resposta sem executar leitura de imagem no mesmo encadeamento; o processamento OCR ocorre por fila ou executor transacionalmente separado, inicia somente após commit, persiste `PROCESSANDO`, `VALIDADO` ou `FALHA` em transações próprias e emite notificações coerentes com o estado já confirmado no banco. | ⬜ Pendente |
+| ASYNC10 | Validar eventos ferroviários antes de registrá-los como processados e impedir confirmação definitiva de mensagens funcionalmente inválidas. | Eventos sem `containerId`/`codigoConteiner`, com tipo não suportado ou com campos obrigatórios inválidos não ficam gravados como processados; falhas transitórias provocam rollback e redelivery, enquanto rejeições definitivas são classificadas e encaminhadas de forma explícita sem bloquear correções legítimas. | ✅ Concluído |
+| ASYNC20 | Desacoplar o processamento OCR da transação de upload e publicar estados somente após persistência confirmada. | O upload persiste o documento e conclui a resposta sem executar leitura de imagem no mesmo encadeamento; o processamento OCR ocorre por fila ou executor transacionalmente separado, inicia somente após commit, persiste `PROCESSANDO`, `VALIDADO` ou `FALHA` em transações próprias e emite notificações coerentes com o estado já confirmado no banco. | ✅ Concluído |
 
 ### ASYNC10 — arquivos e métodos
 
@@ -59,7 +59,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| INT10 | Entregar alertas reais de desincronização de barcode antes de marcar a ocorrência como notificada. | A reconciliação envia cada alerta por um canal operacional configurado e observável, persiste `alertaEnviado=true` somente após confirmação do provedor e mantém a ocorrência pendente para nova tentativa quando houver falha de entrega. | ⬜ Pendente |
+| INT10 | Entregar alertas reais de desincronização de barcode antes de marcar a ocorrência como notificada. | A reconciliação envia cada alerta por um canal operacional configurado e observável, persiste `alertaEnviado=true` somente após confirmação do provedor e mantém a ocorrência pendente para nova tentativa quando houver falha de entrega. | ✅ Concluído |
 
 ### INT10 — arquivos e métodos
 
@@ -73,7 +73,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| UI30 | Disponibilizar no frontend administrativo o fluxo de consulta, filtragem e resolução das desincronias de barcode. | Um usuário com perfil `ADMIN_PORTO` acessa uma tela autenticada que lista ocorrências não resolvidas, filtra por tipo, exibe dados operacionais e registra a resolução pelo contrato existente, atualizando a interface somente após confirmação do backend. | ⬜ Pendente |
+| UI30 | Disponibilizar no frontend administrativo o fluxo de consulta, filtragem e resolução das desincronias de barcode. | Um usuário com perfil `ADMIN_PORTO` acessa uma tela autenticada que lista ocorrências não resolvidas, filtra por tipo, exibe dados operacionais e registra a resolução pelo contrato existente, atualizando a interface somente após confirmação do backend. | ✅ Concluído |
 
 ### UI30 — arquivos e métodos
 

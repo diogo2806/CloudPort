@@ -8,6 +8,9 @@ public class EstivagemPlanDto {
     private Long bayPlanId;
     private String codigoNavio;
     private String codigoViagem;
+    private Long perfilGeometriaId;
+    private Long perfilGeometriaVersao;
+    private String condicaoCarregamento;
     private String status;
     private EstabilidadeDto estabilidade;
     private List<SlotNavioDto> slots;
@@ -47,6 +50,30 @@ public class EstivagemPlanDto {
 
     public void setCodigoViagem(String codigoViagem) {
         this.codigoViagem = codigoViagem;
+    }
+
+    public Long getPerfilGeometriaId() {
+        return perfilGeometriaId;
+    }
+
+    public void setPerfilGeometriaId(Long perfilGeometriaId) {
+        this.perfilGeometriaId = perfilGeometriaId;
+    }
+
+    public Long getPerfilGeometriaVersao() {
+        return perfilGeometriaVersao;
+    }
+
+    public void setPerfilGeometriaVersao(Long perfilGeometriaVersao) {
+        this.perfilGeometriaVersao = perfilGeometriaVersao;
+    }
+
+    public String getCondicaoCarregamento() {
+        return condicaoCarregamento;
+    }
+
+    public void setCondicaoCarregamento(String condicaoCarregamento) {
+        this.condicaoCarregamento = condicaoCarregamento;
     }
 
     public String getStatus() {

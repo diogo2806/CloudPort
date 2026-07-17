@@ -5,6 +5,7 @@ import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
+import { RailVisitsPage } from './pages/RailVisitsPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 import {
@@ -13,8 +14,7 @@ import {
   GateDashboardPage,
   GenericDatasetPage,
   HomeDashboard,
-  RailImportPage,
-  RailVisitsPage
+  RailImportPage
 } from './pages/OperationalPages.jsx';
 import {
   YardAutomationPage,
@@ -136,7 +136,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/navio' || path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
   if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;
   if (path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDirectVesselReleasePage />;
-  if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
+  if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage navigate={navigate} />;
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
   if (path === '/home/ferrovia/lista-trabalho') return <RailWorkListPage session={session} />;
   if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage navigate={navigate} />;

@@ -1,5 +1,10 @@
 package br.com.cloudport.servicoyard.estivagembulk.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class NavioGranelDto {
 
     private Long id;
@@ -11,8 +16,31 @@ public class NavioGranelDto {
     private Double calado;
     private Double deslocamento;
     private Double gm;
+    private Double tpc;
+    private Double lcb;
+    private Double km;
+    private Double mct1cm;
+    private Double caladoMaximo;
+    private Double trimMaximo;
+    private Double bandaMaxima;
+    private Double gmMinimo;
+    private Double pesoLeveToneladas;
+    private Double lcgPesoLeve;
+    private Double tcgPesoLeve;
+    private Double vcgPesoLeve;
+    private Double pesoLastroToneladas;
+    private Double lcgLastro;
+    private Double tcgLastro;
+    private Double vcgLastro;
     private Double bmMaxPermitido;
     private Double sfMaxPermitido;
+    private String versaoDadosHidrostaticos;
+    private String versaoDadosEstruturais;
+    private String posicoesSecoes;
+    private String pesoLeveSecoes;
+    private String empuxoSecoes;
+    private String limitesSfSecoes;
+    private String limitesBmSecoes;
     private boolean isTemplate;
     private int totalPoroes;
 
@@ -34,110 +62,6 @@ public class NavioGranelDto {
         this.bmMaxPermitido = bmMaxPermitido;
         this.sfMaxPermitido = sfMaxPermitido;
         this.isTemplate = isTemplate;
-        this.totalPoroes = totalPoroes;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getImo() {
-        return imo;
-    }
-
-    public void setImo(String imo) {
-        this.imo = imo;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getClasse() {
-        return classe;
-    }
-
-    public void setClasse(String classe) {
-        this.classe = classe;
-    }
-
-    public Double getLpp() {
-        return lpp;
-    }
-
-    public void setLpp(Double lpp) {
-        this.lpp = lpp;
-    }
-
-    public Double getBoca() {
-        return boca;
-    }
-
-    public void setBoca(Double boca) {
-        this.boca = boca;
-    }
-
-    public Double getCalado() {
-        return calado;
-    }
-
-    public void setCalado(Double calado) {
-        this.calado = calado;
-    }
-
-    public Double getDeslocamento() {
-        return deslocamento;
-    }
-
-    public void setDeslocamento(Double deslocamento) {
-        this.deslocamento = deslocamento;
-    }
-
-    public Double getGm() {
-        return gm;
-    }
-
-    public void setGm(Double gm) {
-        this.gm = gm;
-    }
-
-    public Double getBmMaxPermitido() {
-        return bmMaxPermitido;
-    }
-
-    public void setBmMaxPermitido(Double bmMaxPermitido) {
-        this.bmMaxPermitido = bmMaxPermitido;
-    }
-
-    public Double getSfMaxPermitido() {
-        return sfMaxPermitido;
-    }
-
-    public void setSfMaxPermitido(Double sfMaxPermitido) {
-        this.sfMaxPermitido = sfMaxPermitido;
-    }
-
-    public boolean isTemplate() {
-        return isTemplate;
-    }
-
-    public void setTemplate(boolean isTemplate) {
-        this.isTemplate = isTemplate;
-    }
-
-    public int getTotalPoroes() {
-        return totalPoroes;
-    }
-
-    public void setTotalPoroes(int totalPoroes) {
         this.totalPoroes = totalPoroes;
     }
 }

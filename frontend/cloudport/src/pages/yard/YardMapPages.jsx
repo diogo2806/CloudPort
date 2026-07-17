@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { api, sanitizeText } from '../../api.js';
 import { DataTable, EmptyState, JsonDetails, Loading, Message, MetricCard, Section, StatusBadge } from '../../components.jsx';
+import { GoogleYardMap } from './GoogleYardMap.jsx';
 import { buildStacks, DetailGrid, displayValue, FilterField, normalized, Pagination, positionKey, stackClass, usePagination, useRemote, YardPageHeader } from './YardShared.jsx';
 
 export function YardMapPage({ navigate }) {
@@ -39,8 +40,11 @@ export function YardMapPage({ navigate }) {
     </div></Section>
     {remote.loading ? <Loading label="Carregando mapa e restrições..." /> : <>
       <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={remote.data?.positions.length ?? 0} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label="Equipamentos" value={equipment.length} /></div>
+      <Section title="Pátio georreferenciado" description="O Google Maps usa imagem de satélite e desenha cada pilha como um polígono interativo calculado a partir das linhas, colunas e dimensões configuradas.">
+        <GoogleYardMap blocks={stacks} selectedStack={selectedStack} onSelectStack={setSelectedStack} />
+      </Section>
       <div className="yard-map-layout">
-        <Section title="Blocos e pilhas" description="Clique em uma pilha para abrir suas camadas, restrições, unidade e equipamentos.">
+        <Section title="Grade operacional" description="Clique em uma pilha para abrir suas camadas, restrições, unidade e equipamentos.">
           {!stacks.length ? <EmptyState title="Nenhuma posição real disponível" /> : <div className="yard-block-grid">{stacks.map((block) => <article className="yard-block" key={block.bloco}><header><strong>{block.bloco}</strong><span>{block.stacks.length} pilha(s)</span></header><div className="yard-stack-grid">{block.stacks.map((stack) => <button type="button" className={`yard-stack ${stackClass(stack)} ${selectedStack?.bloco === stack.bloco && selectedStack?.linha === stack.linha && selectedStack?.coluna === stack.coluna ? 'selected' : ''}`} key={`${stack.bloco}-${stack.linha}-${stack.coluna}`} onClick={() => setSelectedStack(stack)}><strong>L{stack.linha} · C{stack.coluna}</strong><span>{stack.layers.filter((layer) => layer.ocupada).length}/{stack.layers.length} ocupadas</span><div className="yard-layers">{stack.layers.map((layer) => <i key={layer.id ?? positionKey(layer)} className={layer.interditada ? 'interdicted' : layer.bloqueada || !layer.areaPermitida ? 'blocked' : layer.plannedOrder ? 'reserved' : layer.ocupada ? 'occupied' : 'available'} title={`${layer.camadaOperacional}: ${layer.codigoConteiner || 'livre'}`}>{layer.camadaOperacional}</i>)}</div></button>)}</div></article>)}</div>}
         </Section>
         <aside className="yard-detail-column"><Section title="Detalhe da pilha">

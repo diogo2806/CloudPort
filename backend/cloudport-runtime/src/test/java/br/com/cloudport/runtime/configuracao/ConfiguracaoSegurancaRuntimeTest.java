@@ -1,6 +1,7 @@
 package br.com.cloudport.runtime.configuracao;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -24,6 +25,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -41,9 +43,17 @@ import org.springframework.web.bind.annotation.RestController;
 class ConfiguracaoSegurancaRuntimeTest {
 
     private static final String CAMINHO_PUBLICO = "/api/public/v1/secretaria-clientes:sync";
+    private static final String CAMINHO_LINE_UP = "/public/line-up-navios";
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Test
+    void devePermitirLineUpAnonimo() throws Exception {
+        mockMvc.perform(get(CAMINHO_LINE_UP))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.publico").value(true));
+    }
 
     @Test
     void deveRejeitarRotaPublicaSemCredenciaisDeCliente() throws Exception {
@@ -86,6 +96,11 @@ class ConfiguracaoSegurancaRuntimeTest {
 
     @RestController
     static class ControladorSec10 {
+
+        @GetMapping(CAMINHO_LINE_UP)
+        Map<String, Object> lineUp() {
+            return Map.of("publico", true);
+        }
 
         @PostMapping(CAMINHO_PUBLICO)
         Map<String, Object> sincronizar(Authentication authentication) {

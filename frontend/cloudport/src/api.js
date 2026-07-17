@@ -7,6 +7,9 @@ let runtimeConfig = {
   navioControlRoomUrl: ''
 };
 
+const sessionExpiredListeners = new Set();
+let sessionExpirationNotified = false;
+
 function storage() {
   return typeof globalThis.localStorage !== 'undefined' ? globalThis.localStorage : null;
 }
@@ -78,6 +81,7 @@ export function saveSession(response) {
   const target = storage();
   target?.setItem(SESSION_KEY, JSON.stringify(session));
   target?.setItem(USERNAME_KEY, JSON.stringify(session.nome));
+  sessionExpirationNotified = false;
   return session;
 }
 
@@ -108,6 +112,17 @@ export function clearSession() {
   const target = storage();
   target?.removeItem(SESSION_KEY);
   target?.removeItem(USERNAME_KEY);
+}
+
+export function subscribeSessionExpired(listener) {
+  sessionExpiredListeners.add(listener);
+  return () => sessionExpiredListeners.delete(listener);
+}
+
+export function notifySessionExpired() {
+  if (sessionExpirationNotified) return;
+  sessionExpirationNotified = true;
+  Array.from(sessionExpiredListeners).forEach((listener) => listener());
 }
 
 export function hasAnyRole(session, ...roles) {
@@ -205,7 +220,10 @@ export async function request(path, options = {}) {
         ? await response.json()
         : await response.text();
     if (!response.ok) {
-      if (response.status === 401) clearSession();
+      if (response.status === 401) {
+        clearSession();
+        notifySessionExpired();
+      }
       const error = new Error(payload?.mensagem ?? payload?.erro ?? payload?.message ?? `Falha HTTP ${response.status}`);
       error.payload = payload;
       error.status = response.status;

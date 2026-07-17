@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `BUS40`.
+Status: atualizado em 2026-07-17 após implementação do requisito `UI50`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -109,7 +109,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
 | UI40 | Implementar o planejamento operacional React do navio siderúrgico. | A rota de steel coils permite selecionar navio e visita, criar ou carregar plano, manter manifesto de bobinas, posicionar carga por porão, consultar tank top, empilhamento, estabilidade e securing, validar e abrir relatório; toda confirmação vem do backend e o estado é recarregado após persistência. | ⬜ Pendente |
-| UI50 | Transformar o módulo Pátio em telas React operacionais, e não apenas consultas genéricas. | Mapa, posições, lista de trabalho, movimentações, recursos, indicadores e automação possuem telas próprias; o operador navega pela estrutura real do pátio, consulta detalhes e executa somente comandos autorizados, com motivo quando exigido e sucesso apenas após confirmação persistida. | ⬜ Pendente |
 | UI60 | Implementar o Vessel Planner React para navio de contêiner. | A rota de planejamento permite selecionar escala e Bay Plan, acompanhar processamento BAPLIE, visualizar bays, rows, tiers e restrições, tratar contêineres não alocados, executar alocação manual ou autoestivagem, consultar estabilidade, restow e sequenciamento e validar o plano usando exclusivamente resultados do backend. | ⬜ Pendente |
 
 ### UI40 — arquivos e métodos
@@ -120,15 +119,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `frontend/cloudport/src/api.js` | `listarEscalasEmbarque()` e objeto `api` | O portal não possui chamadas para `/api/estivagem-bulk`; não cria, carrega ou altera plano e não consulta as análises existentes. | Adicionar contratos para navios e templates, planos, manifesto, posicionamento, tank top, empilhamento, estabilidade, tacktop, validação e relatório, preservando erro e `correlationId`. |
 | `frontend/servico-navio-siderurgico/src/assets/steel-coil-planner.html` | `COIL_TYPES`, `HOLDS`, `PORTS`, `dropCoil()`, `generatePlan()`, `updateStats()` | O HTML legado mantém dados fixos, destino aleatório, plano predefinido e cálculos simulados no navegador. | Retirar o HTML do fluxo operacional; a interface React deve renderizar somente dados persistidos e resultados calculados pelo servidor. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/controlador/EstivaBulkControlador.java` | `/api/estivagem-bulk/**` | Existem contratos parciais para criar e consultar plano, adicionar e posicionar bobina, analisar e validar, mas nenhum deles é consumido pelo portal React. | Definir DTOs estáveis para a tela, completar as consultas necessárias e impedir que o frontend reproduza regra de domínio ou cálculo de segurança. |
-
-### UI50 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/App.jsx` e `frontend/cloudport/src/pages/OperationalPages.jsx` | rotas `/home/patio/**`, `DATASET_ROUTES`, `GenericDatasetPage` | Posições, movimentações, lista de trabalho, recursos, indicadores e automação são tabelas genéricas; lista de trabalho reutiliza a consulta de movimentações e indicadores/automação reutilizam o mapa. | Criar páginas React próprias para cada fluxo, com filtros, paginação, seleção, detalhe, estados vazios e ações coerentes com o domínio. |
-| `frontend/cloudport/src/pages/OperationalPages.jsx` | `YardMapPage()` | O mapa atual exibe duas tabelas de contêineres e equipamentos; não representa blocos ou zonas, linhas, colunas, camadas, ocupação, reserva, bloqueio e interdição como estrutura navegável. | Implementar visualização operacional baseada nas posições reais, permitindo abrir pilha, unidade, equipamento, restrições e reservas sem inventar coordenadas. |
-| `frontend/cloudport/src/api.js` | `obterMapaPatio()`, `listarPosicoesPatio()`, `listarMovimentacoesPatio()`, `listarConteineresPatio()`, `listarRecursosPatio()` | O portal principal expõe somente leituras simples do Yard e não possui contratos para work queues, work instructions, reservas, placement, remanejamento ou reshuffling. | Adicionar métodos para consultas e comandos do Pátio, enviar motivo e identidade operacional quando exigidos e recarregar o estado persistido depois de cada comando. |
-| `frontend/servico-navio-siderurgico/src/Ui20ControlRoom.jsx` e `frontend/cloudport/src/pages/OperationalPages.jsx` | ações do Control Room e módulo Pátio | Parte das operações de Yard existe apenas dentro do Control Room incorporado por `iframe`, enquanto as rotas próprias do Pátio permanecem somente leitura. | Reutilizar contratos e componentes compartilháveis ou expor fluxos equivalentes nas páginas do Pátio, sem duplicar regra e sem manter comportamentos divergentes. |
 
 ### UI60 — arquivos e métodos
 

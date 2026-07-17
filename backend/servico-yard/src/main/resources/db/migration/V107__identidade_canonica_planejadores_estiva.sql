@@ -24,8 +24,11 @@ WHERE plano.navio_granel_id = perfil.id
   AND plano.navio_cadastro_id IS NULL
   AND perfil.navio_cadastro_id IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_plano_estiva_bulk_navio_canonico ON plano_estiva_bulk (navio_cadastro_id);
-CREATE INDEX IF NOT EXISTS idx_plano_estiva_bulk_visita ON plano_estiva_bulk (visita_navio_id);
+CREATE INDEX IF NOT EXISTS idx_plano_estiva_bulk_navio_canonico
+    ON plano_estiva_bulk (navio_cadastro_id);
+
+CREATE INDEX IF NOT EXISTS idx_plano_estiva_bulk_visita
+    ON plano_estiva_bulk (visita_navio_id);
 
 ALTER TABLE estivagem_plan
     ADD COLUMN IF NOT EXISTS navio_cadastro_id BIGINT,
@@ -34,5 +37,8 @@ ALTER TABLE estivagem_plan
     ADD COLUMN IF NOT EXISTS versao_navio_canonico BIGINT,
     ADD COLUMN IF NOT EXISTS versao_visita BIGINT;
 
-CREATE INDEX IF NOT EXISTS idx_estivagem_plan_navio_canonico ON estivagem_plan (navio_cadastro_id);
-CREATE INDEX IF NOT EXISTS idx_estivagem_plan_visita ON estivagem_plan (visita_navio_id);
+CREATE INDEX IF NOT EXISTS idx_estivagem_plan_navio_canonico
+    ON estivagem_plan (navio_cadastro_id);
+
+CREATE INDEX IF NOT EXISTS idx_estivagem_plan_visita
+    ON estivagem_plan (visita_navio_id);

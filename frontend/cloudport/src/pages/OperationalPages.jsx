@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, formatError, getRuntimeConfig, normalizePage, sanitizeText } from '../api.js';
+import { api, formatError, getRuntimeConfig, normalizePage } from '../api.js';
 import { DataTable, EmptyState, JsonDetails, Loading, Message, MetricCard, PageHeader, Section, StatusBadge } from '../components.jsx';
 
 function displayValue(value) {
@@ -143,27 +143,6 @@ export function RailImportPage() {
   </>;
 }
 
-export function YardMapPage() {
-  const remote = useLoader(() => api.obterMapaPatio({}), []);
-  const map = remote.data ?? {};
-  const containers = map.conteineres ?? [];
-  const equipment = map.equipamentos ?? [];
-  return <>
-    <PageHeader eyebrow="Pátio" title="Mapa operacional" description="Ocupação, equipamentos e alertas do pátio." actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
-    <Message type="error">{remote.error}</Message>
-    {remote.loading ? <Loading /> : <>
-      <div className="metrics-grid"><MetricCard label="Contêineres" value={containers.length} /><MetricCard label="Equipamentos" value={equipment.length} /><MetricCard label="Linhas" value={map.totalLinhas ?? '—'} /><MetricCard label="Colunas" value={map.totalColunas ?? '—'} /></div>
-      <Section title="Contêineres no mapa"><DataTable rows={containers} columns={[
-        { key: 'codigo', label: 'Contêiner' }, { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> }, { key: 'linha', label: 'Linha' }, { key: 'coluna', label: 'Coluna' }, { key: 'camadaOperacional', label: 'Camada' }, { key: 'destino', label: 'Destino' }, { key: 'tipoCarga', label: 'Carga' }
-      ]} emptyTitle="Mapa sem contêineres" /></Section>
-      <Section title="Equipamentos"><DataTable rows={equipment} columns={[
-        { key: 'identificador', label: 'Equipamento' }, { key: 'tipoEquipamento', label: 'Tipo' }, { key: 'statusOperacional', label: 'Status', render: (row) => <StatusBadge value={row.statusOperacional} /> }, { key: 'linha', label: 'Linha' }, { key: 'coluna', label: 'Coluna' }
-      ]} emptyTitle="Nenhum equipamento no mapa" /></Section>
-      {!!map.alertas?.length && <Section title="Alertas"><div className="card-list">{map.alertas.map((alert, index) => <article className="content-card" key={`${alert.tipoAlerta}-${index}`}><div className="card-meta"><StatusBadge value={alert.nivelSeveridade} /><span>{alert.tipoAlerta}</span></div><h3>{sanitizeText(alert.mensagem)}</h3><p>{sanitizeText(alert.recomendacao)}</p></article>)}</div></Section>}
-    </>}
-  </>;
-}
-
 export function ShippingPage() {
   const [days, setDays] = useState(30);
   const remote = useLoader(() => api.listarEscalasEmbarque(days), [days]);
@@ -218,14 +197,6 @@ export const DATASET_ROUTES = {
   '/home/gate/operador': { eyebrow: 'Gate', title: 'Console do operador', description: 'Fila operacional e situação dos agendamentos.', loader: () => api.obterCentralGate(), preferredColumns: ['codigo', 'status', 'mensagemOrientacao'] },
   '/home/gate/operador/console': { eyebrow: 'Gate', title: 'Console do operador', description: 'Fila operacional e situação dos agendamentos.', loader: () => api.obterCentralGate(), preferredColumns: ['codigo', 'status', 'mensagemOrientacao'] },
   '/home/gate/operador/eventos': { eyebrow: 'Gate', title: 'Eventos do operador', description: 'Eventos vinculados aos agendamentos.', loader: () => api.obterCentralGate(), preferredColumns: ['codigo', 'status', 'horarioPrevistoChegada'] },
-  '/home/patio/posicoes': { eyebrow: 'Pátio', title: 'Posições', description: 'Posições físicas e ocupação atual.', loader: () => api.listarPosicoesPatio(), preferredColumns: ['id', 'linha', 'coluna', 'camadaOperacional', 'ocupada', 'codigoConteiner'] },
-  '/home/patio/movimentacoes': { eyebrow: 'Pátio', title: 'Movimentações', description: 'Histórico recente de movimentos no pátio.', loader: () => api.listarMovimentacoesPatio(), preferredColumns: ['id', 'codigoConteiner', 'tipoMovimento', 'destino', 'registradoEm'] },
-  '/home/patio/movimentacao': { eyebrow: 'Pátio', title: 'Contêineres', description: 'Contêineres disponíveis para movimentação.', loader: () => api.listarConteineresPatio(), preferredColumns: ['codigo', 'status', 'linha', 'coluna', 'destino'] },
-  '/home/patio/recursos': { eyebrow: 'Pátio', title: 'Recursos', description: 'Recursos e equipamentos disponíveis.', loader: () => api.listarRecursosPatio(), preferredColumns: ['identificador', 'tipo', 'status', 'localizacao'] },
-  '/home/patio/lista-trabalho': { eyebrow: 'Pátio', title: 'Lista de trabalho', description: 'Ordens operacionais disponíveis no pátio.', loader: () => api.listarMovimentacoesPatio(), preferredColumns: ['id', 'codigoConteiner', 'tipoMovimento', 'descricao'] },
-  '/home/patio/dashboard-kpi': { eyebrow: 'Pátio', title: 'Indicadores', description: 'Indicadores operacionais derivados do mapa atual.', loader: () => api.obterMapaPatio({}), preferredColumns: [] },
-  '/home/patio/automacao': { eyebrow: 'Pátio', title: 'Automação', description: 'Situação operacional usada pelo planejador automático.', loader: () => api.obterMapaPatio({}), preferredColumns: [] },
-  '/home/patio/simulador': { eyebrow: 'Pátio', title: 'Simulador', description: 'Dados atuais usados na simulação de movimentos.', loader: () => api.obterMapaPatio({}), preferredColumns: [] },
   '/home/ferrovia/lista-trabalho': { eyebrow: 'Ferrovia', title: 'Lista de trabalho', description: 'Visitas com operações ferroviárias pendentes.', loader: () => api.listarVisitasFerrovia(30), preferredColumns: ['identificadorTrem', 'statusVisita', 'horaChegadaPrevista'] },
   '/home/embarque/steel-coils': { eyebrow: 'Embarque', title: 'Steel coils', description: 'Escalas e planejamento de cargas siderúrgicas.', loader: () => api.listarEscalasEmbarque(30), preferredColumns: ['nomeNavio', 'codigoImo', 'viagemEntrada', 'fase'] }
 };

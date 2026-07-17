@@ -11,10 +11,16 @@ public record VisitaPlanejamentoDTO(
         String viagemSaida,
         String fase,
         Long versao) {
+
     public static VisitaPlanejamentoDTO de(VisitaNavio visita) {
-        return new VisitaPlanejamentoDTO(visita.getId(), visita.getNavio().getId(),
-                visita.getNavio().getNavioCadastroId(), visita.getCodigoVisita(),
-                visita.getViagemEntrada(), visita.getViagemSaida(),
-                visita.getFase() == null ? null : visita.getFase().name(), visita.getVersao());
+        return new VisitaPlanejamentoDTO(
+                visita.getId(),
+                visita.getNavio().getId(),
+                visita.getNavio().getNavioCadastroId(),
+                visita.getCodigoVisita(),
+                visita.getViagemEntrada(),
+                visita.getViagemSaida(),
+                visita.getFase() == null ? null : visita.getFase().name(),
+                visita.getVersao());
     }
 }

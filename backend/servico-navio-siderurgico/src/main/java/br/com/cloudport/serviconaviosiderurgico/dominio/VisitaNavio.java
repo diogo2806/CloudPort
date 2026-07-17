@@ -19,30 +19,88 @@ import javax.persistence.Version;
 @Entity
 @Table(name = "visita_navio")
 public class VisitaNavio {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "navio_id", nullable = false) private NavioSiderurgico navio;
-    @Column(name = "codigo_visita", nullable = false, unique = true, length = 60) private String codigoVisita;
-    @Column(name = "viagem_entrada", length = 40) private String viagemEntrada;
-    @Column(name = "viagem_saida", length = 40) private String viagemSaida;
-    @Column(name = "linha_operadora", length = 80) private String linhaOperadora;
-    @Column(name = "terminal_facility", length = 80) private String terminalFacility;
-    @Column(name = "berco_previsto", length = 40) private String bercoPrevisto;
-    @Column(name = "berco_atual", length = 40) private String bercoAtual;
-    private LocalDateTime eta; private LocalDateTime ata; private LocalDateTime etb; private LocalDateTime atb;
-    @Column(name = "inicio_operacao") private LocalDateTime inicioOperacao;
-    @Column(name = "fim_operacao") private LocalDateTime fimOperacao;
-    private LocalDateTime etd; private LocalDateTime atd;
-    @Column(name = "janela_recebimento_inicio") private LocalDateTime janelaRecebimentoInicio;
-    @Column(name = "janela_recebimento_fim") private LocalDateTime janelaRecebimentoFim;
-    @Column(name = "cutoff_operacional") private LocalDateTime cutoffOperacional;
-    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30) private FaseVisitaNavio fase = FaseVisitaNavio.PREVISTA;
-    @Column(length = 1000) private String observacoes;
-    @Version @Column(name = "versao", nullable = false) private Long versao;
-    @Column(name = "criado_em", nullable = false) private LocalDateTime criadoEm;
-    @Column(name = "atualizado_em", nullable = false) private LocalDateTime atualizadoEm;
-    @PrePersist void prePersist() { LocalDateTime agora = LocalDateTime.now(); criadoEm = agora; atualizadoEm = agora; }
-    @PreUpdate void preUpdate() { atualizadoEm = LocalDateTime.now(); }
+    @JoinColumn(name = "navio_id", nullable = false)
+    private NavioSiderurgico navio;
+
+    @Column(name = "codigo_visita", nullable = false, unique = true, length = 60)
+    private String codigoVisita;
+
+    @Column(name = "viagem_entrada", length = 40)
+    private String viagemEntrada;
+
+    @Column(name = "viagem_saida", length = 40)
+    private String viagemSaida;
+
+    @Column(name = "linha_operadora", length = 80)
+    private String linhaOperadora;
+
+    @Column(name = "terminal_facility", length = 80)
+    private String terminalFacility;
+
+    @Column(name = "berco_previsto", length = 40)
+    private String bercoPrevisto;
+
+    @Column(name = "berco_atual", length = 40)
+    private String bercoAtual;
+
+    private LocalDateTime eta;
+    private LocalDateTime ata;
+    private LocalDateTime etb;
+    private LocalDateTime atb;
+
+    @Column(name = "inicio_operacao")
+    private LocalDateTime inicioOperacao;
+
+    @Column(name = "fim_operacao")
+    private LocalDateTime fimOperacao;
+
+    private LocalDateTime etd;
+    private LocalDateTime atd;
+
+    @Column(name = "janela_recebimento_inicio")
+    private LocalDateTime janelaRecebimentoInicio;
+
+    @Column(name = "janela_recebimento_fim")
+    private LocalDateTime janelaRecebimentoFim;
+
+    @Column(name = "cutoff_operacional")
+    private LocalDateTime cutoffOperacional;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private FaseVisitaNavio fase = FaseVisitaNavio.PREVISTA;
+
+    @Column(length = 1000)
+    private String observacoes;
+
+    @Version
+    @Column(name = "versao", nullable = false)
+    private Long versao;
+
+    @Column(name = "criado_em", nullable = false)
+    private LocalDateTime criadoEm;
+
+    @Column(name = "atualizado_em", nullable = false)
+    private LocalDateTime atualizadoEm;
+
+    @PrePersist
+    void prePersist() {
+        LocalDateTime agora = LocalDateTime.now();
+        criadoEm = agora;
+        atualizadoEm = agora;
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        atualizadoEm = LocalDateTime.now();
+    }
+
     public Long getId() { return id; }
     public NavioSiderurgico getNavio() { return navio; }
     public void setNavio(NavioSiderurgico navio) { this.navio = navio; }
@@ -77,11 +135,11 @@ public class VisitaNavio {
     public LocalDateTime getAtd() { return atd; }
     public void setAtd(LocalDateTime atd) { this.atd = atd; }
     public LocalDateTime getJanelaRecebimentoInicio() { return janelaRecebimentoInicio; }
-    public void setJanelaRecebimentoInicio(LocalDateTime valor) { this.janelaRecebimentoInicio = valor; }
+    public void setJanelaRecebimentoInicio(LocalDateTime janelaRecebimentoInicio) { this.janelaRecebimentoInicio = janelaRecebimentoInicio; }
     public LocalDateTime getJanelaRecebimentoFim() { return janelaRecebimentoFim; }
-    public void setJanelaRecebimentoFim(LocalDateTime valor) { this.janelaRecebimentoFim = valor; }
+    public void setJanelaRecebimentoFim(LocalDateTime janelaRecebimentoFim) { this.janelaRecebimentoFim = janelaRecebimentoFim; }
     public LocalDateTime getCutoffOperacional() { return cutoffOperacional; }
-    public void setCutoffOperacional(LocalDateTime valor) { this.cutoffOperacional = valor; }
+    public void setCutoffOperacional(LocalDateTime cutoffOperacional) { this.cutoffOperacional = cutoffOperacional; }
     public FaseVisitaNavio getFase() { return fase; }
     public void setFase(FaseVisitaNavio fase) { this.fase = fase; }
     public String getObservacoes() { return observacoes; }

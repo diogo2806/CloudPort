@@ -12,4 +12,6 @@ public interface ConteinerPatioRepositorio extends JpaRepository<ConteinerPatio,
     Optional<ConteinerPatio> findByCodigoIgnoreCase(String codigo);
 
     List<ConteinerPatio> findAllByOrderByPosicaoLinhaAscPosicaoColunaAsc();
+
+    List<ConteinerPatio> findByPosicaoLinhaAndPosicaoColuna(Integer linha, Integer coluna);
 }

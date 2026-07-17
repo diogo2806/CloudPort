@@ -1,124 +1,137 @@
 package br.com.cloudport.servicoyard.patio.otimizacao;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
-import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
-import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
+import br.com.cloudport.servicoyard.container.entidade.TipoCargaConteiner;
+import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRequisicaoDto;
+import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OrdemTrabalhoPatioServico;
 import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
 import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
 import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.repositorio.PosicaoPatioRepositorio;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-public class PredictiveReshuffflingServicoTest {
+@ExtendWith(MockitoExtension.class)
+class PredictiveReshuffflingServicoTest {
 
     @Mock
     private ConteinerPatioRepositorio conteinerRepositorio;
 
     @Mock
-    private OrdemTrabalhoPatioRepositorio ordemRepositorio;
+    private PosicaoPatioRepositorio posicaoRepositorio;
+
+    @Mock
+    private OrdemTrabalhoPatioServico ordemServico;
 
     @Mock
     private MapaOcupacaoServico mapaOcupacao;
 
-    @InjectMocks
-    private PredictiveReshuffflingServico predictiveReshuffling;
+    private PredictiveReshuffflingServico servico;
+    private ConteinerPatio conteinerBase;
+    private ConteinerPatio bloqueador;
+    private PosicaoPatio destino;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        servico = new PredictiveReshuffflingServico(
+                conteinerRepositorio,
+                posicaoRepositorio,
+                ordemServico,
+                mapaOcupacao);
+        conteinerBase = conteiner(
+                1L, "BASE001", new PosicaoPatio(10L, 1, 1, "CAMADA_1"), LocalDateTime.now().minusHours(48));
+        bloqueador = conteiner(
+                2L, "TOPO001", new PosicaoPatio(11L, 1, 1, "CAMADA_2"), LocalDateTime.now().minusHours(1));
+        destino = new PosicaoPatio(20L, 2, 2, "CAMADA_1");
     }
 
     @Test
-    void testAnalisarNecessidadeReshuffflingComBaixaOcupacao() {
-        when(mapaOcupacao.obterNivelOcupacao())
-                .thenReturn(MapaOcupacaoServico.NivelOcupacaoEnum.BAIXA);
+    void deveIdentificarOConteinerDaCamadaSuperiorComoBloqueador() {
+        when(mapaOcupacao.obterNivelOcupacao()).thenReturn(MapaOcupacaoServico.NivelOcupacaoEnum.BAIXA);
+        when(conteinerRepositorio.findAll()).thenReturn(List.of(conteinerBase, bloqueador));
+        when(posicaoRepositorio.findAllByOrderByLinhaAscColunaAscCamadaOperacionalAsc())
+                .thenReturn(List.of(conteinerBase.getPosicao(), bloqueador.getPosicao(), destino));
 
-        List<ConteinerPatio> conteineres = criarConteinersTest();
-        when(conteinerRepositorio.findAll()).thenReturn(conteineres);
-        when(ordemRepositorio.findAll()).thenReturn(criarOrdensSobreConteineres(conteineres));
+        PredictiveReshuffflingServico.PlanoReshuffflingDto plano = servico.analisarNecessidadeReshuffling();
 
-        var plano = predictiveReshuffling.analisarNecessidadeReshuffling();
-
-        assertNotNull(plano);
-        assertFalse(plano.getConteinersParaReshuffling().isEmpty());
+        assertThat(plano.isRecomendado()).isTrue();
+        assertThat(plano.getConteinersParaReshuffling()).hasSize(1);
+        PredictiveReshuffflingServico.ConteinerParaReshuffflingDto candidato =
+                plano.getConteinersParaReshuffling().get(0);
+        assertThat(candidato.getCodigoConteiner()).isEqualTo("TOPO001");
+        assertThat(candidato.getNovaPosicao().getPosicaoId()).isEqualTo(20L);
+        assertThat(candidato.getChaveIdempotencia()).isEqualTo("RESHUFFLING:TOPO001:POSICAO:11");
     }
 
     @Test
-    void testAnalisarNecessidadeReshuffflingComAltaOcupacao() {
-        when(mapaOcupacao.obterNivelOcupacao())
-                .thenReturn(MapaOcupacaoServico.NivelOcupacaoEnum.ALTA);
+    void deveIgnorarPosicaoComReservaAtiva() {
+        PosicaoPatio destinoReservado = new PosicaoPatio(19L, 1, 2, "CAMADA_1");
+        destinoReservado.reservar("OUTRA", "OUTRO001", LocalDateTime.now().plusHours(1));
+        when(posicaoRepositorio.findAllByOrderByLinhaAscColunaAscCamadaOperacionalAsc())
+                .thenReturn(List.of(destinoReservado, destino));
 
-        var plano = predictiveReshuffling.analisarNecessidadeReshuffling();
+        List<PredictiveReshuffflingServico.ConteinerParaReshuffflingDto> candidatos =
+                servico.identificarCandidatos(List.of(conteinerBase, bloqueador));
 
-        assertNotNull(plano);
-        assertFalse(plano.isRecomendado());
+        assertThat(candidatos).hasSize(1);
+        assertThat(candidatos.get(0).getNovaPosicao().getPosicaoId()).isEqualTo(20L);
     }
 
     @Test
-    void testIdentificarCandidatosReshufffling() {
-        List<ConteinerPatio> conteineres = criarConteinersTest();
-        when(conteinerRepositorio.findAll()).thenReturn(conteineres);
-        when(ordemRepositorio.findAll()).thenReturn(criarOrdensSobreConteineres(conteineres));
+    void deveCriarOrdemComDestinoRealEChaveIdempotente() {
+        PredictiveReshuffflingServico.NovaPosicaoReshuffflingDto novaPosicao =
+                new PredictiveReshuffflingServico.NovaPosicaoReshuffflingDto(20L, 2, 2, "CAMADA_1");
+        PredictiveReshuffflingServico.ConteinerParaReshuffflingDto candidato =
+                new PredictiveReshuffflingServico.ConteinerParaReshuffflingDto(
+                        "TOPO001",
+                        1,
+                        1,
+                        "CAMADA_2",
+                        "BLOQUEANDO_BASE001",
+                        novaPosicao,
+                        "RESHUFFLING:TOPO001:POSICAO:11");
+        when(conteinerRepositorio.findByCodigoIgnoreCase("TOPO001")).thenReturn(Optional.of(bloqueador));
+        when(conteinerRepositorio.findAll()).thenReturn(List.of(conteinerBase, bloqueador));
+        when(posicaoRepositorio.findAllByOrderByLinhaAscColunaAscCamadaOperacionalAsc())
+                .thenReturn(List.of(destino));
 
-        var candidatos = predictiveReshuffling.identificarCandidatos(conteineres);
+        servico.executarReshuffflingConteiner(candidato);
 
-        assertNotNull(candidatos);
-        assertTrue(candidatos.size() > 0);
+        ArgumentCaptor<OrdemTrabalhoPatioRequisicaoDto> captor =
+                ArgumentCaptor.forClass(OrdemTrabalhoPatioRequisicaoDto.class);
+        verify(ordemServico).registrarOuReutilizarRemanejamento(captor.capture());
+        OrdemTrabalhoPatioRequisicaoDto requisicao = captor.getValue();
+        assertThat(requisicao.getTipoMovimento()).isEqualTo(TipoMovimentoPatio.REMANEJAMENTO);
+        assertThat(requisicao.getLinhaDestino()).isEqualTo(2);
+        assertThat(requisicao.getColunaDestino()).isEqualTo(2);
+        assertThat(requisicao.getCamadaDestino()).isEqualTo("CAMADA_1");
+        assertThat(requisicao.getChaveIdempotencia()).isEqualTo("RESHUFFLING:TOPO001:POSICAO:11");
     }
 
-    private List<ConteinerPatio> criarConteinersTest() {
-        List<ConteinerPatio> conteineres = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            PosicaoPatio pos = new PosicaoPatio((long) i, i * 5, i * 5, "CAMADA_1");
-            ConteinerPatio c = new ConteinerPatio();
-            c.setId((long) i);
-            c.setCodigo("CONT00" + i);
-            c.setStatus(StatusConteiner.ARMAZENADO);
-            c.setDestino("DESTINO_A");
-            c.setPosicao(pos);
-            c.setAtualizadoEm(LocalDateTime.now().minusHours(48));
-            conteineres.add(c);
-        }
-        return conteineres;
-    }
-
-    private List<OrdemTrabalhoPatio> criarOrdensSobreConteineres(List<ConteinerPatio> conteineres) {
-        List<OrdemTrabalhoPatio> ordens = new ArrayList<>();
-        for (ConteinerPatio base : conteineres) {
-            ConteinerPatio conteinerEmCima = new ConteinerPatio();
-            conteinerEmCima.setId(base.getId() + 100);
-            conteinerEmCima.setCodigo("TOP_" + base.getCodigo());
-            conteinerEmCima.setStatus(StatusConteiner.ARMAZENADO);
-            conteinerEmCima.setDestino("DESTINO_B");
-            conteinerEmCima.setPosicao(base.getPosicao());
-
-            LocalDateTime agora = LocalDateTime.now();
-            OrdemTrabalhoPatio ordem = new OrdemTrabalhoPatio(
-                    conteinerEmCima, "TOP_" + base.getCodigo(), "SECO", "DESTINO_B",
-                    base.getPosicao().getLinha() + 5,
-                    base.getPosicao().getColuna() + 5,
-                    "CAMADA_1",
-                    TipoMovimentoPatio.REMANEJAMENTO,
-                    StatusOrdemTrabalhoPatio.PENDENTE,
-                    StatusConteiner.ARMAZENADO,
-                    agora.minusHours(1),
-                    agora.minusHours(1)
-            );
-            ordens.add(ordem);
-        }
-        return ordens;
+    private ConteinerPatio conteiner(Long id,
+                                      String codigo,
+                                      PosicaoPatio posicao,
+                                      LocalDateTime atualizadoEm) {
+        ConteinerPatio conteiner = new ConteinerPatio();
+        conteiner.setId(id);
+        conteiner.setCodigo(codigo);
+        conteiner.setStatus(StatusConteiner.ARMAZENADO);
+        conteiner.setTipoCarga(TipoCargaConteiner.SECO);
+        conteiner.setDestino("BERCO_A");
+        conteiner.setPosicao(posicao);
+        conteiner.setAtualizadoEm(atualizadoEm);
+        return conteiner;
     }
 }

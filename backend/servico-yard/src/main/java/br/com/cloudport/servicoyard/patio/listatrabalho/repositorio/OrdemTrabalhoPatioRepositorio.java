@@ -24,10 +24,18 @@ public interface OrdemTrabalhoPatioRepositorio extends JpaRepository<OrdemTrabal
             List<StatusOrdemTrabalhoPatio> status);
 
     boolean existsByCodigoConteinerIgnoreCaseAndStatusOrdemIn(String codigoConteiner,
-                                                                List<StatusOrdemTrabalhoPatio> status);
+                                                               List<StatusOrdemTrabalhoPatio> status);
 
     boolean existsByItemOperacaoNavioIdAndStatusOrdemIn(Long itemOperacaoNavioId,
-                                                          List<StatusOrdemTrabalhoPatio> status);
+                                                         List<StatusOrdemTrabalhoPatio> status);
+
+    boolean existsByLinhaDestinoAndColunaDestinoAndCamadaDestinoIgnoreCaseAndStatusOrdemIn(
+            Integer linhaDestino,
+            Integer colunaDestino,
+            String camadaDestino,
+            List<StatusOrdemTrabalhoPatio> status);
+
+    Optional<OrdemTrabalhoPatio> findByChaveIdempotencia(String chaveIdempotencia);
 
     Optional<OrdemTrabalhoPatio> findFirstByVisitaNavioIdAndItemOperacaoNavioIdAndStatusOrdemInOrderByCriadoEmAsc(
             Long visitaNavioId,

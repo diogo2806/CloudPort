@@ -64,6 +64,24 @@ test('atualiza o status da ordem ferroviária com contexto operacional', async (
   assert.ok(body.correlationId);
 });
 
+test('registra a partida pelo contrato ferroviário dedicado', async () => {
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (url === '/assets/configuracao.json') {
+      return new Response(JSON.stringify({ baseApiUrl: 'http://localhost:8080' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ id: 17, statusVisita: 'PARTIU' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  await loadRuntimeConfig();
+
+  await railApi.registrarPartida(17);
+
+  const sent = calls.at(-1);
+  assert.equal(sent.url, 'http://localhost:8080/rail/ferrovia/visitas/17/partida');
+  assert.equal(sent.options.method, 'PATCH');
+});
+
 test('expõe somente as transições aceitas pelo domínio ferroviário', () => {
   assert.deepEqual(railOrderTransitions('PENDENTE'), ['EM_EXECUCAO', 'CONCLUIDA']);
   assert.deepEqual(railOrderTransitions('EM_EXECUCAO'), ['CONCLUIDA']);
@@ -73,4 +91,5 @@ test('expõe somente as transições aceitas pelo domínio ferroviário', () => 
 test('rejeita identificadores e status inválidos antes da requisição', () => {
   assert.throws(() => railApi.listarOrdens(0), /inteiro positivo/i);
   assert.throws(() => railApi.atualizarStatusOrdem(1, 2, 'CANCELADA'), /status ferroviário inválido/i);
+  assert.throws(() => railApi.registrarPartida(0), /inteiro positivo/i);
 });

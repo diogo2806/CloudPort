@@ -4,6 +4,7 @@ import { Message } from './components.jsx';
 import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
+import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 import { VesselLineUpPage } from './pages/VesselLineUpPage.jsx';
 import {
@@ -21,6 +22,7 @@ import {
   YardMapPage,
   YardMovementsPage,
   YardPositionsPage,
+  YardReceivingPlanPage,
   YardResourcesPage,
   YardWorkListPage
 } from './pages/YardPages.jsx';
@@ -38,7 +40,7 @@ const FALLBACK_NAVIGATION = [
     { label: 'Agendamentos', path: '/home/gate/agendamentos', roles: [] },
     { label: 'Janelas', path: '/home/gate/janelas', roles: [] },
     { label: 'Central de ação', path: '/home/gate/dashboard', roles: [] },
-    { label: 'Console do operador', path: '/home/gate/operador/console', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
+    { label: 'Saída direta do navio', path: '/home/gate/operador/console', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
     { label: 'Relatórios', path: '/home/gate/relatorios', roles: [] }
   ] },
   { group: 'Ferrovia', items: [
@@ -48,6 +50,7 @@ const FALLBACK_NAVIGATION = [
   ] },
   { group: 'Pátio', items: [
     { label: 'Mapa', path: '/home/patio/mapa', roles: [] },
+    { label: 'Planejamento de recebimento', path: '/home/patio/planejamento-recebimento', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Lista de trabalho', path: '/home/patio/lista-trabalho', roles: [] },
     { label: 'Posições', path: '/home/patio/posicoes', roles: [] },
     { label: 'Movimentações', path: '/home/patio/movimentacoes', roles: [] },
@@ -136,9 +139,11 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
   if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
   if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;
+  if (path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDirectVesselReleasePage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
   if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage navigate={navigate} />;
+  if (path === '/home/patio/planejamento-recebimento') return <YardReceivingPlanPage navigate={navigate} />;
   if (path === '/home/patio/posicoes') return <YardPositionsPage navigate={navigate} />;
   if (path === '/home/patio/lista-trabalho') return <YardWorkListPage navigate={navigate} session={session} />;
   if (path === '/home/patio/movimentacoes' || path === '/home/patio/movimentacao') return <YardMovementsPage navigate={navigate} />;

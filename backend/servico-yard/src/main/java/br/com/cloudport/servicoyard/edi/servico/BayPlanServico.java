@@ -38,9 +38,9 @@ public class BayPlanServico {
         if (existente.isPresent()) {
             bayPlan = existente.get();
             bayPlan.getContainers().clear();
-            bayPlanParsed.getContainers().forEach(c -> {
-                c.setBayPlan(bayPlan);
-                bayPlan.getContainers().add(c);
+            bayPlanParsed.getContainers().forEach(container -> {
+                container.setBayPlan(bayPlan);
+                bayPlan.getContainers().add(container);
             });
             bayPlan.setNomeNavio(bayPlanParsed.getNomeNavio());
             bayPlan.setPortoCarga(bayPlanParsed.getPortoCarga());
@@ -66,15 +66,15 @@ public class BayPlanServico {
 
         for (BayPlanContainer novo : containersParsed) {
             Optional<BayPlanContainer> existente = bayPlan.getContainers().stream()
-                    .filter(c -> c.getCodigoContainer().equalsIgnoreCase(novo.getCodigoContainer()))
+                    .filter(container -> container.getCodigoContainer().equalsIgnoreCase(novo.getCodigoContainer()))
                     .findFirst();
             if (existente.isPresent()) {
-                BayPlanContainer c = existente.get();
-                c.setPosicaoBay(novo.getPosicaoBay());
-                c.setTipoOperacao(novo.getTipoOperacao());
-                c.setPortoDescarga(novo.getPortoDescarga());
+                BayPlanContainer container = existente.get();
+                container.setPosicaoBay(novo.getPosicaoBay());
+                container.setTipoOperacao(novo.getTipoOperacao());
+                container.setPortoDescarga(novo.getPortoDescarga());
                 if (novo.getPesoKg() != null) {
-                    c.setPesoKg(novo.getPesoKg());
+                    container.setPesoKg(novo.getPesoKg());
                 }
                 atualizados.add(novo.getCodigoContainer());
             } else {
@@ -102,14 +102,15 @@ public class BayPlanServico {
 
         for (BayPlanContainer confirmacao : containersParsed) {
             bayPlan.getContainers().stream()
-                    .filter(c -> c.getCodigoContainer().equalsIgnoreCase(confirmacao.getCodigoContainer()))
+                    .filter(container -> container.getCodigoContainer()
+                            .equalsIgnoreCase(confirmacao.getCodigoContainer()))
                     .findFirst()
-                    .ifPresent(c -> {
-                        c.setStatusOperacao("CONCLUIDO");
+                    .ifPresent(container -> {
+                        container.setStatusOperacao("CONCLUIDO");
                         if (confirmacao.getHorarioOperacao() != null) {
-                            c.setHorarioOperacao(confirmacao.getHorarioOperacao());
+                            container.setHorarioOperacao(confirmacao.getHorarioOperacao());
                         }
-                        confirmados.add(c.getCodigoContainer());
+                        confirmados.add(container.getCodigoContainer());
                     });
         }
         if (confirmados.isEmpty()) {
@@ -117,7 +118,7 @@ public class BayPlanServico {
         }
 
         long pendentes = bayPlan.getContainers().stream()
-                .filter(c -> !"CONCLUIDO".equals(c.getStatusOperacao()))
+                .filter(container -> !"CONCLUIDO".equals(container.getStatusOperacao()))
                 .count();
         bayPlan.setStatus(pendentes == 0 ? StatusBayPlan.CONCLUIDO : StatusBayPlan.EM_OPERACAO);
         bayPlan.setOrigemMensagem("COARRI");
@@ -137,10 +138,13 @@ public class BayPlanServico {
 
         for (PesoVgm peso : pesos) {
             Optional<BayPlanContainer> container = bayPlan.getContainers().stream()
-                    .filter(c -> c.getCodigoContainer().equalsIgnoreCase(peso.codigoContainer()))
+                    .filter(item -> item.getCodigoContainer().equalsIgnoreCase(peso.codigoContainer()))
                     .findFirst();
             if (container.isPresent()) {
-                container.get().setPesoKg(peso.pesoKg());
+                container.get().setPesoVgmKg(peso.pesoKg());
+                container.get().setUnidadeVgmOriginal("KGM");
+                container.get().setOrigemVgm("VERMAS");
+                container.get().setStatusVgm("VERIFICADO");
                 atualizados.add(container.get().getCodigoContainer());
             } else {
                 naoEncontrados.add(peso.codigoContainer());
@@ -149,8 +153,7 @@ public class BayPlanServico {
         if (atualizados.isEmpty()) {
             throw new IllegalArgumentException(
                     "VERMAS: nenhum container corresponde ao Bay Plan. Containers recebidos: "
-                            + String.join(", ", naoEncontrados) + "."
-            );
+                            + String.join(", ", naoEncontrados) + ".");
         }
         bayPlan.setOrigemMensagem("VERMAS");
         if (bayPlan.getStatus() == StatusBayPlan.RASCUNHO || bayPlan.getStatus() == StatusBayPlan.ATIVO) {
@@ -208,7 +211,6 @@ public class BayPlanServico {
                 .findTopByCodigoNavioAndCodigoViagemOrderByAtualizadoEmDesc(codigoNavio, codigoViagem)
                 .orElseThrow(() -> new IllegalArgumentException(
                         tipoMensagem + ": Bay Plan nao encontrado para navio " + codigoNavio
-                                + " e viagem " + codigoViagem + "."
-                ));
+                                + " e viagem " + codigoViagem + "."));
     }
 }

@@ -8,8 +8,7 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(
         prefix = "cloudport.runtime",
         name = "jobs-enabled",
-        havingValue = "true",
-        matchIfMissing = true)
+        havingValue = "true")
 public class VisibilidadeDashboardJob {
 
     private final VisibilidadeDashboardService visibilidadeDashboardService;

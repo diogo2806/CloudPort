@@ -20,6 +20,11 @@ function entityKey(entity, index = 0) {
   return String(entity?.id ?? entity?.visitaId ?? entity?.escalaId ?? entity?.codigo ?? entity?.codigoImo ?? index);
 }
 
+function scaleIdentifier(scale) {
+  const identifier = Number(scale?.id ?? scale?.visitaId ?? scale?.escalaId);
+  return Number.isInteger(identifier) && identifier > 0 ? identifier : null;
+}
+
 function scaleLabel(scale) {
   const vessel = scale?.nomeNavio ?? scale?.navioNome ?? scale?.codigoNavio ?? 'Navio sem identificação';
   const voyage = scale?.viagemEntrada ?? scale?.codigoViagem ?? scale?.viagem ?? 'viagem não informada';
@@ -175,6 +180,7 @@ export function ContainerVesselPlannerPage({ session }) {
   const planLocked = ['APROVADO', 'VALIDADO', 'FINALIZADO', 'CONCLUIDO'].includes(String(plan?.status ?? '').toUpperCase());
 
   const selectedScale = useMemo(() => scaleRows.find((row, index) => entityKey(row, index) === selectedScaleKey) ?? null, [scaleRows, selectedScaleKey]);
+  const selectedScaleId = useMemo(() => scaleIdentifier(selectedScale), [selectedScale]);
 
   useEffect(() => {
     if (!selectedScaleKey && scaleRows.length) setSelectedScaleKey(entityKey(scaleRows[0], 0));
@@ -283,8 +289,8 @@ export function ContainerVesselPlannerPage({ session }) {
   }
 
   async function createPlan() {
-    if (!canCommand || !bayPlan?.id) return;
-    const created = await run('create-plan', () => api.criarPlanoVesselPlanner(bayPlan.id), 'Plano criado e persistido.');
+    if (!canCommand || !bayPlan?.id || !selectedScaleId) return;
+    const created = await run('create-plan', () => api.criarPlanoVesselPlanner(bayPlan.id, selectedScaleId), 'Plano criado e vinculado à escala selecionada.');
     if (created) {
       setPlan(created);
       setPlanIdToOpen(String(created.id));
@@ -387,7 +393,7 @@ export function ContainerVesselPlannerPage({ session }) {
       <div className="planner-selection-grid">
         <label className="field"><span>Escala</span><select value={selectedScaleKey} onChange={(event) => setSelectedScaleKey(event.target.value)} disabled={scales.loading}><option value="">Selecione</option>{scaleRows.map((scale, index) => <option key={entityKey(scale, index)} value={entityKey(scale, index)}>{scaleLabel(scale)}</option>)}</select></label>
         <label className="field"><span>Bay Plan ativo</span><select value={selectedBayPlanId} onChange={(event) => setSelectedBayPlanId(event.target.value)} disabled={bayPlans.loading}><option value="">Selecione</option>{bayPlanRows.map((item) => <option key={item.id} value={item.id}>#{item.id} · {item.nomeNavio || item.codigoNavio} · {item.codigoViagem} · {item.status}</option>)}</select></label>
-        <div className="field"><span>Novo plano</span><button type="button" onClick={createPlan} disabled={!canCommand || !bayPlan?.id || Boolean(busy)}>{busy === 'create-plan' ? 'Criando...' : 'Criar a partir do Bay Plan'}</button></div>
+        <div className="field"><span>Novo plano</span><button type="button" onClick={createPlan} disabled={!canCommand || !bayPlan?.id || !selectedScaleId || Boolean(busy)}>{busy === 'create-plan' ? 'Criando...' : 'Criar a partir do Bay Plan'}</button></div>
         <form className="inline-form" onSubmit={openPlan}><label className="field"><span>Abrir plano por ID</span><input type="number" min="1" value={planIdToOpen} onChange={(event) => setPlanIdToOpen(event.target.value)} placeholder="Ex.: 42" /></label><button disabled={!planIdToOpen || Boolean(busy)}>{busy === 'open-plan' ? 'Abrindo...' : 'Abrir plano'}</button></form>
       </div>
       <JsonDetails value={selectedScale} title="Detalhes da escala selecionada" />

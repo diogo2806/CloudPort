@@ -488,10 +488,10 @@ GET   /api/v1/visibilidade/conteiners/buscar
 
 1. Remover `@Scheduled` de `VisibilidadeDashboardService`, preservando `publicarDashboard()` e `detectarAlertasAutomaticos()` para chamadas explícitas.
 2. Criar `VisibilidadeDashboardJob` como único componente responsável pelos agendamentos periódicos de publicação e detecção automática.
-3. Condicionar o job à propriedade canônica `cloudport.runtime.jobs-enabled=true`, com `matchIfMissing=true` para preservar a execução standalone padrão.
+3. Condicionar o job à propriedade canônica `cloudport.runtime.jobs-enabled=true` e falhar fechado quando a propriedade estiver ausente.
 4. Usar `visibilidade.dashboard.refresh-ms` para a publicação e `visibilidade.alertas.refresh-ms` para a detecção automática.
-5. Cobrir criação condicional, delegação ao serviço e concentração das anotações de agendamento por testes unitários.
-6. Retirar ASYNC40 das pendências técnicas após registrar a implementação neste arquivo.
+5. Cobrir habilitação explícita, desabilitação e ausência da propriedade por testes de contexto, além da delegação ao serviço.
+6. Manter a execução standalone somente quando `CLOUDPORT_JOBS_ENABLED=true` for configurada explicitamente pela implantação.
 
 ## INT20 — atributos operacionais e de segurança do BAPLIE implementados
 
@@ -517,3 +517,19 @@ GET   /api/v1/visibilidade/conteiners/buscar
 7. Persistir versões de entrada, memória de cálculo, resultados e instante da aprovação.
 8. Invalidar a aprovação anterior sempre que o plano ou a distribuição de carga for alterado.
 9. Cobrir cálculo operacional, dados incompletos e GM insuficiente por testes unitários.
+
+## UI60 — criação do Vessel Planner vinculada à escala implementada
+
+1. Resolver o identificador canônico da escala selecionada por `id`, `visitaId` ou `escalaId`.
+2. Bloquear a criação quando a escala não possuir identificador válido.
+3. Enviar `bayPlanId` e `visitaNavioId` no `POST /api/vessel-planner/planos`.
+4. Validar os dois identificadores no cliente antes de enviar a requisição.
+5. Cobrir o corpo do contrato e a rejeição de criação sem visita por testes do frontend.
+
+## ASYNC80 — jobs do Navio Siderúrgico fail-closed implementados
+
+1. Condicionar `ExpiracaoReservaPatioJob`, `ReconciliacaoNavioPatioJob` e `SincronizacaoCadastroCanonicoJob` a `cloudport.runtime.jobs-enabled=true`.
+2. Remover `matchIfMissing=true` para impedir execução implícita em standalone, coexistência e rollback.
+3. Preservar o bloqueio distribuído por `ExecucaoUnicaServico` como proteção adicional contra execução concorrente.
+4. Cobrir propriedade ausente, valor `false` e habilitação explícita por teste de contexto.
+5. Manter o runtime canônico e a implantação standalone responsáveis por configurar explicitamente `CLOUDPORT_JOBS_ENABLED=true` quando forem os executores autorizados.

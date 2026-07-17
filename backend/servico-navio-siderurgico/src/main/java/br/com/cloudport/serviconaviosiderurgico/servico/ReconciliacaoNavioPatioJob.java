@@ -15,8 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @ConditionalOnProperty(
         name = "cloudport.runtime.jobs-enabled",
-        havingValue = "true",
-        matchIfMissing = true)
+        havingValue = "true")
 public class ReconciliacaoNavioPatioJob {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReconciliacaoNavioPatioJob.class);

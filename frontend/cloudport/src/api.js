@@ -285,6 +285,14 @@ function optionalVisitQuery(visitaNavioId) {
     : { visitaNavioId };
 }
 
+function requiredIdentifier(value, label) {
+  const identifier = Number(value);
+  if (!Number.isInteger(identifier) || identifier <= 0) {
+    throw new Error(`${label} é obrigatório.`);
+  }
+  return identifier;
+}
+
 export const api = {
   autenticar: (login, senha) => request('/auth/login', { method: 'POST', body: { login: sanitizeText(login), senha }, public: true }),
   listarAbas: () => request('/api/navegacao/abas'),
@@ -354,7 +362,13 @@ export const api = {
   listarBayPlansAtivos: () => request('/api/edi/bay-plan/ativos'),
   listarBayPlansPorNavio: (codigoNavio) => request(`/api/edi/bay-plan/navio/${encodeURIComponent(codigoNavio)}`),
   obterBayPlan: (id) => request(`/api/edi/bay-plan/${id}`),
-  criarPlanoVesselPlanner: (bayPlanId) => request('/api/vessel-planner/planos', { method: 'POST', body: { bayPlanId } }),
+  criarPlanoVesselPlanner: (bayPlanId, visitaNavioId) => request('/api/vessel-planner/planos', {
+    method: 'POST',
+    body: {
+      bayPlanId: requiredIdentifier(bayPlanId, 'Bay Plan'),
+      visitaNavioId: requiredIdentifier(visitaNavioId, 'Visita de navio')
+    }
+  }),
   obterPlanoVesselPlanner: (id) => request(`/api/vessel-planner/planos/${id}`),
   alocarContainerNoPlano: (id, body) => request(`/api/vessel-planner/planos/${id}/slots/alocar`, { method: 'POST', body }),
   autoEstivarPlano: (id) => request(`/api/vessel-planner/planos/${id}/auto-estivagem`, { method: 'POST' }),
@@ -364,7 +378,7 @@ export const api = {
   validarPlanoVesselPlanner: (id) => request(`/api/vessel-planner/planos/${id}/validar`, { method: 'POST' }),
   listarNaviosEstivagemBulk: () => request('/api/estivagem-bulk/navios'),
   listarTemplatesEstivagemBulk: () => request('/api/estivagem-bulk/navios/templates'),
-  listarPlanosEstivagemBulk: (navioId, codigoViagem) => request('/api/estivagem-bulk/planos', { query: { navioId, codigoViagem } }),
+  listarPlanosEstivagemBulk: (navioId, visitaNavioId) => request('/api/estivagem-bulk/planos', { query: { navioId, visitaNavioId } }),
   criarPlanoEstivagemBulk: (dados) => request('/api/estivagem-bulk/planos', { method: 'POST', body: dados }),
   buscarPlanoEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}`),
   adicionarBobinaEstivagemBulk: (planoId, bobina) => request(`/api/estivagem-bulk/planos/${planoId}/bobinas`, { method: 'POST', body: bobina }),
@@ -372,7 +386,7 @@ export const api = {
   analisarTanktopEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/tanktop`),
   analisarEmpilhamentoEstivagemBulk: (planoId, poraoId) => request(`/api/estivagem-bulk/planos/${planoId}/empilhamento/${poraoId}`),
   calcularEstabilidadeEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/estabilidade`),
-  calcularSecuringEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/tacktop`, { method: 'POST' }),
+  calcularSecuringEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/tacktop`),
   validarPlanoEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/validar`, { method: 'POST' }),
   obterRelatorioEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/relatorio`),
   obterDashboardVisibilidade: () => request('/api/v1/visibilidade/dashboard')

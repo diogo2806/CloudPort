@@ -61,6 +61,7 @@ public class ConfiguracaoSeguranca {
                 .authorizeRequests(authorize -> authorize
                         .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
+                        .antMatchers(HttpMethod.GET, "/public/line-up-navios").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

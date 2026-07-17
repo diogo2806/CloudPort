@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `ASYNC70`.
+Status: atualizado em 2026-07-17 após auditoria da branch main.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -71,3 +71,17 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `frontend/cloudport/src/pages/OperationalPages.jsx` | `GenericDatasetPage()` e `DATASET_ROUTES` do Gate | As rotas usam `api.obterCentralGate()` como se a resposta inteira fosse uma lista paginada. `normalizePage()` não reconhece o campo `agendamentos`, produz zero linhas e a tela mostra estado vazio mesmo com registros retornados. | Fornecer ao componente somente `response.agendamentos` ou adicionar um seletor explícito por rota; não converter o objeto consolidado inteiro em lista. |
 | `frontend/cloudport/src/api.js` | `obterCentralGate()` | O método retorna corretamente o objeto consolidado da API, sem normalização para as telas genéricas. | Manter o objeto para o dashboard e criar um método ou adaptador específico que retorne `agendamentos` para as rotas tabulares. |
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/cidadao/centralacao/dto/CentralAcaoAgendamentoRespostaDTO.java` | campo `agendamentos` | O backend publica a coleção em uma propriedade própria, ao lado de `usuario` e `situacaoPatio`. | Preservar o contrato e fazer as telas consumirem a propriedade correta. |
+
+## 5. Processamento assíncrono e jobs
+
+| ID | Tarefa técnica | Critério de conclusão | Status |
+|---|---|---|---|
+| ASYNC80 | Desabilitar por padrão os jobs do Navio Siderúrgico quando a flag canônica não estiver configurada. | Os jobs de expiração de reservas, reconciliação Navio × Pátio e sincronização do cadastro canônico só são registrados quando `cloudport.runtime.jobs-enabled=true`; a ausência da propriedade não inicia processamento real em serviços standalone, coexistência ou rollback. | ⬜ Pendente |
+
+### ASYNC80 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/ExpiracaoReservaPatioJob.java` | `@ConditionalOnProperty` e `expirarReservasVencidas()` | A condição usa `matchIfMissing = true`; a ausência da flag registra o job e permite expirar reservas reais, embora o runtime canônico deva ser o único executor por padrão. | Alterar a condição para falhar fechada quando a propriedade estiver ausente, preservando `havingValue = "true"` e a coordenação por `ExecucaoUnicaServico`. |
+| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/ReconciliacaoNavioPatioJob.java` | `@ConditionalOnProperty` e `reconciliarVisitasAtivas()` | A ausência da propriedade habilita o polling e a sincronização de visitas pendentes em qualquer aplicação que carregue o componente. | Registrar o bean somente com habilitação explícita e manter o bloqueio distribuído como proteção adicional, não como substituto do controle de implantação. |
+| `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/servico/SincronizacaoCadastroCanonicoJob.java` | `@ConditionalOnProperty` e `sincronizarCadastroCanonico()` | A condição também assume habilitação quando a propriedade não existe e executa reconciliação de projeções persistidas. | Exigir `cloudport.runtime.jobs-enabled=true` para registrar o job e impedir execução implícita em serviços standalone ou instâncias de rollback. |

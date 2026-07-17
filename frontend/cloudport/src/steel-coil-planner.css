@@ -1,0 +1,102 @@
+.planner-context-grid,
+.planner-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.planner-form-grid {
+  margin-bottom: 20px;
+  padding: 18px;
+  border: 1px solid #dce5ed;
+  border-radius: 14px;
+  background: #f8fbfd;
+}
+
+.planner-form-grid > button {
+  min-height: 42px;
+}
+
+.coil-form {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.position-form {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.planner-analysis-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 18px;
+}
+
+.planner-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.analysis-card {
+  min-height: 130px;
+  display: grid;
+  align-content: center;
+  gap: 9px;
+  padding: 18px;
+  border: 1px solid #d8e3ec;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #ffffff, #f6fafc);
+}
+
+.analysis-card > span {
+  color: #708095;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.analysis-card > strong {
+  color: #17324b;
+  font-size: 20px;
+}
+
+.analysis-card > small {
+  color: #66788e;
+  line-height: 1.5;
+}
+
+.analysis-result {
+  margin-top: 18px;
+}
+
+.analysis-result h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+@media (max-width: 1100px) {
+  .planner-context-grid,
+  .planner-form-grid,
+  .coil-form,
+  .position-form,
+  .planner-analysis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .planner-context-grid,
+  .planner-form-grid,
+  .coil-form,
+  .position-form,
+  .planner-analysis-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .planner-analysis-actions > button {
+    width: 100%;
+  }
+}

@@ -1,5 +1,8 @@
 package br.com.cloudport.servicoyard.estivagembulk.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class NavioGranelDto {
 
     private Long id;
@@ -15,6 +18,7 @@ public class NavioGranelDto {
     private Double sfMaxPermitido;
     private boolean isTemplate;
     private int totalPoroes;
+    private List<PoraoNavioDto> poroes = new ArrayList<>();
 
     public NavioGranelDto() {
     }
@@ -139,5 +143,13 @@ public class NavioGranelDto {
 
     public void setTotalPoroes(int totalPoroes) {
         this.totalPoroes = totalPoroes;
+    }
+
+    public List<PoraoNavioDto> getPoroes() {
+        return poroes;
+    }
+
+    public void setPoroes(List<PoraoNavioDto> poroes) {
+        this.poroes = poroes;
     }
 }

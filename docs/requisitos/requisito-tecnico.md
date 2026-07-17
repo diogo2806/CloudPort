@@ -99,17 +99,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| UI40 | Implementar o planejamento operacional React do navio siderúrgico. | A rota de steel coils permite selecionar navio e visita, criar ou carregar plano, manter manifesto de bobinas, posicionar carga por porão, consultar tank top, empilhamento, estabilidade e securing, validar e abrir relatório; toda confirmação vem do backend e o estado é recarregado após persistência. | ⬜ Pendente |
 | UI50 | Transformar o módulo Pátio em telas React operacionais, e não apenas consultas genéricas. | Mapa, posições, lista de trabalho, movimentações, recursos, indicadores e automação possuem telas próprias; o operador navega pela estrutura real do pátio, consulta detalhes e executa somente comandos autorizados, com motivo quando exigido e sucesso apenas após confirmação persistida. | ⬜ Pendente |
-
-### UI40 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/App.jsx` e `frontend/cloudport/src/pages/OperationalPages.jsx` | rota `/home/embarque/steel-coils`, `DATASET_ROUTES` | A rota é alcançável, mas abre somente `GenericDatasetPage` com a mesma listagem de escalas do embarque; não existe planejador siderúrgico no portal principal. | Criar `novo componente sugerido: SteelCoilPlannerPage`, registrar a rota antes do fallback genérico e manter seleção explícita de navio, visita e plano. |
-| `frontend/cloudport/src/api.js` | `listarEscalasEmbarque()` e objeto `api` | O portal não possui chamadas para `/api/estivagem-bulk`; não cria, carrega ou altera plano e não consulta as análises existentes. | Adicionar contratos para navios e templates, planos, manifesto, posicionamento, tank top, empilhamento, estabilidade, tacktop, validação e relatório, preservando erro e `correlationId`. |
-| `frontend/servico-navio-siderurgico/src/assets/steel-coil-planner.html` | `COIL_TYPES`, `HOLDS`, `PORTS`, `dropCoil()`, `generatePlan()`, `updateStats()` | O HTML legado mantém dados fixos, destino aleatório, plano predefinido e cálculos simulados no navegador. | Retirar o HTML do fluxo operacional; a interface React deve renderizar somente dados persistidos e resultados calculados pelo servidor. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/controlador/EstivaBulkControlador.java` | `/api/estivagem-bulk/**` | Existem contratos parciais para criar e consultar plano, adicionar e posicionar bobina, analisar e validar, mas nenhum deles é consumido pelo portal React. | Definir DTOs estáveis para a tela, completar as consultas necessárias e impedir que o frontend reproduza regra de domínio ou cálculo de segurança. |
 
 ### UI50 — arquivos e métodos
 

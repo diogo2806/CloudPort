@@ -1,12 +1,15 @@
 package br.com.cloudport.servicoyard.estivagembulk.servico;
 
 import br.com.cloudport.servicoyard.estivagembulk.dto.AnaliseEmpilhamentoDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.BobinaManifestoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.EstabilidadeEstrutural;
 import br.com.cloudport.servicoyard.estivagembulk.dto.NavioGranelDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PlanoEstivaBulkDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.PoraoNavioDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicaoBobinaDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicionarBobinaRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.SetorTanktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.ViolacaoEstivaDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
@@ -57,7 +60,11 @@ public class PlanoEstivaBulkServico {
         navio.setImo(dto.getImo());
         navio.setNome(dto.getNome());
         if (dto.getClasse() != null) {
-            try { navio.setClasse(ClasseNavio.valueOf(dto.getClasse())); } catch (IllegalArgumentException ignored) {}
+            try {
+                navio.setClasse(ClasseNavio.valueOf(dto.getClasse()));
+            } catch (IllegalArgumentException ignored) {
+                // A validação completa do cadastro permanece no fluxo proprietário do domínio.
+            }
         }
         navio.setLpp(dto.getLpp());
         navio.setBoca(dto.getBoca());
@@ -70,6 +77,14 @@ public class PlanoEstivaBulkServico {
         return navioRepositorio.save(navio);
     }
 
+    @Transactional(readOnly = true)
+    public List<NavioGranelDto> listarNavios(boolean templates) {
+        List<NavioGranel> navios = templates
+                ? navioRepositorio.findByIsTemplateTrue()
+                : navioRepositorio.findByIsTemplateFalseOrderByNomeAsc();
+        return navios.stream().map(this::toNavioDto).collect(Collectors.toList());
+    }
+
     @Transactional
     public PlanoEstivaBulk criarPlano(Long navioId, String codigoViagem, String portoCarga, String portoDescarga) {
         NavioGranel navio = navioRepositorio.findById(navioId)
@@ -80,6 +95,15 @@ public class PlanoEstivaBulkServico {
         plano.setPortoCarga(portoCarga);
         plano.setPortoDescarga(portoDescarga);
         return planoRepositorio.save(plano);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlanoEstivaBulkDto> listarPlanos(Long navioId, String codigoViagem) {
+        return planoRepositorio.findByNavioIdOrderByCriadoEmDesc(navioId).stream()
+                .filter(plano -> codigoViagem == null || codigoViagem.isBlank()
+                        || codigoViagem.equalsIgnoreCase(plano.getCodigoViagem()))
+                .map(plano -> toDto(plano, null))
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -96,44 +120,45 @@ public class PlanoEstivaBulkServico {
         PlanoEstivaBulk plano = buscarPlano(planoId);
 
         BobinaManifesto bobina = plano.getBobinas().stream()
-                .filter(b -> b.getId().equals(req.getBobinaId()))
+                .filter(item -> item.getId().equals(req.getBobinaId()))
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException("Bobina não encontrada: " + req.getBobinaId()));
 
         PoraoNavio porao = plano.getNavio().getPoroes().stream()
-                .filter(p -> p.getId().equals(req.getPoraoId()))
+                .filter(item -> item.getId().equals(req.getPoraoId()))
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException("Porão não encontrado: " + req.getPoraoId()));
 
         SetorTanktop setor = porao.getSetores().stream()
-                .filter(s -> s.getId().equals(req.getSetorId()))
+                .filter(item -> item.getId().equals(req.getSetorId()))
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException("Setor não encontrado: " + req.getSetorId()));
 
         double dunnage = req.getEspessuraDunnageMm() > 0 ? req.getEspessuraDunnageMm() : 50.0;
         PressaoTanktopDto pressao = tanktopServico.calcularPressao(bobina, setor, dunnage);
-        boolean bloqueado = pressao.getViolacoes().stream().anyMatch(v -> "PERIGO".equals(v.getSeveridade()));
+        boolean bloqueado = pressao.getViolacoes().stream()
+                .anyMatch(violacao -> "PERIGO".equals(violacao.getSeveridade()));
         if (bloqueado) {
             throw new IllegalStateException("Posicionamento bloqueado por sobrecarga de tanktop: "
                     + pressao.getViolacoes().get(0).getDescricao());
         }
 
-        PosicaoBobina pos = new PosicaoBobina();
-        pos.setPlano(plano);
-        pos.setBobina(bobina);
-        pos.setPorao(porao);
-        pos.setSetor(setor);
-        pos.setCamada(req.getCamada());
-        pos.setPosicaoX(req.getPosicaoX());
-        pos.setPosicaoY(req.getPosicaoY());
-        pos.setEspessuraDunnageMm(dunnage);
-        pos.setTipoLashing(req.getTipoLashing() != null ? req.getTipoLashing() : TipoLashing.SEM_LASHING);
+        PosicaoBobina posicao = new PosicaoBobina();
+        posicao.setPlano(plano);
+        posicao.setBobina(bobina);
+        posicao.setPorao(porao);
+        posicao.setSetor(setor);
+        posicao.setCamada(req.getCamada());
+        posicao.setPosicaoX(req.getPosicaoX());
+        posicao.setPosicaoY(req.getPosicaoY());
+        posicao.setEspessuraDunnageMm(dunnage);
+        posicao.setTipoLashing(req.getTipoLashing() != null ? req.getTipoLashing() : TipoLashing.SEM_LASHING);
         if (!pressao.getViolacoes().isEmpty()) {
-            pos.setAlertaTanktop(pressao.getViolacoes().get(0).getDescricao());
+            posicao.setAlertaTanktop(pressao.getViolacoes().get(0).getDescricao());
         }
-        plano.getPosicoes().add(pos);
+        plano.getPosicoes().add(posicao);
         planoRepositorio.save(plano);
-        return toPosicaoDto(pos);
+        return toPosicaoDto(posicao);
     }
 
     @Transactional(readOnly = true)
@@ -168,17 +193,16 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public PlanoEstivaBulkDto validarEAprovar(Long planoId) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
-        EstabilidadeEstrutural est = estabilidadeServico.calcular(plano);
-        if (!est.isAprovado()) {
-            throw new IllegalStateException(
-                    "Plano possui violações de Hard Constraint e não pode ser aprovado");
+        EstabilidadeEstrutural estabilidade = estabilidadeServico.calcular(plano);
+        if (!estabilidade.isAprovado()) {
+            throw new IllegalStateException("Plano possui violações de Hard Constraint e não pode ser aprovado");
         }
         plano.setStatus(StatusPlanoEstiva.APROVADO);
-        plano.setBmMaxCalculado(est.getBmMaxKnm());
-        plano.setSfMaxCalculado(est.getSfMaxKn());
-        plano.setCalado_saida(est.getCaladoSaidaMetros());
+        plano.setBmMaxCalculado(estabilidade.getBmMaxKnm());
+        plano.setSfMaxCalculado(estabilidade.getSfMaxKn());
+        plano.setCalado_saida(estabilidade.getCaladoSaidaMetros());
         planoRepositorio.save(plano);
-        return toDto(plano, est);
+        return toDto(plano, estabilidade);
     }
 
     private PlanoEstivaBulk buscarPlano(Long planoId) {
@@ -186,7 +210,54 @@ public class PlanoEstivaBulkServico {
                 .orElseThrow(() -> new EntityNotFoundException("PlanoEstivaBulk não encontrado: " + planoId));
     }
 
-    private PlanoEstivaBulkDto toDto(PlanoEstivaBulk plano, EstabilidadeEstrutural est) {
+    private NavioGranelDto toNavioDto(NavioGranel navio) {
+        NavioGranelDto dto = new NavioGranelDto();
+        dto.setId(navio.getId());
+        dto.setImo(navio.getImo());
+        dto.setNome(navio.getNome());
+        dto.setClasse(navio.getClasse() != null ? navio.getClasse().name() : null);
+        dto.setLpp(navio.getLpp());
+        dto.setBoca(navio.getBoca());
+        dto.setCalado(navio.getCalado());
+        dto.setDeslocamento(navio.getDeslocamento());
+        dto.setGm(navio.getGm());
+        dto.setBmMaxPermitido(navio.getBmMaxPermitido());
+        dto.setSfMaxPermitido(navio.getSfMaxPermitido());
+        dto.setTemplate(navio.isTemplate());
+        dto.setTotalPoroes(navio.getPoroes().size());
+        dto.setPoroes(navio.getPoroes().stream().map(this::toPoraoDto).collect(Collectors.toList()));
+        return dto;
+    }
+
+    private PoraoNavioDto toPoraoDto(PoraoNavio porao) {
+        PoraoNavioDto dto = new PoraoNavioDto();
+        dto.setId(porao.getId());
+        dto.setNumero(porao.getNumero());
+        dto.setComprimento(porao.getComprimento());
+        dto.setLargura(porao.getLargura());
+        dto.setAlturaUtil(porao.getAlturaUtil());
+        dto.setAreaUtil(porao.getAreaUtil());
+        dto.setAnguloAntepara(porao.getAnguloAntepara());
+        dto.setPosLongInicio(porao.getPosLongInicio());
+        dto.setPosLongFim(porao.getPosLongFim());
+        dto.setSetores(porao.getSetores().stream().map(this::toSetorDto).collect(Collectors.toList()));
+        return dto;
+    }
+
+    private SetorTanktopDto toSetorDto(SetorTanktop setor) {
+        SetorTanktopDto dto = new SetorTanktopDto();
+        dto.setId(setor.getId());
+        dto.setNome(setor.getNome());
+        dto.setCapacidadeTM2(setor.getCapacidadeTM2());
+        dto.setAreaM2(setor.getAreaM2());
+        dto.setPosLongInicio(setor.getPosLongInicio());
+        dto.setPosLongFim(setor.getPosLongFim());
+        dto.setPosTransInicio(setor.getPosTransInicio());
+        dto.setPosTransFim(setor.getPosTransFim());
+        return dto;
+    }
+
+    private PlanoEstivaBulkDto toDto(PlanoEstivaBulk plano, EstabilidadeEstrutural estabilidade) {
         PlanoEstivaBulkDto dto = new PlanoEstivaBulkDto();
         dto.setId(plano.getId());
         if (plano.getNavio() != null) {
@@ -199,37 +270,60 @@ public class PlanoEstivaBulkServico {
         dto.setStatus(plano.getStatus() != null ? plano.getStatus().name() : null);
         dto.setTotalBobinas(plano.getBobinas().size());
         double pesoTotal = plano.getBobinas().stream()
-                .mapToDouble(b -> b.getPesoKg() != null ? b.getPesoKg() / 1000.0 : 0.0).sum();
+                .mapToDouble(bobina -> bobina.getPesoKg() != null ? bobina.getPesoKg() / 1000.0 : 0.0)
+                .sum();
         dto.setPesoTotalToneladas(Math.round(pesoTotal * 10.0) / 10.0);
+        dto.setBobinas(plano.getBobinas().stream()
+                .map(bobina -> toBobinaDto(plano, bobina))
+                .collect(Collectors.toList()));
         dto.setPosicoes(plano.getPosicoes().stream().map(this::toPosicaoDto).collect(Collectors.toList()));
-        dto.setEstabilidade(est);
-        dto.setViolacoes(est.getViolacoes() != null ? est.getViolacoes() : new ArrayList<>());
+        dto.setEstabilidade(estabilidade);
+        dto.setViolacoes(estabilidade != null && estabilidade.getViolacoes() != null
+                ? estabilidade.getViolacoes()
+                : new ArrayList<ViolacaoEstivaDto>());
         return dto;
     }
 
-    private PosicaoBobinaDto toPosicaoDto(PosicaoBobina p) {
+    private BobinaManifestoDto toBobinaDto(PlanoEstivaBulk plano, BobinaManifesto bobina) {
+        BobinaManifestoDto dto = new BobinaManifestoDto();
+        dto.setId(bobina.getId());
+        dto.setCodigo(bobina.getCodigo());
+        dto.setPesoKg(bobina.getPesoKg());
+        dto.setDiametroExternoMm(bobina.getDiametroExternoMm());
+        dto.setDiametroInternoMm(bobina.getDiametroInternoMm());
+        dto.setLarguraMm(bobina.getLarguraMm());
+        dto.setGrauAco(bobina.getGrauAco());
+        dto.setPortoDescarga(bobina.getPortoDescarga());
+        dto.setPosicionada(plano.getPosicoes().stream()
+                .anyMatch(posicao -> posicao.getBobina() != null && bobina.getId().equals(posicao.getBobina().getId())));
+        return dto;
+    }
+
+    private PosicaoBobinaDto toPosicaoDto(PosicaoBobina posicao) {
         PosicaoBobinaDto dto = new PosicaoBobinaDto();
-        dto.setId(p.getId());
-        if (p.getBobina() != null) {
-            dto.setBobinaId(p.getBobina().getId());
-            dto.setCodigoBobina(p.getBobina().getCodigo());
-            dto.setPesoKg(p.getBobina().getPesoKg() != null ? p.getBobina().getPesoKg() : 0.0);
+        dto.setId(posicao.getId());
+        if (posicao.getBobina() != null) {
+            dto.setBobinaId(posicao.getBobina().getId());
+            dto.setCodigoBobina(posicao.getBobina().getCodigo());
+            dto.setPesoKg(posicao.getBobina().getPesoKg() != null ? posicao.getBobina().getPesoKg() : 0.0);
         }
-        if (p.getPorao() != null) {
-            dto.setPoraoId(p.getPorao().getId());
-            dto.setPoraoNumero(p.getPorao().getNumero());
+        if (posicao.getPorao() != null) {
+            dto.setPoraoId(posicao.getPorao().getId());
+            dto.setPoraoNumero(posicao.getPorao().getNumero());
         }
-        if (p.getSetor() != null) {
-            dto.setSetorId(p.getSetor().getId());
-            dto.setSetorNome(p.getSetor().getNome());
+        if (posicao.getSetor() != null) {
+            dto.setSetorId(posicao.getSetor().getId());
+            dto.setSetorNome(posicao.getSetor().getNome());
         }
-        dto.setCamada(p.getCamada());
-        dto.setPosicaoX(p.getPosicaoX() != null ? p.getPosicaoX() : 0.0);
-        dto.setPosicaoY(p.getPosicaoY() != null ? p.getPosicaoY() : 0.0);
-        dto.setAnguloInclinacao(p.getAnguloInclinacao() != null ? p.getAnguloInclinacao() : 0.0);
-        dto.setEspessuraDunnageMm(p.getEspessuraDunnageMm() != null ? p.getEspessuraDunnageMm() : 50.0);
-        dto.setTipoLashing(p.getTipoLashing() != null ? p.getTipoLashing().name() : null);
-        dto.setAlertaTanktop(p.getAlertaTanktop());
+        dto.setCamada(posicao.getCamada());
+        dto.setPosicaoX(posicao.getPosicaoX() != null ? posicao.getPosicaoX() : 0.0);
+        dto.setPosicaoY(posicao.getPosicaoY() != null ? posicao.getPosicaoY() : 0.0);
+        dto.setAnguloInclinacao(posicao.getAnguloInclinacao() != null ? posicao.getAnguloInclinacao() : 0.0);
+        dto.setEspessuraDunnageMm(posicao.getEspessuraDunnageMm() != null
+                ? posicao.getEspessuraDunnageMm()
+                : 50.0);
+        dto.setTipoLashing(posicao.getTipoLashing() != null ? posicao.getTipoLashing().name() : null);
+        dto.setAlertaTanktop(posicao.getAlertaTanktop());
         return dto;
     }
 }

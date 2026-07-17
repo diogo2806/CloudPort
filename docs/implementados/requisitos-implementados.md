@@ -517,3 +517,11 @@ GET   /api/v1/visibilidade/conteiners/buscar
 7. Persistir versões de entrada, memória de cálculo, resultados e instante da aprovação.
 8. Invalidar a aprovação anterior sempre que o plano ou a distribuição de carga for alterado.
 9. Cobrir cálculo operacional, dados incompletos e GM insuficiente por testes unitários.
+
+## STATE30 — expiração da sessão React em respostas 401 implementada
+
+1. Publicar um sinal idempotente de sessão expirada quando o cliente HTTP receber `401`.
+2. Limpar `usuarioAtual` e `nomeUsuario` da persistência local antes de publicar a expiração.
+3. Assinar o sinal no componente `App` e invalidar imediatamente o estado React da sessão.
+4. Substituir a rota atual por `/login`, preservando somente caminhos internos seguros como retorno.
+5. Cobrir a limpeza da sessão e a emissão única do sinal por teste automatizado do cliente HTTP.

@@ -101,6 +101,7 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public BobinaManifesto adicionarBobina(Long planoId, BobinaManifesto bobina) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        exigirPlanoEditavel(plano);
         bobina.setPlano(plano);
         plano.getBobinas().add(bobina);
         invalidarValidacao(plano);
@@ -111,6 +112,7 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public PosicaoBobinaDto posicionarBobina(Long planoId, PosicionarBobinaRequisicaoDto requisicao) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        exigirPlanoEditavel(plano);
         BobinaManifesto bobina = localizarBobina(plano, requisicao.getBobinaId());
         PoraoNavio porao = localizarPorao(plano, requisicao.getPoraoId());
         SetorTanktop setor = localizarSetor(porao, requisicao.getSetorId());
@@ -177,6 +179,7 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public ValidacaoPlanoBulkDto validarPlanoCompleto(Long planoId) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        exigirPlanoEditavel(plano);
         ValidacaoPlanoBulkDto validacao = executarValidacaoCompleta(plano, true);
         planoRepositorio.save(plano);
         return validacao;
@@ -185,6 +188,13 @@ public class PlanoEstivaBulkServico {
     @Transactional(noRollbackFor = ValidacaoPlanoBulkException.class)
     public PlanoEstivaBulkDto validarEAprovar(Long planoId) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        if (plano.getStatus() == StatusPlanoEstiva.APROVADO) {
+            ValidacaoPlanoBulkDto validacaoAtual = executarValidacaoCompleta(plano, false);
+            return toDto(plano, validacaoAtual.getEstabilidade(), validacaoAtual);
+        }
+        if (plano.getStatus() == StatusPlanoEstiva.EMITIDO) {
+            throw new IllegalStateException("Plano emitido não pode ser aprovado novamente");
+        }
         ValidacaoPlanoBulkDto validacao = executarValidacaoCompleta(plano, true);
         if (!validacao.isAprovado()) {
             plano.setStatus(StatusPlanoEstiva.RASCUNHO);
@@ -454,6 +464,13 @@ public class PlanoEstivaBulkServico {
                 .orElseThrow(() -> new EntityNotFoundException("PlanoEstivaBulk não encontrado: " + planoId));
     }
 
+    private void exigirPlanoEditavel(PlanoEstivaBulk plano) {
+        if (plano.getStatus() == StatusPlanoEstiva.APROVADO
+                || plano.getStatus() == StatusPlanoEstiva.EMITIDO) {
+            throw new IllegalStateException("Plano aprovado ou emitido não pode ser alterado por este comando");
+        }
+    }
+
     private PlanoEstivaBulkDto toDto(PlanoEstivaBulk plano, EstabilidadeEstrutural estabilidade,
             ValidacaoPlanoBulkDto validacao) {
         PlanoEstivaBulkDto dto = new PlanoEstivaBulkDto();
@@ -552,7 +569,8 @@ public class PlanoEstivaBulkServico {
                 .map(extrator)
                 .filter(valor -> valor != null && !valor.isBlank())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        if (valores.size() != 1 || valores.size() < posicoes.size() && posicoes.stream().anyMatch(posicao -> vazio(extrator.apply(posicao)))) {
+        if (valores.size() != 1 || valores.size() < posicoes.size()
+                && posicoes.stream().anyMatch(posicao -> vazio(extrator.apply(posicao)))) {
             violacoes.add(perigo(tipoViolacao, descricao, referenciaId));
         }
         return valores.size() == 1 ? valores.iterator().next() : null;

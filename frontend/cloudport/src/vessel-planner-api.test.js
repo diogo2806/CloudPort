@@ -38,8 +38,8 @@ test('cria plano vinculando bay plan e visita selecionada', async () => {
   assert.deepEqual(JSON.parse(response.body), { bayPlanId: 12, visitaNavioId: 34 });
 });
 
-test('recusa criação de plano sem visita canônica', async () => {
-  await assert.rejects(
+test('recusa criação de plano sem visita canônica', () => {
+  assert.throws(
     () => api.criarPlanoVesselPlanner(12),
     /Visita de navio é obrigatório\./
   );

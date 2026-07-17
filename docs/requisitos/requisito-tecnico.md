@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `DATA30`.
+Status: atualizado em 2026-07-17 após auditoria da branch main.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -32,7 +32,21 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/servico/EstabilidadeEstruturalServico.java` | `calcular()` | Aplica 20 seções, distribuições uniformes, fatores e dimensões padrão; retorna trim `0`. | Substituir aproximações por curvas, limites e distribuição real versionados; falhar fechado quando faltarem entradas. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/servico/VesselPlannerServico.java` e `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/servico/PlanoEstivaBulkServico.java` | `validarEAprovar()` | A aprovação depende dos cálculos simplificados e o fluxo bulk aceita GM padrão `1,5`. | Exigir validações completas e registrar versão das entradas, memória de cálculo e resultado da aprovação. |
 
-## 3. Processamento assíncrono
+## 3. Autenticação e autorização
+
+| ID | Tarefa técnica | Critério de conclusão | Status |
+|---|---|---|---|
+| SEC50 | Aplicar autorização por operação nas work queues e work instructions do Pátio. | Consultas permanecem disponíveis aos perfis operacionais necessários, mas criação e alteração de fila, associação de recursos, dispatch, mudança de prioridade, bloqueio, reset, cancelamento e conclusão exigem explicitamente os perfis responsáveis por cada comando; `OPERADOR_GATE` e `SERVICE_NAVIO` não recebem poderes administrativos por uma regra global do controller. | ⬜ Pendente |
+
+### SEC50 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueuePatioControlador.java` | `@PreAuthorize` da classe; `criar()`, `ativar()`, `desativar()`, `atualizarPow()`, `atualizarEquipamento()`, `atualizarOrdens()` | A autorização única da classe concede todos os comandos a `ADMIN_PORTO`, `PLANEJADOR`, `OPERADOR_GATE` e `SERVICE_NAVIO`, inclusive criação e alterações administrativas de filas e recursos. | Manter uma regra de leitura separada e declarar `@PreAuthorize` específico em cada comando, limitando alterações administrativas aos perfis responsáveis pelo planejamento do Pátio. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueueOperacaoControlador.java` | `@PreAuthorize` da classe; `despachar()`, `suspender()`, `retomar()`, `bloquear()`, `concluir()`, `resetar()`, `cancelar()`, `atualizarPrioridades()` | A mesma regra global permite que perfis de Gate e integração de Navio executem dispatch, conclusão, bloqueio, reset, cancelamento e alteração de prioridades. | Definir autorização por método conforme a responsabilidade operacional e falhar com `403` antes de executar o serviço ou publicar eventos quando o perfil não for autorizado. |
+| `frontend/cloudport/src/pages/yard/YardWorkPages.jsx` | `canOperate` | A interface replica a regra ampla e exibe todos os comandos para `OPERADOR_GATE` e `SERVICE_NAVIO`, sem distinguir leitura, planejamento, execução e administração. | Derivar permissões por comando a partir dos perfis autorizados pelo backend e ocultar ou desabilitar apenas as ações não permitidas, sem usar a interface como única proteção. |
+
+## 4. Processamento assíncrono
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

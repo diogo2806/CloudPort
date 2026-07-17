@@ -3,7 +3,7 @@ package br.com.cloudport.servicoautenticacao.app.configuracoes.dto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 
 public class AuthenticationDTO {
@@ -11,11 +11,10 @@ public class AuthenticationDTO {
     @Size(min = 3, max = 100, message = "O login deve ter entre 3 e 100 caracteres.")
     private String login;
 
-    @NotBlank(message = "A senha é obrigatória.")
-    @Size(min = 6, max = 255, message = "A senha deve ter pelo menos 6 caracteres.")
+    @NotEmpty(message = "A senha é obrigatória.")
+    @Size(max = 255, message = "A senha deve ter no máximo 255 caracteres.")
     @JsonProperty("password")
     @JsonAlias({"senha"})
-    @Pattern(regexp = "^(?!.*[<>]).*$", message = "A senha não pode conter os caracteres < ou >.")
     private String password;
 
     public AuthenticationDTO() {}

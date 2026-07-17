@@ -5,6 +5,8 @@ import java.util.regex.Pattern;
 
 public final class SanitizadorEntrada {
     private static final Pattern PADRAO_LOGIN_PERMITIDO = Pattern.compile("^[\\p{L}\\p{N}@._-]{3,100}$");
+    private static final int TAMANHO_MINIMO_NOVA_SENHA = 6;
+    private static final int TAMANHO_MAXIMO_NOVA_SENHA = 255;
 
     private SanitizadorEntrada() {
     }
@@ -20,19 +22,17 @@ public final class SanitizadorEntrada {
         return normalizado;
     }
 
-    public static String sanitizarSenha(String senha) {
-        if (senha == null) {
-            throw new IllegalArgumentException("Senha informada é inválida.");
+    public static void validarNovaSenha(String senha) {
+        if (senha == null
+                || senha.length() < TAMANHO_MINIMO_NOVA_SENHA
+                || senha.length() > TAMANHO_MAXIMO_NOVA_SENHA) {
+            throw new IllegalArgumentException("A nova senha deve ter entre 6 e 255 caracteres.");
         }
-        String normalizada = Normalizer.normalize(senha, Normalizer.Form.NFKC);
-        if (normalizada.contains("<") || normalizada.contains(">")) {
-            throw new IllegalArgumentException("Senha não pode conter os caracteres < ou >.");
-        }
-        boolean possuiControle = normalizada.chars()
+
+        boolean possuiControle = senha.chars()
                 .anyMatch(caractere -> Character.isISOControl(caractere) && !Character.isWhitespace(caractere));
         if (possuiControle) {
-            throw new IllegalArgumentException("Senha contém caracteres de controle não permitidos.");
+            throw new IllegalArgumentException("A nova senha contém caracteres de controle não permitidos.");
         }
-        return normalizada;
     }
 }

@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após auditoria da branch `main`.
+Status: atualizado em 2026-07-17 após implementação do requisito `UI60`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -74,7 +74,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | SEC20 | Restringir criação, alteração e aprovação de planos de estiva a perfis autorizados. | Escritas do Vessel Planner e da estiva de bobinas exigem planejamento ou administração; leitura segue a matriz definida, usuário sem permissão recebe `403` e o backend protege o fluxo independentemente do menu. | ⬜ Pendente |
 | SEC30 | Eliminar credenciais funcionais e segredos criptográficos padrão dos serviços standalone. | Serviços que validam JWT ou autenticam clientes públicos falham na inicialização quando os segredos obrigatórios não forem fornecidos; nenhuma credencial conhecida do repositório habilita acesso, assinatura ou validação em runtime. | ⬜ Pendente |
-| SEC40 | Autenticar senhas como dados opacos, sem normalização ou bloqueio de caracteres antes da verificação do hash. | O login encaminha ao `AuthenticationManager` exatamente a sequência de caracteres recebida como senha; validações estruturais são aplicadas somente na criação ou troca da credencial, e senhas já persistidas continuam autenticáveis sem transformação silenciosa. | ⬜ Pendente |
 
 ### SEC20 — arquivos e métodos
 
@@ -91,13 +90,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-navio-siderurgico/src/main/resources/application.properties` | `cloudport.security.jwt.secret` | O serviço standalone usa por padrão `chave-local-para-desenvolvimento-123456`, que possui tamanho aceito pelo decoder e é conhecido por qualquer pessoa com acesso ao repositório. | Remover o fallback e exigir segredo externo com validação de presença e tamanho antes de expor endpoints autenticados. |
 | `backend/servico-navio-siderurgico/src/main/resources/application.properties` e `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/configuracao/PublicApiClientAuthenticationFilter.java` | `cloudport.security.public-api.clients`, `carregarClientes()` | A configuração padrão `cloudport-local:troque-esta-chave-publica` é carregada como cliente válido e concede `ROLE_INTEGRACAO_EXTERNA` para `/api/public/v1/**`. | Remover o cliente funcional padrão, exigir configuração externa e falhar fechado sem credenciais válidas. |
 | `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/configuracao/ConfiguracaoSeguranca.java` | `jwtDecoder()` e cadeia `/api/public/v1/**` | O decoder valida apenas presença e 32 bytes; portanto aceita o segredo conhecido, enquanto o filtro autentica o cliente padrão antes do `BearerTokenAuthenticationFilter`. | Rejeitar valores sentinela de desenvolvimento e garantir que o profile operacional não inicialize com credenciais documentadas ou defaults reutilizáveis. |
-
-### SEC40 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-autenticacao/src/main/java/br/com/cloudport/servicoautenticacao/controllers/AuthenticationController.java` | `login()` | Antes de criar `UsernamePasswordAuthenticationToken`, o fluxo substitui a senha recebida pelo resultado de `SanitizadorEntrada.sanitizarSenha()`. | Encaminhar a senha original ao `AuthenticationManager` e limitar o tratamento do endpoint a presença, tamanho máximo de transporte e proteção contra payload inválido, sem alterar o segredo. |
-| `backend/servico-autenticacao/src/main/java/br/com/cloudport/servicoautenticacao/app/configuracoes/validacao/SanitizadorEntrada.java` | `sanitizarSenha()` | Aplica normalização Unicode NFKC e rejeita `<` e `>`, embora a senha de autenticação deva ser comparada ao hash como sequência opaca; o método não é usado na criação de credenciais, somente no login. | Remover o método do fluxo de autenticação; criar validação específica para definição de nova senha, sem normalizar silenciosamente credenciais existentes. |
 
 ## 4. Processamento assíncrono
 
@@ -127,7 +119,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | UI40 | Implementar o planejamento operacional React do navio siderúrgico. | A rota de steel coils permite selecionar navio e visita, criar ou carregar plano, manter manifesto de bobinas, posicionar carga por porão, consultar tank top, empilhamento, estabilidade e securing, validar e abrir relatório; toda confirmação vem do backend e o estado é recarregado após persistência. | ⬜ Pendente |
 | UI50 | Transformar o módulo Pátio em telas React operacionais, e não apenas consultas genéricas. | Mapa, posições, lista de trabalho, movimentações, recursos, indicadores e automação possuem telas próprias; o operador navega pela estrutura real do pátio, consulta detalhes e executa somente comandos autorizados, com motivo quando exigido e sucesso apenas após confirmação persistida. | ⬜ Pendente |
-| UI60 | Implementar o Vessel Planner React para navio de contêiner. | A rota de planejamento permite selecionar escala e Bay Plan, acompanhar processamento BAPLIE, visualizar bays, rows, tiers e restrições, tratar contêineres não alocados, executar alocação manual ou autoestivagem, consultar estabilidade, restow e sequenciamento e validar o plano usando exclusivamente resultados do backend. | ⬜ Pendente |
 
 ### UI40 — arquivos e métodos
 
@@ -146,12 +137,3 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `frontend/cloudport/src/pages/OperationalPages.jsx` | `YardMapPage()` | O mapa atual exibe duas tabelas de contêineres e equipamentos; não representa blocos ou zonas, linhas, colunas, camadas, ocupação, reserva, bloqueio e interdição como estrutura navegável. | Implementar visualização operacional baseada nas posições reais, permitindo abrir pilha, unidade, equipamento, restrições e reservas sem inventar coordenadas. |
 | `frontend/cloudport/src/api.js` | `obterMapaPatio()`, `listarPosicoesPatio()`, `listarMovimentacoesPatio()`, `listarConteineresPatio()`, `listarRecursosPatio()` | O portal principal expõe somente leituras simples do Yard e não possui contratos para work queues, work instructions, reservas, placement, remanejamento ou reshuffling. | Adicionar métodos para consultas e comandos do Pátio, enviar motivo e identidade operacional quando exigidos e recarregar o estado persistido depois de cada comando. |
 | `frontend/servico-navio-siderurgico/src/Ui20ControlRoom.jsx` e `frontend/cloudport/src/pages/OperationalPages.jsx` | ações do Control Room e módulo Pátio | Parte das operações de Yard existe apenas dentro do Control Room incorporado por `iframe`, enquanto as rotas próprias do Pátio permanecem somente leitura. | Reutilizar contratos e componentes compartilháveis ou expor fluxos equivalentes nas páginas do Pátio, sem duplicar regra e sem manter comportamentos divergentes. |
-
-### UI60 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/pages/OperationalPages.jsx` | `ShippingPage()` | A tela de planejamento mostra apenas uma tabela de escalas e não permite selecionar Bay Plan, abrir plano, visualizar slots ou executar qualquer ação de estiva. | Criar `novo componente sugerido: ContainerVesselPlannerPage` com contexto de escala, visita, Bay Plan e plano persistido. |
-| `frontend/cloudport/src/api.js` | `listarEscalasEmbarque()` e objeto `api` | Não existem chamadas React para EDI/BAPLIE nem para `/api/vessel-planner`; o frontend não acompanha importação, plano, alocação, estabilidade, restow ou aprovação. | Adicionar métodos para processamentos EDI, criação e consulta do plano, alocação de slot, autoestivagem, estabilidade, restow, sequenciamento de guindastes e validação. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/controlador/VesselPlannerControlador.java` | `/api/vessel-planner/planos/**` | O backend já expõe criação, consulta, alocação, autoestivagem, estabilidade, restow, sequenciamento e validação, mas não há consumidor no portal React. | Estabilizar DTOs necessários à representação de bays e slots e conectar cada comando a uma ação explícita da tela, respeitando status e autorização. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/controlador/EdiIntegracaoControlador.java` e `frontend/cloudport/src/pages/OperationalPages.jsx` | recepção e auditoria BAPLIE | O processamento EDI existe no backend, porém a tela de embarque não permite enviar arquivo, acompanhar `X-EDI-Processing-Id`, consultar rejeição ou selecionar o Bay Plan produzido. | Integrar upload, acompanhamento, detalhe de erro e reprocessamento autorizado antes da criação do plano; nenhuma falha pode ser convertida em lista vazia ou sucesso visual. |

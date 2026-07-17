@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `BUS40`.
+Status: atualizado em 2026-07-17 após implementação do requisito `INT20`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -10,7 +10,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | ARCH20 | Vincular os planejadores de estiva ao navio e à visita canônicos. | Planos de contêineres e bobinas persistem os identificadores canônicos de navio e visita; IMO, nome e viagem não possuem cadastro concorrente, e perfis estruturais ficam vinculados e versionados sob a mesma identidade. | ⬜ Pendente |
 | DATA30 | Substituir a malha artificial do Vessel Planner pela geometria real do navio. | O plano usa bays, rows, tiers, hatch covers, slots restritos, tomadas reefer e limites de pilha do perfil versionado; posições do Bay Plan são preservadas e a operação é bloqueada quando o perfil estiver ausente ou incompatível. | ⬜ Pendente |
-| INT20 | Preservar os atributos operacionais e de segurança recebidos no BAPLIE. | Navio e viagem são validados sem identificadores sintéticos; pesos são normalizados por unidade; posição, operação, cheio/vazio, VGM, reefer, carga perigosa e OOG são persistidos em campos próprios e chegam ao planejador sem inferência textual. | ⬜ Pendente |
 
 ### ARCH20 — arquivos e métodos
 
@@ -27,14 +26,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/servico/VesselPlannerServico.java` | `criarPlanoDeBayPlan()` | Cria sempre 30 bays, 10 rows e 8 tiers, todos `NORMAL`, com limite uniforme de 30.000 kg; a posição importada não é usada. | Carregar o perfil real versionado, criar apenas slots existentes e mapear cada contêiner para a posição do Bay Plan. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/modelo/EstivagemPlan.java` | construtor | Injeta LPP `300`, boca `45`, calado `14`, deslocamento `90000`, GM `1,5`, TPC `75` e LCB `150`. | Remover defaults operacionais e exigir valores provenientes do perfil aprovado para a condição de carregamento. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/modelo/SlotNavio.java` | tipo e limites do slot | O fluxo não carrega hatch cover, restrições, comprimento admissível ou limites reais por slot e pilha. | Persistir e validar a geometria e as restrições reais necessárias à alocação. |
-
-### INT20 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/parser/BaplieParser.java` | `parse()`, `processarTdt()`, `processarEqd()`, `extrairPeso()` | Todo equipamento vira `DESCARGA`; ausência de código gera `NAVIO_<viagem>`; a unidade do peso é ignorada; `HAN` é reduzido a texto. | Validar o perfil BAPLIE aceito, normalizar unidades, mapear os qualificadores suportados e rejeitar identidade ou dados obrigatórios ausentes. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/modelo/BayPlanContainer.java` | contrato persistido | Não há campos estruturados para classe/ONU e segregação, parâmetros reefer, dimensões OOG, cheio/vazio e origem/status do VGM. | Criar migration aditiva e campos próprios, preservando o conteúdo original para auditoria. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/servico/AutoStowageServico.java` | `sugerirEstivagem()` | Reefer é inferido por substring do ISO; perigoso por `statusOperacao.startsWith("IMO")`, embora o parser grave `MANUSEIO:*`; a classe IMO não chega ao slot. | Consumir os campos estruturados e aplicar compatibilidade, segregação e restrições sem inferência textual. |
 
 ## 2. Cálculo, aprovação e segurança operacional
 

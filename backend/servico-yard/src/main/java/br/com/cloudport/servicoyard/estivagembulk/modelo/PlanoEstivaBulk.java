@@ -1,5 +1,8 @@
 package br.com.cloudport.servicoyard.estivagembulk.modelo;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -16,9 +19,6 @@ import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import javax.persistence.Version;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "plano_estiva_bulk")
@@ -31,6 +31,24 @@ public class PlanoEstivaBulk {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "navio_granel_id")
     private NavioGranel navio;
+
+    @Column(name = "navio_cadastro_id")
+    private Long navioCadastroId;
+
+    @Column(name = "visita_navio_id")
+    private Long visitaNavioId;
+
+    @Column(name = "codigo_visita", length = 60)
+    private String codigoVisita;
+
+    @Column(name = "versao_perfil_navio")
+    private Long versaoPerfilNavio;
+
+    @Column(name = "versao_navio_canonico")
+    private Long versaoNavioCanonico;
+
+    @Column(name = "versao_visita")
+    private Long versaoVisita;
 
     @Column(name = "codigo_viagem", length = 30)
     private String codigoViagem;
@@ -104,6 +122,54 @@ public class PlanoEstivaBulk {
 
     public void setNavio(NavioGranel navio) {
         this.navio = navio;
+    }
+
+    public Long getNavioCadastroId() {
+        return navioCadastroId;
+    }
+
+    public void setNavioCadastroId(Long navioCadastroId) {
+        this.navioCadastroId = navioCadastroId;
+    }
+
+    public Long getVisitaNavioId() {
+        return visitaNavioId;
+    }
+
+    public void setVisitaNavioId(Long visitaNavioId) {
+        this.visitaNavioId = visitaNavioId;
+    }
+
+    public String getCodigoVisita() {
+        return codigoVisita;
+    }
+
+    public void setCodigoVisita(String codigoVisita) {
+        this.codigoVisita = codigoVisita;
+    }
+
+    public Long getVersaoPerfilNavio() {
+        return versaoPerfilNavio;
+    }
+
+    public void setVersaoPerfilNavio(Long versaoPerfilNavio) {
+        this.versaoPerfilNavio = versaoPerfilNavio;
+    }
+
+    public Long getVersaoNavioCanonico() {
+        return versaoNavioCanonico;
+    }
+
+    public void setVersaoNavioCanonico(Long versaoNavioCanonico) {
+        this.versaoNavioCanonico = versaoNavioCanonico;
+    }
+
+    public Long getVersaoVisita() {
+        return versaoVisita;
+    }
+
+    public void setVersaoVisita(Long versaoVisita) {
+        this.versaoVisita = versaoVisita;
     }
 
     public String getCodigoViagem() {

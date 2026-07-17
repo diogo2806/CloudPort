@@ -36,5 +36,9 @@ export const railApi = {
   atualizarStatusOrdem: (idVisita, idOrdem, status) => request(
     `/rail/ferrovia/lista-trabalho/visitas/${positiveId(idVisita, 'O identificador da visita')}/ordens/${positiveId(idOrdem, 'O identificador da ordem')}/status`,
     { method: 'PATCH', body: { statusMovimentacao: normalizeStatus(status) } }
+  ),
+  registrarPartida: (idVisita) => request(
+    `/rail/ferrovia/visitas/${positiveId(idVisita, 'O identificador da visita')}/partida`,
+    { method: 'PATCH' }
   )
 };

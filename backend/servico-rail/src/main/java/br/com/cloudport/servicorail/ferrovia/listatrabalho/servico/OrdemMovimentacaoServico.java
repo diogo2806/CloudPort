@@ -8,8 +8,10 @@ import br.com.cloudport.servicorail.ferrovia.listatrabalho.modelo.StatusOrdemMov
 import br.com.cloudport.servicorail.ferrovia.listatrabalho.modelo.TipoMovimentacaoOrdem;
 import br.com.cloudport.servicorail.ferrovia.listatrabalho.repositorio.OrdemMovimentacaoRepositorio;
 import br.com.cloudport.servicorail.ferrovia.modelo.OperacaoConteinerVisita;
+import br.com.cloudport.servicorail.ferrovia.modelo.StatusOperacaoConteinerVisita;
 import br.com.cloudport.servicorail.ferrovia.modelo.StatusVisitaTrem;
 import br.com.cloudport.servicorail.ferrovia.modelo.VisitaTrem;
+import br.com.cloudport.servicorail.ferrovia.repositorio.VisitaTremRepositorio;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -32,11 +34,14 @@ import org.springframework.web.server.ResponseStatusException;
 public class OrdemMovimentacaoServico {
 
     private final OrdemMovimentacaoRepositorio ordemMovimentacaoRepositorio;
+    private final VisitaTremRepositorio visitaTremRepositorio;
     private final PublicadorEventoMovimentacaoTrem publicadorEventoMovimentacaoTrem;
 
     public OrdemMovimentacaoServico(OrdemMovimentacaoRepositorio ordemMovimentacaoRepositorio,
-                                    PublicadorEventoMovimentacaoTrem publicadorEventoMovimentacaoTrem) {
+                                     VisitaTremRepositorio visitaTremRepositorio,
+                                     PublicadorEventoMovimentacaoTrem publicadorEventoMovimentacaoTrem) {
         this.ordemMovimentacaoRepositorio = ordemMovimentacaoRepositorio;
+        this.visitaTremRepositorio = visitaTremRepositorio;
         this.publicadorEventoMovimentacaoTrem = publicadorEventoMovimentacaoTrem;
     }
 
@@ -70,9 +75,10 @@ public class OrdemMovimentacaoServico {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Ordem de movimentação não encontrada para a visita informada."));
         StatusOrdemMovimentacao statusAnterior = ordem.getStatusMovimentacao();
-        validarTransicaoStatus(ordem.getStatusMovimentacao(), statusValidado);
+        validarTransicaoStatus(statusAnterior, statusValidado);
         ordem.setStatusMovimentacao(statusValidado);
         OrdemMovimentacao atualizada = ordemMovimentacaoRepositorio.save(ordem);
+        sincronizarVisitaEManifesto(atualizada, statusAnterior);
         if (statusValidado == StatusOrdemMovimentacao.CONCLUIDA
                 && statusAnterior != StatusOrdemMovimentacao.CONCLUIDA) {
             publicarEventoConclusao(atualizada);
@@ -148,10 +154,10 @@ public class OrdemMovimentacaoServico {
     }
 
     private void adicionarOrdensParaOperacoes(VisitaTrem visita,
-                                              List<OperacaoConteinerVisita> operacoes,
-                                              TipoMovimentacaoOrdem tipoMovimentacao,
-                                              Set<ChaveOrdem> chavesExistentes,
-                                              List<OrdemMovimentacao> novasOrdens) {
+                                               List<OperacaoConteinerVisita> operacoes,
+                                               TipoMovimentacaoOrdem tipoMovimentacao,
+                                               Set<ChaveOrdem> chavesExistentes,
+                                               List<OrdemMovimentacao> novasOrdens) {
         if (CollectionUtils.isEmpty(operacoes)) {
             return;
         }
@@ -187,6 +193,50 @@ public class OrdemMovimentacaoServico {
                 String.format(Locale.ROOT,
                         "A transição de status de %s para %s não é permitida.",
                         statusAtual, novoStatus));
+    }
+
+    private void sincronizarVisitaEManifesto(OrdemMovimentacao ordem,
+                                              StatusOrdemMovimentacao statusAnterior) {
+        if (ordem == null || ordem.getVisitaTrem() == null || ordem.getVisitaTrem().getId() == null
+                || Objects.equals(statusAnterior, ordem.getStatusMovimentacao())) {
+            return;
+        }
+        VisitaTrem visita = visitaTremRepositorio.buscarPorIdComListas(ordem.getVisitaTrem().getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "A visita vinculada à ordem ferroviária não foi encontrada."));
+        OperacaoConteinerVisita operacao = localizarOperacao(visita, ordem);
+
+        if (ordem.getStatusMovimentacao() == StatusOrdemMovimentacao.EM_EXECUCAO
+                && visita.getStatusVisita() == StatusVisitaTrem.CHEGOU) {
+            visita.setStatusVisita(StatusVisitaTrem.PROCESSANDO);
+        }
+        if (ordem.getStatusMovimentacao() == StatusOrdemMovimentacao.CONCLUIDA) {
+            operacao.setStatusOperacao(StatusOperacaoConteinerVisita.CONCLUIDO);
+            visita.setStatusVisita(todasOperacoesConcluidas(visita)
+                    ? StatusVisitaTrem.CONCLUIDO
+                    : StatusVisitaTrem.PROCESSANDO);
+        }
+        visitaTremRepositorio.save(visita);
+    }
+
+    private OperacaoConteinerVisita localizarOperacao(VisitaTrem visita,
+                                                       OrdemMovimentacao ordem) {
+        List<OperacaoConteinerVisita> operacoes = ordem.getTipoMovimentacao() == TipoMovimentacaoOrdem.DESCARGA_TREM
+                ? visita.getListaDescarga()
+                : visita.getListaCarga();
+        return operacoes.stream()
+                .filter(item -> ordem.getCodigoConteiner().equalsIgnoreCase(item.getCodigoConteiner()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "A operação do manifesto vinculada à ordem ferroviária não foi encontrada."));
+    }
+
+    private boolean todasOperacoesConcluidas(VisitaTrem visita) {
+        List<OperacaoConteinerVisita> operacoes = new ArrayList<>();
+        operacoes.addAll(visita.getListaDescarga());
+        operacoes.addAll(visita.getListaCarga());
+        return !operacoes.isEmpty() && operacoes.stream()
+                .allMatch(item -> item.getStatusOperacao() == StatusOperacaoConteinerVisita.CONCLUIDO);
     }
 
     private void publicarEventoConclusao(OrdemMovimentacao ordem) {

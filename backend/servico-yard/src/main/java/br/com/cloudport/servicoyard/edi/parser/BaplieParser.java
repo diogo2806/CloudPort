@@ -17,6 +17,9 @@ public class BaplieParser {
     private static final Set<String> RELEASES_SUPORTADOS = Set.of("95B", "13B");
     private static final Set<String> QUALIFICADORES_PESO_BRUTO = Set.of("WT", "G", "AET");
     private static final Set<String> QUALIFICADORES_VGM = Set.of("VGM");
+    private static final Set<String> UNIDADES_SUPORTADAS = Set.of(
+            "KGM", "KG", "KGS", "TNE", "TON", "T", "LBR", "LB", "LBS", "GRM", "G",
+            "CEL", "C", "FAH", "F", "KEL", "K", "CMT", "CM", "MTR", "M", "MMT", "MM");
 
     public BayPlan parse(String edifact) {
         if (edifact == null || edifact.isBlank()) {
@@ -49,12 +52,10 @@ public class BaplieParser {
                 perfilValidado = true;
                 continue;
             }
-
             if ("BGM".equals(tipoSegmento)) {
                 operacaoPadrao = extrairOperacao(campos);
                 continue;
             }
-
             if ("TDT".equals(tipoSegmento)) {
                 processarTdt(campos, bayPlan);
                 continue;
@@ -70,7 +71,6 @@ public class BaplieParser {
                         containerAtual = null;
                         segmentosAtuais = null;
                     }
-
                     PosicaoBay posicao = PosicaoBay.deCodigoEdifact(valor);
                     if (containerAtual != null) {
                         containerAtual.setPosicaoBay(posicao);
@@ -93,7 +93,6 @@ public class BaplieParser {
                 if (containerAtual != null) {
                     finalizarContainer(containerAtual, segmentosAtuais, operacaoPadrao, bayPlan, containers);
                 }
-
                 containerAtual = processarEqd(campos);
                 segmentosAtuais = new StringBuilder();
                 if (segmentoPosicaoPendente != null) {
@@ -121,7 +120,7 @@ public class BaplieParser {
                 case "DIM" -> processarDim(campos, containerAtual);
                 case "SGP", "ATT", "FTX" -> processarSegregacao(campos, containerAtual);
                 default -> {
-                    // Segmento preservado em segmentosOriginais para auditoria e futura evolução do mapa.
+                    // Segmento preservado em segmentosOriginais para auditoria.
                 }
             }
         }
@@ -129,7 +128,6 @@ public class BaplieParser {
         if (containerAtual != null) {
             finalizarContainer(containerAtual, segmentosAtuais, operacaoPadrao, bayPlan, containers);
         }
-
         if (!perfilValidado) {
             throw new IllegalArgumentException("BAPLIE sem perfil UNH válido.");
         }
@@ -307,14 +305,16 @@ public class BaplieParser {
         if ("BM".equals(qualificador) || "BL".equals(qualificador)) {
             container.setReferenciaBl(valor);
         }
-        if ("VON".equals(qualificador) && (bayPlan.getCodigoViagem() == null || bayPlan.getCodigoViagem().isBlank())) {
+        if ("VON".equals(qualificador)
+                && (bayPlan.getCodigoViagem() == null || bayPlan.getCodigoViagem().isBlank())) {
             bayPlan.setCodigoViagem(valor);
         }
     }
 
     private void processarTmp(String[] campos, BayPlanContainer container) {
         Medida medida = extrairMedida(campos);
-        container.setTemperaturaRequeridaC(converterTemperaturaParaCelsius(medida.valor(), medida.unidade()));
+        container.setTemperaturaRequeridaC(
+                converterTemperaturaParaCelsius(medida.valor(), medida.unidade()));
         container.setReefer(true);
     }
 
@@ -341,7 +341,8 @@ public class BaplieParser {
             container.setNumeroOnu(anexarDistinto(container.getNumeroOnu(), primeiroComponente(campos[3])));
         }
         if (campos.length > 5) {
-            container.setGrupoEmbalagem(anexarDistinto(container.getGrupoEmbalagem(), primeiroComponente(campos[5])));
+            container.setGrupoEmbalagem(
+                    anexarDistinto(container.getGrupoEmbalagem(), primeiroComponente(campos[5])));
         }
         if (campos.length > 6) {
             container.setCodigoEmergencia(anexarDistinto(container.getCodigoEmergencia(), campos[6]));
@@ -478,7 +479,7 @@ public class BaplieParser {
     private Medida extrairMedida(String[] campos) {
         Double valor = null;
         String unidade = null;
-        for (int indice = 1; indice < campos.length; indice++) {
+        for (int indice = 2; indice < campos.length; indice++) {
             for (String componente : campos[indice].split(":", -1)) {
                 String limpo = componente.trim();
                 if (limpo.isBlank()) {
@@ -500,7 +501,7 @@ public class BaplieParser {
 
     private List<Double> extrairNumeros(String[] campos) {
         List<Double> valores = new ArrayList<>();
-        for (int indice = 1; indice < campos.length; indice++) {
+        for (int indice = 2; indice < campos.length; indice++) {
             for (String componente : campos[indice].split(":", -1)) {
                 String limpo = componente.trim();
                 if (ehNumero(limpo)) {
@@ -512,7 +513,7 @@ public class BaplieParser {
     }
 
     private String localizarUnidade(String[] campos) {
-        for (int indice = 1; indice < campos.length; indice++) {
+        for (int indice = 2; indice < campos.length; indice++) {
             for (String componente : campos[indice].split(":", -1)) {
                 String limpo = componente.trim();
                 if (ehUnidade(limpo)) {
@@ -520,7 +521,8 @@ public class BaplieParser {
                 }
             }
         }
-        throw new IllegalArgumentException("Unidade não informada no segmento " + String.join("+", campos) + ".");
+        throw new IllegalArgumentException("Unidade não informada no segmento "
+                + String.join("+", campos) + ".");
     }
 
     private double converterPesoParaKg(double valor, String unidade) {
@@ -529,16 +531,18 @@ public class BaplieParser {
             case "TNE", "TON", "T" -> valor * 1000.0;
             case "LBR", "LB", "LBS" -> valor * 0.45359237;
             case "GRM", "G" -> valor / 1000.0;
-            default -> throw new IllegalArgumentException("Unidade de peso BAPLIE não suportada: " + unidade + ".");
+            default -> throw new IllegalArgumentException(
+                    "Unidade de peso BAPLIE não suportada: " + unidade + ".");
         };
     }
 
     private double converterTemperaturaParaCelsius(double valor, String unidade) {
         return switch (unidade.toUpperCase(Locale.ROOT)) {
-            case "CEL", "C", "CMT" -> valor;
+            case "CEL", "C" -> valor;
             case "FAH", "F" -> (valor - 32.0) * 5.0 / 9.0;
             case "KEL", "K" -> valor - 273.15;
-            default -> throw new IllegalArgumentException("Unidade de temperatura não suportada: " + unidade + ".");
+            default -> throw new IllegalArgumentException(
+                    "Unidade de temperatura não suportada: " + unidade + ".");
         };
     }
 
@@ -547,15 +551,13 @@ public class BaplieParser {
             case "CMT", "CM" -> valor;
             case "MTR", "M" -> valor * 100.0;
             case "MMT", "MM" -> valor / 10.0;
-            default -> throw new IllegalArgumentException("Unidade de dimensão OOG não suportada: " + unidade + ".");
+            default -> throw new IllegalArgumentException(
+                    "Unidade de dimensão OOG não suportada: " + unidade + ".");
         };
     }
 
     private boolean ehUnidade(String valor) {
-        String unidade = valor.toUpperCase(Locale.ROOT);
-        return Set.of("KGM", "KG", "KGS", "TNE", "TON", "T", "LBR", "LB", "LBS", "GRM", "G",
-                        "CEL", "C", "FAH", "F", "KEL", "K", "CMT", "CM", "MTR", "M", "MMT", "MM")
-                .contains(unidade);
+        return UNIDADES_SUPORTADAS.contains(valor.toUpperCase(Locale.ROOT));
     }
 
     private boolean ehNumero(String valor) {

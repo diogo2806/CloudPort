@@ -5,8 +5,10 @@ import java.util.List;
 
 public class PressaoTanktopDto {
 
+    private Long posicaoId;
     private Long setorId;
     private String nomeSetor;
+    private double areaContatoM2;
     private double pressaoCalculadaTM2;
     private double capacidadeNominalTM2;
     private double percentualOcupacao;
@@ -40,6 +42,14 @@ public class PressaoTanktopDto {
         return new PressaoTanktopDto(id, nome, pressao, cap, percentual, true, violacoes);
     }
 
+    public Long getPosicaoId() {
+        return posicaoId;
+    }
+
+    public void setPosicaoId(Long posicaoId) {
+        this.posicaoId = posicaoId;
+    }
+
     public Long getSetorId() {
         return setorId;
     }
@@ -54,6 +64,14 @@ public class PressaoTanktopDto {
 
     public void setNomeSetor(String nomeSetor) {
         this.nomeSetor = nomeSetor;
+    }
+
+    public double getAreaContatoM2() {
+        return areaContatoM2;
+    }
+
+    public void setAreaContatoM2(double areaContatoM2) {
+        this.areaContatoM2 = areaContatoM2;
     }
 
     public double getPressaoCalculadaTM2() {

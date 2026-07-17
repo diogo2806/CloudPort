@@ -2,6 +2,8 @@ const SESSION_KEY = 'usuarioAtual';
 const USERNAME_KEY = 'nomeUsuario';
 const REQUEST_TIMEOUT_MS = 12000;
 
+const sessionExpirationSubscribers = new Set();
+
 let runtimeConfig = {
   baseApiUrl: '',
   navioControlRoomUrl: ''
@@ -110,6 +112,24 @@ export function clearSession() {
   target?.removeItem(USERNAME_KEY);
 }
 
+export function subscribeSessionExpired(listener) {
+  if (typeof listener !== 'function') {
+    throw new TypeError('O listener de expiração de sessão deve ser uma função.');
+  }
+  sessionExpirationSubscribers.add(listener);
+  return () => sessionExpirationSubscribers.delete(listener);
+}
+
+export function notifySessionExpired() {
+  sessionExpirationSubscribers.forEach((listener) => {
+    try {
+      listener();
+    } catch {
+      // Um consumidor com falha não pode impedir que os demais encerrem a sessão.
+    }
+  });
+}
+
 export function hasAnyRole(session, ...roles) {
   const current = uniqueRoles(session?.roles, session?.perfil);
   return roles.some((role) => current.includes(normalizeRole(role)));
@@ -205,7 +225,11 @@ export async function request(path, options = {}) {
         ? await response.json()
         : await response.text();
     if (!response.ok) {
-      if (response.status === 401) clearSession();
+      if (response.status === 401) {
+        const authenticatedRequest = Boolean(session?.token);
+        clearSession();
+        if (authenticatedRequest) notifySessionExpired();
+      }
       const error = new Error(payload?.mensagem ?? payload?.erro ?? payload?.message ?? `Falha HTTP ${response.status}`);
       error.payload = payload;
       error.status = response.status;

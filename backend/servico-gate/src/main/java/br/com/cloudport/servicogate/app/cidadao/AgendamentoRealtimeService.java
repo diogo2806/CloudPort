@@ -1,15 +1,13 @@
 package br.com.cloudport.servicogate.app.cidadao;
 
-import br.com.cloudport.servicogate.config.AgendamentoRulesProperties;
 import br.com.cloudport.servicogate.app.cidadao.dto.AgendamentoDTO;
 import br.com.cloudport.servicogate.app.cidadao.dto.DocumentoAgendamentoDTO;
 import br.com.cloudport.servicogate.app.gestor.GateMapper;
 import br.com.cloudport.servicogate.app.gestor.dto.GatePassDTO;
+import br.com.cloudport.servicogate.config.AgendamentoRulesProperties;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.DocumentoAgendamento;
 import br.com.cloudport.servicogate.model.GatePass;
-import br.com.cloudport.servicogate.app.cidadao.AgendamentoRepository;
-import br.com.cloudport.servicogate.app.cidadao.NotificationGateway;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -22,6 +20,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Service
@@ -75,18 +75,11 @@ public class AgendamentoRealtimeService {
     }
 
     public void notificarDocumentosAtualizados(Agendamento agendamento) {
-        List<DocumentoAgendamento> documentos = Optional.ofNullable(agendamento.getDocumentos())
-                .orElse(List.of());
-        List<DocumentoAgendamentoDTO> documentosDto = GateMapper.toDocumentoAgendamentoDTO(documentos);
-        enviar(agendamento.getId(), "documentos-atualizados", documentosDto);
+        executarAposCommit(() -> enviarDocumentosAtualizados(agendamento));
     }
 
     public void notificarDocumentosRevalidados(Agendamento agendamento) {
-        List<DocumentoAgendamento> documentos = Optional.ofNullable(agendamento.getDocumentos())
-                .orElse(List.of());
-        List<DocumentoAgendamentoDTO> documentosDto = GateMapper.toDocumentoAgendamentoDTO(documentos);
-        enviar(agendamento.getId(), "documentos-revalidados", documentosDto);
-        notificationGateway.enviarDocumentosRevalidados(agendamento, documentos);
+        executarAposCommit(() -> enviarDocumentosRevalidados(agendamento));
     }
 
     public void verificarJanelaProxima(Agendamento agendamento) {
@@ -119,6 +112,34 @@ public class AgendamentoRealtimeService {
         );
         enviar(agendamento.getId(), "janela-proxima", payload);
         notificationGateway.enviarJanelaProxima(agendamento, ateJanela);
+    }
+
+    private void enviarDocumentosAtualizados(Agendamento agendamento) {
+        List<DocumentoAgendamento> documentos = Optional.ofNullable(agendamento.getDocumentos())
+                .orElse(List.of());
+        List<DocumentoAgendamentoDTO> documentosDto = GateMapper.toDocumentoAgendamentoDTO(documentos);
+        enviar(agendamento.getId(), "documentos-atualizados", documentosDto);
+    }
+
+    private void enviarDocumentosRevalidados(Agendamento agendamento) {
+        List<DocumentoAgendamento> documentos = Optional.ofNullable(agendamento.getDocumentos())
+                .orElse(List.of());
+        List<DocumentoAgendamentoDTO> documentosDto = GateMapper.toDocumentoAgendamentoDTO(documentos);
+        enviar(agendamento.getId(), "documentos-revalidados", documentosDto);
+        notificationGateway.enviarDocumentosRevalidados(agendamento, documentos);
+    }
+
+    private void executarAposCommit(Runnable notificacao) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            notificacao.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                notificacao.run();
+            }
+        });
     }
 
     private void enviar(Long agendamentoId, String evento, Object payload) {

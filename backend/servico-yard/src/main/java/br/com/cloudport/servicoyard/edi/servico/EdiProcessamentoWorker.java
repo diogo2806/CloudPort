@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(
         name = "cloudport.runtime.jobs-enabled",
         havingValue = "true",
-        matchIfMissing = true)
+        matchIfMissing = false)
 public class EdiProcessamentoWorker {
 
     private static final Logger LOGGER = LogManager.getLogger(EdiProcessamentoWorker.class);

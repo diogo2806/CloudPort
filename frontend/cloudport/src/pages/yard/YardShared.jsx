@@ -7,6 +7,7 @@ export const PAGE_SIZE = 20;
 export const FINAL_ORDER_STATUSES = new Set(['CONCLUIDA', 'CANCELADA']);
 const YARD_ROUTES = [
   ['/home/patio/mapa', 'Mapa'],
+  ['/home/patio/planejamento-recebimento', 'Recebimento'],
   ['/home/patio/posicoes', 'Posições'],
   ['/home/patio/lista-trabalho', 'Lista de trabalho'],
   ['/home/patio/movimentacoes', 'Movimentações'],

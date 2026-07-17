@@ -492,3 +492,16 @@ GET   /api/v1/visibilidade/conteiners/buscar
 4. Usar `visibilidade.dashboard.refresh-ms` para a publicação e `visibilidade.alertas.refresh-ms` para a detecção automática.
 5. Cobrir criação condicional, delegação ao serviço e concentração das anotações de agendamento por testes unitários.
 6. Retirar ASYNC40 das pendências técnicas após registrar a implementação neste arquivo.
+
+## INT20 — atributos operacionais e de segurança do BAPLIE implementado
+
+1. Validar os perfis BAPLIE D.95B/SMDG e D.13B/SMDG31, rejeitando identidade do navio, viagem e dados obrigatórios ausentes sem criar identificadores sintéticos.
+2. Normalizar pesos recebidos em quilogramas e manter peso bruto e VGM em campos distintos, com unidade original, origem e status do VGM.
+3. Persistir posição, operação, cheio/vazio, parâmetros reefer, classe IMO, número ONU, grupo de embalagem, segregação, dimensões OOG e instruções de manuseio.
+4. Preservar os segmentos originais associados a cada equipamento para auditoria e evolução do mapeamento.
+5. Propagar os atributos estruturados ao Vessel Planner e usar o VGM como peso operacional quando disponível.
+6. Remover inferências textuais de reefer e carga perigosa na auto-estivagem.
+7. Aplicar compatibilidade de slots dedicados, segregação conservadora de cargas perigosas e reserva adjacente para OOG.
+8. Manter a atualização VERMAS separada do peso bruto do contêiner.
+9. Criar migração aditiva para `bay_plan_container` e `slot_navio`, com índices para cargas reefer, perigosas e OOG.
+10. Cobrir os perfis suportados, unidades, VGM, reefer, IMO/ONU, segregação, OOG e rejeições obrigatórias por testes automatizados.

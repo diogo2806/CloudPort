@@ -8,10 +8,12 @@ import br.com.cloudport.servicoyard.estivagembulk.dto.PosicaoBobinaDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicionarBobinaRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.ValidacaoPlanoBulkDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
-import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
 import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
+import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
+import br.com.cloudport.servicoyard.estivagembulk.servico.ValidacaoPlanoBulkException;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityNotFoundException;
@@ -60,7 +62,7 @@ public class EstivaBulkControlador {
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(servico.criarPlano(navioId, codigoViagem, portoCarga, portoDescarga));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -69,7 +71,7 @@ public class EstivaBulkControlador {
     public ResponseEntity<?> buscarPlano(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.buscarPorId(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -79,21 +81,21 @@ public class EstivaBulkControlador {
             @PathVariable Long id, @RequestBody BobinaManifesto bobina) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(servico.adicionarBobina(id, bobina));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
     @PostMapping("/planos/{id}/posicionar")
     public ResponseEntity<?> posicionarBobina(
-            @PathVariable Long id, @RequestBody PosicionarBobinaRequisicaoDto req) {
+            @PathVariable Long id, @RequestBody PosicionarBobinaRequisicaoDto requisicao) {
         try {
-            PosicaoBobinaDto dto = servico.posicionarBobina(id, req);
+            PosicaoBobinaDto dto = servico.posicionarBobina(id, requisicao);
             return ResponseEntity.ok(dto);
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException exception) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("erro", e.getMessage(), "tipo", "HARD_CONSTRAINT"));
-        } catch (EntityNotFoundException e) {
+                    .body(Map.of("erro", exception.getMessage(), "tipo", "HARD_CONSTRAINT"));
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -102,7 +104,7 @@ public class EstivaBulkControlador {
     public ResponseEntity<List<PressaoTanktopDto>> analisarTanktop(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.analisarTanktop(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -112,7 +114,7 @@ public class EstivaBulkControlador {
             @PathVariable Long id, @PathVariable Long poraoId) {
         try {
             return ResponseEntity.ok(servico.analisarEmpilhamento(id, poraoId));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -121,16 +123,27 @@ public class EstivaBulkControlador {
     public ResponseEntity<EstabilidadeEstrutural> calcularEstabilidade(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.calcularEstabilidade(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
-    @PostMapping("/planos/{id}/tacktop")
+    @GetMapping("/planos/{id}/tacktop")
     public ResponseEntity<TacktopDto> calcularTacktop(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.calcularTacktop(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/planos/{id}/validacao-completa")
+    public ResponseEntity<ValidacaoPlanoBulkDto> validarPlanoCompleto(@PathVariable Long id) {
+        try {
+            ValidacaoPlanoBulkDto validacao = servico.validarPlanoCompleto(id);
+            HttpStatus status = validacao.isAprovado() ? HttpStatus.OK : HttpStatus.CONFLICT;
+            return ResponseEntity.status(status).body(validacao);
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -139,10 +152,12 @@ public class EstivaBulkControlador {
     public ResponseEntity<?> validarEAprovar(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.validarEAprovar(id));
-        } catch (IllegalStateException e) {
+        } catch (ValidacaoPlanoBulkException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(exception.getValidacao());
+        } catch (IllegalStateException exception) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("erro", e.getMessage(), "tipo", "HARD_CONSTRAINT"));
-        } catch (EntityNotFoundException e) {
+                    .body(Map.of("erro", exception.getMessage(), "tipo", "HARD_CONSTRAINT"));
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -151,7 +166,7 @@ public class EstivaBulkControlador {
     public ResponseEntity<?> relatorio(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.buscarPorId(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }

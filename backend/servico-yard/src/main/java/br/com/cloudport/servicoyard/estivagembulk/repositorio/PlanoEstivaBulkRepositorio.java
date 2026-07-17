@@ -7,5 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PlanoEstivaBulkRepositorio extends JpaRepository<PlanoEstivaBulk, Long> {
     List<PlanoEstivaBulk> findByNavioIdOrderByCriadoEmDesc(Long navioId);
+    List<PlanoEstivaBulk> findByNavioIdAndVisitaNavioIdOrderByCriadoEmDesc(Long navioId, Long visitaNavioId);
     List<PlanoEstivaBulk> findByStatus(StatusPlanoEstiva status);
 }

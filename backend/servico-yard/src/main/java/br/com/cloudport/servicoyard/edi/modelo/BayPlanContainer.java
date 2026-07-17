@@ -13,6 +13,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
@@ -38,9 +39,9 @@ public class BayPlanContainer {
 
     @Embedded
     @AttributeOverrides({
-        @AttributeOverride(name = "bay",     column = @Column(name = "bay")),
+        @AttributeOverride(name = "bay", column = @Column(name = "bay")),
         @AttributeOverride(name = "row_bay", column = @Column(name = "row_bay")),
-        @AttributeOverride(name = "tier",    column = @Column(name = "tier"))
+        @AttributeOverride(name = "tier", column = @Column(name = "tier"))
     })
     private PosicaoBay posicaoBay;
 
@@ -53,6 +54,80 @@ public class BayPlanContainer {
     @Column(name = "peso_kg")
     private Double pesoKg;
 
+    @Column(name = "unidade_peso_original", length = 10)
+    private String unidadePesoOriginal;
+
+    @Column(name = "peso_vgm_kg")
+    private Double pesoVgmKg;
+
+    @Column(name = "unidade_vgm_original", length = 10)
+    private String unidadeVgmOriginal;
+
+    @Column(name = "origem_vgm", length = 30)
+    private String origemVgm;
+
+    @Column(name = "status_vgm", length = 30)
+    private String statusVgm;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_carga", nullable = false, length = 20)
+    private EstadoCargaContainer estadoCarga = EstadoCargaContainer.DESCONHECIDO;
+
+    @Column(name = "reefer", nullable = false)
+    private boolean reefer;
+
+    @Column(name = "temperatura_requerida_c")
+    private Double temperaturaRequeridaC;
+
+    @Column(name = "temperatura_minima_c")
+    private Double temperaturaMinimaC;
+
+    @Column(name = "temperatura_maxima_c")
+    private Double temperaturaMaximaC;
+
+    @Column(name = "perigoso", nullable = false)
+    private boolean perigoso;
+
+    @Column(name = "classe_imo", length = 20)
+    private String classeImo;
+
+    @Column(name = "numero_onu", length = 20)
+    private String numeroOnu;
+
+    @Column(name = "grupo_embalagem", length = 20)
+    private String grupoEmbalagem;
+
+    @Column(name = "grupo_segregacao", length = 50)
+    private String grupoSegregacao;
+
+    @Column(name = "codigo_emergencia", length = 100)
+    private String codigoEmergencia;
+
+    @Column(name = "oog", nullable = false)
+    private boolean oog;
+
+    @Column(name = "excesso_frontal_cm")
+    private Double excessoFrontalCm;
+
+    @Column(name = "excesso_traseiro_cm")
+    private Double excessoTraseiroCm;
+
+    @Column(name = "excesso_esquerdo_cm")
+    private Double excessoEsquerdoCm;
+
+    @Column(name = "excesso_direito_cm")
+    private Double excessoDireitoCm;
+
+    @Column(name = "excesso_altura_cm")
+    private Double excessoAlturaCm;
+
+    @Column(name = "instrucao_manuseio", length = 500)
+    private String instrucaoManuseio;
+
+    @Lob
+    @Column(name = "segmentos_originais")
+    private String segmentosOriginais;
+
     @Column(name = "referencia_bl", length = 30)
     private String referenciaBl;
 
@@ -60,7 +135,7 @@ public class BayPlanContainer {
     @Column(name = "tipo_operacao", nullable = false, length = 20)
     private TipoOperacaoBayPlan tipoOperacao;
 
-    @Column(name = "status_operacao", length = 20)
+    @Column(name = "status_operacao", length = 30)
     private String statusOperacao;
 
     @Column(name = "horario_operacao")
@@ -82,7 +157,16 @@ public class BayPlanContainer {
     @PreUpdate
     void touch() {
         atualizadoEm = LocalDateTime.now();
-        if (criadoEm == null) criadoEm = atualizadoEm;
+        if (criadoEm == null) {
+            criadoEm = atualizadoEm;
+        }
+        if (estadoCarga == null) {
+            estadoCarga = EstadoCargaContainer.DESCONHECIDO;
+        }
+    }
+
+    public Double getPesoOperacionalKg() {
+        return pesoVgmKg != null ? pesoVgmKg : pesoKg;
     }
 
     public Long getId() { return id; }
@@ -100,6 +184,54 @@ public class BayPlanContainer {
     public void setPortoDescarga(String portoDescarga) { this.portoDescarga = portoDescarga; }
     public Double getPesoKg() { return pesoKg; }
     public void setPesoKg(Double pesoKg) { this.pesoKg = pesoKg; }
+    public String getUnidadePesoOriginal() { return unidadePesoOriginal; }
+    public void setUnidadePesoOriginal(String unidadePesoOriginal) { this.unidadePesoOriginal = unidadePesoOriginal; }
+    public Double getPesoVgmKg() { return pesoVgmKg; }
+    public void setPesoVgmKg(Double pesoVgmKg) { this.pesoVgmKg = pesoVgmKg; }
+    public String getUnidadeVgmOriginal() { return unidadeVgmOriginal; }
+    public void setUnidadeVgmOriginal(String unidadeVgmOriginal) { this.unidadeVgmOriginal = unidadeVgmOriginal; }
+    public String getOrigemVgm() { return origemVgm; }
+    public void setOrigemVgm(String origemVgm) { this.origemVgm = origemVgm; }
+    public String getStatusVgm() { return statusVgm; }
+    public void setStatusVgm(String statusVgm) { this.statusVgm = statusVgm; }
+    public EstadoCargaContainer getEstadoCarga() { return estadoCarga; }
+    public void setEstadoCarga(EstadoCargaContainer estadoCarga) { this.estadoCarga = estadoCarga; }
+    public boolean isReefer() { return reefer; }
+    public void setReefer(boolean reefer) { this.reefer = reefer; }
+    public Double getTemperaturaRequeridaC() { return temperaturaRequeridaC; }
+    public void setTemperaturaRequeridaC(Double temperaturaRequeridaC) { this.temperaturaRequeridaC = temperaturaRequeridaC; }
+    public Double getTemperaturaMinimaC() { return temperaturaMinimaC; }
+    public void setTemperaturaMinimaC(Double temperaturaMinimaC) { this.temperaturaMinimaC = temperaturaMinimaC; }
+    public Double getTemperaturaMaximaC() { return temperaturaMaximaC; }
+    public void setTemperaturaMaximaC(Double temperaturaMaximaC) { this.temperaturaMaximaC = temperaturaMaximaC; }
+    public boolean isPerigoso() { return perigoso; }
+    public void setPerigoso(boolean perigoso) { this.perigoso = perigoso; }
+    public String getClasseImo() { return classeImo; }
+    public void setClasseImo(String classeImo) { this.classeImo = classeImo; }
+    public String getNumeroOnu() { return numeroOnu; }
+    public void setNumeroOnu(String numeroOnu) { this.numeroOnu = numeroOnu; }
+    public String getGrupoEmbalagem() { return grupoEmbalagem; }
+    public void setGrupoEmbalagem(String grupoEmbalagem) { this.grupoEmbalagem = grupoEmbalagem; }
+    public String getGrupoSegregacao() { return grupoSegregacao; }
+    public void setGrupoSegregacao(String grupoSegregacao) { this.grupoSegregacao = grupoSegregacao; }
+    public String getCodigoEmergencia() { return codigoEmergencia; }
+    public void setCodigoEmergencia(String codigoEmergencia) { this.codigoEmergencia = codigoEmergencia; }
+    public boolean isOog() { return oog; }
+    public void setOog(boolean oog) { this.oog = oog; }
+    public Double getExcessoFrontalCm() { return excessoFrontalCm; }
+    public void setExcessoFrontalCm(Double excessoFrontalCm) { this.excessoFrontalCm = excessoFrontalCm; }
+    public Double getExcessoTraseiroCm() { return excessoTraseiroCm; }
+    public void setExcessoTraseiroCm(Double excessoTraseiroCm) { this.excessoTraseiroCm = excessoTraseiroCm; }
+    public Double getExcessoEsquerdoCm() { return excessoEsquerdoCm; }
+    public void setExcessoEsquerdoCm(Double excessoEsquerdoCm) { this.excessoEsquerdoCm = excessoEsquerdoCm; }
+    public Double getExcessoDireitoCm() { return excessoDireitoCm; }
+    public void setExcessoDireitoCm(Double excessoDireitoCm) { this.excessoDireitoCm = excessoDireitoCm; }
+    public Double getExcessoAlturaCm() { return excessoAlturaCm; }
+    public void setExcessoAlturaCm(Double excessoAlturaCm) { this.excessoAlturaCm = excessoAlturaCm; }
+    public String getInstrucaoManuseio() { return instrucaoManuseio; }
+    public void setInstrucaoManuseio(String instrucaoManuseio) { this.instrucaoManuseio = instrucaoManuseio; }
+    public String getSegmentosOriginais() { return segmentosOriginais; }
+    public void setSegmentosOriginais(String segmentosOriginais) { this.segmentosOriginais = segmentosOriginais; }
     public String getReferenciaBl() { return referenciaBl; }
     public void setReferenciaBl(String referenciaBl) { this.referenciaBl = referenciaBl; }
     public TipoOperacaoBayPlan getTipoOperacao() { return tipoOperacao; }

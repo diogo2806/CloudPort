@@ -12,7 +12,8 @@ import {
   readSession,
   request,
   saveSession,
-  sanitizeText
+  sanitizeText,
+  subscribeSessionExpired
 } from './api.js';
 
 function createStorage() {
@@ -83,6 +84,26 @@ test('cliente HTTP adiciona JWT, correlationId e contexto operacional', async ()
   assert.equal(body.usuario, 'Diogo');
   assert.equal(body.operador, 'Diogo');
   assert.equal(body.origemAcao, 'PORTAL_CLOUDPORT_REACT');
+});
+
+test('resposta 401 limpa a sessão e publica uma única expiração', async () => {
+  saveSession({ token: jwt({ nome: 'Diogo', roles: ['PLANEJADOR'], exp: Math.floor(Date.now() / 1000) + 3600 }) });
+  let expirationCount = 0;
+  const unsubscribe = subscribeSessionExpired(() => { expirationCount += 1; });
+  globalThis.fetch = async (url) => {
+    if (url === '/assets/configuracao.json') {
+      return new Response(JSON.stringify({ baseApiUrl: 'http://localhost:8080' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ mensagem: 'Sessão expirada' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  };
+
+  await loadRuntimeConfig();
+  await assert.rejects(() => request('/api/roles'), (error) => error.status === 401);
+  await assert.rejects(() => request('/api/roles'), (error) => error.status === 401);
+
+  assert.equal(readSession(), null);
+  assert.equal(expirationCount, 1);
+  unsubscribe();
 });
 
 test('login envia a senha sem sanitização destrutiva', async () => {

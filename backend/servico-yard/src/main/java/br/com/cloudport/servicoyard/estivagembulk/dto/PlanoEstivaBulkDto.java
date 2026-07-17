@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoyard.estivagembulk.dto;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PlanoEstivaBulkDto {
@@ -13,9 +14,10 @@ public class PlanoEstivaBulkDto {
     private String status;
     private int totalBobinas;
     private double pesoTotalToneladas;
-    private List<PosicaoBobinaDto> posicoes;
+    private List<BobinaManifestoDto> bobinas = new ArrayList<>();
+    private List<PosicaoBobinaDto> posicoes = new ArrayList<>();
     private EstabilidadeEstrutural estabilidade;
-    private List<ViolacaoEstivaDto> violacoes;
+    private List<ViolacaoEstivaDto> violacoes = new ArrayList<>();
 
     public PlanoEstivaBulkDto() {
     }
@@ -108,6 +110,14 @@ public class PlanoEstivaBulkDto {
 
     public void setPesoTotalToneladas(double pesoTotalToneladas) {
         this.pesoTotalToneladas = pesoTotalToneladas;
+    }
+
+    public List<BobinaManifestoDto> getBobinas() {
+        return bobinas;
+    }
+
+    public void setBobinas(List<BobinaManifestoDto> bobinas) {
+        this.bobinas = bobinas;
     }
 
     public List<PosicaoBobinaDto> getPosicoes() {

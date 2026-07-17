@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `BUS40`.
+Status: atualizado em 2026-07-17 após implementação do requisito `SEC20`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -63,16 +63,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| SEC20 | Restringir criação, alteração e aprovação de planos de estiva a perfis autorizados. | Escritas do Vessel Planner e da estiva de bobinas exigem planejamento ou administração; leitura segue a matriz definida, usuário sem permissão recebe `403` e o backend protege o fluxo independentemente do menu. | ⬜ Pendente |
 | SEC30 | Eliminar credenciais funcionais e segredos criptográficos padrão dos serviços standalone. | Serviços que validam JWT ou autenticam clientes públicos falham na inicialização quando os segredos obrigatórios não forem fornecidos; nenhuma credencial conhecida do repositório habilita acesso, assinatura ou validação em runtime. | ⬜ Pendente |
-
-### SEC20 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/controlador/VesselPlannerControlador.java` | `/api/vessel-planner/**` | Não possui `@PreAuthorize`; qualquer autenticado pode criar, autoestivar, realocar e aprovar. | Separar leitura e comandos e limitar mutações a `ADMIN_PORTO`, `PLANEJADOR` ou matriz equivalente. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/controlador/EstivaBulkControlador.java` | `/api/estivagem-bulk/**` | Registro, criação, posicionamento, cálculo que persiste materiais e aprovação exigem apenas autenticação genérica. | Proteger comandos por role e impedir alteração de plano aprovado sem comando administrativo explícito. |
-| `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/configuracao/ConfiguracaoSegurancaRuntime.java` | `anyRequest().authenticated()` | A cadeia central autentica, mas não autoriza operações de domínio. | Manter a cadeia única e aplicar autorização nos controllers proprietários. |
 
 ### SEC30 — arquivos e métodos
 

@@ -51,9 +51,11 @@ O ambiente deve fornecer, no mínimo:
 - `SPRING_DATASOURCE_URL`;
 - `SPRING_DATASOURCE_USERNAME`;
 - `SPRING_DATASOURCE_PASSWORD`;
-- `CLOUDPORT_SECURITY_JWT_SECRET`;
-- `API_SECURITY_TOKEN_SECRET` com o mesmo valor do segredo JWT;
+- `CLOUDPORT_SECURITY_JWT_SECRET`, compartilhado pelo emissor e pelo decoder e com pelo menos 32 bytes;
+- `CLOUDPORT_SECURITY_JWT_EXPIRATION`, em formato ISO-8601, por exemplo `PT2H`;
 - configuração de RabbitMQ e Redis.
+
+Para entrega de alertas de reconciliação de barcode, configure `GATE_ALERTAS_WEBHOOK_URL` e, quando exigido pelo provedor, `GATE_ALERTAS_BEARER_TOKEN`. Sem URL configurada, a ocorrência permanece pendente e registra a falha de entrega para nova tentativa.
 
 ## Docker Compose
 

@@ -36,13 +36,13 @@ public class VesselPlannerServico {
     private final VesselPlannerEventoPublicador publicador;
 
     public VesselPlannerServico(EstivagemPlanRepositorio planRepositorio,
-                                 SlotNavioRepositorio slotRepositorio,
-                                 BayPlanRepositorio bayPlanRepositorio,
-                                 EstabilidadeNavioServico estabilidadeServico,
-                                 RestowCalculadorServico restowServico,
-                                 SequenciamentoGuindasteServico sequenciamentoServico,
-                                 AutoStowageServico autoStowageServico,
-                                 VesselPlannerEventoPublicador publicador) {
+                                  SlotNavioRepositorio slotRepositorio,
+                                  BayPlanRepositorio bayPlanRepositorio,
+                                  EstabilidadeNavioServico estabilidadeServico,
+                                  RestowCalculadorServico restowServico,
+                                  SequenciamentoGuindasteServico sequenciamentoServico,
+                                  AutoStowageServico autoStowageServico,
+                                  VesselPlannerEventoPublicador publicador) {
         this.planRepositorio = planRepositorio;
         this.slotRepositorio = slotRepositorio;
         this.bayPlanRepositorio = bayPlanRepositorio;
@@ -94,6 +94,7 @@ public class VesselPlannerServico {
     @Transactional
     public AlocacaoSlotRespostaDto alocarContainer(Long planId, AlocacaoSlotRequisicaoDto req) {
         EstivagemPlan plan = buscarPlan(planId);
+        exigirPlanoEditavel(plan);
         SlotNavio slot = slotRepositorio.findById(req.getSlotDestinoId())
                 .orElseThrow(() -> new EntityNotFoundException("Slot não encontrado: " + req.getSlotDestinoId()));
 
@@ -148,6 +149,7 @@ public class VesselPlannerServico {
     @Transactional
     public EstivagemPlanDto autoEstivar(Long planId) {
         EstivagemPlan plan = buscarPlan(planId);
+        exigirPlanoEditavel(plan);
         autoStowageServico.limparEstivagem(plan);
         autoStowageServico.sugerirEstivagem(plan,
                 bayPlanRepositorio.findById(plan.getBayPlanId())
@@ -188,6 +190,12 @@ public class VesselPlannerServico {
     @Transactional
     public EstivagemPlanDto validarEAprovar(Long planId) {
         EstivagemPlan plan = buscarPlan(planId);
+        if (plan.getStatus() == StatusEstivagemPlan.APROVADO) {
+            return toDto(plan, estabilidadeServico.calcular(plan));
+        }
+        if (plan.getStatus() == StatusEstivagemPlan.TRANSMITIDO) {
+            throw new IllegalStateException("Plano transmitido não pode ser aprovado novamente");
+        }
         EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
         if (!estabilidade.isAprovado()) {
             throw new IllegalStateException("Plano possui violações de Hard Constraint e não pode ser aprovado");
@@ -200,6 +208,13 @@ public class VesselPlannerServico {
     private EstivagemPlan buscarPlan(Long planId) {
         return planRepositorio.findById(planId)
                 .orElseThrow(() -> new EntityNotFoundException("EstivagemPlan não encontrado: " + planId));
+    }
+
+    private void exigirPlanoEditavel(EstivagemPlan plan) {
+        if (plan.getStatus() == StatusEstivagemPlan.APROVADO
+                || plan.getStatus() == StatusEstivagemPlan.TRANSMITIDO) {
+            throw new IllegalStateException("Plano aprovado ou transmitido não pode ser alterado por este comando");
+        }
     }
 
     private EstivagemPlanDto toDto(EstivagemPlan plan, EstabilidadeDto estabilidade) {

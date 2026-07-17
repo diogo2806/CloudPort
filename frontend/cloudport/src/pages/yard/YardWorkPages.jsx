@@ -9,7 +9,8 @@ export function YardWorkListPage({ navigate, session }) {
   const [selectedQueue, setSelectedQueue] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detail, setDetail] = useState(null);
-  const canOperate = hasAnyRole(session, 'ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE', 'SERVICE_NAVIO');
+  const canAdminister = hasAnyRole(session, 'ADMIN_PORTO', 'PLANEJADOR');
+  const canOperate = canAdminister || hasAnyRole(session, 'OPERADOR_PATIO');
   const remote = useRemote(async () => {
     const [queues, orders, matrix] = await Promise.all([
       api.listarWorkQueuesPatio(),
@@ -41,6 +42,7 @@ export function YardWorkListPage({ navigate, session }) {
   }
 
   function queueCommand(queue, type) {
+    if ((type === 'dispatch' && !canOperate) || (type !== 'dispatch' && !canAdminister)) return;
     const config = type === 'dispatch'
       ? {
           title: `Despachar ${queue.identificador}`,
@@ -65,6 +67,7 @@ export function YardWorkListPage({ navigate, session }) {
   }
 
   function instructionCommand(order, type) {
+    if (!canOperate) return;
     const actions = {
       suspend: ['Suspender', api.suspenderWorkInstructionPatio],
       resume: ['Retomar', api.retomarWorkInstructionPatio],
@@ -94,7 +97,7 @@ export function YardWorkListPage({ navigate, session }) {
     <YardPageHeader path="/home/patio/lista-trabalho" navigate={navigate} title="Lista de trabalho" description="Work queues e work instructions persistidas, com drill-down e comandos motivados conforme o perfil autenticado." actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
     <Message type="error">{remote.error || commands.error}</Message>
     <Message type="success">{commands.success}</Message>
-    {!canOperate && <Message type="warning">Seu perfil possui acesso de consulta. Os comandos operacionais permanecem ocultos e o backend continua aplicando a autorização.</Message>}
+    {!canAdminister && !canOperate && <Message type="warning">Seu perfil possui acesso de consulta. Os comandos operacionais permanecem ocultos e o backend continua aplicando a autorização.</Message>}
     <Section title="Filtros"><div className="filter-grid">
       <FilterField label="Busca"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Fila, zona, equipamento ou contêiner" /></FilterField>
       <FilterField label="Status"><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Todos</option>{['ATIVA', 'INATIVA', 'PENDENTE', 'EM_EXECUCAO', 'BLOQUEADA', 'SUSPENSA', 'CONCLUIDA', 'CANCELADA'].map((value) => <option key={value}>{value}</option>)}</select></FilterField>
@@ -117,7 +120,10 @@ export function YardWorkListPage({ navigate, session }) {
             ['identificador', 'Fila'], ['status', 'Status'], ['blocoZona', 'Bloco/zona'], ['pow', 'POW'],
             ['poolOperacional', 'Pool'], ['equipamento', 'Equipamento'], ['visitaNavioId', 'Visita'], ['totalOrdens', 'Job list']
           ]} />
-          {canOperate && <div className="actions"><button className="small" onClick={() => queueCommand(selectedQueue, 'activate')}>Ativar</button><button className="warning small" onClick={() => queueCommand(selectedQueue, 'deactivate')}>Desativar</button><button className="small" onClick={() => queueCommand(selectedQueue, 'dispatch')}>Dispatch</button></div>}
+          {canOperate && <div className="actions">
+            {canAdminister && <><button className="small" onClick={() => queueCommand(selectedQueue, 'activate')}>Ativar</button><button className="warning small" onClick={() => queueCommand(selectedQueue, 'deactivate')}>Desativar</button></>}
+            <button className="small" onClick={() => queueCommand(selectedQueue, 'dispatch')}>Dispatch</button>
+          </div>}
           <DataTable rows={selectedQueue.jobList ?? []} rowKey={(row) => row.id} columns={[
             { key: 'codigoConteiner', label: 'Unidade' },
             { key: 'tipoMovimento', label: 'Movimento' },

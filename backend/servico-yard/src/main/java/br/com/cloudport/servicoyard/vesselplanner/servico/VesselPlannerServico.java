@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.vesselplanner.servico;
 
 import br.com.cloudport.servicoyard.edi.modelo.BayPlan;
+import br.com.cloudport.servicoyard.edi.modelo.BayPlanContainer;
 import br.com.cloudport.servicoyard.edi.modelo.EstadoCargaContainer;
 import br.com.cloudport.servicoyard.edi.repositorio.BayPlanRepositorio;
 import br.com.cloudport.servicoyard.vesselplanner.dto.AlocacaoSlotRequisicaoDto;
@@ -80,6 +81,7 @@ public class VesselPlannerServico {
     @Transactional
     public AlocacaoSlotRespostaDto alocarContainer(Long planId, AlocacaoSlotRequisicaoDto requisicao) {
         EstivagemPlan plan = buscarPlanOperacional(planId);
+        exigirPlanoEditavel(plan);
         SlotNavio slot = slotRepositorio.findById(requisicao.getSlotDestinoId())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Slot não encontrado: " + requisicao.getSlotDestinoId()));
@@ -160,8 +162,9 @@ public class VesselPlannerServico {
     @Transactional
     public EstivagemPlanDto autoEstivar(Long planId) {
         EstivagemPlan plan = buscarPlanOperacional(planId);
+        exigirPlanoEditavel(plan);
         autoStowageServico.limparEstivagem(plan);
-        List<br.com.cloudport.servicoyard.edi.modelo.BayPlanContainer> containers = bayPlanRepositorio
+        List<BayPlanContainer> containers = bayPlanRepositorio
                 .findById(plan.getBayPlanId())
                 .map(BayPlan::getContainers)
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -203,6 +206,12 @@ public class VesselPlannerServico {
     @Transactional
     public EstivagemPlanDto validarEAprovar(Long planId) {
         EstivagemPlan plan = buscarPlanOperacional(planId);
+        if (plan.getStatus() == StatusEstivagemPlan.APROVADO) {
+            return toDto(plan, estabilidadeServico.calcular(plan));
+        }
+        if (plan.getStatus() == StatusEstivagemPlan.TRANSMITIDO) {
+            throw new IllegalStateException("Plano transmitido não pode ser aprovado novamente");
+        }
         geometriaServico.validarPlanoParaAprovacao(plan);
         EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
         if (!estabilidade.isAprovado()) {
@@ -218,6 +227,13 @@ public class VesselPlannerServico {
                 .orElseThrow(() -> new EntityNotFoundException("EstivagemPlan não encontrado: " + planId));
         geometriaServico.validarPlanoOperacional(plan);
         return plan;
+    }
+
+    private void exigirPlanoEditavel(EstivagemPlan plan) {
+        if (plan.getStatus() == StatusEstivagemPlan.APROVADO
+                || plan.getStatus() == StatusEstivagemPlan.TRANSMITIDO) {
+            throw new IllegalStateException("Plano aprovado ou transmitido não pode ser alterado por este comando");
+        }
     }
 
     private EstabilidadeDto recalcularEstabilidade(EstivagemPlan plan) {

@@ -1,6 +1,8 @@
 package br.com.cloudport.runtime.configuracao;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -82,6 +84,20 @@ class ConfiguracaoSegurancaRuntimeTest {
         assertThat(cabecalhosPermitidos.toLowerCase())
                 .contains("x-cloudport-client-id")
                 .contains("x-cloudport-client-secret");
+    }
+
+    @Test
+    void deveRejeitarSegredoJwtSentinelaNoRuntime() {
+        ConfiguracaoSegurancaRuntime configuracao = new ConfiguracaoSegurancaRuntime(
+                "chave-local-para-desenvolvimento-123456",
+                "http://localhost:4200",
+                mock(InternalServiceAuthenticationFilter.class),
+                mock(PublicApiClientAuthenticationFilter.class)
+        );
+
+        assertThatThrownBy(configuracao::jwtDecoder)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("sentinela");
     }
 
     @RestController

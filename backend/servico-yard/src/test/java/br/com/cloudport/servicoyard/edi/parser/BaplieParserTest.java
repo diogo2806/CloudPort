@@ -1,146 +1,155 @@
 package br.com.cloudport.servicoyard.edi.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import br.com.cloudport.servicoyard.edi.modelo.BayPlan;
-import br.com.cloudport.servicoyard.edi.modelo.StatusBayPlan;
+import br.com.cloudport.servicoyard.edi.modelo.BayPlanContainer;
+import br.com.cloudport.servicoyard.edi.modelo.EstadoCargaContainer;
 import br.com.cloudport.servicoyard.edi.modelo.TipoOperacaoBayPlan;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("BaplieParser - Parser EDIFACT D.95B")
+@DisplayName("BaplieParser - atributos operacionais e de segurança")
 class BaplieParserTest {
 
-    private BaplieParser parser;
+    private final BaplieParser parser = new BaplieParser();
 
-    // BAPLIE minimal válido com 2 containers
-    private static final String BAPLIE_VALIDO =
-            "UNB+UNOA:2+SENDER+RECEIVER+260101:0000+1'" +
-            "UNH+1+BAPLIE:D:95B:UN:SMDG20'" +
-            "BGM+599+BAYPLAN001+9'" +
-            "TDT+20+VOY001++1:MSC GULSEUM'" +
-            "LOC+5+BRSSZ:139:6'" +
-            "LOC+61+DEHAM:139:6'" +
-            "EQD+CN+TCKU7453652+22G1:6:5+4+1+5'" +
-            "LOC+147+110102:3:22'" +
-            "LOC+9+DEHAM:139:6'" +
-            "LOC+11+BRSSZ:139:6'" +
-            "MEA+WT++24500:KGM'" +
-            "RFF+BL:MSCUBL123456'" +
-            "EQD+CN+MSCU9876543+45G1:6:5+4+1+5'" +
-            "LOC+147+110202:3:22'" +
-            "LOC+9+USNYC:139:6'" +
-            "MEA+WT++18200:KGM'" +
-            "UNT+16+1'" +
-            "UNZ+1+1'";
+    @Test
+    @DisplayName("Deve interpretar D.95B, inferir operação e normalizar unidades de peso")
+    void deveInterpretarD95bComPesoNormalizado() {
+        String mensagem = "UNH+1+BAPLIE:D:95B:UN:SMDG20'"
+                + "BGM+599+PLANO-1+9'"
+                + "TDT+20+VOY001++1:MSC GULSEUM'"
+                + "LOC+5+BRSSZ'"
+                + "LOC+61+DEHAM'"
+                + "EQD+CN+MSCU1234567+22G1:6:5+4+1+5'"
+                + "LOC+147+010284'"
+                + "LOC+9+BRSSZ'"
+                + "LOC+11+DEHAM'"
+                + "MEA+WT++24.5:TNE'"
+                + "RFF+BM:BL001'"
+                + "EQD+CN+MSCU7654321+22G1:6:5+4+1+4'"
+                + "LOC+147+020286'"
+                + "LOC+9+USNYC'"
+                + "LOC+11+DEHAM'"
+                + "MEA+WT++22046.226:LBR'";
 
-    @BeforeEach
-    void setup() {
-        parser = new BaplieParser();
+        BayPlan bayPlan = parser.parse(mensagem);
+
+        assertEquals("MSC GULSEUM", bayPlan.getCodigoNavio());
+        assertEquals("MSC GULSEUM", bayPlan.getNomeNavio());
+        assertEquals("VOY001", bayPlan.getCodigoViagem());
+        assertEquals(2, bayPlan.getContainers().size());
+
+        BayPlanContainer primeiro = bayPlan.getContainers().get(0);
+        assertEquals(24_500.0, primeiro.getPesoKg(), 0.001);
+        assertEquals("TNE", primeiro.getUnidadePesoOriginal());
+        assertEquals(EstadoCargaContainer.CHEIO, primeiro.getEstadoCarga());
+        assertEquals(TipoOperacaoBayPlan.CARREGAMENTO, primeiro.getTipoOperacao());
+        assertEquals("BL001", primeiro.getReferenciaBl());
+        assertEquals(1, primeiro.getPosicaoBay().getBay());
+        assertEquals(2, primeiro.getPosicaoBay().getRow());
+        assertEquals(84, primeiro.getPosicaoBay().getTier());
+
+        BayPlanContainer segundo = bayPlan.getContainers().get(1);
+        assertEquals(10_000.0, segundo.getPesoKg(), 0.01);
+        assertEquals("LBR", segundo.getUnidadePesoOriginal());
+        assertEquals(EstadoCargaContainer.VAZIO, segundo.getEstadoCarga());
+        assertEquals(TipoOperacaoBayPlan.DESCARGA, segundo.getTipoOperacao());
+        assertFalse(segundo.getSegmentosOriginais().isBlank());
     }
 
     @Test
-    @DisplayName("Deve extrair dados do navio (TDT)")
-    void extrairDadosNavio() {
-        BayPlan bp = parser.parse(BAPLIE_VALIDO);
+    @DisplayName("Deve interpretar D.13B com VGM, reefer, IMO, segregação e OOG")
+    void deveInterpretarD13bEstruturado() {
+        String mensagem = "UNH+M-EX11+BAPLIE:D:13B:UN:SMDG31'"
+                + "BGM+659::LOADONLY+M-EX1/1++38'"
+                + "TDT+20+014E47+++HLC:LINES:306+++9501332::11:NEW YORK EXPRESS'"
+                + "LOC+5+BEANR'"
+                + "LOC+61+DEHAM'"
+                + "LOC+147+0501490::5'"
+                + "EQD+CN+MARU1234567+45R1:2++2++5'"
+                + "MEA+AAE+WT+TNE:12'"
+                + "MEA+AAE+VGM+KGM:12500'"
+                + "TMP+2+-1.5:C'"
+                + "RNG+5+CEL:-24:-21'"
+                + "DGS+IMD+2.1+1954+055:C+II+F-E,S-E'"
+                + "ATT+26+SEG:DGATT:306+SEGREGATION-A'"
+                + "DIM+9+CMT:35'"
+                + "HAN+RF:REEFER'";
 
-        assertNotNull(bp.getCodigoNavio());
-        assertEquals("VOY001", bp.getCodigoViagem());
-        assertTrue(bp.getNomeNavio().contains("MSC GULSEUM"));
+        BayPlan bayPlan = parser.parse(mensagem);
+        BayPlanContainer container = bayPlan.getContainers().get(0);
+
+        assertEquals("9501332", bayPlan.getCodigoNavio());
+        assertEquals("NEW YORK EXPRESS", bayPlan.getNomeNavio());
+        assertEquals(50, container.getPosicaoBay().getBay());
+        assertEquals(14, container.getPosicaoBay().getRow());
+        assertEquals(90, container.getPosicaoBay().getTier());
+        assertEquals(TipoOperacaoBayPlan.CARREGAMENTO, container.getTipoOperacao());
+        assertEquals(12_000.0, container.getPesoKg(), 0.001);
+        assertEquals(12_500.0, container.getPesoVgmKg(), 0.001);
+        assertEquals(12_500.0, container.getPesoOperacionalKg(), 0.001);
+        assertEquals("BAPLIE", container.getOrigemVgm());
+        assertEquals("VERIFICADO", container.getStatusVgm());
+        assertTrue(container.isReefer());
+        assertEquals(-1.5, container.getTemperaturaRequeridaC(), 0.001);
+        assertEquals(-24.0, container.getTemperaturaMinimaC(), 0.001);
+        assertEquals(-21.0, container.getTemperaturaMaximaC(), 0.001);
+        assertTrue(container.isPerigoso());
+        assertEquals("2.1", container.getClasseImo());
+        assertEquals("1954", container.getNumeroOnu());
+        assertEquals("II", container.getGrupoEmbalagem());
+        assertTrue(container.getGrupoSegregacao().contains("SEGREGATION-A"));
+        assertTrue(container.isOog());
+        assertEquals(35.0, container.getExcessoAlturaCm(), 0.001);
+        assertTrue(container.getSegmentosOriginais().contains("DGS+IMD+2.1+1954"));
     }
 
     @Test
-    @DisplayName("Deve extrair portos de carga e descarga")
-    void extrairPortos() {
-        BayPlan bp = parser.parse(BAPLIE_VALIDO);
+    @DisplayName("Deve rejeitar versão BAPLIE fora dos perfis aceitos")
+    void deveRejeitarPerfilNaoSuportado() {
+        String mensagem = "UNH+1+BAPLIE:D:96A:UN:SMDG20'";
 
-        assertEquals("BRSSZ", bp.getPortoCarga());
-        assertEquals("DEHAM", bp.getPortoDescarga());
+        IllegalArgumentException erro = assertThrows(
+                IllegalArgumentException.class,
+                () -> parser.parse(mensagem));
+
+        assertTrue(erro.getMessage().contains("não suportado"));
     }
 
     @Test
-    @DisplayName("Deve extrair 2 containers com códigos corretos")
-    void extrairContainers() {
-        BayPlan bp = parser.parse(BAPLIE_VALIDO);
+    @DisplayName("Deve rejeitar navio sem identidade real em vez de criar código sintético")
+    void deveRejeitarNavioSemIdentidade() {
+        String mensagem = "UNH+1+BAPLIE:D:95B:UN:SMDG20'"
+                + "TDT+20+VOY001'"
+                + "EQD+CN+MSCU1234567+22G1+++5'"
+                + "LOC+147+010284'"
+                + "MEA+WT++10000:KGM'";
 
-        assertEquals(2, bp.getContainers().size());
-        assertEquals("TCKU7453652", bp.getContainers().get(0).getCodigoContainer());
-        assertEquals("MSCU9876543", bp.getContainers().get(1).getCodigoContainer());
+        IllegalArgumentException erro = assertThrows(
+                IllegalArgumentException.class,
+                () -> parser.parse(mensagem));
+
+        assertTrue(erro.getMessage().contains("identificação real do navio"));
     }
 
     @Test
-    @DisplayName("Deve extrair posição bay/row/tier do container")
-    void extrairPosicaoBay() {
-        BayPlan bp = parser.parse(BAPLIE_VALIDO);
+    @DisplayName("Deve rejeitar equipamento sem indicador cheio ou vazio")
+    void deveRejeitarEstadoCargaAusente() {
+        String mensagem = "UNH+1+BAPLIE:D:95B:UN:SMDG20'"
+                + "TDT+20+VOY001++1:MSC GULSEUM'"
+                + "EQD+CN+MSCU1234567+22G1'"
+                + "LOC+147+010284'"
+                + "MEA+WT++10000:KGM'";
 
-        var pos = bp.getContainers().get(0).getPosicaoBay();
-        assertNotNull(pos);
-        assertEquals(11, pos.getBay());
-        assertEquals(1, pos.getRow());
-        assertEquals(2, pos.getTier());
-    }
+        IllegalArgumentException erro = assertThrows(
+                IllegalArgumentException.class,
+                () -> parser.parse(mensagem));
 
-    @Test
-    @DisplayName("Deve extrair porto de descarga do container")
-    void extrairPortoDescargaContainer() {
-        BayPlan bp = parser.parse(BAPLIE_VALIDO);
-
-        assertEquals("DEHAM", bp.getContainers().get(0).getPortoDescarga());
-        assertEquals("USNYC", bp.getContainers().get(1).getPortoDescarga());
-    }
-
-    @Test
-    @DisplayName("Deve extrair peso bruto")
-    void extrairPeso() {
-        BayPlan bp = parser.parse(BAPLIE_VALIDO);
-
-        assertEquals(24500.0, bp.getContainers().get(0).getPesoKg());
-        assertEquals(18200.0, bp.getContainers().get(1).getPesoKg());
-    }
-
-    @Test
-    @DisplayName("Deve extrair referência Bill of Lading")
-    void extrairReferenciaBl() {
-        BayPlan bp = parser.parse(BAPLIE_VALIDO);
-
-        assertEquals("MSCUBL123456", bp.getContainers().get(0).getReferenciaBl());
-    }
-
-    @Test
-    @DisplayName("Deve definir status RASCUNHO e origem BAPLIE")
-    void statusEOrigem() {
-        BayPlan bp = parser.parse(BAPLIE_VALIDO);
-
-        assertEquals(StatusBayPlan.RASCUNHO, bp.getStatus());
-        assertEquals("BAPLIE", bp.getOrigemMensagem());
-    }
-
-    @Test
-    @DisplayName("Deve definir tipo operação DESCARGA para containers BAPLIE")
-    void tipoOperacaoDescarga() {
-        BayPlan bp = parser.parse(BAPLIE_VALIDO);
-
-        assertTrue(bp.getContainers().stream()
-                .allMatch(c -> c.getTipoOperacao() == TipoOperacaoBayPlan.DESCARGA));
-    }
-
-    @Test
-    @DisplayName("Deve lançar exceção para EDIFACT vazio")
-    void erroParaEdifactVazio() {
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(""));
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(null));
-    }
-
-    @Test
-    @DisplayName("Deve lançar exceção se TDT ausente")
-    void erroSemTdt() {
-        String semTdt = "UNB+UNOA:2+S+R+260101:0000+1'" +
-                        "EQD+CN+CONT001+22G1'" +
-                        "LOC+147+110102:3:22'";
-        assertThrows(IllegalArgumentException.class, () -> parser.parse(semTdt));
+        assertTrue(erro.getMessage().contains("cheio/vazio"));
     }
 }

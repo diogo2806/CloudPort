@@ -160,7 +160,11 @@ function enrichCommand(path, method, body, session, correlationId) {
     return body;
   }
   const command = { ...body };
-  const operationalPath = path.includes('/gate/') || path.includes('/yard/') || path.includes('/rail/') || path.includes('/visitas-navio');
+  const operationalPath = path.includes('/gate/')
+    || path.includes('/yard/')
+    || path.includes('/rail/')
+    || path.includes('/visitas-navio')
+    || path.includes('/api/edi/processamentos/');
   if (operationalPath) {
     command.usuario ??= session?.nome ?? 'operador';
     command.origemAcao ??= 'PORTAL_CLOUDPORT_REACT';
@@ -182,7 +186,7 @@ export async function request(path, options = {}) {
   if (session?.token) headers.set('Authorization', `Bearer ${session.token}`);
 
   let body = enrichCommand(path, method, options.body, session, correlationId);
-  if (body !== undefined && !(body instanceof FormData)) {
+  if (body !== undefined && !(body instanceof FormData) && !options.rawBody) {
     headers.set('Content-Type', 'application/json');
     body = JSON.stringify(body);
   }
@@ -220,6 +224,7 @@ export async function request(path, options = {}) {
 export function normalizePage(payload) {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.content)) return payload.content;
+  if (Array.isArray(payload?.conteudo)) return payload.conteudo;
   if (Array.isArray(payload?.items)) return payload.items;
   if (Array.isArray(payload?.dados)) return payload.dados;
   return [];
@@ -261,6 +266,32 @@ export const api = {
   listarConteineresPatio: () => request('/yard/patio/conteineres'),
   listarRecursosPatio: () => request('/yard/patio/recursos'),
   listarEscalasEmbarque: (dias = 30) => request('/escalas', { query: { dias } }),
+  uploadBaplie: (file) => {
+    const formData = new FormData();
+    formData.append('arquivo', file, sanitizeText(file?.name).substring(0, 120));
+    return request('/api/edi/baplie/upload', { method: 'POST', body: formData, timeoutMs: 30000 });
+  },
+  enviarBaplieTexto: (conteudo) => request('/api/edi/baplie/texto', {
+    method: 'POST',
+    body: String(conteudo ?? ''),
+    headers: { 'Content-Type': 'text/plain; charset=UTF-8' },
+    rawBody: true,
+    timeoutMs: 30000
+  }),
+  listarProcessamentosEdi: (query = { tipo: 'BAPLIE', pagina: 0, tamanho: 50 }) => request('/api/edi/processamentos', { query }),
+  obterProcessamentoEdi: (id) => request(`/api/edi/processamentos/${id}`),
+  reprocessarProcessamentoEdi: (id, motivo) => request(`/api/edi/processamentos/${id}/reprocessar`, { method: 'POST', body: { motivo } }),
+  listarBayPlansAtivos: () => request('/api/edi/bay-plan/ativos'),
+  listarBayPlansPorNavio: (codigoNavio) => request(`/api/edi/bay-plan/navio/${encodeURIComponent(codigoNavio)}`),
+  obterBayPlan: (id) => request(`/api/edi/bay-plan/${id}`),
+  criarPlanoVesselPlanner: (bayPlanId) => request('/api/vessel-planner/planos', { method: 'POST', body: { bayPlanId } }),
+  obterPlanoVesselPlanner: (id) => request(`/api/vessel-planner/planos/${id}`),
+  alocarContainerNoPlano: (id, body) => request(`/api/vessel-planner/planos/${id}/slots/alocar`, { method: 'POST', body }),
+  autoEstivarPlano: (id) => request(`/api/vessel-planner/planos/${id}/auto-estivagem`, { method: 'POST' }),
+  obterEstabilidadePlano: (id) => request(`/api/vessel-planner/planos/${id}/estabilidade`),
+  obterRestowPlano: (id) => request(`/api/vessel-planner/planos/${id}/restow`),
+  obterSequenciamentoGuindastes: (id, numGuindastes = 2) => request(`/api/vessel-planner/planos/${id}/sequenciamento-guindastes`, { query: { numGuindastes } }),
+  validarPlanoVesselPlanner: (id) => request(`/api/vessel-planner/planos/${id}/validar`, { method: 'POST' }),
   listarNaviosEstivagemBulk: () => request('/api/estivagem-bulk/navios'),
   listarTemplatesEstivagemBulk: () => request('/api/estivagem-bulk/navios/templates'),
   listarPlanosEstivagemBulk: (navioId, codigoViagem) => request('/api/estivagem-bulk/planos', { query: { navioId, codigoViagem } }),

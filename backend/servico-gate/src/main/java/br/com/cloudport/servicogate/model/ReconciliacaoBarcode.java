@@ -80,6 +80,18 @@ public class ReconciliacaoBarcode extends AbstractAuditableEntity {
     @Column(name = "alerta_ultimo_erro", length = 1000)
     private String alertaUltimoErro;
 
+    @Column(name = "alerta_chave_idempotencia", length = 160)
+    private String alertaChaveIdempotencia;
+
+    @Column(name = "alerta_reivindicacao_token", length = 64)
+    private String alertaReivindicacaoToken;
+
+    @Column(name = "alerta_reivindicado_em")
+    private LocalDateTime alertaReivindicadoEm;
+
+    @Column(name = "alerta_lease_ate")
+    private LocalDateTime alertaLeaseAte;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public GatePass getGatePass() { return gatePass; }
@@ -118,4 +130,12 @@ public class ReconciliacaoBarcode extends AbstractAuditableEntity {
     public void setAlertaTentativas(Integer alertaTentativas) { this.alertaTentativas = alertaTentativas; }
     public String getAlertaUltimoErro() { return alertaUltimoErro; }
     public void setAlertaUltimoErro(String alertaUltimoErro) { this.alertaUltimoErro = alertaUltimoErro; }
+    public String getAlertaChaveIdempotencia() { return alertaChaveIdempotencia; }
+    public void setAlertaChaveIdempotencia(String alertaChaveIdempotencia) { this.alertaChaveIdempotencia = alertaChaveIdempotencia; }
+    public String getAlertaReivindicacaoToken() { return alertaReivindicacaoToken; }
+    public void setAlertaReivindicacaoToken(String alertaReivindicacaoToken) { this.alertaReivindicacaoToken = alertaReivindicacaoToken; }
+    public LocalDateTime getAlertaReivindicadoEm() { return alertaReivindicadoEm; }
+    public void setAlertaReivindicadoEm(LocalDateTime alertaReivindicadoEm) { this.alertaReivindicadoEm = alertaReivindicadoEm; }
+    public LocalDateTime getAlertaLeaseAte() { return alertaLeaseAte; }
+    public void setAlertaLeaseAte(LocalDateTime alertaLeaseAte) { this.alertaLeaseAte = alertaLeaseAte; }
 }

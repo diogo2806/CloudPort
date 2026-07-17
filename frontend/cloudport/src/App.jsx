@@ -3,6 +3,8 @@ import { api, clearSession, formatError, hasAnyRole, readSession, sanitizeText, 
 import { Message } from './components.jsx';
 import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
+import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
+import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 import {
   ControlRoomPage,
   DATASET_ROUTES,
@@ -11,10 +13,8 @@ import {
   HomeDashboard,
   RailImportPage,
   RailVisitsPage,
-  ShippingPage,
   YardMapPage
 } from './pages/OperationalPages.jsx';
-import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 
 const FALLBACK_NAVIGATION = [
   { group: 'Visão geral', items: [{ label: 'Painel', path: '/home/dashboard', roles: [] }] },
@@ -123,7 +123,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
   if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage />;
-  if (path === '/home/embarque' || path === '/home/embarque/planejamento') return <ShippingPage />;
+  if (path === '/home/embarque' || path === '/home/embarque/planejamento') return <ContainerVesselPlannerPage session={session} />;
   if (path === '/home/embarque/steel-coils') return <SteelCoilPlannerPage />;
 
   const definition = DATASET_ROUTES[path]

@@ -85,6 +85,9 @@ public class OrdemTrabalhoPatio {
     @Column(name = "work_queue_id")
     private Long workQueueId;
 
+    @Column(name = "chave_idempotencia", length = 120, unique = true)
+    private String chaveIdempotencia;
+
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
 
@@ -163,6 +166,8 @@ public class OrdemTrabalhoPatio {
     public void setPrioridadeBusca(boolean prioridadeBusca) { this.prioridadeBusca = prioridadeBusca; }
     public Long getWorkQueueId() { return workQueueId; }
     public void setWorkQueueId(Long workQueueId) { this.workQueueId = workQueueId; }
+    public String getChaveIdempotencia() { return chaveIdempotencia; }
+    public void setChaveIdempotencia(String chaveIdempotencia) { this.chaveIdempotencia = chaveIdempotencia; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
     public LocalDateTime getAtualizadoEm() { return atualizadoEm; }

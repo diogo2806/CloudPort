@@ -1,37 +1,45 @@
 package br.com.cloudport.servicoyard.patio.otimizacao;
 
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.OrdemTrabalhoPatioRequisicaoDto;
-import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
-import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
-import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.OrdemTrabalhoPatioServico;
 import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
+import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
 import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
 import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
+import br.com.cloudport.servicoyard.patio.repositorio.PosicaoPatioRepositorio;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class PredictiveReshuffflingServico {
 
+    private static final int MAX_TENTATIVAS_DESTINO = 5;
+
     private final ConteinerPatioRepositorio conteinerRepositorio;
-    private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
+    private final PosicaoPatioRepositorio posicaoRepositorio;
     private final OrdemTrabalhoPatioServico ordemServico;
     private final MapaOcupacaoServico mapaOcupacao;
 
     public PredictiveReshuffflingServico(ConteinerPatioRepositorio conteinerRepositorio,
-                                          OrdemTrabalhoPatioRepositorio ordemRepositorio,
+                                          PosicaoPatioRepositorio posicaoRepositorio,
                                           OrdemTrabalhoPatioServico ordemServico,
                                           MapaOcupacaoServico mapaOcupacao) {
         this.conteinerRepositorio = conteinerRepositorio;
-        this.ordemRepositorio = ordemRepositorio;
+        this.posicaoRepositorio = posicaoRepositorio;
         this.ordemServico = ordemServico;
         this.mapaOcupacao = mapaOcupacao;
     }
@@ -62,7 +70,7 @@ public class PredictiveReshuffflingServico {
         return new PlanoReshuffflingDto(
                 reshuffles,
                 true,
-                String.format("Identificados %d contêineres para pre-shuffling", reshuffles.size())
+                String.format("Identificados %d contêineres bloqueadores para pre-shuffling", reshuffles.size())
         );
     }
 
@@ -83,23 +91,36 @@ public class PredictiveReshuffflingServico {
     @Transactional(readOnly = true)
     public List<ConteinerParaReshuffflingDto> identificarCandidatos(List<ConteinerPatio> conteineres) {
         List<ConteinerParaReshuffflingDto> candidatos = new ArrayList<>();
+        List<PosicaoPatio> posicoes = posicaoRepositorio.findAllByOrderByLinhaAscColunaAscCamadaOperacionalAsc();
+        Set<String> bloqueadoresIncluidos = new HashSet<>();
 
-        for (ConteinerPatio conteiner : conteineres) {
-            if (!isPriorityPara(conteiner)) {
+        for (ConteinerPatio conteinerBase : conteineres) {
+            if (!isPriorityPara(conteinerBase)) {
                 continue;
             }
 
-            OrdemTrabalhoPatio ordemEmCima = verificarConteinerEmCima(conteiner);
-            if (ordemEmCima != null && temETAMaisLongo(conteiner, ordemEmCima)) {
-                candidatos.add(new ConteinerParaReshuffflingDto(
-                        conteiner.getCodigo(),
-                        conteiner.getPosicao().getLinha(),
-                        conteiner.getPosicao().getColuna(),
-                        conteiner.getPosicao().getCamadaOperacional(),
-                        "CONTEINER_EMBAIXO",
-                        calcularNovaPositicao(conteiner)
-                ));
+            ConteinerPatio bloqueador = verificarConteinerEmCima(conteinerBase, conteineres);
+            if (bloqueador == null
+                    || !temETAMaisLongo(conteinerBase, bloqueador)
+                    || !bloqueadoresIncluidos.add(bloqueador.getCodigo().toUpperCase(Locale.ROOT))) {
+                continue;
             }
+
+            NovaPosicaoReshuffflingDto novaPosicao = calcularNovaPositicao(
+                    bloqueador, conteineres, posicoes, Set.of());
+            if (novaPosicao == null) {
+                continue;
+            }
+
+            candidatos.add(new ConteinerParaReshuffflingDto(
+                    bloqueador.getCodigo(),
+                    bloqueador.getPosicao().getLinha(),
+                    bloqueador.getPosicao().getColuna(),
+                    bloqueador.getPosicao().getCamadaOperacional(),
+                    "BLOQUEANDO_" + conteinerBase.getCodigo(),
+                    novaPosicao,
+                    criarChaveIdempotencia(bloqueador)
+            ));
         }
 
         return candidatos.stream()
@@ -112,20 +133,51 @@ public class PredictiveReshuffflingServico {
         ConteinerPatio conteiner = conteinerRepositorio.findByCodigoIgnoreCase(candidato.getCodigoConteiner())
                 .orElse(null);
 
-        if (conteiner == null) {
+        if (conteiner == null || conteiner.getPosicao() == null) {
             return;
         }
 
+        Set<Long> posicoesIgnoradas = new HashSet<>();
+        for (int tentativa = 0; tentativa < MAX_TENTATIVAS_DESTINO; tentativa++) {
+            List<ConteinerPatio> conteineres = conteinerRepositorio.findAll();
+            List<PosicaoPatio> posicoes = posicaoRepositorio.findAllByOrderByLinhaAscColunaAscCamadaOperacionalAsc();
+            NovaPosicaoReshuffflingDto destino = calcularNovaPositicao(
+                    conteiner, conteineres, posicoes, posicoesIgnoradas);
+            if (destino == null) {
+                return;
+            }
+
+            OrdemTrabalhoPatioRequisicaoDto dto = montarOrdem(conteiner, destino, candidato.getChaveIdempotencia());
+            try {
+                ordemServico.registrarOuReutilizarRemanejamento(dto);
+                return;
+            } catch (ResponseStatusException ex) {
+                if (ex.getStatus() != HttpStatus.CONFLICT && ex.getStatus() != HttpStatus.NOT_FOUND) {
+                    throw ex;
+                }
+                posicoesIgnoradas.add(destino.getPosicaoId());
+            }
+        }
+    }
+
+    private OrdemTrabalhoPatioRequisicaoDto montarOrdem(ConteinerPatio conteiner,
+                                                          NovaPosicaoReshuffflingDto destino,
+                                                          String chaveIdempotencia) {
         OrdemTrabalhoPatioRequisicaoDto dto = new OrdemTrabalhoPatioRequisicaoDto();
-        dto.setCodigoConteiner(candidato.getCodigoConteiner());
-        dto.setTipoCarga(conteiner.getCarga() != null ? conteiner.getCarga().getCodigo() : null);
+        dto.setCodigoConteiner(conteiner.getCodigo());
+        if (conteiner.getTipoCarga() != null) {
+            dto.setTipoCarga(conteiner.getTipoCarga().name());
+        } else if (conteiner.getCarga() != null) {
+            dto.setTipoCarga(conteiner.getCarga().getCodigo());
+        }
         dto.setDestino(conteiner.getDestino());
-        dto.setLinhaDestino(candidato.getNovaLinha());
-        dto.setColunaDestino(candidato.getNovaColuna());
-        dto.setCamadaDestino(candidato.getNovaCamada());
+        dto.setLinhaDestino(destino.getNovaLinha());
+        dto.setColunaDestino(destino.getNovaColuna());
+        dto.setCamadaDestino(destino.getNovaCamada());
         dto.setTipoMovimento(TipoMovimentoPatio.REMANEJAMENTO);
         dto.setStatusConteinerDestino(StatusConteiner.ARMAZENADO);
-        ordemServico.registrarOrdem(dto);
+        dto.setChaveIdempotencia(chaveIdempotencia);
+        return dto;
     }
 
     private boolean isPriorityPara(ConteinerPatio conteiner) {
@@ -136,38 +188,161 @@ public class PredictiveReshuffflingServico {
         return conteiner.getPosicao().getLinha() < 50 && conteiner.getPosicao().getColuna() < 50;
     }
 
-    private OrdemTrabalhoPatio verificarConteinerEmCima(ConteinerPatio conteinerBase) {
-        return ordemRepositorio.findAll().stream()
-                .filter(ordem -> ordem.getConteiner() != null)
-                .filter(ordem -> ordem.getConteiner().getPosicao().getLinha()
-                        .equals(conteinerBase.getPosicao().getLinha()))
-                .filter(ordem -> ordem.getConteiner().getPosicao().getColuna()
-                        .equals(conteinerBase.getPosicao().getColuna()))
-                .filter(ordem -> ordem.getStatusOrdem() == StatusOrdemTrabalhoPatio.PENDENTE)
+    private ConteinerPatio verificarConteinerEmCima(ConteinerPatio conteinerBase,
+                                                      List<ConteinerPatio> conteineres) {
+        Integer camadaBase = extrairNivelCamada(conteinerBase.getPosicao().getCamadaOperacional());
+        if (camadaBase == null) {
+            return null;
+        }
+        return conteineres.stream()
+                .filter(conteiner -> conteiner.getPosicao() != null)
+                .filter(conteiner -> !conteiner.getCodigo().equalsIgnoreCase(conteinerBase.getCodigo()))
+                .filter(conteiner -> conteiner.getPosicao().getLinha().equals(conteinerBase.getPosicao().getLinha()))
+                .filter(conteiner -> conteiner.getPosicao().getColuna().equals(conteinerBase.getPosicao().getColuna()))
+                .filter(conteiner -> {
+                    Integer camada = extrairNivelCamada(conteiner.getPosicao().getCamadaOperacional());
+                    return camada != null && camada > camadaBase;
+                })
+                .min(Comparator.comparing(conteiner ->
+                        extrairNivelCamada(conteiner.getPosicao().getCamadaOperacional())))
+                .orElse(null);
+    }
+
+    private boolean temETAMaisLongo(ConteinerPatio conteinerAbaixo, ConteinerPatio conteinerEmCima) {
+        if (conteinerAbaixo.getAtualizadoEm() == null || conteinerEmCima.getAtualizadoEm() == null) {
+            return false;
+        }
+        LocalDateTime agora = LocalDateTime.now();
+        long idadeConteinerAbaixo = ChronoUnit.HOURS.between(conteinerAbaixo.getAtualizadoEm(), agora);
+        long idadeConteinerEmCima = Math.max(
+                ChronoUnit.HOURS.between(conteinerEmCima.getAtualizadoEm(), agora), 1L);
+        return idadeConteinerAbaixo > (idadeConteinerEmCima * 2);
+    }
+
+    private NovaPosicaoReshuffflingDto calcularNovaPositicao(ConteinerPatio conteiner,
+                                                              List<ConteinerPatio> conteineres,
+                                                              List<PosicaoPatio> posicoes,
+                                                              Set<Long> posicoesIgnoradas) {
+        if (conteiner.getPosicao() == null) {
+            return null;
+        }
+        LocalDateTime agora = LocalDateTime.now();
+        return posicoes.stream()
+                .filter(posicao -> posicao.getId() != null && !posicoesIgnoradas.contains(posicao.getId()))
+                .filter(posicao -> !posicao.getId().equals(conteiner.getPosicao().getId()))
+                .filter(posicao -> !mesmaPilha(posicao, conteiner.getPosicao()))
+                .filter(posicao -> posicaoElegivel(posicao, conteiner, conteineres, agora))
+                .sorted(Comparator
+                        .comparingInt((PosicaoPatio posicao) -> distancia(conteiner.getPosicao(), posicao))
+                        .thenComparingInt(posicao -> nivelOuMaximo(posicao.getCamadaOperacional())))
+                .map(posicao -> new NovaPosicaoReshuffflingDto(
+                        posicao.getId(),
+                        posicao.getLinha(),
+                        posicao.getColuna(),
+                        posicao.getCamadaOperacional()))
                 .findFirst()
                 .orElse(null);
     }
 
-    private boolean temETAMaisLongo(ConteinerPatio conteinerAbaixo, OrdemTrabalhoPatio ordemEmCima) {
-        long idadeConteinerAbaixo = java.time.temporal.ChronoUnit.HOURS
-                .between(conteinerAbaixo.getAtualizadoEm(), LocalDateTime.now());
-        long idadeOrdemEmCima = java.time.temporal.ChronoUnit.HOURS
-                .between(ordemEmCima.getCriadoEm(), LocalDateTime.now());
-
-        return idadeConteinerAbaixo > (idadeOrdemEmCima * 2);
+    private boolean posicaoElegivel(PosicaoPatio posicao,
+                                     ConteinerPatio conteiner,
+                                     List<ConteinerPatio> conteineres,
+                                     LocalDateTime agora) {
+        if (posicao.isBloqueada() || posicao.isInterditada() || !posicao.isAreaPermitida()) {
+            return false;
+        }
+        if (posicao.possuiReservaAtiva(agora)) {
+            return false;
+        }
+        if (conteineres.stream()
+                .filter(atual -> atual.getPosicao() != null)
+                .anyMatch(atual -> posicao.getId().equals(atual.getPosicao().getId()))) {
+            return false;
+        }
+        Integer nivel = extrairNivelCamada(posicao.getCamadaOperacional());
+        if (nivel == null || nivel <= 0) {
+            return false;
+        }
+        if (posicao.getCamadaMaxima() != null && nivel > posicao.getCamadaMaxima()) {
+            return false;
+        }
+        if (posicao.getCapacidadePilha() != null && nivel > posicao.getCapacidadePilha()) {
+            return false;
+        }
+        if (conteiner.getPesoToneladas() != null
+                && posicao.getPesoMaximoToneladas() != null
+                && conteiner.getPesoToneladas().compareTo(posicao.getPesoMaximoToneladas()) > 0) {
+            return false;
+        }
+        if (conteiner.getTipoCarga() != null && StringUtils.hasText(posicao.getTiposCargaPermitidos())) {
+            String tipoCarga = conteiner.getTipoCarga().name();
+            boolean permitido = List.of(posicao.getTiposCargaPermitidos().split("[,;|]"))
+                    .stream()
+                    .map(String::trim)
+                    .anyMatch(tipo -> tipo.equalsIgnoreCase(tipoCarga));
+            if (!permitido) {
+                return false;
+            }
+        }
+        return possuiApoioReal(posicao, conteineres, nivel);
     }
 
-    private NovaPosicaoReshuffflingDto calcularNovaPositicao(ConteinerPatio conteiner) {
-        List<ConteinerPatio> vizinhos = conteinerRepositorio.findAll().stream()
-                .filter(c -> c.getPosicao() != null)
-                .filter(c -> Math.abs(c.getPosicao().getLinha() - conteiner.getPosicao().getLinha()) < 10)
-                .filter(c -> Math.abs(c.getPosicao().getColuna() - conteiner.getPosicao().getColuna()) < 10)
-                .collect(Collectors.toList());
+    private boolean possuiApoioReal(PosicaoPatio posicao,
+                                     List<ConteinerPatio> conteineres,
+                                     int nivel) {
+        if (nivel == 1) {
+            return true;
+        }
+        for (int nivelInferior = 1; nivelInferior < nivel; nivelInferior++) {
+            int nivelEsperado = nivelInferior;
+            boolean ocupado = conteineres.stream()
+                    .filter(conteiner -> conteiner.getPosicao() != null)
+                    .filter(conteiner -> conteiner.getPosicao().getLinha().equals(posicao.getLinha()))
+                    .filter(conteiner -> conteiner.getPosicao().getColuna().equals(posicao.getColuna()))
+                    .map(conteiner -> extrairNivelCamada(conteiner.getPosicao().getCamadaOperacional()))
+                    .anyMatch(nivelAtual -> nivelAtual != null && nivelAtual == nivelEsperado);
+            if (!ocupado) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-        int novaLinha = conteiner.getPosicao().getLinha() + 5;
-        int novaColuna = conteiner.getPosicao().getColuna() + 5;
+    private boolean mesmaPilha(PosicaoPatio primeira, PosicaoPatio segunda) {
+        return primeira.getLinha().equals(segunda.getLinha())
+                && primeira.getColuna().equals(segunda.getColuna());
+    }
 
-        return new NovaPosicaoReshuffflingDto(novaLinha, novaColuna, "CAMADA_1");
+    private int distancia(PosicaoPatio origem, PosicaoPatio destino) {
+        return Math.abs(origem.getLinha() - destino.getLinha())
+                + Math.abs(origem.getColuna() - destino.getColuna());
+    }
+
+    private String criarChaveIdempotencia(ConteinerPatio conteiner) {
+        return "RESHUFFLING:"
+                + conteiner.getCodigo().toUpperCase(Locale.ROOT)
+                + ":POSICAO:"
+                + conteiner.getPosicao().getId();
+    }
+
+    private int nivelOuMaximo(String camada) {
+        Integer nivel = extrairNivelCamada(camada);
+        return nivel != null ? nivel : Integer.MAX_VALUE;
+    }
+
+    private Integer extrairNivelCamada(String camada) {
+        if (!StringUtils.hasText(camada)) {
+            return null;
+        }
+        String digitos = camada.replaceAll("\\D+", "");
+        if (!StringUtils.hasText(digitos)) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(digitos);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     public static class PlanoReshuffflingDto {
@@ -195,16 +370,22 @@ public class PredictiveReshuffflingServico {
         private String camadaAtual;
         private String prioridade;
         private NovaPosicaoReshuffflingDto novaPosicao;
+        private String chaveIdempotencia;
 
-        public ConteinerParaReshuffflingDto(String codigoConteiner, int linhaAtual, int colunaAtual,
-                                           String camadaAtual, String prioridade,
-                                           NovaPosicaoReshuffflingDto novaPosicao) {
+        public ConteinerParaReshuffflingDto(String codigoConteiner,
+                                             int linhaAtual,
+                                             int colunaAtual,
+                                             String camadaAtual,
+                                             String prioridade,
+                                             NovaPosicaoReshuffflingDto novaPosicao,
+                                             String chaveIdempotencia) {
             this.codigoConteiner = codigoConteiner;
             this.linhaAtual = linhaAtual;
             this.colunaAtual = colunaAtual;
             this.camadaAtual = camadaAtual;
             this.prioridade = prioridade;
             this.novaPosicao = novaPosicao;
+            this.chaveIdempotencia = chaveIdempotencia;
         }
 
         public String getCodigoConteiner() { return codigoConteiner; }
@@ -216,19 +397,26 @@ public class PredictiveReshuffflingServico {
         public int getNovaLinha() { return novaPosicao.getNovaLinha(); }
         public int getNovaColuna() { return novaPosicao.getNovaColuna(); }
         public String getNovaCamada() { return novaPosicao.getNovaCamada(); }
+        public String getChaveIdempotencia() { return chaveIdempotencia; }
     }
 
     public static class NovaPosicaoReshuffflingDto {
+        private Long posicaoId;
         private int novaLinha;
         private int novaColuna;
         private String novaCamada;
 
-        public NovaPosicaoReshuffflingDto(int novaLinha, int novaColuna, String novaCamada) {
+        public NovaPosicaoReshuffflingDto(Long posicaoId,
+                                           int novaLinha,
+                                           int novaColuna,
+                                           String novaCamada) {
+            this.posicaoId = posicaoId;
             this.novaLinha = novaLinha;
             this.novaColuna = novaColuna;
             this.novaCamada = novaCamada;
         }
 
+        public Long getPosicaoId() { return posicaoId; }
         public int getNovaLinha() { return novaLinha; }
         public int getNovaColuna() { return novaColuna; }
         public String getNovaCamada() { return novaCamada; }

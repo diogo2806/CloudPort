@@ -53,6 +53,9 @@ public class OrdemTrabalhoPatioRequisicaoDto {
     private Integer sequenciaNavio;
     private Integer prioridadeOperacional;
 
+    @Size(max = 120)
+    private String chaveIdempotencia;
+
     public OrdemTrabalhoPatioRequisicaoDto() {
     }
 
@@ -89,4 +92,9 @@ public class OrdemTrabalhoPatioRequisicaoDto {
     public void setSequenciaNavio(Integer sequenciaNavio) { this.sequenciaNavio = sequenciaNavio; }
     public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
     public void setPrioridadeOperacional(Integer prioridadeOperacional) { this.prioridadeOperacional = prioridadeOperacional; }
+    public String getChaveIdempotencia() { return chaveIdempotencia; }
+    public void setChaveIdempotencia(String chaveIdempotencia) {
+        String valorLimpo = ValidacaoEntradaUtil.limparTexto(chaveIdempotencia);
+        this.chaveIdempotencia = StringUtils.hasText(valorLimpo) ? valorLimpo : null;
+    }
 }

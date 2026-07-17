@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.patio.modelo;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -55,6 +56,15 @@ public class PosicaoPatio {
     @Column(name = "capacidade_pilha")
     private Integer capacidadePilha;
 
+    @Column(name = "reserva_chave", length = 120)
+    private String reservaChave;
+
+    @Column(name = "reserva_codigo_conteiner", length = 30)
+    private String reservaCodigoConteiner;
+
+    @Column(name = "reserva_expira_em")
+    private LocalDateTime reservaExpiraEm;
+
     public PosicaoPatio() {
     }
 
@@ -63,6 +73,24 @@ public class PosicaoPatio {
         this.linha = linha;
         this.coluna = coluna;
         this.camadaOperacional = camadaOperacional;
+    }
+
+    public boolean possuiReservaAtiva(LocalDateTime referencia) {
+        return reservaChave != null
+                && reservaExpiraEm != null
+                && reservaExpiraEm.isAfter(referencia);
+    }
+
+    public void reservar(String chave, String codigoConteiner, LocalDateTime expiraEm) {
+        this.reservaChave = chave;
+        this.reservaCodigoConteiner = codigoConteiner;
+        this.reservaExpiraEm = expiraEm;
+    }
+
+    public void liberarReserva() {
+        this.reservaChave = null;
+        this.reservaCodigoConteiner = null;
+        this.reservaExpiraEm = null;
     }
 
     public Long getId() {
@@ -167,5 +195,29 @@ public class PosicaoPatio {
 
     public void setCapacidadePilha(Integer capacidadePilha) {
         this.capacidadePilha = capacidadePilha;
+    }
+
+    public String getReservaChave() {
+        return reservaChave;
+    }
+
+    public void setReservaChave(String reservaChave) {
+        this.reservaChave = reservaChave;
+    }
+
+    public String getReservaCodigoConteiner() {
+        return reservaCodigoConteiner;
+    }
+
+    public void setReservaCodigoConteiner(String reservaCodigoConteiner) {
+        this.reservaCodigoConteiner = reservaCodigoConteiner;
+    }
+
+    public LocalDateTime getReservaExpiraEm() {
+        return reservaExpiraEm;
+    }
+
+    public void setReservaExpiraEm(LocalDateTime reservaExpiraEm) {
+        this.reservaExpiraEm = reservaExpiraEm;
     }
 }

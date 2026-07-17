@@ -19,6 +19,9 @@ public class VisitaTremRespostaDto {
     private final List<OperacaoConteinerVisitaRespostaDto> listaDescarga;
     private final List<OperacaoConteinerVisitaRespostaDto> listaCarga;
     private final List<VagaoVisitaRespostaDto> listaVagoes;
+    private final int quantidadeDescarga;
+    private final int quantidadeCarga;
+    private final int quantidadeVagoes;
 
     public VisitaTremRespostaDto(Long id,
                                  String identificadorTrem,
@@ -28,7 +31,10 @@ public class VisitaTremRespostaDto {
                                  StatusVisitaTrem statusVisita,
                                  List<OperacaoConteinerVisitaRespostaDto> listaDescarga,
                                  List<OperacaoConteinerVisitaRespostaDto> listaCarga,
-                                 List<VagaoVisitaRespostaDto> listaVagoes) {
+                                 List<VagaoVisitaRespostaDto> listaVagoes,
+                                 int quantidadeDescarga,
+                                 int quantidadeCarga,
+                                 int quantidadeVagoes) {
         this.id = id;
         this.identificadorTrem = identificadorTrem;
         this.operadoraFerroviaria = operadoraFerroviaria;
@@ -38,9 +44,24 @@ public class VisitaTremRespostaDto {
         this.listaDescarga = listaDescarga;
         this.listaCarga = listaCarga;
         this.listaVagoes = listaVagoes;
+        this.quantidadeDescarga = quantidadeDescarga;
+        this.quantidadeCarga = quantidadeCarga;
+        this.quantidadeVagoes = quantidadeVagoes;
     }
 
     public static VisitaTremRespostaDto deEntidade(VisitaTrem entidade) {
+        List<OperacaoConteinerVisitaRespostaDto> descarga = entidade.getListaDescarga()
+                .stream()
+                .map(OperacaoConteinerVisitaRespostaDto::deEmbeddable)
+                .collect(Collectors.toList());
+        List<OperacaoConteinerVisitaRespostaDto> carga = entidade.getListaCarga()
+                .stream()
+                .map(OperacaoConteinerVisitaRespostaDto::deEmbeddable)
+                .collect(Collectors.toList());
+        List<VagaoVisitaRespostaDto> vagoes = entidade.getListaVagoes()
+                .stream()
+                .map(VagaoVisitaRespostaDto::deEmbeddable)
+                .collect(Collectors.toList());
         return new VisitaTremRespostaDto(
                 entidade.getId(),
                 HtmlUtils.htmlEscape(entidade.getIdentificadorTrem()),
@@ -48,18 +69,12 @@ public class VisitaTremRespostaDto {
                 entidade.getHoraChegadaPrevista(),
                 entidade.getHoraPartidaPrevista(),
                 entidade.getStatusVisita(),
-                entidade.getListaDescarga()
-                        .stream()
-                        .map(OperacaoConteinerVisitaRespostaDto::deEmbeddable)
-                        .collect(Collectors.toList()),
-                entidade.getListaCarga()
-                        .stream()
-                        .map(OperacaoConteinerVisitaRespostaDto::deEmbeddable)
-                        .collect(Collectors.toList()),
-                entidade.getListaVagoes()
-                        .stream()
-                        .map(VagaoVisitaRespostaDto::deEmbeddable)
-                        .collect(Collectors.toList())
+                descarga,
+                carga,
+                vagoes,
+                descarga.size(),
+                carga.size(),
+                vagoes.size()
         );
     }
 
@@ -73,7 +88,10 @@ public class VisitaTremRespostaDto {
                 entidade.getStatusVisita(),
                 Collections.emptyList(),
                 Collections.emptyList(),
-                Collections.emptyList()
+                Collections.emptyList(),
+                entidade.getListaDescarga().size(),
+                entidade.getListaCarga().size(),
+                entidade.getListaVagoes().size()
         );
     }
 
@@ -111,5 +129,17 @@ public class VisitaTremRespostaDto {
 
     public List<VagaoVisitaRespostaDto> getListaVagoes() {
         return listaVagoes;
+    }
+
+    public int getQuantidadeDescarga() {
+        return quantidadeDescarga;
+    }
+
+    public int getQuantidadeCarga() {
+        return quantidadeCarga;
+    }
+
+    public int getQuantidadeVagoes() {
+        return quantidadeVagoes;
     }
 }

@@ -1,23 +1,10 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `ASYNC70`.
+Status: atualizado em 2026-07-17 após implementação do requisito `STATE30`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
-## 1. Estado e sessão do portal
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| STATE30 | Encerrar também a sessão mantida em memória quando a API responder `401`. | Qualquer `401` limpa a persistência local, invalida o estado React da sessão e redireciona para `/login` sem manter telas protegidas renderizadas ou continuar enviando requisições sem token. | ⬜ Pendente |
-
-### STATE30 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/api.js` | `request()` e `clearSession()` | Em resposta `401`, o cliente remove a sessão do `localStorage`, mas não comunica a expiração para a árvore React. | Publicar um sinal único de sessão expirada após `clearSession()`; novo método sugerido: `notifySessionExpired()`. |
-| `frontend/cloudport/src/App.jsx` | `App()`, estado `session` e efeito de redirecionamento | O estado `session` só muda no login ou logout manual. Após um `401`, ele continua preenchido e o portal protegido permanece renderizado até recarga da página ou saída manual. | Escutar o sinal de expiração, executar `setSession(null)` e substituir a rota atual por `/login`, preservando no máximo o caminho de retorno seguro. |
-
-## 2. Planejamento de embarque
+## 1. Planejamento de embarque
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
@@ -44,7 +31,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/dto/CriarEstivagemPlanRequisicaoDto.java` | campos `bayPlanId` e `visitaNavioId` | Ambos são `@NotNull`; o corpo atual do portal sempre omite a visita e é rejeitado antes do serviço. | Manter o contrato obrigatório e corrigir o frontend para fornecer a identidade da escala selecionada. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/controlador/VesselPlannerControlador.java` | `criarPlano()` | O controller encaminha os dois identificadores ao serviço, mas o produtor React fornece somente um deles. | Manter o vínculo canônico existente no backend e tornar o fluxo React compatível com o contrato. |
 
-## 3. Mapa operacional do pátio
+## 2. Mapa operacional do pátio
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
@@ -58,7 +45,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `frontend/cloudport/src/pages/yard/YardMapPages.jsx` | `YardMapPage()` e `layer.plannedOrder` | A interface possui estado visual para destino planejado, mas ele depende do mapa produzido por `buildStacks()` e permanece ausente para contratos reais de ordem. | Consumir a associação corrigida e manter ocupação real, restrição e destino planejado como estados distintos. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/dto/OrdemTrabalhoPatioRespostaDto.java` | `linhaDestino`, `colunaDestino` e `camadaDestino` | O contrato publica explicitamente as coordenadas de destino e não publica `linha` ou `coluna`. | Preservar o contrato e ajustar somente o consumidor frontend para os nomes oficiais. |
 
-## 4. Telas operacionais do Gate
+## 3. Telas operacionais do Gate
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

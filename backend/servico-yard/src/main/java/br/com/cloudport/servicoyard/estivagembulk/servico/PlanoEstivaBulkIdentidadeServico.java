@@ -19,6 +19,7 @@ import br.com.cloudport.servicoyard.integracao.navio.IdentidadePlanejamentoNavio
 import br.com.cloudport.servicoyard.integracao.navio.NavioPlanejamento;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,6 +96,14 @@ public class PlanoEstivaBulkIdentidadeServico {
         plano.setVersaoNavioCanonico(contexto.navio().versao());
         plano.setVersaoVisita(contexto.visita().versao());
         return planoRepositorio.save(plano);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlanoEstivaBulkDto> listarPlanos(Long navioId, Long visitaNavioId) {
+        return planoRepositorio.findByNavioIdAndVisitaNavioIdOrderByCriadoEmDesc(navioId, visitaNavioId)
+                .stream()
+                .map(plano -> enriquecer(servico.buscarPorId(plano.getId()), plano))
+                .collect(Collectors.toList());
     }
 
     @Transactional

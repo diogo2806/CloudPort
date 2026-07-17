@@ -5,8 +5,7 @@ import javax.persistence.Embeddable;
 
 /**
  * Posição EDIFACT bay/row/tier de um contêiner no navio.
- * Codificação padrão: string de 6 dígitos BBRRTT
- * BB = bay (01-99), RR = row (00=centerline, ímpar=BB, par=BE), TT = tier (≥02 acima, ≥82 abaixo)
+ * Aceita BBRRTT (BAPLIE 1.x/2.x) e BBBRRTT (BAPLIE 3.1 D.13B).
  */
 @Embeddable
 public class PosicaoBay {
@@ -20,7 +19,8 @@ public class PosicaoBay {
     @Column(name = "tier")
     private Integer tier;
 
-    public PosicaoBay() {}
+    public PosicaoBay() {
+    }
 
     public PosicaoBay(Integer bay, Integer row, Integer tier) {
         this.bay = bay;
@@ -28,21 +28,29 @@ public class PosicaoBay {
         this.tier = tier;
     }
 
-    /**
-     * Cria uma PosicaoBay a partir da string de 6 dígitos BBRRTT do padrão EDIFACT.
-     */
     public static PosicaoBay deCodigoEdifact(String codigo) {
-        if (codigo == null || codigo.length() < 6) {
+        if (codigo == null) {
             return new PosicaoBay(0, 0, 0);
         }
+
+        String normalizado = codigo.trim();
         try {
-            int bay = Integer.parseInt(codigo.substring(0, 2));
-            int row = Integer.parseInt(codigo.substring(2, 4));
-            int tier = Integer.parseInt(codigo.substring(4, 6));
-            return new PosicaoBay(bay, row, tier);
-        } catch (NumberFormatException e) {
-            return new PosicaoBay(0, 0, 0);
+            if (normalizado.matches("\\d{7,}")) {
+                return new PosicaoBay(
+                        Integer.parseInt(normalizado.substring(0, 3)),
+                        Integer.parseInt(normalizado.substring(3, 5)),
+                        Integer.parseInt(normalizado.substring(5, 7)));
+            }
+            if (normalizado.matches("\\d{6}")) {
+                return new PosicaoBay(
+                        Integer.parseInt(normalizado.substring(0, 2)),
+                        Integer.parseInt(normalizado.substring(2, 4)),
+                        Integer.parseInt(normalizado.substring(4, 6)));
+            }
+        } catch (NumberFormatException ignored) {
+            // O retorno inválido é rejeitado pela validação obrigatória do parser.
         }
+        return new PosicaoBay(0, 0, 0);
     }
 
     public String toCodigoEdifact() {

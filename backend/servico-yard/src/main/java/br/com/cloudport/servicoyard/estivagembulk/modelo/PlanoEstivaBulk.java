@@ -76,7 +76,26 @@ public class PlanoEstivaBulk {
     private Double listCalculado;
 
     @Column(name = "calado_saida")
-    private Double calado_saida;
+    private Double caladoSaida;
+
+    @Column(name = "versao_validacao_seguranca")
+    private Long versaoValidacaoSeguranca;
+
+    @Column(name = "versao_especificacao_seguranca", length = 60)
+    private String versaoEspecificacaoSeguranca;
+
+    @Column(name = "referencia_regra_seguranca", length = 120)
+    private String referenciaRegraSeguranca;
+
+    @Column(name = "validado_por_seguranca", length = 100)
+    private String validadoPorSeguranca;
+
+    @Column(name = "validado_em_seguranca")
+    private LocalDateTime validadoEmSeguranca;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "resultado_validacao_seguranca", length = 20)
+    private ResultadoValidacaoSeguranca resultadoValidacaoSeguranca = ResultadoValidacaoSeguranca.PENDENTE;
 
     @Version
     private Long versao;
@@ -236,12 +255,60 @@ public class PlanoEstivaBulk {
         this.listCalculado = listCalculado;
     }
 
-    public Double getCalado_saida() {
-        return calado_saida;
+    public Double getCaladoSaida() {
+        return caladoSaida;
     }
 
-    public void setCalado_saida(Double calado_saida) {
-        this.calado_saida = calado_saida;
+    public void setCaladoSaida(Double caladoSaida) {
+        this.caladoSaida = caladoSaida;
+    }
+
+    public Long getVersaoValidacaoSeguranca() {
+        return versaoValidacaoSeguranca;
+    }
+
+    public void setVersaoValidacaoSeguranca(Long versaoValidacaoSeguranca) {
+        this.versaoValidacaoSeguranca = versaoValidacaoSeguranca;
+    }
+
+    public String getVersaoEspecificacaoSeguranca() {
+        return versaoEspecificacaoSeguranca;
+    }
+
+    public void setVersaoEspecificacaoSeguranca(String versaoEspecificacaoSeguranca) {
+        this.versaoEspecificacaoSeguranca = versaoEspecificacaoSeguranca;
+    }
+
+    public String getReferenciaRegraSeguranca() {
+        return referenciaRegraSeguranca;
+    }
+
+    public void setReferenciaRegraSeguranca(String referenciaRegraSeguranca) {
+        this.referenciaRegraSeguranca = referenciaRegraSeguranca;
+    }
+
+    public String getValidadoPorSeguranca() {
+        return validadoPorSeguranca;
+    }
+
+    public void setValidadoPorSeguranca(String validadoPorSeguranca) {
+        this.validadoPorSeguranca = validadoPorSeguranca;
+    }
+
+    public LocalDateTime getValidadoEmSeguranca() {
+        return validadoEmSeguranca;
+    }
+
+    public void setValidadoEmSeguranca(LocalDateTime validadoEmSeguranca) {
+        this.validadoEmSeguranca = validadoEmSeguranca;
+    }
+
+    public ResultadoValidacaoSeguranca getResultadoValidacaoSeguranca() {
+        return resultadoValidacaoSeguranca;
+    }
+
+    public void setResultadoValidacaoSeguranca(ResultadoValidacaoSeguranca resultadoValidacaoSeguranca) {
+        this.resultadoValidacaoSeguranca = resultadoValidacaoSeguranca;
     }
 
     public Long getVersao() {

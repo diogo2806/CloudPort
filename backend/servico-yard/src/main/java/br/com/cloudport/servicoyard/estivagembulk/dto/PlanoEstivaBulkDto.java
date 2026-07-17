@@ -21,6 +21,7 @@ public class PlanoEstivaBulkDto {
     private double pesoTotalToneladas;
     private List<PosicaoBobinaDto> posicoes;
     private EstabilidadeEstrutural estabilidade;
+    private ValidacaoPlanoBulkDto validacaoSeguranca;
     private List<ViolacaoEstivaDto> violacoes;
 
     public PlanoEstivaBulkDto() {
@@ -78,6 +79,8 @@ public class PlanoEstivaBulkDto {
     public void setPosicoes(List<PosicaoBobinaDto> posicoes) { this.posicoes = posicoes; }
     public EstabilidadeEstrutural getEstabilidade() { return estabilidade; }
     public void setEstabilidade(EstabilidadeEstrutural estabilidade) { this.estabilidade = estabilidade; }
+    public ValidacaoPlanoBulkDto getValidacaoSeguranca() { return validacaoSeguranca; }
+    public void setValidacaoSeguranca(ValidacaoPlanoBulkDto validacaoSeguranca) { this.validacaoSeguranca = validacaoSeguranca; }
     public List<ViolacaoEstivaDto> getViolacoes() { return violacoes; }
     public void setViolacoes(List<ViolacaoEstivaDto> violacoes) { this.violacoes = violacoes; }
 }

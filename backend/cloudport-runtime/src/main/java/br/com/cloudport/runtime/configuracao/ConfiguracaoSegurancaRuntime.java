@@ -1,6 +1,7 @@
 package br.com.cloudport.runtime.configuracao;
 
 import br.com.cloudport.serviconavio.configuracao.InternalServiceAuthenticationFilter;
+import br.com.cloudport.serviconaviosiderurgico.configuracao.CredenciaisSegurancaValidator;
 import br.com.cloudport.serviconaviosiderurgico.configuracao.PublicApiClientAuthenticationFilter;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -98,10 +99,11 @@ public class ConfiguracaoSegurancaRuntime {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        if (!StringUtils.hasText(jwtSecret) || jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
-            throw new IllegalStateException("cloudport.security.jwt.secret deve ter ao menos 256 bits (32 bytes)");
-        }
-        SecretKey secretKey = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        String segredoValidado = CredenciaisSegurancaValidator.validarSegredoJwt(jwtSecret);
+        SecretKey secretKey = new SecretKeySpec(
+                segredoValidado.getBytes(StandardCharsets.UTF_8),
+                "HmacSHA256"
+        );
         return NimbusJwtDecoder.withSecretKey(secretKey).build();
     }
 

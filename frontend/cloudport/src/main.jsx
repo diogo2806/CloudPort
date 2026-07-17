@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import { loadRuntimeConfig } from './api.js';
 import './styles.css';
+import './steel-coil-planner.css';
 
 function renderConfigurationError(error) {
   createRoot(document.getElementById('root')).render(

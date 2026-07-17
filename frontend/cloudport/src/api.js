@@ -239,6 +239,18 @@ export function formatError(error, fallback = 'Não foi possível concluir a ope
   return `${message}${code ? ` [${code}]` : ''}${details ? ` - ${details}` : ''}${correlation ? ` (correlationId: ${correlation})` : ''}`;
 }
 
+function commandBody(reason, extra = {}) {
+  const motivo = sanitizeText(reason);
+  if (!motivo) throw new Error('O motivo operacional é obrigatório.');
+  return { ...extra, motivo };
+}
+
+function optionalVisitQuery(visitaNavioId) {
+  return visitaNavioId === undefined || visitaNavioId === null || visitaNavioId === ''
+    ? undefined
+    : { visitaNavioId };
+}
+
 export const api = {
   autenticar: (login, senha) => request('/auth/login', { method: 'POST', body: { login: sanitizeText(login), senha }, public: true }),
   listarAbas: () => request('/api/navegacao/abas'),
@@ -261,10 +273,34 @@ export const api = {
     return request('/rail/ferrovia/visitas/importacoes', { method: 'POST', body: formData, timeoutMs: 30000 });
   },
   obterMapaPatio: (query = {}) => request('/yard/patio/mapa', { query }),
+  obterFiltrosMapaPatio: () => request('/yard/patio/filtros'),
   listarPosicoesPatio: () => request('/yard/patio/posicoes'),
+  listarPosicoesReservaveisPatio: () => request('/yard/patio/reservas/posicoes'),
   listarMovimentacoesPatio: () => request('/yard/patio/movimentacoes'),
   listarConteineresPatio: () => request('/yard/patio/conteineres'),
-  listarRecursosPatio: () => request('/yard/patio/recursos'),
+  listarRecursosPatio: () => request('/yard/patio/mapa').then((payload) => payload?.equipamentos ?? []),
+  listarOrdensPatio: (status) => request('/yard/patio/ordens', { query: status ? { status } : undefined }),
+  listarWorkQueuesPatio: (visitaNavioId) => request('/yard/patio/work-queues', { query: optionalVisitQuery(visitaNavioId) }),
+  ativarWorkQueuePatio: (id, reason) => request(`/yard/patio/work-queues/${id}/ativar`, { method: 'PATCH', body: commandBody(reason) }),
+  desativarWorkQueuePatio: (id, reason) => request(`/yard/patio/work-queues/${id}/desativar`, { method: 'PATCH', body: commandBody(reason) }),
+  despacharWorkQueuePatio: (id, body = {}, reason) => request(`/yard/patio/work-queues/${id}/dispatch`, { method: 'POST', body: commandBody(reason ?? body.motivo ?? body.observacao, body) }),
+  suspenderWorkInstructionPatio: (id, reason) => request(`/yard/patio/work-instructions/${id}/suspender`, { method: 'POST', body: commandBody(reason) }),
+  retomarWorkInstructionPatio: (id, reason) => request(`/yard/patio/work-instructions/${id}/retomar`, { method: 'POST', body: commandBody(reason) }),
+  bloquearWorkInstructionPatio: (id, reason) => request(`/yard/patio/work-instructions/${id}/bloquear`, { method: 'POST', body: commandBody(reason) }),
+  concluirWorkInstructionPatio: (id, reason) => request(`/yard/patio/work-instructions/${id}/concluir`, { method: 'POST', body: commandBody(reason) }),
+  resetarWorkInstructionPatio: (id, reason) => request(`/yard/patio/work-instructions/${id}/reset`, { method: 'POST', body: commandBody(reason) }),
+  cancelarWorkInstructionPatio: (id, reason) => request(`/yard/patio/work-instructions/${id}/cancelar`, { method: 'POST', body: commandBody(reason) }),
+  obterDrillDownWorkInstructionPatio: (id) => request(`/yard/patio/work-instructions/${id}/drill-down`),
+  obterMatrizEstadosWorkInstructionPatio: () => request('/yard/patio/work-instructions/matriz-estados'),
+  listarJobListsEquipamentoPatio: (visitaNavioId) => request('/yard/patio/equipamentos/job-lists', { query: optionalVisitQuery(visitaNavioId) }),
+  listarTelemetriaEquipamentosPatio: () => request('/yard/patio/equipamentos/telemetria'),
+  obterHeatmapPatio: () => request('/yard/patio/otimizacao-avancada/heatmap'),
+  obterNivelOcupacaoPatio: () => request('/yard/patio/otimizacao-avancada/nivel-ocupacao'),
+  listarConflitosRtgPatio: () => request('/yard/patio/otimizacao-avancada/rtg/conflitos'),
+  analisarReshufflingPatio: () => request('/yard/patio/otimizacao-avancada/reshuffling/plano'),
+  executarReshufflingPatio: (reason) => request('/yard/patio/otimizacao-avancada/reshuffling/executar', { method: 'POST', body: commandBody(reason) }),
+  listarOrdensOtimizadasPatio: () => request('/yard/patio/ordens/otimizacao/nearest-neighbor'),
+  obterEstatisticasOtimizacaoPatio: () => request('/yard/patio/ordens/otimizacao/estatisticas'),
   listarEscalasEmbarque: (dias = 30) => request('/escalas', { query: { dias } }),
   uploadBaplie: (file) => {
     const formData = new FormData();
@@ -292,5 +328,18 @@ export const api = {
   obterRestowPlano: (id) => request(`/api/vessel-planner/planos/${id}/restow`),
   obterSequenciamentoGuindastes: (id, numGuindastes = 2) => request(`/api/vessel-planner/planos/${id}/sequenciamento-guindastes`, { query: { numGuindastes } }),
   validarPlanoVesselPlanner: (id) => request(`/api/vessel-planner/planos/${id}/validar`, { method: 'POST' }),
+  listarNaviosEstivagemBulk: () => request('/api/estivagem-bulk/navios'),
+  listarTemplatesEstivagemBulk: () => request('/api/estivagem-bulk/navios/templates'),
+  listarPlanosEstivagemBulk: (navioId, codigoViagem) => request('/api/estivagem-bulk/planos', { query: { navioId, codigoViagem } }),
+  criarPlanoEstivagemBulk: (dados) => request('/api/estivagem-bulk/planos', { method: 'POST', body: dados }),
+  buscarPlanoEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}`),
+  adicionarBobinaEstivagemBulk: (planoId, bobina) => request(`/api/estivagem-bulk/planos/${planoId}/bobinas`, { method: 'POST', body: bobina }),
+  posicionarBobinaEstivagemBulk: (planoId, posicao) => request(`/api/estivagem-bulk/planos/${planoId}/posicionar`, { method: 'POST', body: posicao }),
+  analisarTanktopEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/tanktop`),
+  analisarEmpilhamentoEstivagemBulk: (planoId, poraoId) => request(`/api/estivagem-bulk/planos/${planoId}/empilhamento/${poraoId}`),
+  calcularEstabilidadeEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/estabilidade`),
+  calcularSecuringEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/tacktop`, { method: 'POST' }),
+  validarPlanoEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/validar`, { method: 'POST' }),
+  obterRelatorioEstivagemBulk: (planoId) => request(`/api/estivagem-bulk/planos/${planoId}/relatorio`),
   obterDashboardVisibilidade: () => request('/api/v1/visibilidade/dashboard')
 };

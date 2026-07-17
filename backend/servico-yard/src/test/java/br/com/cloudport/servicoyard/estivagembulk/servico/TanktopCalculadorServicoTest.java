@@ -1,6 +1,8 @@
 package br.com.cloudport.servicoyard.estivagembulk.servico;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
@@ -9,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("TanktopCalculadorServico - Cálculo de pressão no tanktop")
+@DisplayName("TanktopCalculadorServico - Cálculo de pressão no tank top")
 class TanktopCalculadorServicoTest {
 
     private TanktopCalculadorServico servico;
@@ -20,18 +22,17 @@ class TanktopCalculadorServicoTest {
     }
 
     @Test
-    @DisplayName("Pressão dentro do limite não gera violação")
+    @DisplayName("Pressão dentro do limite usa área real do dunnage")
     void pressaoDentroDoLimite() {
-        // 5t on area 0.60m² = 8.33 t/m² < 15.0 t/m² → dentro do limite
         BobinaManifesto bobina = criarBobina("BOB001", 5000.0, 1500.0, 2000.0);
         SetorTanktop setor = criarSetor("CENTRO", 15.0);
 
-        PressaoTanktopDto dto = servico.calcularPressao(bobina, setor, 50.0);
+        PressaoTanktopDto dto = servico.calcularPressao(bobina, setor, 2, 150.0, 2000.0);
 
         assertFalse(dto.isExcedido());
         assertTrue(dto.getViolacoes().isEmpty());
-        assertTrue(dto.getPressaoCalculadaTM2() > 0);
-        assertTrue(dto.getPressaoCalculadaTM2() < 15.0);
+        assertEquals(0.60, dto.getAreaContatoM2(), 0.001);
+        assertEquals(8.33, dto.getPressaoCalculadaTM2(), 0.01);
     }
 
     @Test
@@ -40,60 +41,55 @@ class TanktopCalculadorServicoTest {
         BobinaManifesto bobina = criarBobina("BOB002", 50000.0, 1500.0, 1500.0);
         SetorTanktop setor = criarSetor("PROA", 12.0);
 
-        PressaoTanktopDto dto = servico.calcularPressao(bobina, setor, 50.0);
+        PressaoTanktopDto dto = servico.calcularPressao(bobina, setor, 2, 150.0, 1500.0);
 
         assertTrue(dto.isExcedido());
-        assertFalse(dto.getViolacoes().isEmpty());
-        assertEquals("PERIGO", dto.getViolacoes().get(0).getSeveridade());
-        assertEquals("SOBRECARGA_TANKTOP", dto.getViolacoes().get(0).getTipo());
+        assertTrue(dto.getViolacoes().stream()
+                .anyMatch(violacao -> "SOBRECARGA_TANKTOP".equals(violacao.getTipo())
+                        && "PERIGO".equals(violacao.getSeveridade())));
     }
 
     @Test
     @DisplayName("Pressão entre 80% e 100% da capacidade gera AVISO")
     void pressaoAvisoPerto80Percent() {
-        // capacidade = 10.0 t/m², alvo = 85% = 8.5 t/m²
-        // contact area = 2 × (50/1000 × 3) × (largura/1000)
-        // pressao = pesoT / area → pesoT = pressao × area
-        // largura = 2000mm → area = 2 × 0.15 × 2.0 = 0.60 m²
-        // pesoT para 8.5 t/m² = 8.5 × 0.60 = 5.1t = 5100kg
         BobinaManifesto bobina = criarBobina("BOB003", 5100.0, 1500.0, 2000.0);
         SetorTanktop setor = criarSetor("POPA", 10.0);
 
-        PressaoTanktopDto dto = servico.calcularPressao(bobina, setor, 50.0);
+        PressaoTanktopDto dto = servico.calcularPressao(bobina, setor, 2, 150.0, 2000.0);
 
         assertFalse(dto.isExcedido());
-        assertFalse(dto.getViolacoes().isEmpty());
-        assertEquals("AVISO", dto.getViolacoes().get(0).getSeveridade());
+        assertTrue(dto.getViolacoes().stream()
+                .anyMatch(violacao -> "MARGEM_TANKTOP_REDUZIDA".equals(violacao.getTipo())
+                        && "AVISO".equals(violacao.getSeveridade())));
     }
 
     @Test
-    @DisplayName("Área de contato calculada corretamente: 2 × (0.05×3) × 2.0 = 0.60 m²")
-    void contactAreaCalculadaCorretamente() {
-        // contact area = 2 × (espessura/1000 × 3) × (largura/1000)
-        // = 2 × (50/1000 × 3) × (2000/1000) = 2 × 0.15 × 2.0 = 0.60 m²
-        // pressao = (pesoKg/1000) / 0.60
+    @DisplayName("Dunnage sem dimensões reais reprova sem aplicar valor padrão")
+    void dunnageSemDimensoesReprova() {
         BobinaManifesto bobina = criarBobina("BOB004", 6000.0, 1500.0, 2000.0);
         SetorTanktop setor = criarSetor("CENTRO", 20.0);
 
-        PressaoTanktopDto dto = servico.calcularPressao(bobina, setor, 50.0);
+        PressaoTanktopDto dto = servico.calcularPressao(bobina, setor, null, null, null);
 
-        double esperado = (6000.0 / 1000.0) / 0.60;
-        assertEquals(esperado, dto.getPressaoCalculadaTM2(), 0.01);
+        assertTrue(dto.isExcedido());
+        assertEquals(0.0, dto.getAreaContatoM2());
+        assertTrue(dto.getViolacoes().stream()
+                .anyMatch(violacao -> "DUNNAGE_INSUFICIENTE".equals(violacao.getTipo())));
     }
 
     private BobinaManifesto criarBobina(String codigo, double pesoKg, double diametroMm, double larguraMm) {
-        BobinaManifesto b = new BobinaManifesto();
-        b.setCodigo(codigo);
-        b.setPesoKg(pesoKg);
-        b.setDiametroExternoMm(diametroMm);
-        b.setLarguraMm(larguraMm);
-        return b;
+        BobinaManifesto bobina = new BobinaManifesto();
+        bobina.setCodigo(codigo);
+        bobina.setPesoKg(pesoKg);
+        bobina.setDiametroExternoMm(diametroMm);
+        bobina.setLarguraMm(larguraMm);
+        return bobina;
     }
 
     private SetorTanktop criarSetor(String nome, double capacidade) {
-        SetorTanktop s = new SetorTanktop();
-        s.setNome(nome);
-        s.setCapacidadeTM2(capacidade);
-        return s;
+        SetorTanktop setor = new SetorTanktop();
+        setor.setNome(nome);
+        setor.setCapacidadeTM2(capacidade);
+        return setor;
     }
 }

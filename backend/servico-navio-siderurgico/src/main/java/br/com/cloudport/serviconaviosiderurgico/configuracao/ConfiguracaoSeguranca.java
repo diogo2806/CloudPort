@@ -85,10 +85,11 @@ public class ConfiguracaoSeguranca {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        if (!StringUtils.hasText(jwtSecret) || jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
-            throw new IllegalStateException("cloudport.security.jwt.secret deve ter ao menos 32 caracteres");
-        }
-        SecretKey secretKey = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        String segredoValidado = CredenciaisSegurancaValidator.validarSegredoJwt(jwtSecret);
+        SecretKey secretKey = new SecretKeySpec(
+                segredoValidado.getBytes(StandardCharsets.UTF_8),
+                "HmacSHA256"
+        );
         return NimbusJwtDecoder.withSecretKey(secretKey).build();
     }
 

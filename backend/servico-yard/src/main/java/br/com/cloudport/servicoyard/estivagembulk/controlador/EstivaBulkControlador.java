@@ -9,16 +9,20 @@ import br.com.cloudport.servicoyard.estivagembulk.dto.PosicaoBobinaDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicionarBobinaRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.ValidacaoPlanoBulkDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
 import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
-import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
+import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkIdentidadeServico;
+import br.com.cloudport.servicoyard.estivagembulk.servico.ValidacaoPlanoBulkException;
+import br.com.cloudport.servicoyard.seguranca.PoliticaAutorizacaoEstiva;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,29 +34,35 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/estivagem-bulk")
 public class EstivaBulkControlador {
 
-    private final PlanoEstivaBulkServico servico;
+    private final PlanoEstivaBulkIdentidadeServico servico;
     private final NavioGranelRepositorio navioRepositorio;
 
-    public EstivaBulkControlador(PlanoEstivaBulkServico servico, NavioGranelRepositorio navioRepositorio) {
+    public EstivaBulkControlador(
+            PlanoEstivaBulkIdentidadeServico servico,
+            NavioGranelRepositorio navioRepositorio) {
         this.servico = servico;
         this.navioRepositorio = navioRepositorio;
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/navios")
     public ResponseEntity<NavioGranel> registrarNavio(@Valid @RequestBody NavioGranelDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(servico.registrarNavio(dto));
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/navios")
     public ResponseEntity<List<NavioGranel>> listarNavios() {
         return ResponseEntity.ok(navioRepositorio.findByIsTemplateFalseOrderByNomeAsc());
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/navios/templates")
     public ResponseEntity<List<NavioGranel>> listarTemplates() {
         return ResponseEntity.ok(navioRepositorio.findByIsTemplateTrue());
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos")
     public ResponseEntity<?> criarPlano(@Valid @RequestBody CriarPlanoEstivaBulkRequisicaoDto requisicao) {
         try {
@@ -63,98 +73,127 @@ public class EstivaBulkControlador {
                             requisicao.getCodigoViagem(),
                             requisicao.getPortoCarga(),
                             requisicao.getPortoDescarga()));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/planos/{id}")
     public ResponseEntity<?> buscarPlano(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.buscarPorId(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos/{id}/bobinas")
-    public ResponseEntity<BobinaManifesto> adicionarBobina(
+    public ResponseEntity<?> adicionarBobina(
             @PathVariable Long id, @RequestBody BobinaManifesto bobina) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(servico.adicionarBobina(id, bobina));
-        } catch (EntityNotFoundException e) {
+        } catch (IllegalStateException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("erro", exception.getMessage(), "tipo", "PLANO_IMUTAVEL"));
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos/{id}/posicionar")
     public ResponseEntity<?> posicionarBobina(
-            @PathVariable Long id, @RequestBody PosicionarBobinaRequisicaoDto req) {
+            @PathVariable Long id, @RequestBody PosicionarBobinaRequisicaoDto requisicao) {
         try {
-            PosicaoBobinaDto dto = servico.posicionarBobina(id, req);
+            PosicaoBobinaDto dto = servico.posicionarBobina(id, requisicao);
             return ResponseEntity.ok(dto);
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException exception) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("erro", e.getMessage(), "tipo", "HARD_CONSTRAINT"));
-        } catch (EntityNotFoundException e) {
+                    .body(Map.of("erro", exception.getMessage(), "tipo", "HARD_CONSTRAINT"));
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/planos/{id}/tanktop")
     public ResponseEntity<List<PressaoTanktopDto>> analisarTanktop(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.analisarTanktop(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/planos/{id}/empilhamento/{poraoId}")
     public ResponseEntity<AnaliseEmpilhamentoDto> analisarEmpilhamento(
             @PathVariable Long id, @PathVariable Long poraoId) {
         try {
             return ResponseEntity.ok(servico.analisarEmpilhamento(id, poraoId));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/planos/{id}/estabilidade")
     public ResponseEntity<EstabilidadeEstrutural> calcularEstabilidade(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.calcularEstabilidade(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
-    @PostMapping("/planos/{id}/tacktop")
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
+    @GetMapping("/planos/{id}/tacktop")
     public ResponseEntity<TacktopDto> calcularTacktop(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.calcularTacktop(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
+    @PostMapping("/planos/{id}/validacao-completa")
+    public ResponseEntity<?> validarPlanoCompleto(@PathVariable Long id) {
+        try {
+            ValidacaoPlanoBulkDto validacao = servico.validarPlanoCompleto(id);
+            HttpStatus status = validacao.isAprovado() ? HttpStatus.OK : HttpStatus.CONFLICT;
+            return ResponseEntity.status(status).body(validacao);
+        } catch (IllegalStateException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("erro", exception.getMessage(), "tipo", "PLANO_IMUTAVEL"));
+        } catch (EntityNotFoundException exception) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos/{id}/validar")
     public ResponseEntity<?> validarEAprovar(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.validarEAprovar(id));
-        } catch (IllegalStateException e) {
+        } catch (ValidacaoPlanoBulkException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(exception.getValidacao());
+        } catch (IllegalStateException exception) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("erro", e.getMessage(), "tipo", "HARD_CONSTRAINT"));
-        } catch (EntityNotFoundException e) {
+                    .body(Map.of("erro", exception.getMessage(), "tipo", "HARD_CONSTRAINT"));
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/planos/{id}/relatorio")
     public ResponseEntity<?> relatorio(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.buscarPorId(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }

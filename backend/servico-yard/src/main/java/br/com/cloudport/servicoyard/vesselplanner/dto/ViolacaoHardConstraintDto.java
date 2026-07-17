@@ -29,6 +29,10 @@ public class ViolacaoHardConstraintDto {
         return descricao;
     }
 
+    public String getMensagem() {
+        return descricao;
+    }
+
     public void setDescricao(String descricao) {
         this.descricao = descricao;
     }

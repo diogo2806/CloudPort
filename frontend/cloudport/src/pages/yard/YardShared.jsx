@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { formatError, sanitizeText } from '../api.js';
-import { DataTable, EmptyState, JsonDetails, Loading, Message, MetricCard, PageHeader, Section, StatusBadge } from '../components.jsx';
+import { formatError, sanitizeText } from '../../api.js';
+import { EmptyState, PageHeader } from '../../components.jsx';
 import './YardPages.css';
 
 export const PAGE_SIZE = 20;

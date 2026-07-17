@@ -6,6 +6,7 @@ import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } fr
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
 import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
+import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
@@ -43,6 +44,7 @@ const FALLBACK_NAVIGATION = [
     { label: 'Agendamentos', path: '/home/gate/agendamentos', roles: [] },
     { label: 'Janelas', path: '/home/gate/janelas', roles: [] },
     { label: 'Central de ação', path: '/home/gate/dashboard', roles: [] },
+    { label: 'Controle de pessoas', path: '/home/gate/pessoas', roles: ['ADMIN_PORTO', 'OPERADOR_GATE', 'PLANEJADOR'] },
     { label: 'Embarque direto', path: '/home/gate/embarque-direto', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
     { label: 'Saída direta do navio', path: '/home/gate/operador/console', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
     { label: 'Relatórios', path: '/home/gate/relatorios', roles: [] }
@@ -144,6 +146,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
   if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
   if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;
+  if (path === '/home/gate/pessoas') return <GatePeopleAccessPage />;
   if (path === '/home/gate/embarque-direto') return <GateDirectVesselPage session={session} />;
   if (path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDirectVesselReleasePage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;

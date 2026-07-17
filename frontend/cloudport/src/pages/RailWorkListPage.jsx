@@ -42,7 +42,7 @@ export function RailWorkListPage({ session }) {
       setVisits(loadedVisits);
       setSelectedVisitId((current) => {
         if (loadedVisits.some((item) => String(item.id) === String(current))) return current;
-        const preferred = loadedVisits.find((item) => item.statusVisita === 'CHEGOU') ?? loadedVisits[0];
+        const preferred = loadedVisits.find((item) => ['CHEGOU', 'PROCESSANDO', 'CONCLUIDO'].includes(item.statusVisita)) ?? loadedVisits[0];
         return preferred?.id ? String(preferred.id) : '';
       });
     } catch (reason) {
@@ -108,9 +108,27 @@ export function RailWorkListPage({ session }) {
     try {
       await railApi.atualizarStatusOrdem(selectedVisitId, selectedOrder.id, status);
       await loadWork();
+      await loadVisits();
       setSuccess(status === 'EM_EXECUCAO'
         ? `Movimentação do contêiner ${selectedOrder.codigoConteiner} iniciada.`
         : `Movimentação do contêiner ${selectedOrder.codigoConteiner} concluída.`);
+    } catch (reason) {
+      setError(formatError(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function registerDeparture() {
+    if (!visit || visit.statusVisita !== 'CONCLUIDO' || !canOperate || busy) return;
+    setBusy(true);
+    setError('');
+    setSuccess('');
+    try {
+      await railApi.registrarPartida(selectedVisitId);
+      await loadWork();
+      await loadVisits();
+      setSuccess(`Partida do trem ${visit.identificadorTrem} registrada.`);
     } catch (reason) {
       setError(formatError(reason));
     } finally {
@@ -149,8 +167,13 @@ export function RailWorkListPage({ session }) {
         <MetricCard label="Ordens exibidas" value={filteredOrders.length} />
         <MetricCard label="Pendentes" value={orders.filter((item) => item.statusMovimentacao === 'PENDENTE').length} />
         <MetricCard label="Em execução" value={orders.filter((item) => item.statusMovimentacao === 'EM_EXECUCAO').length} />
-        <MetricCard label="Vagões" value={visit?.listaVagoes?.length ?? '—'} />
+        <MetricCard label="Fase da visita" value={visit?.statusVisita ?? '—'} detail={`${visit?.listaVagoes?.length ?? 0} vagão(ões)`} />
       </div>
+
+      {visit?.statusVisita === 'CONCLUIDO' && <Section title="Encerramento da visita" description="Todas as operações do manifesto foram concluídas. A visita está liberada para registrar a partida.">
+        {canOperate ? <button type="button" disabled={busy} onClick={registerDeparture}>{busy ? 'Registrando...' : 'Registrar partida do trem'}</button> : <Message type="warning">A partida deve ser registrada por um perfil operacional autorizado.</Message>}
+      </Section>}
+      {visit?.statusVisita === 'PARTIU' && <Message type="success">A partida desta visita ferroviária já foi registrada.</Message>}
 
       {workLoading ? <Loading label="Carregando lista de trabalho..." /> : <div className="split-grid">
         <Section title={`Ordens ferroviárias (${filteredOrders.length})`} description="A lista segue as ordens persistidas para a visita selecionada.">

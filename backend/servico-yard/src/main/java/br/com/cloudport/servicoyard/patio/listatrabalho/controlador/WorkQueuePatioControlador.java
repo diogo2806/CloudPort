@@ -27,8 +27,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/yard/patio")
-@PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_GATE','SERVICE_NAVIO')")
+@PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_PATIO','OPERADOR_GATE','SERVICE_NAVIO')")
 public class WorkQueuePatioControlador {
+
+    private static final String AUTORIZACAO_ADMINISTRACAO_PATIO =
+            "hasAnyRole('ADMIN_PORTO','PLANEJADOR')";
 
     private final WorkQueuePatioServico workQueuePatioServico;
     private final WorkQueueOperacaoServico workQueueOperacaoServico;
@@ -36,9 +39,9 @@ public class WorkQueuePatioControlador {
     private final EventoOperacaoPatioPublicador eventoPublicador;
 
     public WorkQueuePatioControlador(WorkQueuePatioServico workQueuePatioServico,
-                                      WorkQueueOperacaoServico workQueueOperacaoServico,
-                                      AuditoriaComandoPatioServico auditoriaComandoPatioServico,
-                                      EventoOperacaoPatioPublicador eventoPublicador) {
+                                       WorkQueueOperacaoServico workQueueOperacaoServico,
+                                       AuditoriaComandoPatioServico auditoriaComandoPatioServico,
+                                       EventoOperacaoPatioPublicador eventoPublicador) {
         this.workQueuePatioServico = workQueuePatioServico;
         this.workQueueOperacaoServico = workQueueOperacaoServico;
         this.auditoriaComandoPatioServico = auditoriaComandoPatioServico;
@@ -53,6 +56,7 @@ public class WorkQueuePatioControlador {
 
     @PostMapping("/work-queues")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize(AUTORIZACAO_ADMINISTRACAO_PATIO)
     public WorkQueuePatioRespostaDto criar(@Valid @RequestBody WorkQueuePatioRequisicaoDto dto) {
         WorkQueuePatioRespostaDto resposta = workQueuePatioServico.criar(dto);
         eventoPublicador.publicarWorkQueue(resposta, "WORK_QUEUE_CRIADA", null);
@@ -60,8 +64,9 @@ public class WorkQueuePatioControlador {
     }
 
     @PatchMapping("/work-queues/{id}/ativar")
+    @PreAuthorize(AUTORIZACAO_ADMINISTRACAO_PATIO)
     public WorkQueuePatioRespostaDto ativar(@PathVariable Long id,
-                                             @Valid @RequestBody ComandoMotivadoDto comando) {
+                                              @Valid @RequestBody ComandoMotivadoDto comando) {
         WorkQueuePatioRespostaDto resposta = workQueuePatioServico.ativar(id);
         auditoriaComandoPatioServico.registrar(id, null, "WORK_QUEUE_ATIVADA_COM_MOTIVO", comando,
                 "Work queue ativada.");
@@ -70,8 +75,9 @@ public class WorkQueuePatioControlador {
     }
 
     @PatchMapping("/work-queues/{id}/desativar")
+    @PreAuthorize(AUTORIZACAO_ADMINISTRACAO_PATIO)
     public WorkQueuePatioRespostaDto desativar(@PathVariable Long id,
-                                                @Valid @RequestBody ComandoMotivadoDto comando) {
+                                                 @Valid @RequestBody ComandoMotivadoDto comando) {
         WorkQueuePatioRespostaDto resposta = workQueuePatioServico.desativar(id);
         auditoriaComandoPatioServico.registrar(id, null, "WORK_QUEUE_DESATIVADA_COM_MOTIVO", comando,
                 "Work queue desativada.");
@@ -80,14 +86,16 @@ public class WorkQueuePatioControlador {
     }
 
     @PatchMapping("/work-queues/{id}/pow")
+    @PreAuthorize(AUTORIZACAO_ADMINISTRACAO_PATIO)
     public WorkQueuePatioRespostaDto atualizarPow(@PathVariable Long id,
-                                                   @Valid @RequestBody AtualizacaoWorkQueuePowDto dto) {
+                                                    @Valid @RequestBody AtualizacaoWorkQueuePowDto dto) {
         WorkQueuePatioRespostaDto resposta = workQueueOperacaoServico.atualizarPow(id, dto);
         eventoPublicador.publicarWorkQueue(resposta, "WORK_QUEUE_COBERTURA_ATUALIZADA", dto.getCorrelationId());
         return resposta;
     }
 
     @PatchMapping("/work-queues/{id}/equipamento")
+    @PreAuthorize(AUTORIZACAO_ADMINISTRACAO_PATIO)
     public WorkQueuePatioRespostaDto atualizarEquipamento(
             @PathVariable Long id,
             @Valid @RequestBody AtualizacaoWorkQueueEquipamentoDto dto) {
@@ -97,8 +105,9 @@ public class WorkQueuePatioControlador {
     }
 
     @PatchMapping("/work-queues/{id}/ordens")
+    @PreAuthorize(AUTORIZACAO_ADMINISTRACAO_PATIO)
     public WorkQueuePatioRespostaDto atualizarOrdens(@PathVariable Long id,
-                                                      @Valid @RequestBody AtualizacaoWorkQueueOrdensDto dto) {
+                                                       @Valid @RequestBody AtualizacaoWorkQueueOrdensDto dto) {
         WorkQueuePatioRespostaDto resposta = workQueuePatioServico.atualizarOrdens(id, dto.getOrdemIds());
         auditoriaComandoPatioServico.registrar(id, null, "JOB_LIST_ATUALIZADA_COM_MOTIVO", dto,
                 "Lista de work instructions atualizada.");

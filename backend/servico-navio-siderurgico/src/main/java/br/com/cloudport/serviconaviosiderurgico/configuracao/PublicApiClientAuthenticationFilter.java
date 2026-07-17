@@ -6,9 +6,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -39,7 +37,7 @@ public class PublicApiClientAuthenticationFilter extends OncePerRequestFilter {
     public PublicApiClientAuthenticationFilter(
             @Value("${cloudport.security.public-api.clients:}") String clientesConfigurados,
             ObjectMapper objectMapper) {
-        this.clientes = carregarClientes(clientesConfigurados);
+        this.clientes = CredenciaisSegurancaValidator.carregarClientesPublicos(clientesConfigurados);
         this.objectMapper = objectMapper;
     }
 
@@ -55,13 +53,6 @@ public class PublicApiClientAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         SecurityContextHolder.clearContext();
         try {
-            if (clientes.isEmpty()) {
-                escreverErro(response, request, HttpStatus.SERVICE_UNAVAILABLE,
-                        "CLIENTES_PUBLICOS_NAO_CONFIGURADOS",
-                        "Nenhum cliente foi configurado para a API publica.");
-                return;
-            }
-
             String clientId = request.getHeader(HEADER_CLIENT_ID);
             String clientSecret = request.getHeader(HEADER_CLIENT_SECRET);
             String segredoEsperado = StringUtils.hasText(clientId) ? clientes.get(clientId.trim()) : null;
@@ -88,31 +79,6 @@ public class PublicApiClientAuthenticationFilter extends OncePerRequestFilter {
         } finally {
             SecurityContextHolder.clearContext();
         }
-    }
-
-    private Map<String, String> carregarClientes(String configuracao) {
-        Map<String, String> resultado = new LinkedHashMap<>();
-        if (!StringUtils.hasText(configuracao)) {
-            return Map.of();
-        }
-        Arrays.stream(configuracao.split(","))
-                .map(String::trim)
-                .filter(StringUtils::hasText)
-                .forEach(entrada -> {
-                    int separador = entrada.indexOf(':');
-                    if (separador <= 0 || separador == entrada.length() - 1) {
-                        throw new IllegalStateException(
-                                "cloudport.security.public-api.clients deve usar o formato cliente:segredo."
-                        );
-                    }
-                    String id = entrada.substring(0, separador).trim();
-                    String segredo = entrada.substring(separador + 1).trim();
-                    if (id.isBlank() || segredo.length() < 16) {
-                        throw new IllegalStateException("Cliente publico invalido ou segredo com menos de 16 caracteres.");
-                    }
-                    resultado.put(id, segredo);
-                });
-        return Map.copyOf(resultado);
     }
 
     private boolean segredoValido(String esperado, String informado) {

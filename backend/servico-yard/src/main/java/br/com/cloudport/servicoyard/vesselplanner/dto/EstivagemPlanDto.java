@@ -6,6 +6,11 @@ public class EstivagemPlanDto {
 
     private Long id;
     private Long bayPlanId;
+    private Long navioCadastroId;
+    private Long visitaNavioId;
+    private String codigoVisita;
+    private Long versaoNavioCanonico;
+    private Long versaoVisita;
     private String codigoNavio;
     private String codigoViagem;
     private String status;
@@ -31,6 +36,46 @@ public class EstivagemPlanDto {
 
     public void setBayPlanId(Long bayPlanId) {
         this.bayPlanId = bayPlanId;
+    }
+
+    public Long getNavioCadastroId() {
+        return navioCadastroId;
+    }
+
+    public void setNavioCadastroId(Long navioCadastroId) {
+        this.navioCadastroId = navioCadastroId;
+    }
+
+    public Long getVisitaNavioId() {
+        return visitaNavioId;
+    }
+
+    public void setVisitaNavioId(Long visitaNavioId) {
+        this.visitaNavioId = visitaNavioId;
+    }
+
+    public String getCodigoVisita() {
+        return codigoVisita;
+    }
+
+    public void setCodigoVisita(String codigoVisita) {
+        this.codigoVisita = codigoVisita;
+    }
+
+    public Long getVersaoNavioCanonico() {
+        return versaoNavioCanonico;
+    }
+
+    public void setVersaoNavioCanonico(Long versaoNavioCanonico) {
+        this.versaoNavioCanonico = versaoNavioCanonico;
+    }
+
+    public Long getVersaoVisita() {
+        return versaoVisita;
+    }
+
+    public void setVersaoVisita(Long versaoVisita) {
+        this.versaoVisita = versaoVisita;
     }
 
     public String getCodigoNavio() {

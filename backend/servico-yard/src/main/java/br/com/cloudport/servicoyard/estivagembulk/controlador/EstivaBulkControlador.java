@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -60,6 +61,14 @@ public class EstivaBulkControlador {
     @GetMapping("/navios/templates")
     public ResponseEntity<List<NavioGranel>> listarTemplates() {
         return ResponseEntity.ok(navioRepositorio.findByIsTemplateTrue());
+    }
+
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
+    @GetMapping("/planos")
+    public ResponseEntity<List<PlanoEstivaBulkDto>> listarPlanos(
+            @RequestParam Long navioId,
+            @RequestParam Long visitaNavioId) {
+        return ResponseEntity.ok(servico.listarPlanos(navioId, visitaNavioId));
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)

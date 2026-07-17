@@ -17,6 +17,7 @@ import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkIdentid
 import br.com.cloudport.servicoyard.vesselplanner.controlador.VesselPlannerControlador;
 import br.com.cloudport.servicoyard.vesselplanner.dto.EstivagemPlanDto;
 import br.com.cloudport.servicoyard.vesselplanner.servico.VesselPlannerServico;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -86,6 +87,19 @@ class PlanejamentoEstivaAutorizacaoControladorTest {
                 .andExpect(status().isForbidden());
 
         verifyNoInteractions(vesselPlannerServico);
+    }
+
+    @Test
+    void deveListarPlanosBulkPorNavioEVisitaParaPlanejador() throws Exception {
+        when(planoEstivaBulkServico.listarPlanos(7L, 91L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/estivagem-bulk/planos")
+                        .param("navioId", "7")
+                        .param("visitaNavioId", "91")
+                        .with(jwtComRole("PLANEJADOR")))
+                .andExpect(status().isOk());
+
+        verify(planoEstivaBulkServico).listarPlanos(7L, 91L);
     }
 
     @Test

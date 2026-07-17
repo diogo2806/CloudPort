@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, clearSession, formatError, hasAnyRole, readSession, sanitizeText, saveSession } from './api.js';
+import { api, clearSession, formatError, hasAnyRole, readSession, sanitizeText, saveSession, subscribeSessionExpired } from './api.js';
 import { Message } from './components.jsx';
 import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
@@ -81,6 +81,12 @@ function normalizeBackendTabs(tabs) {
   return Array.from(groups, ([group, items]) => ({ group, items }));
 }
 
+function safeReturnPath(path) {
+  return typeof path === 'string' && (path === '/home' || path.startsWith('/home/'))
+    ? path
+    : '/home/dashboard';
+}
+
 function LoginPage({ onAuthenticated, navigate, returnPath }) {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
@@ -95,7 +101,7 @@ function LoginPage({ onAuthenticated, navigate, returnPath }) {
       const session = saveSession(await api.autenticar(login, password));
       setPassword('');
       onAuthenticated(session);
-      navigate(returnPath && returnPath !== '/login' ? returnPath : '/home/dashboard', { replace: true });
+      navigate(safeReturnPath(returnPath), { replace: true });
     } catch (reason) {
       clearSession();
       setError(formatError(reason, 'Não foi possível autenticar.'));
@@ -200,9 +206,15 @@ export default function App() {
   const [session, setSession] = useState(() => readSession());
   const [requestedPath, setRequestedPath] = useState('/home/dashboard');
 
+  useEffect(() => subscribeSessionExpired(() => {
+    setRequestedPath(safeReturnPath(path));
+    setSession(null);
+    navigate('/login', { replace: true });
+  }), [path, navigate]);
+
   useEffect(() => {
     if (!session && path !== '/login') {
-      setRequestedPath(path);
+      setRequestedPath(safeReturnPath(path));
       navigate('/login', { replace: true });
     }
     if (session && path === '/login') navigate('/home/dashboard', { replace: true });

@@ -28,6 +28,7 @@ public class OrdemTrabalhoPatioRespostaDto {
     private Integer prioridadeOperacional;
     private boolean prioridadeBusca;
     private Long workQueueId;
+    private String chaveIdempotencia;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
     private LocalDateTime concluidoEm;
@@ -53,6 +54,7 @@ public class OrdemTrabalhoPatioRespostaDto {
         dto.prioridadeOperacional = ordem.getPrioridadeOperacional();
         dto.prioridadeBusca = ordem.isPrioridadeBusca();
         dto.workQueueId = ordem.getWorkQueueId();
+        dto.chaveIdempotencia = escapar(ordem.getChaveIdempotencia());
         dto.criadoEm = ordem.getCriadoEm();
         dto.atualizadoEm = ordem.getAtualizadoEm();
         dto.concluidoEm = ordem.getConcluidoEm();
@@ -82,6 +84,7 @@ public class OrdemTrabalhoPatioRespostaDto {
     public Integer getPrioridadeOperacional() { return prioridadeOperacional; }
     public boolean isPrioridadeBusca() { return prioridadeBusca; }
     public Long getWorkQueueId() { return workQueueId; }
+    public String getChaveIdempotencia() { return chaveIdempotencia; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
     public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
     public LocalDateTime getConcluidoEm() { return concluidoEm; }

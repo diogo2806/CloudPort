@@ -32,10 +32,17 @@ test('normaliza página EDI em português', () => {
   assert.deepEqual(normalizePage({ conteudo: [{ id: 1 }] }), [{ id: 1 }]);
 });
 
-test('cria plano sem poluir DTO com identidade operacional', async () => {
-  const response = await api.criarPlanoVesselPlanner(12);
+test('cria plano vinculando bay plan e visita selecionada', async () => {
+  const response = await api.criarPlanoVesselPlanner(12, 34);
   assert.equal(response.url, 'http://localhost:8080/api/vessel-planner/planos');
-  assert.deepEqual(JSON.parse(response.body), { bayPlanId: 12 });
+  assert.deepEqual(JSON.parse(response.body), { bayPlanId: 12, visitaNavioId: 34 });
+});
+
+test('recusa criação de plano sem visita canônica', async () => {
+  await assert.rejects(
+    () => api.criarPlanoVesselPlanner(12),
+    /Visita de navio é obrigatório\./
+  );
 });
 
 test('reprocessamento EDI envia motivo e contexto operacional', async () => {

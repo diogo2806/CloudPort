@@ -39,18 +39,3 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/otimizacao/PredictiveReshuffflingServico.java` | `executarReshuffflingNoturno()` | O `@Scheduled` está no serviço e não consulta `cloudport.runtime.jobs-enabled`; runtime e standalone podem executar o mesmo cron. | Criar `novo método sugerido: PredictiveReshuffflingJob.executar()`, condicionado pela propriedade canônica, e manter o caso de uso sem anotação. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/ServicoYardApplication.java` e `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/CloudPortRuntimeApplication.java` | `@EnableScheduling` e component scan | Ambos carregam scheduling e o serviço do Yard. | Garantir que somente a instância com jobs habilitados registre o cron, sem criar flag concorrente. |
-
-## 3. Interface operacional React
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| UI50 | Transformar o módulo Pátio em telas React operacionais, e não apenas consultas genéricas. | Mapa, posições, lista de trabalho, movimentações, recursos, indicadores e automação possuem telas próprias; o operador navega pela estrutura real do pátio, consulta detalhes e executa somente comandos autorizados, com motivo quando exigido e sucesso apenas após confirmação persistida. | ⬜ Pendente |
-
-### UI50 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/App.jsx` e `frontend/cloudport/src/pages/OperationalPages.jsx` | rotas `/home/patio/**`, `DATASET_ROUTES`, `GenericDatasetPage` | Posições, movimentações, lista de trabalho, recursos, indicadores e automação são tabelas genéricas; lista de trabalho reutiliza a consulta de movimentações e indicadores/automação reutilizam o mapa. | Criar páginas React próprias para cada fluxo, com filtros, paginação, seleção, detalhe, estados vazios e ações coerentes com o domínio. |
-| `frontend/cloudport/src/pages/OperationalPages.jsx` | `YardMapPage()` | O mapa atual exibe duas tabelas de contêineres e equipamentos; não representa blocos ou zonas, linhas, colunas, camadas, ocupação, reserva, bloqueio e interdição como estrutura navegável. | Implementar visualização operacional baseada nas posições reais, permitindo abrir pilha, unidade, equipamento, restrições e reservas sem inventar coordenadas. |
-| `frontend/cloudport/src/api.js` | `obterMapaPatio()`, `listarPosicoesPatio()`, `listarMovimentacoesPatio()`, `listarConteineresPatio()`, `listarRecursosPatio()` | O portal principal expõe somente leituras simples do Yard e não possui contratos para work queues, work instructions, reservas, placement, remanejamento ou reshuffling. | Adicionar métodos para consultas e comandos do Pátio, enviar motivo e identidade operacional quando exigidos e recarregar o estado persistido depois de cada comando. |
-| `frontend/servico-navio-siderurgico/src/Ui20ControlRoom.jsx` e `frontend/cloudport/src/pages/OperationalPages.jsx` | ações do Control Room e módulo Pátio | Parte das operações de Yard existe apenas dentro do Control Room incorporado por `iframe`, enquanto as rotas próprias do Pátio permanecem somente leitura. | Reutilizar contratos e componentes compartilháveis ou expor fluxos equivalentes nas páginas do Pátio, sem duplicar regra e sem manter comportamentos divergentes. |

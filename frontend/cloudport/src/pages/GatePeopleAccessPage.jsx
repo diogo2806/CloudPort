@@ -40,7 +40,7 @@ export function GatePeopleAccessPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const load = useCallback(async (filter = documentFilter) => {
+  const load = useCallback(async (filter = '') => {
     setLoading(true);
     setError('');
     try {
@@ -57,7 +57,7 @@ export function GatePeopleAccessPage() {
     } finally {
       setLoading(false);
     }
-  }, [documentFilter]);
+  }, []);
 
   useEffect(() => {
     void load('');

@@ -6,6 +6,7 @@ import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } fr
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
 import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
+import { PublicVesselLineUpPage } from './pages/PublicVesselLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
@@ -29,6 +30,8 @@ import {
   YardResourcesPage,
   YardWorkListPage
 } from './pages/YardPages.jsx';
+
+const PUBLIC_LINE_UP_PATH = '/line-up';
 
 const FALLBACK_NAVIGATION = [
   { group: 'Visão geral', items: [{ label: 'Painel', path: '/home/dashboard', roles: [] }] },
@@ -96,6 +99,10 @@ function safeReturnPath(path) {
   return normalized === '/home' || normalized.startsWith('/home/') ? normalized : '/home/dashboard';
 }
 
+function isPublicPath(path) {
+  return path === PUBLIC_LINE_UP_PATH;
+}
+
 function LoginPage({ onAuthenticated, navigate, returnPath }) {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
@@ -126,6 +133,7 @@ function LoginPage({ onAuthenticated, navigate, returnPath }) {
       <label className="field"><span>Senha</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>
       <Message type="error">{error}</Message>
       <button className="large" type="submit" disabled={busy || !login || !password}>{busy ? 'Autenticando...' : 'Entrar no CloudPort'}</button>
+      <button className="large secondary" type="button" onClick={() => navigate(PUBLIC_LINE_UP_PATH)}>Consultar line-up de navios</button>
     </form></section>
   </main>;
 }
@@ -209,7 +217,7 @@ function PortalShell({ path, navigate, session, onLogout }) {
       <header className="topbar">
         <button className="menu-button" onClick={() => setMobileMenu((value) => !value)} aria-label="Abrir menu">☰</button>
         <div className="topbar-context"><strong>CloudPort</strong><span>{path.replace('/home/', '').replaceAll('/', ' / ') || 'Painel'}</span></div>
-        <div className="user-menu"><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div>
+        <div className="user-menu"><button className="secondary" onClick={() => navigate(PUBLIC_LINE_UP_PATH)}>Line-up público</button><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div>
       </header>
       <main className="content"><RouteContent path={path} navigate={navigate} session={session} /></main>
     </div>
@@ -222,13 +230,14 @@ export default function App() {
   const [requestedPath, setRequestedPath] = useState('/home/dashboard');
 
   useEffect(() => subscribeSessionExpired(() => {
-    setRequestedPath(safeReturnPath(path));
     setSession(null);
+    if (isPublicPath(path)) return;
+    setRequestedPath(safeReturnPath(path));
     navigate('/login', { replace: true });
   }), [path, navigate]);
 
   useEffect(() => {
-    if (!session && path !== '/login') {
+    if (!session && path !== '/login' && !isPublicPath(path)) {
       setRequestedPath(safeReturnPath(path));
       navigate('/login', { replace: true });
     }
@@ -238,6 +247,7 @@ export default function App() {
   const authenticate = useCallback((newSession) => setSession(newSession), []);
   const logout = useCallback(() => setSession(null), []);
 
+  if (isPublicPath(path)) return <PublicVesselLineUpPage navigate={navigate} authenticated={Boolean(session)} />;
   if (!session) return <LoginPage onAuthenticated={authenticate} navigate={navigate} returnPath={requestedPath} />;
   return <PortalShell path={path} navigate={navigate} session={session} onLogout={logout} />;
 }

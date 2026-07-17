@@ -8,7 +8,6 @@ import br.com.cloudport.servicoyard.estivagembulk.dto.PosicaoBobinaDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicionarBobinaRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
-import br.com.cloudport.servicoyard.estivagembulk.dto.ViolacaoEstivaDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.ClasseNavio;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
@@ -20,8 +19,12 @@ import br.com.cloudport.servicoyard.estivagembulk.modelo.StatusPlanoEstiva;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.TipoLashing;
 import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
 import br.com.cloudport.servicoyard.estivagembulk.repositorio.PlanoEstivaBulkRepositorio;
+import br.com.cloudport.servicoyard.integracao.navio.ContextoPlanejamentoNavio;
+import br.com.cloudport.servicoyard.integracao.navio.IdentidadePlanejamentoNavioServico;
+import br.com.cloudport.servicoyard.integracao.navio.NavioPlanejamento;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
@@ -36,28 +39,45 @@ public class PlanoEstivaBulkServico {
     private final EstabilidadeEstruturalServico estabilidadeServico;
     private final EmpilhamentoBobinaServico empilhamentoServico;
     private final TacktopServico tacktopServico;
+    private final IdentidadePlanejamentoNavioServico identidadeServico;
 
     public PlanoEstivaBulkServico(NavioGranelRepositorio navioRepositorio,
                                    PlanoEstivaBulkRepositorio planoRepositorio,
                                    TanktopCalculadorServico tanktopServico,
                                    EstabilidadeEstruturalServico estabilidadeServico,
                                    EmpilhamentoBobinaServico empilhamentoServico,
-                                   TacktopServico tacktopServico) {
+                                   TacktopServico tacktopServico,
+                                   IdentidadePlanejamentoNavioServico identidadeServico) {
         this.navioRepositorio = navioRepositorio;
         this.planoRepositorio = planoRepositorio;
         this.tanktopServico = tanktopServico;
         this.estabilidadeServico = estabilidadeServico;
         this.empilhamentoServico = empilhamentoServico;
         this.tacktopServico = tacktopServico;
+        this.identidadeServico = identidadeServico;
     }
 
     @Transactional
     public NavioGranel registrarNavio(NavioGranelDto dto) {
+        NavioPlanejamento canonico = identidadeServico.buscarNavioCanonico(dto.getNavioCadastroId());
+        Long proximaVersao = navioRepositorio
+                .findTopByNavioCadastroIdOrderByVersaoPerfilDesc(canonico.identificador())
+                .map(NavioGranel::getVersaoPerfil)
+                .filter(Objects::nonNull)
+                .map(versao -> versao + 1L)
+                .orElse(1L);
+
         NavioGranel navio = new NavioGranel();
-        navio.setImo(dto.getImo());
-        navio.setNome(dto.getNome());
+        navio.setNavioCadastroId(canonico.identificador());
+        navio.setVersaoPerfil(proximaVersao);
+        navio.setVersaoNavioCanonico(canonico.versao());
+        navio.setImo(canonico.codigoImo());
+        navio.setNome(canonico.nome());
         if (dto.getClasse() != null) {
-            try { navio.setClasse(ClasseNavio.valueOf(dto.getClasse())); } catch (IllegalArgumentException ignored) {}
+            try {
+                navio.setClasse(ClasseNavio.valueOf(dto.getClasse()));
+            } catch (IllegalArgumentException ignored) {
+            }
         }
         navio.setLpp(dto.getLpp());
         navio.setBoca(dto.getBoca());
@@ -71,12 +91,39 @@ public class PlanoEstivaBulkServico {
     }
 
     @Transactional
-    public PlanoEstivaBulk criarPlano(Long navioId, String codigoViagem, String portoCarga, String portoDescarga) {
+    public PlanoEstivaBulk criarPlano(Long navioId,
+                                      Long visitaNavioId,
+                                      String codigoViagem,
+                                      String portoCarga,
+                                      String portoDescarga) {
         NavioGranel navio = navioRepositorio.findById(navioId)
-                .orElseThrow(() -> new EntityNotFoundException("Navio não encontrado: " + navioId));
+                .orElseThrow(() -> new EntityNotFoundException("Perfil estrutural de navio não encontrado: " + navioId));
+        if (navio.getNavioCadastroId() == null
+                || navio.getVersaoPerfil() == null
+                || navio.getVersaoNavioCanonico() == null) {
+            throw new IllegalStateException(
+                    "O perfil estrutural não está vinculado e versionado sob a identidade canônica do navio.");
+        }
+
+        ContextoPlanejamentoNavio contexto = identidadeServico.resolverVisita(
+                visitaNavioId,
+                navio.getNavioCadastroId(),
+                navio.getImo(),
+                codigoViagem);
+        if (!Objects.equals(navio.getVersaoNavioCanonico(), contexto.navio().versao())) {
+            throw new IllegalStateException(
+                    "O perfil estrutural foi criado para uma versão anterior do cadastro canônico. Registre uma nova versão do perfil.");
+        }
+
         PlanoEstivaBulk plano = new PlanoEstivaBulk();
         plano.setNavio(navio);
-        plano.setCodigoViagem(codigoViagem);
+        plano.setNavioCadastroId(contexto.navio().identificador());
+        plano.setVisitaNavioId(contexto.visita().identificador());
+        plano.setCodigoVisita(contexto.visita().codigoVisita());
+        plano.setVersaoPerfilNavio(navio.getVersaoPerfil());
+        plano.setVersaoNavioCanonico(contexto.navio().versao());
+        plano.setVersaoVisita(contexto.visita().versao());
+        plano.setCodigoViagem(contexto.codigoViagem());
         plano.setPortoCarga(portoCarga);
         plano.setPortoDescarga(portoDescarga);
         return planoRepositorio.save(plano);
@@ -85,6 +132,7 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public BobinaManifesto adicionarBobina(Long planoId, BobinaManifesto bobina) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        validarFonteCanonica(plano);
         bobina.setPlano(plano);
         plano.getBobinas().add(bobina);
         planoRepositorio.save(plano);
@@ -94,6 +142,7 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public PosicaoBobinaDto posicionarBobina(Long planoId, PosicionarBobinaRequisicaoDto req) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        validarFonteCanonica(plano);
 
         BobinaManifesto bobina = plano.getBobinas().stream()
                 .filter(b -> b.getId().equals(req.getBobinaId()))
@@ -144,22 +193,29 @@ public class PlanoEstivaBulkServico {
 
     @Transactional(readOnly = true)
     public EstabilidadeEstrutural calcularEstabilidade(Long planoId) {
-        return estabilidadeServico.calcular(buscarPlano(planoId));
+        PlanoEstivaBulk plano = buscarPlano(planoId);
+        validarFonteCanonica(plano);
+        return estabilidadeServico.calcular(plano);
     }
 
     @Transactional(readOnly = true)
     public List<PressaoTanktopDto> analisarTanktop(Long planoId) {
-        return tanktopServico.verificarTodosSetores(buscarPlano(planoId).getPosicoes());
+        PlanoEstivaBulk plano = buscarPlano(planoId);
+        validarFonteCanonica(plano);
+        return tanktopServico.verificarTodosSetores(plano.getPosicoes());
     }
 
     @Transactional(readOnly = true)
     public AnaliseEmpilhamentoDto analisarEmpilhamento(Long planoId, Long poraoId) {
-        return empilhamentoServico.analisarEmpilhamento(buscarPlano(planoId), poraoId);
+        PlanoEstivaBulk plano = buscarPlano(planoId);
+        validarFonteCanonica(plano);
+        return empilhamentoServico.analisarEmpilhamento(plano, poraoId);
     }
 
     @Transactional
     public TacktopDto calcularTacktop(Long planoId) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        validarFonteCanonica(plano);
         TacktopDto dto = tacktopServico.calcularTacktop(plano);
         planoRepositorio.save(plano);
         return dto;
@@ -168,6 +224,7 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public PlanoEstivaBulkDto validarEAprovar(Long planoId) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        validarFonteCanonica(plano);
         EstabilidadeEstrutural est = estabilidadeServico.calcular(plano);
         if (!est.isAprovado()) {
             throw new IllegalStateException(
@@ -186,9 +243,30 @@ public class PlanoEstivaBulkServico {
                 .orElseThrow(() -> new EntityNotFoundException("PlanoEstivaBulk não encontrado: " + planoId));
     }
 
+    private void validarFonteCanonica(PlanoEstivaBulk plano) {
+        identidadeServico.validarFontePersistida(
+                plano.getVisitaNavioId(),
+                plano.getNavioCadastroId(),
+                plano.getNavio() == null ? null : plano.getNavio().getImo(),
+                plano.getCodigoViagem(),
+                plano.getVersaoNavioCanonico(),
+                plano.getVersaoVisita());
+        if (plano.getNavio() == null
+                || !Objects.equals(plano.getVersaoPerfilNavio(), plano.getNavio().getVersaoPerfil())) {
+            throw new IllegalStateException(
+                    "A versão do perfil estrutural vinculada ao plano não está disponível ou foi alterada.");
+        }
+    }
+
     private PlanoEstivaBulkDto toDto(PlanoEstivaBulk plano, EstabilidadeEstrutural est) {
         PlanoEstivaBulkDto dto = new PlanoEstivaBulkDto();
         dto.setId(plano.getId());
+        dto.setNavioCadastroId(plano.getNavioCadastroId());
+        dto.setVisitaNavioId(plano.getVisitaNavioId());
+        dto.setCodigoVisita(plano.getCodigoVisita());
+        dto.setVersaoPerfilNavio(plano.getVersaoPerfilNavio());
+        dto.setVersaoNavioCanonico(plano.getVersaoNavioCanonico());
+        dto.setVersaoVisita(plano.getVersaoVisita());
         if (plano.getNavio() != null) {
             dto.setNavioId(plano.getNavio().getId());
             dto.setNomeNavio(plano.getNavio().getNome());

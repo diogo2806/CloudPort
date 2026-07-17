@@ -8,6 +8,7 @@ import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
+import { VesselLineUpPage } from './pages/VesselLineUpPage.jsx';
 import {
   ControlRoomPage,
   DATASET_ROUTES,
@@ -61,6 +62,7 @@ const FALLBACK_NAVIGATION = [
     { label: 'Automação', path: '/home/patio/automacao', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }
   ] },
   { group: 'Navio e embarque', items: [
+    { label: 'Line-up de navios', path: '/home/navio/line-up', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
     { label: 'Control Room', path: '/home/navio/control-room', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
     { label: 'Planejamento de estiva', path: '/home/embarque/planejamento', roles: [] },
     { label: 'Steel coils', path: '/home/embarque/steel-coils', roles: [] }
@@ -116,7 +118,7 @@ function LoginPage({ onAuthenticated, navigate, returnPath }) {
   return <main className="login-shell">
     <section className="login-visual" aria-hidden="true"><div><span className="brand-mark">CP</span><h1>Operação portuária em uma única visão.</h1><p>Gate, ferrovia, pátio, navio e embarque conectados pelo CloudPort.</p></div></section>
     <section className="login-panel"><form className="login-card" onSubmit={submit}>
-      <div className="login-brand"><span className="brand-mark small">CP</span><div><strong>CloudPort</strong><small>Portal operacional React</small></div></div>
+      <div className="login-brand"><span className="brand-mark small">CP</span><div><strong>CloudPort</strong><small>Portal operacional</small></div></div>
       <div><span className="eyebrow">Acesso seguro</span><h2>Entrar</h2><p>Use uma conta autorizada para acessar os módulos.</p></div>
       <label className="field"><span>Login</span><input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" maxLength={120} required autoFocus /></label>
       <label className="field"><span>Senha</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>
@@ -137,7 +139,8 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/notificacoes') return <NotificationsPage />;
   if (path === '/home/privacidade') return <PrivacyPage />;
   if (path === '/home/lista-de-usuarios') return <UsersPage />;
-  if (path === '/home/navio' || path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
+  if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
+  if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
   if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;
   if (path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDirectVesselReleasePage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;

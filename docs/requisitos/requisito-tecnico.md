@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após auditoria da branch main.
+Status: atualizado em 2026-07-17 após implementação do UI40 na branch principal.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -8,19 +8,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| UI40 | Reabrir o fluxo React de planejamento de steel coils com contratos compatíveis com a API bulk. | A seleção de navio e visita lista planos persistidos, a criação envia o identificador obrigatório da visita e o cálculo de tacktop usa o método HTTP publicado pelo backend, sem respostas `400` ou `405` causadas pelo próprio portal. | ⬜ Pendente |
 | UI60 | Reabrir a criação de plano do Vessel Planner vinculando a escala selecionada. | `POST /api/vessel-planner/planos` recebe `bayPlanId` e `visitaNavioId` da escala selecionada; o plano é criado e persiste a identidade canônica da visita utilizada na tela. | ⬜ Pendente |
-
-### UI40 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/pages/SteelCoilPlannerPage.jsx` | `loadPlans()` | A tela chama a listagem por navio e código de viagem, porém a API atual não publica `GET /api/estivagem-bulk/planos`; a seleção de plano não pode ser carregada pelo fluxo normal. | Consumir uma listagem persistida compatível com navio e visita. Caso a seleção por lista seja mantida, criar no backend o novo método sugerido: `listarPlanos(Long navioId, Long visitaNavioId)`. |
-| `frontend/cloudport/src/pages/SteelCoilPlannerPage.jsx` | `createPlan()` | A visita é selecionada na interface, mas o corpo contém apenas `navioId`, `codigoViagem`, `portoCarga` e `portoDescarga`. O backend exige `visitaNavioId`, portanto a criação é rejeitada pela validação. | Enviar `visitaNavioId` com o `id` da visita selecionada e manter o código de viagem apenas como atributo derivado do contexto canônico. |
-| `frontend/cloudport/src/pages/SteelCoilPlannerPage.jsx` | `loadSecuring()` | O comando depende de `calcularSecuringEstivagemBulk()`, que usa `POST`, embora o contrato publicado seja somente leitura. | Chamar o contrato de tacktop com o método HTTP efetivamente publicado e exibir o resultado retornado, sem tratar uma consulta como comando persistente. |
-| `frontend/cloudport/src/api.js` | `listarPlanosEstivagemBulk()`, `criarPlanoEstivagemBulk()` e `calcularSecuringEstivagemBulk()` | A listagem aponta para rota inexistente, a criação apenas repassa um corpo que não contém a visita e tacktop é chamado por `POST`. | Alinhar assinaturas, parâmetros e métodos HTTP aos contratos corrigidos e exigir `visitaNavioId` na criação. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/controlador/EstivaBulkControlador.java` | `/api/estivagem-bulk/planos` e `/planos/{id}/tacktop` | O caminho `/planos` possui apenas `POST`; tacktop possui apenas `GET`. | Publicar a consulta filtrada necessária para a tela ou remover a seleção por listagem, e manter o cliente aderente ao `GET` de tacktop. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/dto/CriarPlanoEstivaBulkRequisicaoDto.java` | campo `visitaNavioId` | O campo é obrigatório com `@NotNull`, mas não é enviado pelo portal React. | Preservar a obrigatoriedade e corrigir o produtor do contrato no frontend. |
 
 ### UI60 — arquivos e métodos
 

@@ -5,6 +5,7 @@ import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
+import { VesselLineUpPage } from './pages/VesselLineUpPage.jsx';
 import {
   ControlRoomPage,
   DATASET_ROUTES,
@@ -55,6 +56,7 @@ const FALLBACK_NAVIGATION = [
     { label: 'Automação', path: '/home/patio/automacao', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }
   ] },
   { group: 'Navio e embarque', items: [
+    { label: 'Line-up de navios', path: '/home/navio/line-up', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
     { label: 'Control Room', path: '/home/navio/control-room', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
     { label: 'Planejamento de estiva', path: '/home/embarque/planejamento', roles: [] },
     { label: 'Steel coils', path: '/home/embarque/steel-coils', roles: [] }
@@ -131,7 +133,8 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/notificacoes') return <NotificationsPage />;
   if (path === '/home/privacidade') return <PrivacyPage />;
   if (path === '/home/lista-de-usuarios') return <UsersPage />;
-  if (path === '/home/navio' || path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
+  if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
+  if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
   if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;

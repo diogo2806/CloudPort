@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, formatError } from '../api.js';
+import { formatError } from '../api.js';
 import {
   DataTable,
   EmptyState,
@@ -20,6 +20,7 @@ import {
   paraDateTimeLocal,
   somarHoras
 } from '../vesselLineUp.js';
+import { vesselLineUpApi } from '../vesselLineUpApi.js';
 
 function formatarDataHora(valor) {
   if (!valor) return '—';
@@ -119,7 +120,7 @@ export function VesselLineUpPage() {
     setCarregando(true);
     setErro('');
     try {
-      setDados(await api.listarLineUpNavios(dias));
+      setDados(await vesselLineUpApi.listar(dias));
     } catch (motivo) {
       setDados([]);
       setErro(formatError(motivo, 'Não foi possível carregar o line-up de navios.'));

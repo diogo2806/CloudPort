@@ -19,7 +19,7 @@ public class AutomacaoPatioControlador {
 
     @PostMapping("/executar-autoplanejamento")
     public ResponseEntity<RespostaAutoplanejamentoDto> executarAutoplanejamento() {
-        var resposta = automacaoPatioServico.executarAutoplanejamento();
+        RespostaAutoplanejamentoDto resposta = automacaoPatioServico.executarAutoplanejamento();
         return ResponseEntity.ok(resposta);
     }
 }

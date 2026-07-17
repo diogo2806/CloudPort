@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.estivagembulk.controlador;
 
 import br.com.cloudport.servicoyard.estivagembulk.dto.AnaliseEmpilhamentoDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.CriarPlanoEstivaBulkRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.EstabilidadeEstrutural;
 import br.com.cloudport.servicoyard.estivagembulk.dto.NavioGranelDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PlanoEstivaBulkDto;
@@ -15,6 +16,7 @@ import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityNotFoundException;
+import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,7 +38,7 @@ public class EstivaBulkControlador {
     }
 
     @PostMapping("/navios")
-    public ResponseEntity<NavioGranel> registrarNavio(@RequestBody NavioGranelDto dto) {
+    public ResponseEntity<NavioGranel> registrarNavio(@Valid @RequestBody NavioGranelDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(servico.registrarNavio(dto));
     }
 
@@ -51,13 +53,15 @@ public class EstivaBulkControlador {
     }
 
     @PostMapping("/planos")
-    public ResponseEntity<?> criarPlano(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> criarPlano(
+            @Valid @RequestBody CriarPlanoEstivaBulkRequisicaoDto requisicao) {
         try {
-            Long navioId = Long.valueOf(body.get("navioId").toString());
-            String codigoViagem = (String) body.get("codigoViagem");
-            String portoCarga = (String) body.get("portoCarga");
-            String portoDescarga = (String) body.get("portoDescarga");
-            PlanoEstivaBulk plano = servico.criarPlano(navioId, codigoViagem, portoCarga, portoDescarga);
+            PlanoEstivaBulk plano = servico.criarPlano(
+                    requisicao.getNavioId(),
+                    requisicao.getVisitaNavioId(),
+                    requisicao.getCodigoViagem(),
+                    requisicao.getPortoCarga(),
+                    requisicao.getPortoDescarga());
             return ResponseEntity.status(HttpStatus.CREATED).body(servico.buscarPorId(plano.getId()));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();

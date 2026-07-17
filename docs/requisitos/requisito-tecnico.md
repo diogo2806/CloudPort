@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após auditoria da branch `main`.
+Status: atualizado em 2026-07-17 após implementação do requisito `SEC40`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -74,7 +74,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | SEC20 | Restringir criação, alteração e aprovação de planos de estiva a perfis autorizados. | Escritas do Vessel Planner e da estiva de bobinas exigem planejamento ou administração; leitura segue a matriz definida, usuário sem permissão recebe `403` e o backend protege o fluxo independentemente do menu. | ⬜ Pendente |
 | SEC30 | Eliminar credenciais funcionais e segredos criptográficos padrão dos serviços standalone. | Serviços que validam JWT ou autenticam clientes públicos falham na inicialização quando os segredos obrigatórios não forem fornecidos; nenhuma credencial conhecida do repositório habilita acesso, assinatura ou validação em runtime. | ⬜ Pendente |
-| SEC40 | Autenticar senhas como dados opacos, sem normalização ou bloqueio de caracteres antes da verificação do hash. | O login encaminha ao `AuthenticationManager` exatamente a sequência de caracteres recebida como senha; validações estruturais são aplicadas somente na criação ou troca da credencial, e senhas já persistidas continuam autenticáveis sem transformação silenciosa. | ⬜ Pendente |
 
 ### SEC20 — arquivos e métodos
 
@@ -91,13 +90,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-navio-siderurgico/src/main/resources/application.properties` | `cloudport.security.jwt.secret` | O serviço standalone usa por padrão `chave-local-para-desenvolvimento-123456`, que possui tamanho aceito pelo decoder e é conhecido por qualquer pessoa com acesso ao repositório. | Remover o fallback e exigir segredo externo com validação de presença e tamanho antes de expor endpoints autenticados. |
 | `backend/servico-navio-siderurgico/src/main/resources/application.properties` e `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/configuracao/PublicApiClientAuthenticationFilter.java` | `cloudport.security.public-api.clients`, `carregarClientes()` | A configuração padrão `cloudport-local:troque-esta-chave-publica` é carregada como cliente válido e concede `ROLE_INTEGRACAO_EXTERNA` para `/api/public/v1/**`. | Remover o cliente funcional padrão, exigir configuração externa e falhar fechado sem credenciais válidas. |
 | `backend/servico-navio-siderurgico/src/main/java/br/com/cloudport/serviconaviosiderurgico/configuracao/ConfiguracaoSeguranca.java` | `jwtDecoder()` e cadeia `/api/public/v1/**` | O decoder valida apenas presença e 32 bytes; portanto aceita o segredo conhecido, enquanto o filtro autentica o cliente padrão antes do `BearerTokenAuthenticationFilter`. | Rejeitar valores sentinela de desenvolvimento e garantir que o profile operacional não inicialize com credenciais documentadas ou defaults reutilizáveis. |
-
-### SEC40 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-autenticacao/src/main/java/br/com/cloudport/servicoautenticacao/controllers/AuthenticationController.java` | `login()` | Antes de criar `UsernamePasswordAuthenticationToken`, o fluxo substitui a senha recebida pelo resultado de `SanitizadorEntrada.sanitizarSenha()`. | Encaminhar a senha original ao `AuthenticationManager` e limitar o tratamento do endpoint a presença, tamanho máximo de transporte e proteção contra payload inválido, sem alterar o segredo. |
-| `backend/servico-autenticacao/src/main/java/br/com/cloudport/servicoautenticacao/app/configuracoes/validacao/SanitizadorEntrada.java` | `sanitizarSenha()` | Aplica normalização Unicode NFKC e rejeita `<` e `>`, embora a senha de autenticação deva ser comparada ao hash como sequência opaca; o método não é usado na criação de credenciais, somente no login. | Remover o método do fluxo de autenticação; criar validação específica para definição de nova senha, sem normalizar silenciosamente credenciais existentes. |
 
 ## 4. Processamento assíncrono
 

@@ -92,7 +92,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
                 "cloudport.security.jwt.secret=cloudport-test-secret-with-at-least-32-characters",
                 "jwt.secret=cloudport-test-secret-with-at-least-32-characters",
                 "api.security.token.secret=cloudport-test-secret-with-at-least-32-characters",
-                "cloudport.security.internal-service-key=cloudport-test-service-key"
+                "cloudport.security.internal-service-key=cloudport-test-service-key",
+                "cloudport.security.public-api.clients=rollback-test-client:rollback-public-client-secret-with-32-bytes"
         })
 class CloudPortMonolitoNavioPostgresTest {
 

@@ -2,7 +2,11 @@ package br.com.cloudport.servicogate.scheduler;
 
 import br.com.cloudport.servicogate.app.gestor.ReconciliacaoBarcodeRepository;
 import br.com.cloudport.servicogate.app.gestor.ReconciliacaoBarcodeService;
+import br.com.cloudport.servicogate.integration.alerta.AlertaOperacionalGateway;
+import br.com.cloudport.servicogate.integration.alerta.AlertaReconciliacaoBarcode;
+import br.com.cloudport.servicogate.integration.alerta.ConfirmacaoEntregaAlerta;
 import br.com.cloudport.servicogate.model.ReconciliacaoBarcode;
+import br.com.cloudport.servicogate.model.enums.StatusEntregaAlerta;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.slf4j.Logger;
@@ -17,11 +21,14 @@ public class ReconciliacaoBarcodeScheduler {
 
     private final ReconciliacaoBarcodeService reconciliacaoService;
     private final ReconciliacaoBarcodeRepository reconciliacaoRepository;
+    private final AlertaOperacionalGateway alertaOperacionalGateway;
 
     public ReconciliacaoBarcodeScheduler(ReconciliacaoBarcodeService reconciliacaoService,
-                                         ReconciliacaoBarcodeRepository reconciliacaoRepository) {
+                                         ReconciliacaoBarcodeRepository reconciliacaoRepository,
+                                         AlertaOperacionalGateway alertaOperacionalGateway) {
         this.reconciliacaoService = reconciliacaoService;
         this.reconciliacaoRepository = reconciliacaoRepository;
+        this.alertaOperacionalGateway = alertaOperacionalGateway;
     }
 
     @Scheduled(cron = "${gate.reconciliacao.cron:0 0 2 * * *}")
@@ -29,7 +36,7 @@ public class ReconciliacaoBarcodeScheduler {
         try {
             LOGGER.info("event=reconciliacao.scheduler.iniciada timestamp={}", LocalDateTime.now());
             List<ReconciliacaoBarcode> problemas = reconciliacaoService.executarReconciliacao();
-            enviarAlertas(problemas);
+            enviarAlertas();
             LOGGER.info("event=reconciliacao.scheduler.concluida problemas={} timestamp={}",
                     problemas.size(), LocalDateTime.now());
         } catch (Exception ex) {
@@ -38,49 +45,48 @@ public class ReconciliacaoBarcodeScheduler {
         }
     }
 
-    private void enviarAlertas(List<ReconciliacaoBarcode> problemas) {
-        List<ReconciliacaoBarcode> naResolvidos = reconciliacaoRepository.findNaoResolvidosSemAlerta();
-        for (ReconciliacaoBarcode reconciliacao : naResolvidos) {
-            try {
-                enviarAlerta(reconciliacao);
-                reconciliacao.setAlertaEnviado(true);
-                reconciliacaoRepository.save(reconciliacao);
-            } catch (Exception ex) {
-                LOGGER.warn("event=reconciliacao.alerta.erro id={} cause={} timestamp={}",
-                        reconciliacao.getId(), ex.getMessage(), LocalDateTime.now());
-            }
+    private void enviarAlertas() {
+        List<ReconciliacaoBarcode> naoResolvidos = reconciliacaoRepository.findNaoResolvidosSemAlerta();
+        for (ReconciliacaoBarcode reconciliacao : naoResolvidos) {
+            enviarAlerta(reconciliacao);
         }
     }
 
     private void enviarAlerta(ReconciliacaoBarcode reconciliacao) {
-        String assunto = String.format("[ALERTA] Desincronização de Barcode: %s",
-                reconciliacao.getTipoDesinconia().getDescricao());
+        try {
+            int tentativas = reconciliacao.getAlertaTentativas() == null
+                    ? 0
+                    : reconciliacao.getAlertaTentativas();
+            reconciliacao.setAlertaTentativas(tentativas + 1);
+            reconciliacao.setStatusEntregaAlerta(StatusEntregaAlerta.PENDENTE);
+            reconciliacao.setAlertaUltimoErro(null);
+            reconciliacaoRepository.saveAndFlush(reconciliacao);
 
-        String mensagem = String.format(
-                "ID: %d%n" +
-                "Tipo: %s%n" +
-                "Descrição: %s%n" +
-                "Gate Pass: %s%n" +
-                "Detectado em: %s%n" +
-                "Tempo pendência: %d horas%n" +
-                "Barcode Esperado: %s%n" +
-                "Barcode Recebido: %s%n" +
-                "Status TOS: %s%n" +
-                "Status Local: %s%n",
-                reconciliacao.getId(),
-                reconciliacao.getTipoDesinconia().getDescricao(),
-                reconciliacao.getDescricao(),
-                reconciliacao.getGatePass().getCodigo(),
-                reconciliacao.getDetectadoEm(),
-                reconciliacao.getTempoPendenciaHoras() != null ? reconciliacao.getTempoPendenciaHoras() : 0,
-                reconciliacao.getBarcodeEsperado() != null ? reconciliacao.getBarcodeEsperado() : "N/A",
-                reconciliacao.getBarcodeRecebido() != null ? reconciliacao.getBarcodeRecebido() : "N/A",
-                reconciliacao.getStatusTos() != null ? reconciliacao.getStatusTos() : "N/A",
-                reconciliacao.getStatusLocal() != null ? reconciliacao.getStatusLocal() : "N/A"
-        );
+            ConfirmacaoEntregaAlerta confirmacao = alertaOperacionalGateway
+                    .enviar(new AlertaReconciliacaoBarcode(reconciliacao));
+            reconciliacao.setAlertaEnviado(true);
+            reconciliacao.setStatusEntregaAlerta(StatusEntregaAlerta.ENVIADO);
+            reconciliacao.setAlertaEnviadoEm(confirmacao.getConfirmadoEm());
+            reconciliacao.setAlertaCanal(confirmacao.getCanal());
+            reconciliacao.setAlertaIdentificadorExterno(confirmacao.getIdentificadorExterno());
+            reconciliacao.setAlertaUltimoErro(null);
+            reconciliacaoRepository.saveAndFlush(reconciliacao);
+            LOGGER.info("event=reconciliacao.alerta.confirmado id={} canal={} identificadorExterno={}",
+                    reconciliacao.getId(), confirmacao.getCanal(), confirmacao.getIdentificadorExterno());
+        } catch (Exception ex) {
+            reconciliacao.setAlertaEnviado(false);
+            reconciliacao.setStatusEntregaAlerta(StatusEntregaAlerta.FALHA);
+            reconciliacao.setAlertaUltimoErro(limitar(ex.getMessage(), 1000));
+            reconciliacaoRepository.saveAndFlush(reconciliacao);
+            LOGGER.warn("event=reconciliacao.alerta.falha id={} tentativa={} cause={}",
+                    reconciliacao.getId(), reconciliacao.getAlertaTentativas(), ex.getMessage());
+        }
+    }
 
-        LOGGER.warn("event=reconciliacao.alerta.enviado id={} tipo={} gatePass={} assunto={} mensagem={} timestamp={}",
-                reconciliacao.getId(), reconciliacao.getTipoDesinconia(),
-                reconciliacao.getGatePass().getCodigo(), assunto, mensagem, LocalDateTime.now());
+    private String limitar(String valor, int tamanhoMaximo) {
+        if (valor == null || valor.length() <= tamanhoMaximo) {
+            return valor;
+        }
+        return valor.substring(0, tamanhoMaximo);
     }
 }

@@ -8,7 +8,6 @@ import br.com.cloudport.servicogate.model.enums.StatusRetiradaDiretaNavio;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.Locale;
-import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -104,22 +103,27 @@ public class RetiradaDiretaNavioService {
     }
 
     private String resolverTipoCarga(String tipoCarga) {
-        if (!StringUtils.hasText(tipoCarga)) {
+        String sanitizado = sanitizarTexto(tipoCarga);
+        if (!StringUtils.hasText(sanitizado)) {
             return TIPO_CARGA_PADRAO;
         }
-        return sanitizarTexto(tipoCarga).toUpperCase(Locale.ROOT);
+        return sanitizado.toUpperCase(Locale.ROOT);
     }
 
     private String normalizarIdentificador(String valor) {
-        String normalizado = sanitizarTexto(valor).toUpperCase(Locale.ROOT);
-        if (!StringUtils.hasText(normalizado)) {
+        String sanitizado = sanitizarTexto(valor);
+        if (!StringUtils.hasText(sanitizado)) {
             throw new BusinessException("Identificador obrigatório não foi informado");
         }
-        return normalizado;
+        return sanitizado.toUpperCase(Locale.ROOT);
     }
 
     private String normalizarDocumento(String valor) {
-        String normalizado = sanitizarTexto(valor).replaceAll("[^0-9A-Za-z]", "").toUpperCase(Locale.ROOT);
+        String sanitizado = sanitizarTexto(valor);
+        if (!StringUtils.hasText(sanitizado)) {
+            throw new BusinessException("Documento do cliente é obrigatório");
+        }
+        String normalizado = sanitizado.replaceAll("[^0-9A-Za-z]", "").toUpperCase(Locale.ROOT);
         if (!StringUtils.hasText(normalizado)) {
             throw new BusinessException("Documento do cliente é obrigatório");
         }

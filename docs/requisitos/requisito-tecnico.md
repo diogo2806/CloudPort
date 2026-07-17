@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do UI40 na branch principal.
+Status: atualizado em 2026-07-17 após implementação dos itens UI40 e UI70 na branch principal.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -33,21 +33,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `frontend/cloudport/src/pages/yard/YardMapPages.jsx` | `YardMapPage()` e `layer.plannedOrder` | A interface possui estado visual para destino planejado, mas ele depende do mapa produzido por `buildStacks()` e permanece ausente para contratos reais de ordem. | Consumir a associação corrigida e manter ocupação real, restrição e destino planejado como estados distintos. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/dto/OrdemTrabalhoPatioRespostaDto.java` | `linhaDestino`, `colunaDestino` e `camadaDestino` | O contrato publica explicitamente as coordenadas de destino e não publica `linha` ou `coluna`. | Preservar o contrato e ajustar somente o consumidor frontend para os nomes oficiais. |
 
-## 3. Telas operacionais do Gate
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| UI70 | Exibir os agendamentos da visão consolidada nas rotas de relatório e console do Gate. | `/home/gate/relatorios`, `/home/gate/operador/console` e `/home/gate/operador/eventos` renderizam os registros de `agendamentos` retornados pelo backend, com estado vazio somente quando essa lista estiver realmente vazia. | ⬜ Pendente |
-
-### UI70 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/pages/OperationalPages.jsx` | `GenericDatasetPage()` e `DATASET_ROUTES` do Gate | As rotas usam `api.obterCentralGate()` como se a resposta inteira fosse uma lista paginada. `normalizePage()` não reconhece o campo `agendamentos`, produz zero linhas e a tela mostra estado vazio mesmo com registros retornados. | Fornecer ao componente somente `response.agendamentos` ou adicionar um seletor explícito por rota; não converter o objeto consolidado inteiro em lista. |
-| `frontend/cloudport/src/api.js` | `obterCentralGate()` | O método retorna corretamente o objeto consolidado da API, sem normalização para as telas genéricas. | Manter o objeto para o dashboard e criar um método ou adaptador específico que retorne `agendamentos` para as rotas tabulares. |
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/cidadao/centralacao/dto/CentralAcaoAgendamentoRespostaDTO.java` | campo `agendamentos` | O backend publica a coleção em uma propriedade própria, ao lado de `usuario` e `situacaoPatio`. | Preservar o contrato e fazer as telas consumirem a propriedade correta. |
-
-## 4. Processamento assíncrono e jobs
+## 3. Processamento assíncrono e jobs
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

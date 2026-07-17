@@ -3,6 +3,7 @@ const USERNAME_KEY = 'nomeUsuario';
 const REQUEST_TIMEOUT_MS = 12000;
 
 const sessionExpirationSubscribers = new Set();
+let sessionExpirationNotified = false;
 
 let runtimeConfig = {
   baseApiUrl: '',
@@ -80,6 +81,7 @@ export function saveSession(response) {
   const target = storage();
   target?.setItem(SESSION_KEY, JSON.stringify(session));
   target?.setItem(USERNAME_KEY, JSON.stringify(session.nome));
+  sessionExpirationNotified = false;
   return session;
 }
 
@@ -121,6 +123,8 @@ export function subscribeSessionExpired(listener) {
 }
 
 export function notifySessionExpired() {
+  if (sessionExpirationNotified) return;
+  sessionExpirationNotified = true;
   sessionExpirationSubscribers.forEach((listener) => {
     try {
       listener();

@@ -5,6 +5,7 @@ import br.com.cloudport.serviconavio.escala.entidade.Escala;
 import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
 import br.com.cloudport.serviconavio.estiva.dto.CriarAtribuicaoEstivaDTO;
 import br.com.cloudport.serviconavio.estiva.dto.CriarPlanoEstivaDTO;
+import br.com.cloudport.serviconavio.estiva.dto.EmbarqueDiretoGateResultadoDTO;
 import br.com.cloudport.serviconavio.estiva.dto.PlanoEstivaDetalheDTO;
 import br.com.cloudport.serviconavio.estiva.entidade.AtribuicaoEstiva;
 import br.com.cloudport.serviconavio.estiva.entidade.PlanoEstiva;
@@ -28,9 +29,9 @@ public class PlanoEstivaServico {
     private final SanitizadorEntrada sanitizadorEntrada;
 
     public PlanoEstivaServico(PlanoEstivaRepositorio planoEstivaRepositorio,
-                              AtribuicaoEstivaRepositorio atribuicaoEstivaRepositorio,
-                              EscalaRepositorio escalaRepositorio,
-                              SanitizadorEntrada sanitizadorEntrada) {
+                               AtribuicaoEstivaRepositorio atribuicaoEstivaRepositorio,
+                               EscalaRepositorio escalaRepositorio,
+                               SanitizadorEntrada sanitizadorEntrada) {
         this.planoEstivaRepositorio = planoEstivaRepositorio;
         this.atribuicaoEstivaRepositorio = atribuicaoEstivaRepositorio;
         this.escalaRepositorio = escalaRepositorio;
@@ -116,6 +117,35 @@ public class PlanoEstivaServico {
         }
 
         return PlanoEstivaDetalheDTO.deEntidade(plano);
+    }
+
+    @Transactional
+    public EmbarqueDiretoGateResultadoDTO embarcarDiretoDoGate(Long atribuicaoId,
+                                                               String codigoConteiner,
+                                                               LocalDateTime embarcadoEm) {
+        AtribuicaoEstiva atribuicao = obterAtribuicao(atribuicaoId);
+        String codigoNormalizado = sanitizadorEntrada
+                .limparTextoObrigatorio(codigoConteiner, "código do contêiner")
+                .toUpperCase(Locale.ROOT);
+
+        if (!atribuicao.getCodigoConteiner().equalsIgnoreCase(codigoNormalizado)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A atribuição de estiva pertence a outro contêiner.");
+        }
+        if (StringUtils.hasText(atribuicao.getPosicaoPatioOrigem())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A atribuição possui origem no pátio e deve seguir o fluxo normal pátio-navio.");
+        }
+
+        if (!atribuicao.isEmbarcado()) {
+            atribuicao.setEmbarcado(true);
+            atribuicao.setEmbarcadoEm(embarcadoEm != null ? embarcadoEm : LocalDateTime.now());
+            atualizarStatusAposEmbarque(atribuicao.getPlano());
+            atribuicaoEstivaRepositorio.save(atribuicao);
+            planoEstivaRepositorio.save(atribuicao.getPlano());
+        }
+
+        return EmbarqueDiretoGateResultadoDTO.deEntidade(atribuicao);
     }
 
     @Transactional

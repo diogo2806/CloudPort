@@ -1,6 +1,7 @@
 const SESSION_KEY = 'usuarioAtual';
 const USERNAME_KEY = 'nomeUsuario';
 const REQUEST_TIMEOUT_MS = 12000;
+const sessionExpiredListeners = new Set();
 
 let runtimeConfig = {
   baseApiUrl: '',
@@ -110,6 +111,16 @@ export function clearSession() {
   target?.removeItem(USERNAME_KEY);
 }
 
+export function notifySessionExpired() {
+  sessionExpiredListeners.forEach((listener) => listener());
+}
+
+export function subscribeSessionExpired(listener) {
+  if (typeof listener !== 'function') throw new TypeError('O listener de sessão expirada deve ser uma função.');
+  sessionExpiredListeners.add(listener);
+  return () => sessionExpiredListeners.delete(listener);
+}
+
 export function hasAnyRole(session, ...roles) {
   const current = uniqueRoles(session?.roles, session?.perfil);
   return roles.some((role) => current.includes(normalizeRole(role)));
@@ -205,7 +216,10 @@ export async function request(path, options = {}) {
         ? await response.json()
         : await response.text();
     if (!response.ok) {
-      if (response.status === 401) clearSession();
+      if (response.status === 401) {
+        clearSession();
+        notifySessionExpired();
+      }
       const error = new Error(payload?.mensagem ?? payload?.erro ?? payload?.message ?? `Falha HTTP ${response.status}`);
       error.payload = payload;
       error.status = response.status;

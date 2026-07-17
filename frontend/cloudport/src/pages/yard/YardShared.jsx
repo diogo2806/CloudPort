@@ -3,8 +3,9 @@ import { formatError, sanitizeText } from '../../api.js';
 import { EmptyState, PageHeader } from '../../components.jsx';
 import './YardPages.css';
 
+export { buildStacks, FINAL_ORDER_STATUSES, orderDestinationKey, positionKey, stackClass } from './yardModel.js';
+
 export const PAGE_SIZE = 20;
-export const FINAL_ORDER_STATUSES = new Set(['CONCLUIDA', 'CANCELADA']);
 const YARD_ROUTES = [
   ['/home/patio/mapa', 'Mapa'],
   ['/home/patio/posicoes', 'Posições'],
@@ -29,10 +30,6 @@ export function displayValue(value) {
 
 export function normalized(value) {
   return sanitizeText(value).toLocaleLowerCase('pt-BR');
-}
-
-export function positionKey(position) {
-  return `${position?.linha ?? ''}:${position?.coluna ?? ''}:${position?.camadaOperacional ?? position?.camadaDestino ?? ''}`;
 }
 
 export function useRemote(loader, dependencies = []) {
@@ -141,36 +138,4 @@ export function YardPageHeader({ path, navigate, title, description, actions }) 
     <PageHeader eyebrow="Pátio" title={title} description={description} actions={actions} />
     <YardTabs activePath={path} navigate={navigate} />
   </>;
-}
-
-export function buildStacks(positions, orders) {
-  const planned = new Map((orders ?? [])
-    .filter((order) => !FINAL_ORDER_STATUSES.has(order.statusOrdem))
-    .map((order) => [positionKey(order), order]));
-  const blocks = new Map();
-  (positions ?? []).forEach((position) => {
-    const blockName = sanitizeText(position.bloco) || 'SEM_BLOCO';
-    if (!blocks.has(blockName)) blocks.set(blockName, new Map());
-    const stackKey = `${position.linha}:${position.coluna}`;
-    if (!blocks.get(blockName).has(stackKey)) {
-      blocks.get(blockName).set(stackKey, { bloco: blockName, linha: position.linha, coluna: position.coluna, layers: [] });
-    }
-    blocks.get(blockName).get(stackKey).layers.push({ ...position, plannedOrder: planned.get(positionKey(position)) ?? null });
-  });
-  return Array.from(blocks, ([bloco, stacks]) => ({
-    bloco,
-    stacks: Array.from(stacks.values()).map((stack) => ({
-      ...stack,
-      layers: stack.layers.sort((left, right) => String(left.camadaOperacional).localeCompare(String(right.camadaOperacional), 'pt-BR', { numeric: true }))
-    })).sort((left, right) => left.linha - right.linha || left.coluna - right.coluna)
-  })).sort((left, right) => left.bloco.localeCompare(right.bloco, 'pt-BR'));
-}
-
-export function stackClass(stack) {
-  if (stack.layers.some((layer) => layer.interditada)) return 'interdicted';
-  if (stack.layers.some((layer) => layer.bloqueada || !layer.areaPermitida)) return 'blocked';
-  if (stack.layers.some((layer) => layer.plannedOrder)) return 'reserved';
-  if (stack.layers.every((layer) => layer.ocupada)) return 'full';
-  if (stack.layers.some((layer) => layer.ocupada)) return 'occupied';
-  return 'available';
 }

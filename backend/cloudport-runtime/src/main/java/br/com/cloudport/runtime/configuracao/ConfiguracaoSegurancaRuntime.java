@@ -72,6 +72,7 @@ public class ConfiguracaoSegurancaRuntime {
                         .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
                         .antMatchers(HttpMethod.POST, "/auth", "/auth/**").permitAll()
+                        .antMatchers(HttpMethod.GET, "/public/line-up-navios").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .antMatchers("/api/public/v1/**").hasRole("INTEGRACAO_EXTERNA")
                         .antMatchers(HttpMethod.GET,

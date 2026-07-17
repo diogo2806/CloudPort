@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação dos itens UI40 e UI70 na branch principal.
+Status: atualizado em 2026-07-17 após implementação do mapa georreferenciado do Pátio e do requisito `UI50`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -19,21 +19,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/dto/CriarEstivagemPlanRequisicaoDto.java` | campos `bayPlanId` e `visitaNavioId` | Ambos são `@NotNull`; o corpo atual do portal sempre omite a visita e é rejeitado antes do serviço. | Manter o contrato obrigatório e corrigir o frontend para fornecer a identidade da escala selecionada. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/controlador/VesselPlannerControlador.java` | `criarPlano()` | O controller encaminha os dois identificadores ao serviço, mas o produtor React fornece somente um deles. | Manter o vínculo canônico existente no backend e tornar o fluxo React compatível com o contrato. |
 
-## 2. Mapa operacional do pátio
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| UI50 | Reabrir a sobreposição de destinos planejados das work instructions no mapa. | Toda ordem não final com destino válido marca exatamente a pilha definida por `linhaDestino`, `colunaDestino` e `camadaDestino`; a camada é exibida como planejada sem alterar a ocupação real. | ⬜ Pendente |
-
-### UI50 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/pages/yard/YardShared.jsx` | `positionKey()` e `buildStacks()` | A mesma função lê `linha` e `coluna` tanto para posições quanto para ordens. As ordens retornam `linhaDestino` e `colunaDestino`, então a chave planejada fica sem coordenadas e nunca coincide com a posição real. | Separar a chave da posição da chave de destino; novo método sugerido: `orderDestinationKey(order)`, usando `linhaDestino`, `colunaDestino` e `camadaDestino`. |
-| `frontend/cloudport/src/pages/yard/YardMapPages.jsx` | `YardMapPage()` e `layer.plannedOrder` | A interface possui estado visual para destino planejado, mas ele depende do mapa produzido por `buildStacks()` e permanece ausente para contratos reais de ordem. | Consumir a associação corrigida e manter ocupação real, restrição e destino planejado como estados distintos. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/dto/OrdemTrabalhoPatioRespostaDto.java` | `linhaDestino`, `colunaDestino` e `camadaDestino` | O contrato publica explicitamente as coordenadas de destino e não publica `linha` ou `coluna`. | Preservar o contrato e ajustar somente o consumidor frontend para os nomes oficiais. |
-
-## 3. Processamento assíncrono e jobs
+## 2. Processamento assíncrono e jobs
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

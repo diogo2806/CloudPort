@@ -9,10 +9,12 @@ import {
   mapSession,
   normalizePage,
   normalizeRole,
+  notifySessionExpired,
   readSession,
   request,
   saveSession,
-  sanitizeText
+  sanitizeText,
+  subscribeSessionExpired
 } from './api.js';
 
 function createStorage() {
@@ -83,6 +85,38 @@ test('cliente HTTP adiciona JWT, correlationId e contexto operacional', async ()
   assert.equal(body.usuario, 'Diogo');
   assert.equal(body.operador, 'Diogo');
   assert.equal(body.origemAcao, 'PORTAL_CLOUDPORT_REACT');
+});
+
+test('resposta 401 limpa a sessão e publica uma expiração', async () => {
+  saveSession({ token: jwt({ nome: 'Diogo', roles: ['PLANEJADOR'], exp: Math.floor(Date.now() / 1000) + 3600 }) });
+  let expirations = 0;
+  const unsubscribe = subscribeSessionExpired(() => { expirations += 1; });
+
+  try {
+    globalThis.fetch = async (url) => {
+      if (url === '/assets/configuracao.json') {
+        return new Response(JSON.stringify({ baseApiUrl: 'http://localhost:8080' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ mensagem: 'Sessão expirada' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+    };
+    await loadRuntimeConfig();
+    await assert.rejects(
+      () => request('/api/protegida'),
+      (error) => error.status === 401 && error.message === 'Sessão expirada'
+    );
+    assert.equal(readSession(), null);
+    assert.equal(expirations, 1);
+  } finally {
+    unsubscribe();
+  }
+});
+
+test('assinatura de expiração pode ser removida', () => {
+  let expirations = 0;
+  const unsubscribe = subscribeSessionExpired(() => { expirations += 1; });
+  unsubscribe();
+  notifySessionExpired();
+  assert.equal(expirations, 0);
 });
 
 test('login envia a senha sem sanitização destrutiva', async () => {

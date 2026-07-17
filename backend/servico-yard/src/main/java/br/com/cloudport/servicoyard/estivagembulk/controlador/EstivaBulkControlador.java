@@ -8,10 +8,12 @@ import br.com.cloudport.servicoyard.estivagembulk.dto.PosicaoBobinaDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicionarBobinaRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.ValidacaoPlanoBulkDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
-import br.com.cloudport.servicoyard.estivagembulk.modelo.PlanoEstivaBulk;
+import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
 import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
+import br.com.cloudport.servicoyard.estivagembulk.servico.ValidacaoPlanoBulkException;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityNotFoundException;
@@ -22,7 +24,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -30,9 +31,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class EstivaBulkControlador {
 
     private final PlanoEstivaBulkServico servico;
+    private final NavioGranelRepositorio navioRepositorio;
 
-    public EstivaBulkControlador(PlanoEstivaBulkServico servico) {
+    public EstivaBulkControlador(PlanoEstivaBulkServico servico, NavioGranelRepositorio navioRepositorio) {
         this.servico = servico;
+        this.navioRepositorio = navioRepositorio;
     }
 
     @PostMapping("/navios")
@@ -41,52 +44,44 @@ public class EstivaBulkControlador {
     }
 
     @GetMapping("/navios")
-    public ResponseEntity<List<NavioGranelDto>> listarNavios() {
-        return ResponseEntity.ok(servico.listarNavios(false));
+    public ResponseEntity<List<NavioGranel>> listarNavios() {
+        return ResponseEntity.ok(navioRepositorio.findByIsTemplateFalseOrderByNomeAsc());
     }
 
     @GetMapping("/navios/templates")
-    public ResponseEntity<List<NavioGranelDto>> listarTemplates() {
-        return ResponseEntity.ok(servico.listarNavios(true));
+    public ResponseEntity<List<NavioGranel>> listarTemplates() {
+        return ResponseEntity.ok(navioRepositorio.findByIsTemplateTrue());
     }
 
     @PostMapping("/planos")
     public ResponseEntity<?> criarPlano(@RequestBody Map<String, Object> body) {
+        Long navioId = Long.valueOf(body.get("navioId").toString());
+        String codigoViagem = (String) body.get("codigoViagem");
+        String portoCarga = (String) body.get("portoCarga");
+        String portoDescarga = (String) body.get("portoDescarga");
         try {
-            Long navioId = Long.valueOf(body.get("navioId").toString());
-            String codigoViagem = (String) body.get("codigoViagem");
-            String portoCarga = (String) body.get("portoCarga");
-            String portoDescarga = (String) body.get("portoDescarga");
-            PlanoEstivaBulk plano = servico.criarPlano(navioId, codigoViagem, portoCarga, portoDescarga);
-            return ResponseEntity.status(HttpStatus.CREATED).body(servico.buscarPorId(plano.getId()));
-        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(servico.criarPlano(navioId, codigoViagem, portoCarga, portoDescarga));
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
-    }
-
-    @GetMapping("/planos")
-    public ResponseEntity<List<PlanoEstivaBulkDto>> listarPlanos(
-            @RequestParam Long navioId,
-            @RequestParam(required = false) String codigoViagem) {
-        return ResponseEntity.ok(servico.listarPlanos(navioId, codigoViagem));
     }
 
     @GetMapping("/planos/{id}")
     public ResponseEntity<?> buscarPlano(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.buscarPorId(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
     @PostMapping("/planos/{id}/bobinas")
-    public ResponseEntity<?> adicionarBobina(
+    public ResponseEntity<BobinaManifesto> adicionarBobina(
             @PathVariable Long id, @RequestBody BobinaManifesto bobina) {
         try {
-            servico.adicionarBobina(id, bobina);
-            return ResponseEntity.status(HttpStatus.CREATED).body(servico.buscarPorId(id));
-        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(servico.adicionarBobina(id, bobina));
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -97,10 +92,10 @@ public class EstivaBulkControlador {
         try {
             PosicaoBobinaDto dto = servico.posicionarBobina(id, requisicao);
             return ResponseEntity.ok(dto);
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException exception) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("erro", e.getMessage(), "tipo", "HARD_CONSTRAINT"));
-        } catch (EntityNotFoundException e) {
+                    .body(Map.of("erro", exception.getMessage(), "tipo", "HARD_CONSTRAINT"));
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -109,7 +104,7 @@ public class EstivaBulkControlador {
     public ResponseEntity<List<PressaoTanktopDto>> analisarTanktop(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.analisarTanktop(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -119,7 +114,7 @@ public class EstivaBulkControlador {
             @PathVariable Long id, @PathVariable Long poraoId) {
         try {
             return ResponseEntity.ok(servico.analisarEmpilhamento(id, poraoId));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -128,16 +123,27 @@ public class EstivaBulkControlador {
     public ResponseEntity<EstabilidadeEstrutural> calcularEstabilidade(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.calcularEstabilidade(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
 
-    @PostMapping("/planos/{id}/tacktop")
+    @GetMapping("/planos/{id}/tacktop")
     public ResponseEntity<TacktopDto> calcularTacktop(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.calcularTacktop(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/planos/{id}/validacao-completa")
+    public ResponseEntity<ValidacaoPlanoBulkDto> validarPlanoCompleto(@PathVariable Long id) {
+        try {
+            ValidacaoPlanoBulkDto validacao = servico.validarPlanoCompleto(id);
+            HttpStatus status = validacao.isAprovado() ? HttpStatus.OK : HttpStatus.CONFLICT;
+            return ResponseEntity.status(status).body(validacao);
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -146,10 +152,12 @@ public class EstivaBulkControlador {
     public ResponseEntity<?> validarEAprovar(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.validarEAprovar(id));
-        } catch (IllegalStateException e) {
+        } catch (ValidacaoPlanoBulkException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(exception.getValidacao());
+        } catch (IllegalStateException exception) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("erro", e.getMessage(), "tipo", "HARD_CONSTRAINT"));
-        } catch (EntityNotFoundException e) {
+                    .body(Map.of("erro", exception.getMessage(), "tipo", "HARD_CONSTRAINT"));
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }
@@ -158,7 +166,7 @@ public class EstivaBulkControlador {
     public ResponseEntity<?> relatorio(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(servico.buscarPorId(id));
-        } catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }
     }

@@ -1,44 +1,40 @@
 package br.com.cloudport.servicoyard.estivagembulk.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PosicaoBobinaDto {
 
     private Long id;
     private Long bobinaId;
     private String codigoBobina;
-    private double pesoKg;
+    private Double pesoKg;
     private Long poraoId;
-    private int poraoNumero;
+    private Integer poraoNumero;
     private Long setorId;
     private String setorNome;
-    private int camada;
-    private double posicaoX;
-    private double posicaoY;
-    private double anguloInclinacao;
-    private double espessuraDunnageMm;
+    private Integer camada;
+    private Double posicaoX;
+    private Double posicaoY;
+    private Double anguloInclinacao;
+    private Double espessuraDunnageMm;
+    private Integer quantidadeLinhasDunnage;
+    private Double larguraDunnageMm;
+    private Double comprimentoContatoDunnageMm;
+    private Integer quantidadeCalcos;
+    private Double espacamentoFileirasMm;
     private String tipoLashing;
+    private Double forcaRequeridaLashingKn;
+    private Double capacidadeLashingDisponivelKn;
+    private Integer sequenciaDescarga;
+    private String referenciaRegra;
+    private String versaoEspecificacao;
+    private String responsavelValidacao;
+    private String resultadoValidacao;
     private String alertaTanktop;
+    private List<MaterialLashingDto> materiaisLashing = new ArrayList<>();
 
     public PosicaoBobinaDto() {
-    }
-
-    public PosicaoBobinaDto(Long id, Long bobinaId, String codigoBobina, double pesoKg, Long poraoId,
-            int poraoNumero, Long setorId, String setorNome, int camada, double posicaoX, double posicaoY,
-            double anguloInclinacao, double espessuraDunnageMm, String tipoLashing, String alertaTanktop) {
-        this.id = id;
-        this.bobinaId = bobinaId;
-        this.codigoBobina = codigoBobina;
-        this.pesoKg = pesoKg;
-        this.poraoId = poraoId;
-        this.poraoNumero = poraoNumero;
-        this.setorId = setorId;
-        this.setorNome = setorNome;
-        this.camada = camada;
-        this.posicaoX = posicaoX;
-        this.posicaoY = posicaoY;
-        this.anguloInclinacao = anguloInclinacao;
-        this.espessuraDunnageMm = espessuraDunnageMm;
-        this.tipoLashing = tipoLashing;
-        this.alertaTanktop = alertaTanktop;
     }
 
     public Long getId() {
@@ -65,11 +61,11 @@ public class PosicaoBobinaDto {
         this.codigoBobina = codigoBobina;
     }
 
-    public double getPesoKg() {
+    public Double getPesoKg() {
         return pesoKg;
     }
 
-    public void setPesoKg(double pesoKg) {
+    public void setPesoKg(Double pesoKg) {
         this.pesoKg = pesoKg;
     }
 
@@ -81,11 +77,11 @@ public class PosicaoBobinaDto {
         this.poraoId = poraoId;
     }
 
-    public int getPoraoNumero() {
+    public Integer getPoraoNumero() {
         return poraoNumero;
     }
 
-    public void setPoraoNumero(int poraoNumero) {
+    public void setPoraoNumero(Integer poraoNumero) {
         this.poraoNumero = poraoNumero;
     }
 
@@ -105,44 +101,84 @@ public class PosicaoBobinaDto {
         this.setorNome = setorNome;
     }
 
-    public int getCamada() {
+    public Integer getCamada() {
         return camada;
     }
 
-    public void setCamada(int camada) {
+    public void setCamada(Integer camada) {
         this.camada = camada;
     }
 
-    public double getPosicaoX() {
+    public Double getPosicaoX() {
         return posicaoX;
     }
 
-    public void setPosicaoX(double posicaoX) {
+    public void setPosicaoX(Double posicaoX) {
         this.posicaoX = posicaoX;
     }
 
-    public double getPosicaoY() {
+    public Double getPosicaoY() {
         return posicaoY;
     }
 
-    public void setPosicaoY(double posicaoY) {
+    public void setPosicaoY(Double posicaoY) {
         this.posicaoY = posicaoY;
     }
 
-    public double getAnguloInclinacao() {
+    public Double getAnguloInclinacao() {
         return anguloInclinacao;
     }
 
-    public void setAnguloInclinacao(double anguloInclinacao) {
+    public void setAnguloInclinacao(Double anguloInclinacao) {
         this.anguloInclinacao = anguloInclinacao;
     }
 
-    public double getEspessuraDunnageMm() {
+    public Double getEspessuraDunnageMm() {
         return espessuraDunnageMm;
     }
 
-    public void setEspessuraDunnageMm(double espessuraDunnageMm) {
+    public void setEspessuraDunnageMm(Double espessuraDunnageMm) {
         this.espessuraDunnageMm = espessuraDunnageMm;
+    }
+
+    public Integer getQuantidadeLinhasDunnage() {
+        return quantidadeLinhasDunnage;
+    }
+
+    public void setQuantidadeLinhasDunnage(Integer quantidadeLinhasDunnage) {
+        this.quantidadeLinhasDunnage = quantidadeLinhasDunnage;
+    }
+
+    public Double getLarguraDunnageMm() {
+        return larguraDunnageMm;
+    }
+
+    public void setLarguraDunnageMm(Double larguraDunnageMm) {
+        this.larguraDunnageMm = larguraDunnageMm;
+    }
+
+    public Double getComprimentoContatoDunnageMm() {
+        return comprimentoContatoDunnageMm;
+    }
+
+    public void setComprimentoContatoDunnageMm(Double comprimentoContatoDunnageMm) {
+        this.comprimentoContatoDunnageMm = comprimentoContatoDunnageMm;
+    }
+
+    public Integer getQuantidadeCalcos() {
+        return quantidadeCalcos;
+    }
+
+    public void setQuantidadeCalcos(Integer quantidadeCalcos) {
+        this.quantidadeCalcos = quantidadeCalcos;
+    }
+
+    public Double getEspacamentoFileirasMm() {
+        return espacamentoFileirasMm;
+    }
+
+    public void setEspacamentoFileirasMm(Double espacamentoFileirasMm) {
+        this.espacamentoFileirasMm = espacamentoFileirasMm;
     }
 
     public String getTipoLashing() {
@@ -153,11 +189,75 @@ public class PosicaoBobinaDto {
         this.tipoLashing = tipoLashing;
     }
 
+    public Double getForcaRequeridaLashingKn() {
+        return forcaRequeridaLashingKn;
+    }
+
+    public void setForcaRequeridaLashingKn(Double forcaRequeridaLashingKn) {
+        this.forcaRequeridaLashingKn = forcaRequeridaLashingKn;
+    }
+
+    public Double getCapacidadeLashingDisponivelKn() {
+        return capacidadeLashingDisponivelKn;
+    }
+
+    public void setCapacidadeLashingDisponivelKn(Double capacidadeLashingDisponivelKn) {
+        this.capacidadeLashingDisponivelKn = capacidadeLashingDisponivelKn;
+    }
+
+    public Integer getSequenciaDescarga() {
+        return sequenciaDescarga;
+    }
+
+    public void setSequenciaDescarga(Integer sequenciaDescarga) {
+        this.sequenciaDescarga = sequenciaDescarga;
+    }
+
+    public String getReferenciaRegra() {
+        return referenciaRegra;
+    }
+
+    public void setReferenciaRegra(String referenciaRegra) {
+        this.referenciaRegra = referenciaRegra;
+    }
+
+    public String getVersaoEspecificacao() {
+        return versaoEspecificacao;
+    }
+
+    public void setVersaoEspecificacao(String versaoEspecificacao) {
+        this.versaoEspecificacao = versaoEspecificacao;
+    }
+
+    public String getResponsavelValidacao() {
+        return responsavelValidacao;
+    }
+
+    public void setResponsavelValidacao(String responsavelValidacao) {
+        this.responsavelValidacao = responsavelValidacao;
+    }
+
+    public String getResultadoValidacao() {
+        return resultadoValidacao;
+    }
+
+    public void setResultadoValidacao(String resultadoValidacao) {
+        this.resultadoValidacao = resultadoValidacao;
+    }
+
     public String getAlertaTanktop() {
         return alertaTanktop;
     }
 
     public void setAlertaTanktop(String alertaTanktop) {
         this.alertaTanktop = alertaTanktop;
+    }
+
+    public List<MaterialLashingDto> getMateriaisLashing() {
+        return materiaisLashing;
+    }
+
+    public void setMateriaisLashing(List<MaterialLashingDto> materiaisLashing) {
+        this.materiaisLashing = materiaisLashing;
     }
 }

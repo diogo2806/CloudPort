@@ -86,7 +86,7 @@ test('cliente HTTP adiciona JWT, correlationId e contexto operacional', async ()
   assert.equal(body.origemAcao, 'PORTAL_CLOUDPORT_REACT');
 });
 
-test('resposta 401 limpa a sessão e publica sua expiração para a árvore React', async () => {
+test('respostas 401 concorrentes publicam uma única expiração por sessão', async () => {
   saveSession({ token: jwt({ nome: 'Diogo', roles: ['PLANEJADOR'], exp: Math.floor(Date.now() / 1000) + 3600 }) });
   globalThis.fetch = async (url) => {
     if (url === '/assets/configuracao.json') {
@@ -98,11 +98,20 @@ test('resposta 401 limpa a sessão e publica sua expiração para a árvore Reac
   let expirations = 0;
   const unsubscribe = subscribeSessionExpired(() => { expirations += 1; });
 
-  await assert.rejects(() => request('/yard/patio/ordens'), /Sessão expirada/);
-  unsubscribe();
+  const results = await Promise.allSettled([
+    request('/yard/patio/ordens'),
+    request('/yard/patio/work-queues')
+  ]);
 
+  assert.equal(results.every((result) => result.status === 'rejected'), true);
   assert.equal(expirations, 1);
   assert.equal(readSession(), null);
+
+  saveSession({ token: jwt({ nome: 'Diogo', roles: ['PLANEJADOR'], exp: Math.floor(Date.now() / 1000) + 3600 }) });
+  await assert.rejects(() => request('/yard/patio/ordens'), /Sessão expirada/);
+  assert.equal(expirations, 2);
+  assert.equal(readSession(), null);
+  unsubscribe();
 });
 
 test('login envia a senha sem sanitização destrutiva', async () => {

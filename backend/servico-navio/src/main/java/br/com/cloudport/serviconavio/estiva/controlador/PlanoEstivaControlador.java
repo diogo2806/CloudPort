@@ -2,10 +2,13 @@ package br.com.cloudport.serviconavio.estiva.controlador;
 
 import br.com.cloudport.serviconavio.estiva.dto.CriarAtribuicaoEstivaDTO;
 import br.com.cloudport.serviconavio.estiva.dto.CriarPlanoEstivaDTO;
+import br.com.cloudport.serviconavio.estiva.dto.EmbarqueDiretoGateDTO;
+import br.com.cloudport.serviconavio.estiva.dto.EmbarqueDiretoGateResultadoDTO;
 import br.com.cloudport.serviconavio.estiva.dto.PlanoEstivaDetalheDTO;
 import br.com.cloudport.serviconavio.estiva.servico.PlanoEstivaServico;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,6 +51,17 @@ public class PlanoEstivaControlador {
     @PatchMapping("/plano-estiva/atribuicoes/{atribuicaoId}/embarcar")
     public PlanoEstivaDetalheDTO embarcar(@PathVariable Long atribuicaoId) {
         return planoEstivaServico.embarcar(atribuicaoId);
+    }
+
+    @PatchMapping("/plano-estiva/atribuicoes/{atribuicaoId}/embarcar-direto-gate")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
+    public EmbarqueDiretoGateResultadoDTO embarcarDiretoDoGate(
+            @PathVariable Long atribuicaoId,
+            @Valid @RequestBody EmbarqueDiretoGateDTO dto) {
+        return planoEstivaServico.embarcarDiretoDoGate(
+                atribuicaoId,
+                dto.getCodigoConteiner(),
+                dto.getEmbarcadoEm());
     }
 
     @DeleteMapping("/plano-estiva/atribuicoes/{atribuicaoId}")

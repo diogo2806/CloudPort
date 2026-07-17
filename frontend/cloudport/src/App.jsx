@@ -14,6 +14,7 @@ import {
   ShippingPage,
   YardMapPage
 } from './pages/OperationalPages.jsx';
+import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 
 const FALLBACK_NAVIGATION = [
   { group: 'Visão geral', items: [{ label: 'Painel', path: '/home/dashboard', roles: [] }] },
@@ -123,6 +124,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
   if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage />;
   if (path === '/home/embarque' || path === '/home/embarque/planejamento') return <ShippingPage />;
+  if (path === '/home/embarque/steel-coils') return <SteelCoilPlannerPage />;
 
   const definition = DATASET_ROUTES[path]
     ?? Object.entries(DATASET_ROUTES).find(([route]) => path.startsWith(`${route}/`))?.[1];

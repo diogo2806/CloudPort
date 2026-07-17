@@ -121,3 +121,44 @@ test('cliente do planejador bulk usa contratos persistidos e preserva correlatio
   assert.deepEqual(JSON.parse(createCall.options.body), { navioId: 7, codigoViagem: 'V001', portoCarga: 'BRITG', portoDescarga: 'NLRTM' });
   assert.ok(createCall.options.headers.get('X-Correlation-Id'));
 });
+
+test('contratos operacionais do pátio usam rotas reais e motivo explícito', async () => {
+  saveSession({ token: jwt({ nome: 'Diogo', roles: ['PLANEJADOR'], exp: Math.floor(Date.now() / 1000) + 3600 }) });
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (url === '/assets/configuracao.json') {
+      return new Response(JSON.stringify({ baseApiUrl: 'http://localhost:8080' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ id: 15, status: 'ATIVA' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  await loadRuntimeConfig();
+  await api.ativarWorkQueuePatio(15, 'Abertura da janela operacional');
+  const sent = calls.at(-1);
+  assert.equal(sent.url, 'http://localhost:8080/yard/patio/work-queues/15/ativar');
+  assert.equal(sent.options.method, 'PATCH');
+  const body = JSON.parse(sent.options.body);
+  assert.equal(body.motivo, 'Abertura da janela operacional');
+  assert.equal(body.usuario, 'Diogo');
+  assert.equal(body.origemAcao, 'PORTAL_CLOUDPORT_REACT');
+  assert.ok(body.correlationId);
+});
+
+test('comandos motivados do pátio rejeitam motivo vazio antes da requisição', () => {
+  assert.throws(() => api.cancelarWorkInstructionPatio(9, '   '), /motivo operacional é obrigatório/i);
+});
+
+test('consulta de posições operacionais usa contrato de reservas e restrições reais', async () => {
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (url === '/assets/configuracao.json') {
+      return new Response(JSON.stringify({ baseApiUrl: 'http://localhost:8080' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify([{ id: 1, bloco: 'A1', bloqueada: false, interditada: false }]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  await loadRuntimeConfig();
+  const positions = await api.listarPosicoesReservaveisPatio();
+  assert.equal(calls.at(-1).url, 'http://localhost:8080/yard/patio/reservas/posicoes');
+  assert.equal(positions[0].bloco, 'A1');
+});

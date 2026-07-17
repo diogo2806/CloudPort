@@ -2,6 +2,7 @@ package br.com.cloudport.servicogate.integration.alerta;
 
 import br.com.cloudport.servicogate.model.ReconciliacaoBarcode;
 import java.time.LocalDateTime;
+import org.springframework.util.StringUtils;
 
 public class AlertaReconciliacaoBarcode {
 
@@ -18,7 +19,9 @@ public class AlertaReconciliacaoBarcode {
 
     public AlertaReconciliacaoBarcode(ReconciliacaoBarcode reconciliacao) {
         this.reconciliacaoId = reconciliacao.getId();
-        this.chaveIdempotencia = "reconciliacao-barcode-" + reconciliacao.getId();
+        this.chaveIdempotencia = StringUtils.hasText(reconciliacao.getAlertaChaveIdempotencia())
+                ? reconciliacao.getAlertaChaveIdempotencia()
+                : "reconciliacao-barcode-" + reconciliacao.getId() + "-webhook";
         this.tipo = reconciliacao.getTipoDesinconia().name();
         this.descricao = reconciliacao.getDescricao();
         this.codigoGatePass = reconciliacao.getGatePass().getCodigo();

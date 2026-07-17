@@ -5,6 +5,7 @@ import br.com.cloudport.serviconavio.escala.dto.AvancarFaseEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.CadastroEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaDetalheDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaResumoDTO;
+import br.com.cloudport.serviconavio.escala.dto.LinhaUpEscalaDTO;
 import br.com.cloudport.serviconavio.escala.servico.EscalaServico;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
@@ -35,6 +36,11 @@ public class EscalaControlador {
     @GetMapping("/escalas")
     public List<EscalaResumoDTO> listarCronograma(@RequestParam(name = "dias", defaultValue = "7") int dias) {
         return escalaServico.listarCronograma(dias);
+    }
+
+    @GetMapping("/escalas/line-up")
+    public List<LinhaUpEscalaDTO> listarLineUp(@RequestParam(name = "dias", defaultValue = "30") int dias) {
+        return escalaServico.listarLineUp(dias);
     }
 
     @GetMapping("/escalas/{id}")

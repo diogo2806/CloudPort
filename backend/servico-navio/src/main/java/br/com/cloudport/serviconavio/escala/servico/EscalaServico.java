@@ -5,6 +5,7 @@ import br.com.cloudport.serviconavio.escala.dto.AtualizacaoEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.CadastroEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaDetalheDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaResumoDTO;
+import br.com.cloudport.serviconavio.escala.dto.LinhaUpEscalaDTO;
 import br.com.cloudport.serviconavio.escala.entidade.Escala;
 import br.com.cloudport.serviconavio.escala.entidade.FaseEscala;
 import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 public class EscalaServico {
 
     private static final int DIAS_MAXIMO_CONSULTA = 60;
+    private static final int DIAS_RETROATIVOS_LINE_UP = 7;
     private static final List<FaseEscala> FASES_FORA_CRONOGRAMA =
             List.of(FaseEscala.ENCERRADA, FaseEscala.CANCELADA);
 
@@ -42,15 +44,23 @@ public class EscalaServico {
 
     @Transactional(readOnly = true)
     public List<EscalaResumoDTO> listarCronograma(int dias) {
-        if (dias < 1 || dias > DIAS_MAXIMO_CONSULTA) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    String.format(Locale.ROOT, "O intervalo de consulta deve estar entre 1 e %d dias.", DIAS_MAXIMO_CONSULTA));
-        }
+        validarIntervaloConsulta(dias);
         LocalDateTime agora = LocalDateTime.now();
         LocalDateTime inicio = agora.minusDays(1);
         LocalDateTime limite = agora.plusDays(dias);
         return escalaRepositorio.buscarCronograma(inicio, limite, FASES_FORA_CRONOGRAMA).stream()
                 .map(this::mapearResumo)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<LinhaUpEscalaDTO> listarLineUp(int dias) {
+        validarIntervaloConsulta(dias);
+        LocalDateTime agora = LocalDateTime.now();
+        LocalDateTime inicio = agora.minusDays(DIAS_RETROATIVOS_LINE_UP);
+        LocalDateTime limite = agora.plusDays(dias);
+        return escalaRepositorio.buscarCronograma(inicio, limite, FASES_FORA_CRONOGRAMA).stream()
+                .map(LinhaUpEscalaDTO::deEntidade)
                 .collect(Collectors.toList());
     }
 
@@ -170,6 +180,13 @@ public class EscalaServico {
             }
         } else if (destino == FaseEscala.PARTIU && escala.getPartidaEfetiva() == null) {
             escala.setPartidaEfetiva(agora);
+        }
+    }
+
+    private void validarIntervaloConsulta(int dias) {
+        if (dias < 1 || dias > DIAS_MAXIMO_CONSULTA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format(Locale.ROOT, "O intervalo de consulta deve estar entre 1 e %d dias.", DIAS_MAXIMO_CONSULTA));
         }
     }
 

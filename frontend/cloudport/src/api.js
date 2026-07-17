@@ -194,11 +194,22 @@ function enrichCommand(path, method, body, session, correlationId) {
   return command;
 }
 
+function sessionExpiredError() {
+  const error = new Error('Sua sessão expirou. Entre novamente.');
+  error.status = 401;
+  return error;
+}
+
 export async function request(path, options = {}) {
   const method = String(options.method ?? 'GET').toUpperCase();
+  const session = options.public ? null : readSession();
+  if (!options.public && !session?.token) {
+    notifySessionExpired();
+    throw sessionExpiredError();
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS);
-  const session = options.public ? null : readSession();
   const correlationId = createCorrelationId();
   const headers = new Headers(options.headers ?? {});
   headers.set('Accept', 'application/json');

@@ -4,5 +4,6 @@ public enum StatusVisitaTrem {
     PLANEJADO,
     CHEGOU,
     PROCESSANDO,
+    CONCLUIDO,
     PARTIU
 }

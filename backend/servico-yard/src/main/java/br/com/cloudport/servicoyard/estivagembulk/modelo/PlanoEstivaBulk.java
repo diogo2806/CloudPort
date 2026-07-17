@@ -36,6 +36,24 @@ public class PlanoEstivaBulk {
     @JoinColumn(name = "navio_granel_id")
     private NavioGranel navio;
 
+    @Column(name = "navio_cadastro_id")
+    private Long navioCadastroId;
+
+    @Column(name = "visita_navio_id")
+    private Long visitaNavioId;
+
+    @Column(name = "codigo_visita", length = 60)
+    private String codigoVisita;
+
+    @Column(name = "versao_perfil_navio")
+    private Long versaoPerfilNavio;
+
+    @Column(name = "versao_navio_canonico")
+    private Long versaoNavioCanonico;
+
+    @Column(name = "versao_visita")
+    private Long versaoVisita;
+
     @Column(name = "codigo_viagem", length = 30)
     private String codigoViagem;
 

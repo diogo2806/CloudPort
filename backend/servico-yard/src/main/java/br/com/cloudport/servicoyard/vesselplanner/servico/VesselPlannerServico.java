@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.vesselplanner.servico;
 
 import br.com.cloudport.servicoyard.edi.modelo.BayPlan;
+import br.com.cloudport.servicoyard.edi.modelo.BayPlanContainer;
 import br.com.cloudport.servicoyard.edi.modelo.EstadoCargaContainer;
 import br.com.cloudport.servicoyard.edi.repositorio.BayPlanRepositorio;
 import br.com.cloudport.servicoyard.vesselplanner.dto.AlocacaoSlotRequisicaoDto;
@@ -13,12 +14,14 @@ import br.com.cloudport.servicoyard.vesselplanner.dto.SlotNavioDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.ViolacaoHardConstraintDto;
 import br.com.cloudport.servicoyard.vesselplanner.mensagem.VesselPlannerEventoPublicador;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.EstivagemPlan;
+import br.com.cloudport.servicoyard.vesselplanner.modelo.PerfilGeometriaNavio;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.SlotNavio;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.StatusEstivagemPlan;
-import br.com.cloudport.servicoyard.vesselplanner.modelo.TipoSlotNavio;
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.EstivagemPlanRepositorio;
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.SlotNavioRepositorio;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
@@ -34,16 +37,18 @@ public class VesselPlannerServico {
     private final RestowCalculadorServico restowServico;
     private final SequenciamentoGuindasteServico sequenciamentoServico;
     private final AutoStowageServico autoStowageServico;
+    private final GeometriaNavioServico geometriaServico;
     private final VesselPlannerEventoPublicador publicador;
 
     public VesselPlannerServico(EstivagemPlanRepositorio planRepositorio,
-                                 SlotNavioRepositorio slotRepositorio,
-                                 BayPlanRepositorio bayPlanRepositorio,
-                                 EstabilidadeNavioServico estabilidadeServico,
-                                 RestowCalculadorServico restowServico,
-                                 SequenciamentoGuindasteServico sequenciamentoServico,
-                                 AutoStowageServico autoStowageServico,
-                                 VesselPlannerEventoPublicador publicador) {
+                                  SlotNavioRepositorio slotRepositorio,
+                                  BayPlanRepositorio bayPlanRepositorio,
+                                  EstabilidadeNavioServico estabilidadeServico,
+                                  RestowCalculadorServico restowServico,
+                                  SequenciamentoGuindasteServico sequenciamentoServico,
+                                  AutoStowageServico autoStowageServico,
+                                  GeometriaNavioServico geometriaServico,
+                                  VesselPlannerEventoPublicador publicador) {
         this.planRepositorio = planRepositorio;
         this.slotRepositorio = slotRepositorio;
         this.bayPlanRepositorio = bayPlanRepositorio;
@@ -51,6 +56,7 @@ public class VesselPlannerServico {
         this.restowServico = restowServico;
         this.sequenciamentoServico = sequenciamentoServico;
         this.autoStowageServico = autoStowageServico;
+        this.geometriaServico = geometriaServico;
         this.publicador = publicador;
     }
 
@@ -58,43 +64,23 @@ public class VesselPlannerServico {
     public EstivagemPlanDto criarPlanoDeBayPlan(Long bayPlanId) {
         BayPlan bayPlan = bayPlanRepositorio.findById(bayPlanId)
                 .orElseThrow(() -> new EntityNotFoundException("BayPlan não encontrado: " + bayPlanId));
+        PerfilGeometriaNavio perfil = geometriaServico.carregarPerfilAprovado(bayPlan.getCodigoNavio());
 
         EstivagemPlan plan = new EstivagemPlan();
         plan.setBayPlanId(bayPlanId);
         plan.setCodigoNavio(bayPlan.getCodigoNavio());
         plan.setCodigoViagem(bayPlan.getCodigoViagem());
+        geometriaServico.aplicarPerfil(plan, perfil);
+        geometriaServico.posicionarConteineresImportados(plan, bayPlan.getContainers());
 
-        for (int bay = 1; bay <= 30; bay++) {
-            for (int row = 1; row <= 10; row++) {
-                for (int tier = 1; tier <= 8; tier++) {
-                    SlotNavio slot = new SlotNavio();
-                    slot.setEstivagem(plan);
-                    slot.setBay(bay);
-                    slot.setRowBay(row);
-                    slot.setTier(tier);
-                    slot.setTipoSlot(TipoSlotNavio.NORMAL);
-                    slot.setMaxPesoKg(30000.0);
-                    slot.setStatusAlertas("OK");
-                    plan.getSlots().add(slot);
-                }
-            }
-        }
-
-        autoStowageServico.sugerirEstivagem(plan, bayPlan.getContainers());
-
-        EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
-        plan.setTrimCalculado(estabilidade.getTrimMetros());
-        plan.setListCalculado(estabilidade.getListGraus());
-        plan.setLcgCalculado(estabilidade.getLcgMetros());
-        plan.setTcgCalculado(estabilidade.getTcgMetros());
-
+        EstabilidadeDto estabilidade = recalcularEstabilidade(plan);
         plan = planRepositorio.save(plan);
         return toDto(plan, estabilidade);
     }
 
     @Transactional
     public AlocacaoSlotRespostaDto alocarContainer(Long planId, AlocacaoSlotRequisicaoDto requisicao) {
-        EstivagemPlan plan = buscarPlan(planId);
+        EstivagemPlan plan = buscarPlanOperacional(planId);
         exigirPlanoEditavel(plan);
         SlotNavio slot = slotRepositorio.findById(requisicao.getSlotDestinoId())
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -103,24 +89,34 @@ public class VesselPlannerServico {
         if (!slot.getEstivagem().getId().equals(planId)) {
             return AlocacaoSlotRespostaDto.falha("Slot não pertence ao plano informado", List.of());
         }
-        if (!tipoSlotCompativel(slot.getTipoSlot(), requisicao)) {
-            return AlocacaoSlotRespostaDto.falha(
-                    "Slot incompatível com os atributos operacionais e de segurança do contêiner",
-                    List.of());
+        if (slot.getCodigoContainer() != null
+                && !slot.getCodigoContainer().equalsIgnoreCase(requisicao.getCodigoContainer())) {
+            return AlocacaoSlotRespostaDto.falha("Slot já está ocupado por outro contêiner", List.of());
         }
 
         Double pesoOperacional = requisicao.getPesoVgmKg() != null
                 ? requisicao.getPesoVgmKg()
                 : requisicao.getPesoKg();
-        List<ViolacaoHardConstraintDto> violacoes = estabilidadeServico.verificarSlot(
+        List<ViolacaoHardConstraintDto> violacoes = new ArrayList<>(
+                geometriaServico.verificarAlocacao(
+                        plan,
+                        slot,
+                        requisicao.getCodigoContainer(),
+                        requisicao.getIsoCode(),
+                        pesoOperacional,
+                        requisicao.isReefer(),
+                        requisicao.isPerigoso(),
+                        requisicao.isOog()));
+        violacoes.addAll(estabilidadeServico.verificarSlot(
                 plan,
                 slot,
                 requisicao.getCodigoContainer(),
                 pesoOperacional,
                 requisicao.getClasseImo(),
-                requisicao.isReefer());
+                requisicao.isReefer()));
 
-        boolean temPerigo = violacoes.stream().anyMatch(violacao -> "PERIGO".equals(violacao.getSeveridade()));
+        boolean temPerigo = violacoes.stream()
+                .anyMatch(violacao -> "PERIGO".equals(violacao.getSeveridade()));
         if (temPerigo) {
             return AlocacaoSlotRespostaDto.falha(
                     "Alocação bloqueada por violação de Hard Constraint", violacoes);
@@ -155,69 +151,68 @@ public class VesselPlannerServico {
         slot.setExcessoAlturaCm(requisicao.getExcessoAlturaCm());
         slot.setStatusAlertas(violacoes.isEmpty() ? "OK" : "AVISO");
 
-        EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
-        plan.setTrimCalculado(estabilidade.getTrimMetros());
-        plan.setListCalculado(estabilidade.getListGraus());
-        plan.setLcgCalculado(estabilidade.getLcgMetros());
-        plan.setTcgCalculado(estabilidade.getTcgMetros());
+        EstabilidadeDto estabilidade = recalcularEstabilidade(plan);
         planRepositorio.save(plan);
 
         SlotNavioDto slotDto = toSlotDto(slot);
         publicador.publicarAtualizacaoSlot(planId, slotDto, estabilidade);
-
         return AlocacaoSlotRespostaDto.ok(estabilidade, slotDto);
     }
 
     @Transactional
     public EstivagemPlanDto autoEstivar(Long planId) {
-        EstivagemPlan plan = buscarPlan(planId);
+        EstivagemPlan plan = buscarPlanOperacional(planId);
         exigirPlanoEditavel(plan);
         autoStowageServico.limparEstivagem(plan);
-        autoStowageServico.sugerirEstivagem(plan,
-                bayPlanRepositorio.findById(plan.getBayPlanId())
-                        .map(BayPlan::getContainers)
-                        .orElse(List.of()));
+        List<BayPlanContainer> containers = bayPlanRepositorio
+                .findById(plan.getBayPlanId())
+                .map(BayPlan::getContainers)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "BayPlan não encontrado: " + plan.getBayPlanId()));
+        int esperados = (int) containers.stream().filter(Objects::nonNull).count();
+        int alocados = autoStowageServico.sugerirEstivagem(plan, containers);
+        if (alocados != esperados) {
+            throw new IllegalStateException(
+                    "Autoestivagem bloqueada: " + (esperados - alocados)
+                            + " contêiner(es) incompatível(is) com o perfil geométrico");
+        }
 
-        EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
-        plan.setTrimCalculado(estabilidade.getTrimMetros());
-        plan.setListCalculado(estabilidade.getListGraus());
-        plan.setLcgCalculado(estabilidade.getLcgMetros());
-        plan.setTcgCalculado(estabilidade.getTcgMetros());
+        EstabilidadeDto estabilidade = recalcularEstabilidade(plan);
         planRepositorio.save(plan);
         return toDto(plan, estabilidade);
     }
 
     @Transactional(readOnly = true)
     public EstivagemPlanDto buscarPorId(Long planId) {
-        EstivagemPlan plan = buscarPlan(planId);
-        EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
-        return toDto(plan, estabilidade);
+        EstivagemPlan plan = buscarPlanOperacional(planId);
+        return toDto(plan, estabilidadeServico.calcular(plan));
     }
 
     @Transactional(readOnly = true)
     public EstabilidadeDto calcularEstabilidade(Long planId) {
-        return estabilidadeServico.calcular(buscarPlan(planId));
+        return estabilidadeServico.calcular(buscarPlanOperacional(planId));
     }
 
     @Transactional(readOnly = true)
     public RestowAnaliseDto analisarRestow(Long planId) {
-        return restowServico.analisar(buscarPlan(planId));
+        return restowServico.analisar(buscarPlanOperacional(planId));
     }
 
     @Transactional(readOnly = true)
     public SequenciamentoGuindasteDto sequenciarGuindastes(Long planId, int numGuindastes) {
-        return sequenciamentoServico.sequenciar(buscarPlan(planId), numGuindastes);
+        return sequenciamentoServico.sequenciar(buscarPlanOperacional(planId), numGuindastes);
     }
 
     @Transactional
     public EstivagemPlanDto validarEAprovar(Long planId) {
-        EstivagemPlan plan = buscarPlan(planId);
+        EstivagemPlan plan = buscarPlanOperacional(planId);
         if (plan.getStatus() == StatusEstivagemPlan.APROVADO) {
             return toDto(plan, estabilidadeServico.calcular(plan));
         }
         if (plan.getStatus() == StatusEstivagemPlan.TRANSMITIDO) {
             throw new IllegalStateException("Plano transmitido não pode ser aprovado novamente");
         }
+        geometriaServico.validarPlanoParaAprovacao(plan);
         EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
         if (!estabilidade.isAprovado()) {
             throw new IllegalStateException("Plano possui violações de Hard Constraint e não pode ser aprovado");
@@ -227,9 +222,11 @@ public class VesselPlannerServico {
         return toDto(plan, estabilidade);
     }
 
-    private EstivagemPlan buscarPlan(Long planId) {
-        return planRepositorio.findById(planId)
+    private EstivagemPlan buscarPlanOperacional(Long planId) {
+        EstivagemPlan plan = planRepositorio.findById(planId)
                 .orElseThrow(() -> new EntityNotFoundException("EstivagemPlan não encontrado: " + planId));
+        geometriaServico.validarPlanoOperacional(plan);
+        return plan;
     }
 
     private void exigirPlanoEditavel(EstivagemPlan plan) {
@@ -239,12 +236,25 @@ public class VesselPlannerServico {
         }
     }
 
+    private EstabilidadeDto recalcularEstabilidade(EstivagemPlan plan) {
+        geometriaServico.validarPlanoOperacional(plan);
+        EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
+        plan.setTrimCalculado(estabilidade.getTrimMetros());
+        plan.setListCalculado(estabilidade.getListGraus());
+        plan.setLcgCalculado(estabilidade.getLcgMetros());
+        plan.setTcgCalculado(estabilidade.getTcgMetros());
+        return estabilidade;
+    }
+
     private EstivagemPlanDto toDto(EstivagemPlan plan, EstabilidadeDto estabilidade) {
         EstivagemPlanDto dto = new EstivagemPlanDto();
         dto.setId(plan.getId());
         dto.setBayPlanId(plan.getBayPlanId());
         dto.setCodigoNavio(plan.getCodigoNavio());
         dto.setCodigoViagem(plan.getCodigoViagem());
+        dto.setPerfilGeometriaId(plan.getPerfilGeometriaId());
+        dto.setPerfilGeometriaVersao(plan.getPerfilGeometriaVersao());
+        dto.setCondicaoCarregamento(plan.getCondicaoCarregamento());
         dto.setStatus(plan.getStatus() != null ? plan.getStatus().name() : null);
         dto.setEstabilidade(estabilidade);
         List<SlotNavioDto> slots = plan.getSlots().stream()
@@ -265,7 +275,16 @@ public class VesselPlannerServico {
         dto.setRowBay(slot.getRowBay());
         dto.setTier(slot.getTier());
         dto.setTipoSlot(slot.getTipoSlot() != null ? slot.getTipoSlot().name() : null);
+        dto.setCodigoHatchCover(slot.getCodigoHatchCover());
+        dto.setSobreHatchCover(slot.isSobreHatchCover());
+        dto.setRestrito(slot.isRestrito());
+        dto.setMotivoRestricao(slot.getMotivoRestricao());
+        dto.setTomadaReefer(slot.isTomadaReefer());
+        dto.setAceita20Pes(slot.isAceita20Pes());
+        dto.setAceita40Pes(slot.isAceita40Pes());
+        dto.setAceita45Pes(slot.isAceita45Pes());
         dto.setMaxPesoKg(slot.getMaxPesoKg());
+        dto.setMaxPesoPilhaKg(slot.getMaxPesoPilhaKg());
         dto.setCodigoContainer(slot.getCodigoContainer());
         dto.setIsoCode(slot.getIsoCode());
         dto.setPesoKg(slot.getPesoKg());
@@ -291,27 +310,6 @@ public class VesselPlannerServico {
         return dto;
     }
 
-    private boolean tipoSlotCompativel(TipoSlotNavio tipoSlot, AlocacaoSlotRequisicaoDto requisicao) {
-        if (tipoSlot == null || tipoSlot == TipoSlotNavio.ESCOTILHA) {
-            return false;
-        }
-        if (requisicao.isOog()) {
-            return !requisicao.isPerigoso()
-                    && !requisicao.isReefer()
-                    && tipoSlot == TipoSlotNavio.OOG;
-        }
-        if (requisicao.isPerigoso() && requisicao.isReefer()) {
-            return tipoSlot == TipoSlotNavio.REEFER_PERIGOSO;
-        }
-        if (requisicao.isPerigoso()) {
-            return tipoSlot == TipoSlotNavio.PERIGOSO;
-        }
-        if (requisicao.isReefer()) {
-            return tipoSlot == TipoSlotNavio.REEFER;
-        }
-        return tipoSlot == TipoSlotNavio.NORMAL;
-    }
-
     private void limparSlot(SlotNavio slot) {
         slot.setCodigoContainer(null);
         slot.setIsoCode(null);
@@ -334,6 +332,6 @@ public class VesselPlannerServico {
         slot.setExcessoEsquerdoCm(null);
         slot.setExcessoDireitoCm(null);
         slot.setExcessoAlturaCm(null);
-        slot.setStatusAlertas("OK");
+        slot.setStatusAlertas(slot.isRestrito() ? "RESTRITO" : "OK");
     }
 }

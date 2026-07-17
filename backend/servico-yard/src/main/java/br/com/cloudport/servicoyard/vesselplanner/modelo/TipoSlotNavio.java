@@ -6,5 +6,6 @@ public enum TipoSlotNavio {
     PERIGOSO,
     REEFER_PERIGOSO,
     OOG,
-    ESCOTILHA
+    ESCOTILHA,
+    RESTRITO
 }

@@ -9,7 +9,16 @@ public class SlotNavioDto {
     private int rowBay;
     private int tier;
     private String tipoSlot;
+    private String codigoHatchCover;
+    private boolean sobreHatchCover;
+    private boolean restrito;
+    private String motivoRestricao;
+    private boolean tomadaReefer;
+    private boolean aceita20Pes;
+    private boolean aceita40Pes;
+    private boolean aceita45Pes;
     private Double maxPesoKg;
+    private Double maxPesoPilhaKg;
     private String codigoContainer;
     private String isoCode;
     private Double pesoKg;
@@ -43,8 +52,26 @@ public class SlotNavioDto {
     public void setTier(int tier) { this.tier = tier; }
     public String getTipoSlot() { return tipoSlot; }
     public void setTipoSlot(String tipoSlot) { this.tipoSlot = tipoSlot; }
+    public String getCodigoHatchCover() { return codigoHatchCover; }
+    public void setCodigoHatchCover(String codigoHatchCover) { this.codigoHatchCover = codigoHatchCover; }
+    public boolean isSobreHatchCover() { return sobreHatchCover; }
+    public void setSobreHatchCover(boolean sobreHatchCover) { this.sobreHatchCover = sobreHatchCover; }
+    public boolean isRestrito() { return restrito; }
+    public void setRestrito(boolean restrito) { this.restrito = restrito; }
+    public String getMotivoRestricao() { return motivoRestricao; }
+    public void setMotivoRestricao(String motivoRestricao) { this.motivoRestricao = motivoRestricao; }
+    public boolean isTomadaReefer() { return tomadaReefer; }
+    public void setTomadaReefer(boolean tomadaReefer) { this.tomadaReefer = tomadaReefer; }
+    public boolean isAceita20Pes() { return aceita20Pes; }
+    public void setAceita20Pes(boolean aceita20Pes) { this.aceita20Pes = aceita20Pes; }
+    public boolean isAceita40Pes() { return aceita40Pes; }
+    public void setAceita40Pes(boolean aceita40Pes) { this.aceita40Pes = aceita40Pes; }
+    public boolean isAceita45Pes() { return aceita45Pes; }
+    public void setAceita45Pes(boolean aceita45Pes) { this.aceita45Pes = aceita45Pes; }
     public Double getMaxPesoKg() { return maxPesoKg; }
     public void setMaxPesoKg(Double maxPesoKg) { this.maxPesoKg = maxPesoKg; }
+    public Double getMaxPesoPilhaKg() { return maxPesoPilhaKg; }
+    public void setMaxPesoPilhaKg(Double maxPesoPilhaKg) { this.maxPesoPilhaKg = maxPesoPilhaKg; }
     public String getCodigoContainer() { return codigoContainer; }
     public void setCodigoContainer(String codigoContainer) { this.codigoContainer = codigoContainer; }
     public String getIsoCode() { return isoCode; }

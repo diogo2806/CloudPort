@@ -1,5 +1,8 @@
 package br.com.cloudport.servicoyard.estivagembulk.modelo;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -13,10 +16,11 @@ import javax.persistence.OneToMany;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "navio_granel")
 public class NavioGranel {
@@ -39,18 +43,78 @@ public class NavioGranel {
     private Double lpp;
 
     private Double boca;
-
     private Double calado;
-
     private Double deslocamento;
+    private Double gm;
+    private Double tpc;
+    private Double lcb;
+    private Double km;
 
-    private Double gm = 1.5;
+    @Column(name = "mct_1cm")
+    private Double mct1cm;
+
+    @Column(name = "calado_maximo")
+    private Double caladoMaximo;
+
+    @Column(name = "trim_maximo")
+    private Double trimMaximo;
+
+    @Column(name = "banda_maxima")
+    private Double bandaMaxima;
+
+    @Column(name = "gm_minimo")
+    private Double gmMinimo;
+
+    @Column(name = "peso_leve_t")
+    private Double pesoLeveToneladas;
+
+    @Column(name = "lcg_peso_leve")
+    private Double lcgPesoLeve;
+
+    @Column(name = "tcg_peso_leve")
+    private Double tcgPesoLeve;
+
+    @Column(name = "vcg_peso_leve")
+    private Double vcgPesoLeve;
+
+    @Column(name = "peso_lastro_t")
+    private Double pesoLastroToneladas;
+
+    @Column(name = "lcg_lastro")
+    private Double lcgLastro;
+
+    @Column(name = "tcg_lastro")
+    private Double tcgLastro;
+
+    @Column(name = "vcg_lastro")
+    private Double vcgLastro;
 
     @Column(name = "bm_max_permitido")
     private Double bmMaxPermitido;
 
     @Column(name = "sf_max_permitido")
     private Double sfMaxPermitido;
+
+    @Column(name = "versao_dados_hidrostaticos", length = 80)
+    private String versaoDadosHidrostaticos;
+
+    @Column(name = "versao_dados_estruturais", length = 80)
+    private String versaoDadosEstruturais;
+
+    @Column(name = "posicoes_secoes", columnDefinition = "TEXT")
+    private String posicoesSecoes;
+
+    @Column(name = "peso_leve_secoes", columnDefinition = "TEXT")
+    private String pesoLeveSecoes;
+
+    @Column(name = "empuxo_secoes", columnDefinition = "TEXT")
+    private String empuxoSecoes;
+
+    @Column(name = "limites_sf_secoes", columnDefinition = "TEXT")
+    private String limitesSfSecoes;
+
+    @Column(name = "limites_bm_secoes", columnDefinition = "TEXT")
+    private String limitesBmSecoes;
 
     @Column(name = "is_template")
     private boolean isTemplate;
@@ -59,7 +123,6 @@ public class NavioGranel {
     private List<PoraoNavio> poroes = new ArrayList<>();
 
     private LocalDateTime criadoEm;
-
     private LocalDateTime atualizadoEm;
 
     @PrePersist
@@ -70,125 +133,5 @@ public class NavioGranel {
             criadoEm = now;
         }
         atualizadoEm = now;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getImo() {
-        return imo;
-    }
-
-    public void setImo(String imo) {
-        this.imo = imo;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public ClasseNavio getClasse() {
-        return classe;
-    }
-
-    public void setClasse(ClasseNavio classe) {
-        this.classe = classe;
-    }
-
-    public Double getLpp() {
-        return lpp;
-    }
-
-    public void setLpp(Double lpp) {
-        this.lpp = lpp;
-    }
-
-    public Double getBoca() {
-        return boca;
-    }
-
-    public void setBoca(Double boca) {
-        this.boca = boca;
-    }
-
-    public Double getCalado() {
-        return calado;
-    }
-
-    public void setCalado(Double calado) {
-        this.calado = calado;
-    }
-
-    public Double getDeslocamento() {
-        return deslocamento;
-    }
-
-    public void setDeslocamento(Double deslocamento) {
-        this.deslocamento = deslocamento;
-    }
-
-    public Double getGm() {
-        return gm;
-    }
-
-    public void setGm(Double gm) {
-        this.gm = gm;
-    }
-
-    public Double getBmMaxPermitido() {
-        return bmMaxPermitido;
-    }
-
-    public void setBmMaxPermitido(Double bmMaxPermitido) {
-        this.bmMaxPermitido = bmMaxPermitido;
-    }
-
-    public Double getSfMaxPermitido() {
-        return sfMaxPermitido;
-    }
-
-    public void setSfMaxPermitido(Double sfMaxPermitido) {
-        this.sfMaxPermitido = sfMaxPermitido;
-    }
-
-    public boolean isTemplate() {
-        return isTemplate;
-    }
-
-    public void setTemplate(boolean template) {
-        isTemplate = template;
-    }
-
-    public List<PoraoNavio> getPoroes() {
-        return poroes;
-    }
-
-    public void setPoroes(List<PoraoNavio> poroes) {
-        this.poroes = poroes;
-    }
-
-    public LocalDateTime getCriadoEm() {
-        return criadoEm;
-    }
-
-    public void setCriadoEm(LocalDateTime criadoEm) {
-        this.criadoEm = criadoEm;
-    }
-
-    public LocalDateTime getAtualizadoEm() {
-        return atualizadoEm;
-    }
-
-    public void setAtualizadoEm(LocalDateTime atualizadoEm) {
-        this.atualizadoEm = atualizadoEm;
     }
 }

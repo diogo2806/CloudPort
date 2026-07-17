@@ -31,6 +31,8 @@ Após a incorporação ao runtime monolítico, os contratos REST externos devem 
 
 Configure as variáveis `GATE_*`, `TOS_API_*` e `DOCUMENT_STORAGE_*` no ambiente de execução. Garanta que o banco configurado exista e esteja acessível.
 
+A recuperação periódica de OCR usa o controle canônico `cloudport.runtime.jobs-enabled`, exposto pela variável `CLOUDPORT_JOBS_ENABLED`. O runtime escritor deve usar `true`. Qualquer deployment legado ou de rollback em coexistência deve usar `CLOUDPORT_JOBS_ENABLED=false`; o upload e a submissão imediata de documentos permanecem disponíveis, mas o recuperador periódico não é registrado.
+
 Exemplo de criação de banco para desenvolvimento:
 
 ```bash
@@ -46,7 +48,7 @@ mvn spring-boot:run
 
 A porta padrão é `8082`, podendo ser alterada por `GATE_SERVER_PORT`.
 
-A execução isolada é um mecanismo de compatibilidade e rollback. O roteamento de produção deve possuir uma única origem ativa para cada rota, evitando que o deployment legado e o monólito processem a mesma escrita.
+A execução isolada é um mecanismo de compatibilidade e rollback. O roteamento de produção deve possuir uma única origem ativa para cada rota, evitando que o deployment legado e o monólito processem a mesma escrita. Durante coexistência com o runtime canônico, iniciar o Gate legado com `CLOUDPORT_JOBS_ENABLED=false`.
 
 ## Testes
 

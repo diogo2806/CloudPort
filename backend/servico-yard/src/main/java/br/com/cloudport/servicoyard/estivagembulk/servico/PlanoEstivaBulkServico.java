@@ -8,7 +8,6 @@ import br.com.cloudport.servicoyard.estivagembulk.dto.PosicaoBobinaDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PosicionarBobinaRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
-import br.com.cloudport.servicoyard.estivagembulk.dto.ViolacaoEstivaDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.ClasseNavio;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
@@ -57,7 +56,10 @@ public class PlanoEstivaBulkServico {
         navio.setImo(dto.getImo());
         navio.setNome(dto.getNome());
         if (dto.getClasse() != null) {
-            try { navio.setClasse(ClasseNavio.valueOf(dto.getClasse())); } catch (IllegalArgumentException ignored) {}
+            try {
+                navio.setClasse(ClasseNavio.valueOf(dto.getClasse()));
+            } catch (IllegalArgumentException ignored) {
+            }
         }
         navio.setLpp(dto.getLpp());
         navio.setBoca(dto.getBoca());
@@ -85,6 +87,7 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public BobinaManifesto adicionarBobina(Long planoId, BobinaManifesto bobina) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        exigirPlanoEditavel(plano);
         bobina.setPlano(plano);
         plano.getBobinas().add(bobina);
         planoRepositorio.save(plano);
@@ -94,6 +97,7 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public PosicaoBobinaDto posicionarBobina(Long planoId, PosicionarBobinaRequisicaoDto req) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        exigirPlanoEditavel(plano);
 
         BobinaManifesto bobina = plano.getBobinas().stream()
                 .filter(b -> b.getId().equals(req.getBobinaId()))
@@ -160,6 +164,7 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public TacktopDto calcularTacktop(Long planoId) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        exigirPlanoEditavel(plano);
         TacktopDto dto = tacktopServico.calcularTacktop(plano);
         planoRepositorio.save(plano);
         return dto;
@@ -168,6 +173,12 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public PlanoEstivaBulkDto validarEAprovar(Long planoId) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
+        if (plano.getStatus() == StatusPlanoEstiva.APROVADO) {
+            return toDto(plano, estabilidadeServico.calcular(plano));
+        }
+        if (plano.getStatus() == StatusPlanoEstiva.EMITIDO) {
+            throw new IllegalStateException("Plano emitido não pode ser aprovado novamente");
+        }
         EstabilidadeEstrutural est = estabilidadeServico.calcular(plano);
         if (!est.isAprovado()) {
             throw new IllegalStateException(
@@ -184,6 +195,13 @@ public class PlanoEstivaBulkServico {
     private PlanoEstivaBulk buscarPlano(Long planoId) {
         return planoRepositorio.findById(planoId)
                 .orElseThrow(() -> new EntityNotFoundException("PlanoEstivaBulk não encontrado: " + planoId));
+    }
+
+    private void exigirPlanoEditavel(PlanoEstivaBulk plano) {
+        if (plano.getStatus() == StatusPlanoEstiva.APROVADO
+                || plano.getStatus() == StatusPlanoEstiva.EMITIDO) {
+            throw new IllegalStateException("Plano aprovado ou emitido não pode ser alterado por este comando");
+        }
     }
 
     private PlanoEstivaBulkDto toDto(PlanoEstivaBulk plano, EstabilidadeEstrutural est) {

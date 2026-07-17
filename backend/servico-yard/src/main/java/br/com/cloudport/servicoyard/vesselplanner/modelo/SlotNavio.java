@@ -44,6 +44,15 @@ public class SlotNavio {
     @Column(name = "max_peso_kg")
     private Double maxPesoKg;
 
+    @Column(name = "pos_longitudinal_m")
+    private Double posLongitudinalMetros;
+
+    @Column(name = "pos_transversal_m")
+    private Double posTransversalMetros;
+
+    @Column(name = "pos_vertical_m")
+    private Double posVerticalMetros;
+
     @Column(name = "codigo_container", length = 20)
     private String codigoContainer;
 
@@ -143,6 +152,12 @@ public class SlotNavio {
     public void setTipoSlot(TipoSlotNavio tipoSlot) { this.tipoSlot = tipoSlot; }
     public Double getMaxPesoKg() { return maxPesoKg; }
     public void setMaxPesoKg(Double maxPesoKg) { this.maxPesoKg = maxPesoKg; }
+    public Double getPosLongitudinalMetros() { return posLongitudinalMetros; }
+    public void setPosLongitudinalMetros(Double posLongitudinalMetros) { this.posLongitudinalMetros = posLongitudinalMetros; }
+    public Double getPosTransversalMetros() { return posTransversalMetros; }
+    public void setPosTransversalMetros(Double posTransversalMetros) { this.posTransversalMetros = posTransversalMetros; }
+    public Double getPosVerticalMetros() { return posVerticalMetros; }
+    public void setPosVerticalMetros(Double posVerticalMetros) { this.posVerticalMetros = posVerticalMetros; }
     public String getCodigoContainer() { return codigoContainer; }
     public void setCodigoContainer(String codigoContainer) { this.codigoContainer = codigoContainer; }
     public String getIsoCode() { return isoCode; }

@@ -492,3 +492,15 @@ GET   /api/v1/visibilidade/conteiners/buscar
 4. Usar `visibilidade.dashboard.refresh-ms` para a publicação e `visibilidade.alertas.refresh-ms` para a detecção automática.
 5. Cobrir criação condicional, delegação ao serviço e concentração das anotações de agendamento por testes unitários.
 6. Retirar ASYNC40 das pendências técnicas após registrar a implementação neste arquivo.
+
+## BUS20 — estabilidade operacional versionada implementada
+
+1. Remover os valores hidrostáticos sintéticos dos planos e o GM padrão do navio graneleiro.
+2. Exigir versões identificáveis dos dados hidrostáticos e de resistência longitudinal antes de classificar o cálculo como operacional.
+3. Calcular peso total, LCG, TCG, VCG, GM, calado, trim e banda a partir da condição real de peso leve, lastro e carga planejada.
+4. Calcular força cortante e momento fletor por seções usando distribuições e limites versionados do navio.
+5. Usar coordenadas físicas persistidas dos slots e das bobinas, sem derivar centro de gravidade da malha artificial.
+6. Marcar como simulação não operacional e bloquear aprovação quando qualquer entrada obrigatória estiver ausente ou inválida.
+7. Persistir versões de entrada, memória de cálculo, resultados e instante da aprovação.
+8. Invalidar a aprovação anterior sempre que o plano ou a distribuição de carga for alterado.
+9. Cobrir cálculo operacional, dados incompletos e GM insuficiente por testes unitários.

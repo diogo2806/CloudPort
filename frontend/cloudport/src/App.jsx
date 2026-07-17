@@ -58,10 +58,10 @@ const FALLBACK_NAVIGATION = [
     { label: 'Indicadores', path: '/home/patio/dashboard-kpi', roles: [] },
     { label: 'Automação', path: '/home/patio/automacao', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }
   ] },
-  { group: 'Navio e embarque', items: [
+  { group: 'Navio e cargas', items: [
     { label: 'Control Room', path: '/home/navio/control-room', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
-    { label: 'Planejamento de estiva', path: '/home/embarque/planejamento', roles: [] },
-    { label: 'Steel coils', path: '/home/embarque/steel-coils', roles: [] }
+    { label: 'Estiva de contêineres', path: '/home/embarque/planejamento', roles: [] },
+    { label: 'Estiva de bobinas de aço', path: '/home/embarque/steel-coils', roles: [] }
   ] }
 ];
 

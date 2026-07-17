@@ -42,7 +42,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | BUS20 | Impedir aprovação com cálculos hidrostáticos ou estruturais sintéticos. | Planos operacionais usam dados e limites versionados do navio para calado, trim, banda, GM, força cortante e momento fletor; ausência de dados obrigatórios bloqueia a aprovação ou identifica o resultado como simulação não operacional. | ⬜ Pendente |
 | BUS30 | Validar dunnage, empilhamento, calçamento e lashing de bobinas antes da aprovação. | Cada posição é validada contra geometria do porão, tank top, peso e dimensões, camadas, espaçamento, dunnage, calços, pontos/capacidade de amarração e sequência de descarga; valores estimados não aprovam o plano. | ⬜ Pendente |
-| BUS40 | Tornar o reshuffling dependente da pilha e do mapa real, com destino reservado e ordem única. | O bloqueador é identificado pela posição e camada; o destino existe e respeita ocupação, reservas e regras de empilhamento; reserva e ordem são criadas atomicamente e de forma idempotente. | ⬜ Pendente |
 
 ### BUS20 — arquivos e métodos
 
@@ -59,14 +58,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/servico/PlanoEstivaBulkServico.java` | `posicionarBobina()`, `validarEAprovar()` | Espessura ausente vira 50 mm, lashing ausente vira `SEM_LASHING`; a aprovação consulta apenas a estabilidade estrutural. | Criar `novo método sugerido: validarPlanoCompleto()` e exigir tank top, empilhamento, dunnage, calçamento, lashing e estabilidade na mesma versão. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/servico/TacktopServico.java` | `calcularTacktop()` | O ângulo resulta sempre em 30 graus para diâmetro válido e são geradas quantidades fixas de correntes, cunhas e cintas, sem forças, atrito, pontos ou capacidade do material. | Calcular ou validar o securing a partir do navio, viagem, arranjo, bobina, materiais e pontos disponíveis; não mutar posições por estimativa. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/modelo/PosicaoBobina.java` e `MaterialLashingBulk.java` | parâmetros e materiais | Os registros não comprovam regra, capacidade, ponto de fixação, responsável ou versão da especificação usada. | Persistir parâmetros, referência da regra e resultado por posição e conjunto. |
-
-### BUS40 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/otimizacao/PredictiveReshuffflingServico.java` | `verificarConteinerEmCima()`, `calcularNovaPositicao()` | O bloqueio é inferido por ordem pendente na mesma linha/coluna sem comparar camada; a lista de vizinhos é ignorada e o destino é `linha+5`, `coluna+5`, `CAMADA_1`. | Consultar a pilha real, identificar a unidade bloqueadora e selecionar posição existente e elegível pela fonte do Yard. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/otimizacao/PredictiveReshuffflingServico.java` | `executarReshuffflingConteiner()` | Chama `registrarOrdem()` sem reservar destino nem guardar identidade idempotente do plano. | Reservar a posição e criar/reutilizar a ordem na mesma transação; conflito deve cancelar a tentativa e recalcular. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/OrdemTrabalhoPatioServico.java` | `registrarOrdem()`, `validarDestinoPatio()` | Para o reshuffling, `exigirPosicaoReal=false` permite coordenada inexistente. | Exigir posição real e validação de placement para todo `REMANEJAMENTO`. |
 
 ## 3. Autenticação e autorização
 

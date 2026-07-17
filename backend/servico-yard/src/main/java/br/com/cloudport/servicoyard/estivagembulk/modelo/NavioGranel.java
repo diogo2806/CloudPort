@@ -29,6 +29,15 @@ public class NavioGranel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "navio_cadastro_id")
+    private Long navioCadastroId;
+
+    @Column(name = "versao_perfil", nullable = false)
+    private Long versaoPerfil = 1L;
+
+    @Column(name = "versao_navio_canonico")
+    private Long versaoNavioCanonico;
+
     @Column(length = 10)
     private String imo;
 

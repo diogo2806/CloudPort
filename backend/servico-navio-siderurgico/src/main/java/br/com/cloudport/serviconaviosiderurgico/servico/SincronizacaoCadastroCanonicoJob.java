@@ -12,8 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @ConditionalOnProperty(
         name = "cloudport.runtime.jobs-enabled",
-        havingValue = "true",
-        matchIfMissing = true)
+        havingValue = "true")
 public class SincronizacaoCadastroCanonicoJob {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SincronizacaoCadastroCanonicoJob.class);

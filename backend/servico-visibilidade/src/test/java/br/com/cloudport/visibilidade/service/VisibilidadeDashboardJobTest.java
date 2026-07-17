@@ -33,9 +33,9 @@ class VisibilidadeDashboardJobTest {
     }
 
     @Test
-    void deveCriarJobPorPadraoParaPreservarExecucaoStandalone() {
+    void naoDeveCriarJobQuandoFlagNaoFoiConfigurada() {
         contextRunner.run(contexto -> assertThat(contexto)
-                .hasSingleBean(VisibilidadeDashboardJob.class));
+                .doesNotHaveBean(VisibilidadeDashboardJob.class));
     }
 
     @Test

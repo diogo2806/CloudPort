@@ -1,0 +1,152 @@
+.yard-google-map-shell {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d8e3ec;
+  border-radius: 14px;
+  background: #eef3f7;
+}
+
+.yard-google-map {
+  width: 100%;
+  min-height: 560px;
+}
+
+.yard-google-map-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(248, 251, 253, .88);
+  backdrop-filter: blur(2px);
+}
+
+.yard-google-map-legend {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  width: fit-content;
+  max-width: calc(100% - 28px);
+  padding: 9px 12px;
+  border: 1px solid rgba(15, 23, 42, .12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .16);
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.yard-google-map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.yard-google-map-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: #64748b;
+}
+
+.yard-google-map-legend i.available { background: #16a34a; }
+.yard-google-map-legend i.occupied { background: #0284c7; }
+.yard-google-map-legend i.full { background: #475569; }
+.yard-google-map-legend i.reserved { background: #d97706; }
+.yard-google-map-legend i.blocked { background: #dc2626; }
+.yard-google-map-legend i.interdicted { background: #7c3aed; }
+
+.yard-google-stack-label {
+  position: absolute;
+  z-index: 10;
+  min-width: 48px;
+  padding: 4px 6px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, .92);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, .84);
+  color: #fff;
+  box-shadow: 0 2px 7px rgba(15, 23, 42, .3);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.yard-google-stack-label:hover,
+.yard-google-stack-label:focus-visible,
+.yard-google-stack-label.selected {
+  z-index: 30;
+  transform: translate(-50%, -50%) scale(1.12);
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+.yard-google-stack-label.available { background: rgba(22, 163, 74, .9); }
+.yard-google-stack-label.occupied { background: rgba(2, 132, 199, .9); }
+.yard-google-stack-label.full { background: rgba(71, 85, 105, .92); }
+.yard-google-stack-label.reserved { background: rgba(217, 119, 6, .92); }
+.yard-google-stack-label.blocked { background: rgba(220, 38, 38, .92); }
+.yard-google-stack-label.interdicted { background: rgba(124, 58, 237, .92); }
+
+.yard-google-info {
+  display: grid;
+  gap: 5px;
+  min-width: 190px;
+  color: #1e293b;
+}
+
+.yard-google-info strong {
+  font-size: 13px;
+}
+
+.yard-google-info span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.yard-google-info small {
+  color: #64748b;
+}
+
+.yard-google-map-not-configured {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  min-height: 260px;
+  padding: 24px;
+  border: 1px dashed #c4d2df;
+  border-radius: 14px;
+  background: #f8fbfd;
+  text-align: center;
+}
+
+.yard-google-map-not-configured code {
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #e7eef5;
+  color: #334155;
+  font-size: 12px;
+}
+
+@media (max-width: 650px) {
+  .yard-google-map {
+    min-height: 440px;
+  }
+
+  .yard-google-map-legend {
+    position: static;
+    width: auto;
+    max-width: none;
+    border: 0;
+    border-top: 1px solid #d8e3ec;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

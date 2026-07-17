@@ -1,24 +1,10 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `ASYNC50`.
+Status: atualizado em 2026-07-17 após implementação do requisito `SEC50`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
-## 1. Autenticação e autorização
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| SEC50 | Aplicar autorização por operação nas work queues e work instructions do Pátio. | Consultas permanecem disponíveis aos perfis operacionais necessários, mas criação e alteração de fila, associação de recursos, dispatch, mudança de prioridade, bloqueio, reset, cancelamento e conclusão exigem explicitamente os perfis responsáveis por cada comando; `OPERADOR_GATE` e `SERVICE_NAVIO` não recebem poderes administrativos por uma regra global do controller. | ⬜ Pendente |
-
-### SEC50 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueuePatioControlador.java` | `@PreAuthorize` da classe; `criar()`, `ativar()`, `desativar()`, `atualizarPow()`, `atualizarEquipamento()`, `atualizarOrdens()` | A autorização única da classe concede todos os comandos a `ADMIN_PORTO`, `PLANEJADOR`, `OPERADOR_GATE` e `SERVICE_NAVIO`, inclusive criação e alterações administrativas de filas e recursos. | Manter uma regra de leitura separada e declarar `@PreAuthorize` específico em cada comando, limitando alterações administrativas aos perfis responsáveis pelo planejamento do Pátio. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueueOperacaoControlador.java` | `@PreAuthorize` da classe; `despachar()`, `suspender()`, `retomar()`, `bloquear()`, `concluir()`, `resetar()`, `cancelar()`, `atualizarPrioridades()` | A mesma regra global permite que perfis de Gate e integração de Navio executem dispatch, conclusão, bloqueio, reset, cancelamento e alteração de prioridades. | Definir autorização por método conforme a responsabilidade operacional e falhar com `403` antes de executar o serviço ou publicar eventos quando o perfil não for autorizado. |
-| `frontend/cloudport/src/pages/yard/YardWorkPages.jsx` | `canOperate` | A interface replica a regra ampla e exibe todos os comandos para `OPERADOR_GATE` e `SERVICE_NAVIO`, sem distinguir leitura, planejamento, execução e administração. | Derivar permissões por comando a partir dos perfis autorizados pelo backend e ocultar ou desabilitar apenas as ações não permitidas, sem usar a interface como única proteção. |
-
-## 2. Processamento assíncrono
+## 1. Processamento assíncrono
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
@@ -28,5 +14,5 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | Caminho completo | Método/campo/contrato | Como está | O que fazer |
 |---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiProcessamentoWorker.java` | `@ConditionalOnProperty` e `executar()` | A condição usa `matchIfMissing = true`. Assim, qualquer deployment que não declare a propriedade cria o worker e executa polling a cada segundo, mesmo que apenas a instância canônica deva processar a fila EDI. | Alterar a condição para exigir explicitamente `cloudport.runtime.jobs-enabled=true`, sem habilitação por ausência da propriedade. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiProcessamentoWorker.java` | `@ConditionalOnProperty` e `executar()` | A condição usa `matchIfMissing = true`. Assim, qualquer deployment que não declare a propriedade cria o worker e executa polling a cada segundo, mesmo que apenas a instância canônica deva processar a mesma fila do runtime. | Alterar a condição para exigir explicitamente `cloudport.runtime.jobs-enabled=true`, sem habilitação por ausência da propriedade. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/EdiProcessamentoWorkerServico.java` | `processarProximo()` | O método reivindica e processa mensagens reais da fila persistente; portanto, a criação indevida do worker pode concorrer com o runtime ativo. | Manter a reivindicação transacional existente, mas garantir que somente deployments explicitamente habilitados chamem o método pelo agendamento. |

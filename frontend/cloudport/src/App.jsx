@@ -81,6 +81,11 @@ function normalizeBackendTabs(tabs) {
   return Array.from(groups, ([group, items]) => ({ group, items }));
 }
 
+function safeReturnPath(path) {
+  const normalized = String(path ?? '');
+  return normalized === '/home' || normalized.startsWith('/home/') ? normalized : '/home/dashboard';
+}
+
 function LoginPage({ onAuthenticated, navigate, returnPath }) {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
@@ -201,14 +206,14 @@ export default function App() {
   const [requestedPath, setRequestedPath] = useState('/home/dashboard');
 
   useEffect(() => subscribeSessionExpired(() => {
-    setRequestedPath(path.startsWith('/home') ? path : '/home/dashboard');
+    setRequestedPath(safeReturnPath(path));
     setSession(null);
     navigate('/login', { replace: true });
   }), [path, navigate]);
 
   useEffect(() => {
     if (!session && path !== '/login') {
-      setRequestedPath(path);
+      setRequestedPath(safeReturnPath(path));
       navigate('/login', { replace: true });
     }
     if (session && path === '/login') navigate('/home/dashboard', { replace: true });

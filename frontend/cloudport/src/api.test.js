@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  api,
   clearSession,
   formatError,
   hasAnyRole,
@@ -96,4 +97,27 @@ test('login envia a senha sem sanitização destrutiva', async () => {
   await loadRuntimeConfig();
   await request('/auth/login', { method: 'POST', body: { login: 'diogo', senha: 'A#<1>!' }, public: true });
   assert.equal(JSON.parse(calls.at(-1).options.body).senha, 'A#<1>!');
+});
+
+test('cliente do planejador bulk usa contratos persistidos e preserva correlationId', async () => {
+  saveSession({ token: jwt({ nome: 'Diogo', roles: ['PLANEJADOR'], exp: Math.floor(Date.now() / 1000) + 3600 }) });
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (url === '/assets/configuracao.json') {
+      return new Response(JSON.stringify({ baseApiUrl: 'http://localhost:8080' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ id: 41 }), { status: 200, headers: { 'Content-Type': 'application/json', 'X-Correlation-Id': 'bulk-41' } });
+  };
+  await loadRuntimeConfig();
+
+  await api.listarPlanosEstivagemBulk(7, 'V001');
+  assert.equal(calls.at(-1).url, 'http://localhost:8080/api/estivagem-bulk/planos?navioId=7&codigoViagem=V001');
+
+  await api.criarPlanoEstivagemBulk({ navioId: 7, codigoViagem: 'V001', portoCarga: 'BRITG', portoDescarga: 'NLRTM' });
+  const createCall = calls.at(-1);
+  assert.equal(createCall.url, 'http://localhost:8080/api/estivagem-bulk/planos');
+  assert.equal(createCall.options.method, 'POST');
+  assert.deepEqual(JSON.parse(createCall.options.body), { navioId: 7, codigoViagem: 'V001', portoCarga: 'BRITG', portoDescarga: 'NLRTM' });
+  assert.ok(createCall.options.headers.get('X-Correlation-Id'));
 });

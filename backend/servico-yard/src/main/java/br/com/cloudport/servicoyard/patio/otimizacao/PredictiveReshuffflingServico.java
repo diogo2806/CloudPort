@@ -18,7 +18,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -35,9 +34,9 @@ public class PredictiveReshuffflingServico {
     private final MapaOcupacaoServico mapaOcupacao;
 
     public PredictiveReshuffflingServico(ConteinerPatioRepositorio conteinerRepositorio,
-                                          PosicaoPatioRepositorio posicaoRepositorio,
-                                          OrdemTrabalhoPatioServico ordemServico,
-                                          MapaOcupacaoServico mapaOcupacao) {
+                                           PosicaoPatioRepositorio posicaoRepositorio,
+                                           OrdemTrabalhoPatioServico ordemServico,
+                                           MapaOcupacaoServico mapaOcupacao) {
         this.conteinerRepositorio = conteinerRepositorio;
         this.posicaoRepositorio = posicaoRepositorio;
         this.ordemServico = ordemServico;
@@ -75,7 +74,6 @@ public class PredictiveReshuffflingServico {
     }
 
     @Transactional
-    @Scheduled(cron = "0 0 2 * * ?")
     public void executarReshuffflingNoturno() {
         PlanoReshuffflingDto plano = analisarNecessidadeReshuffling();
 
@@ -161,8 +159,8 @@ public class PredictiveReshuffflingServico {
     }
 
     private OrdemTrabalhoPatioRequisicaoDto montarOrdem(ConteinerPatio conteiner,
-                                                          NovaPosicaoReshuffflingDto destino,
-                                                          String chaveIdempotencia) {
+                                                           NovaPosicaoReshuffflingDto destino,
+                                                           String chaveIdempotencia) {
         OrdemTrabalhoPatioRequisicaoDto dto = new OrdemTrabalhoPatioRequisicaoDto();
         dto.setCodigoConteiner(conteiner.getCodigo());
         if (conteiner.getTipoCarga() != null) {
@@ -189,7 +187,7 @@ public class PredictiveReshuffflingServico {
     }
 
     private ConteinerPatio verificarConteinerEmCima(ConteinerPatio conteinerBase,
-                                                      List<ConteinerPatio> conteineres) {
+                                                       List<ConteinerPatio> conteineres) {
         Integer camadaBase = extrairNivelCamada(conteinerBase.getPosicao().getCamadaOperacional());
         if (camadaBase == null) {
             return null;
@@ -220,9 +218,9 @@ public class PredictiveReshuffflingServico {
     }
 
     private NovaPosicaoReshuffflingDto calcularNovaPositicao(ConteinerPatio conteiner,
-                                                              List<ConteinerPatio> conteineres,
-                                                              List<PosicaoPatio> posicoes,
-                                                              Set<Long> posicoesIgnoradas) {
+                                                               List<ConteinerPatio> conteineres,
+                                                               List<PosicaoPatio> posicoes,
+                                                               Set<Long> posicoesIgnoradas) {
         if (conteiner.getPosicao() == null) {
             return null;
         }
@@ -245,9 +243,9 @@ public class PredictiveReshuffflingServico {
     }
 
     private boolean posicaoElegivel(PosicaoPatio posicao,
-                                     ConteinerPatio conteiner,
-                                     List<ConteinerPatio> conteineres,
-                                     LocalDateTime agora) {
+                                      ConteinerPatio conteiner,
+                                      List<ConteinerPatio> conteineres,
+                                      LocalDateTime agora) {
         if (posicao.isBloqueada() || posicao.isInterditada() || !posicao.isAreaPermitida()) {
             return false;
         }

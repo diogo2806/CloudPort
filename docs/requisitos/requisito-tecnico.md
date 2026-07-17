@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `INT20`.
+Status: atualizado em 2026-07-17 após implementação do requisito `SEC20`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -41,21 +41,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/servico/EstabilidadeEstruturalServico.java` | `calcular()` | Aplica 20 seções, distribuições uniformes, fatores e dimensões padrão; retorna trim `0`. | Substituir aproximações por curvas, limites e distribuição real versionados; falhar fechado quando faltarem entradas. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/servico/VesselPlannerServico.java` e `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/servico/PlanoEstivaBulkServico.java` | `validarEAprovar()` | A aprovação depende dos cálculos simplificados e o fluxo bulk aceita GM padrão `1,5`. | Exigir validações completas e registrar versão das entradas, memória de cálculo e resultado da aprovação. |
 
-## 3. Autenticação e autorização
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| SEC20 | Restringir criação, alteração e aprovação de planos de estiva a perfis autorizados. | Escritas do Vessel Planner e da estiva de bobinas exigem planejamento ou administração; leitura segue a matriz definida, usuário sem permissão recebe `403` e o backend protege o fluxo independentemente do menu. | ⬜ Pendente |
-
-### SEC20 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/controlador/VesselPlannerControlador.java` | `/api/vessel-planner/**` | Não possui `@PreAuthorize`; qualquer autenticado pode criar, autoestivar, realocar e aprovar. | Separar leitura e comandos e limitar mutações a `ADMIN_PORTO`, `PLANEJADOR` ou matriz equivalente. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/controlador/EstivaBulkControlador.java` | `/api/estivagem-bulk/**` | Registro, criação, posicionamento, cálculo que persiste materiais e aprovação exigem apenas autenticação genérica. | Proteger comandos por role e impedir alteração de plano aprovado sem comando administrativo explícito. |
-| `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/configuracao/ConfiguracaoSegurancaRuntime.java` | `anyRequest().authenticated()` | A cadeia central autentica, mas não autoriza operações de domínio. | Manter a cadeia única e aplicar autorização nos controllers proprietários. |
-
-## 4. Processamento assíncrono
+## 3. Processamento assíncrono
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
@@ -68,7 +54,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/otimizacao/PredictiveReshuffflingServico.java` | `executarReshuffflingNoturno()` | O `@Scheduled` está no serviço e não consulta `cloudport.runtime.jobs-enabled`; runtime e standalone podem executar o mesmo cron. | Criar `novo método sugerido: PredictiveReshuffflingJob.executar()`, condicionado pela propriedade canônica, e manter o caso de uso sem anotação. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/ServicoYardApplication.java` e `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/CloudPortRuntimeApplication.java` | `@EnableScheduling` e component scan | Ambos carregam scheduling e o serviço do Yard. | Garantir que somente a instância com jobs habilitados registre o cron, sem criar flag concorrente. |
 
-## 5. Interface operacional React
+## 4. Interface operacional React
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

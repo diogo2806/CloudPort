@@ -4,6 +4,7 @@ import { Message } from './components.jsx';
 import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
+import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 import {
   ControlRoomPage,
@@ -43,7 +44,8 @@ const FALLBACK_NAVIGATION = [
   { group: 'Ferrovia', items: [
     { label: 'Visitas', path: '/home/ferrovia/visitas', roles: [] },
     { label: 'Importar manifesto', path: '/home/ferrovia/visitas/importar', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
-    { label: 'Lista de trabalho', path: '/home/ferrovia/lista-trabalho', roles: [] }
+    { label: 'Lista de trabalho', path: '/home/ferrovia/lista-trabalho', roles: [] },
+    { label: 'Locomotivas para navio', path: '/home/ferrovia/locomotivas', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] }
   ] },
   { group: 'Pátio', items: [
     { label: 'Mapa', path: '/home/patio/mapa', roles: [] },
@@ -135,6 +137,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
+  if (path === '/home/ferrovia/locomotivas') return <RailLocomotiveTransfersPage />;
   if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage navigate={navigate} />;
   if (path === '/home/patio/posicoes') return <YardPositionsPage navigate={navigate} />;
   if (path === '/home/patio/lista-trabalho') return <YardWorkListPage navigate={navigate} session={session} />;

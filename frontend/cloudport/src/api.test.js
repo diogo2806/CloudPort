@@ -105,6 +105,26 @@ test('resposta 401 limpa a sessão e publica sua expiração para a árvore Reac
   assert.equal(readSession(), null);
 });
 
+test('resposta 401 sem token persistido também publica expiração', async () => {
+  globalThis.fetch = async (url) => {
+    if (url === '/assets/configuracao.json') {
+      return new Response(JSON.stringify({ baseApiUrl: 'http://localhost:8080' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ mensagem: 'Sessão expirada' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  };
+  await loadRuntimeConfig();
+  let expirations = 0;
+  const unsubscribe = subscribeSessionExpired(() => { expirations += 1; });
+
+  try {
+    await assert.rejects(() => request('/yard/patio/ordens'), /Sessão expirada/);
+  } finally {
+    unsubscribe();
+  }
+
+  assert.equal(expirations, 1);
+});
+
 test('login envia a senha sem sanitização destrutiva', async () => {
   const calls = [];
   globalThis.fetch = async (url, options = {}) => {

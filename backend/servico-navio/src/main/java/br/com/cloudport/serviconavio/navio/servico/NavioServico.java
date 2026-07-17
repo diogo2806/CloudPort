@@ -178,6 +178,6 @@ public class NavioServico {
     private NavioDetalheDTO mapearDetalhe(Navio navio) {
         return new NavioDetalheDTO(navio.getIdentificador(), navio.getNome(), navio.getCodigoImo(),
                 navio.getPaisBandeira(), navio.getEmpresaArmadora(), navio.getCapacidadeTeu(),
-                navio.getLoaMetros(), navio.getCaladoMaximoMetros(), navio.getCallSign());
+                navio.getLoaMetros(), navio.getCaladoMaximoMetros(), navio.getCallSign(), navio.getVersao());
     }
 }

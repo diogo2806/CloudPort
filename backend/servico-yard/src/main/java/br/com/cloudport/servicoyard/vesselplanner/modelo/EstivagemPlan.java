@@ -17,7 +17,11 @@ import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import javax.persistence.Version;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "estivagem_plan")
 public class EstivagemPlan {
@@ -84,17 +88,104 @@ public class EstivagemPlan {
     @Column
     private Double lcb;
 
+    @Column
+    private Double km;
+
+    @Column(name = "mct_1cm")
+    private Double mct1cm;
+
+    @Column(name = "calado_maximo")
+    private Double caladoMaximo;
+
+    @Column(name = "trim_maximo")
+    private Double trimMaximo;
+
+    @Column(name = "banda_maxima")
+    private Double bandaMaxima;
+
+    @Column(name = "gm_minimo")
+    private Double gmMinimo;
+
+    @Column(name = "peso_leve_t")
+    private Double pesoLeveToneladas;
+
+    @Column(name = "lcg_peso_leve")
+    private Double lcgPesoLeve;
+
+    @Column(name = "tcg_peso_leve")
+    private Double tcgPesoLeve;
+
+    @Column(name = "vcg_peso_leve")
+    private Double vcgPesoLeve;
+
+    @Column(name = "peso_lastro_t")
+    private Double pesoLastroToneladas;
+
+    @Column(name = "lcg_lastro")
+    private Double lcgLastro;
+
+    @Column(name = "tcg_lastro")
+    private Double tcgLastro;
+
+    @Column(name = "vcg_lastro")
+    private Double vcgLastro;
+
+    @Column(name = "versao_dados_hidrostaticos", length = 80)
+    private String versaoDadosHidrostaticos;
+
+    @Column(name = "versao_dados_estruturais", length = 80)
+    private String versaoDadosEstruturais;
+
+    @Column(name = "posicoes_secoes", columnDefinition = "TEXT")
+    private String posicoesSecoes;
+
+    @Column(name = "peso_leve_secoes", columnDefinition = "TEXT")
+    private String pesoLeveSecoes;
+
+    @Column(name = "empuxo_secoes", columnDefinition = "TEXT")
+    private String empuxoSecoes;
+
+    @Column(name = "limites_sf_secoes", columnDefinition = "TEXT")
+    private String limitesSfSecoes;
+
+    @Column(name = "limites_bm_secoes", columnDefinition = "TEXT")
+    private String limitesBmSecoes;
+
     @Column(name = "trim_calculado")
     private Double trimCalculado;
 
     @Column(name = "list_calculado")
     private Double listCalculado;
 
+    @Column(name = "calado_calculado")
+    private Double caladoCalculado;
+
+    @Column(name = "gm_calculado")
+    private Double gmCalculado;
+
     @Column(name = "lcg_calculado")
     private Double lcgCalculado;
 
     @Column(name = "tcg_calculado")
     private Double tcgCalculado;
+
+    @Column(name = "sf_max_calculado")
+    private Double sfMaxCalculado;
+
+    @Column(name = "bm_max_calculado")
+    private Double bmMaxCalculado;
+
+    @Column(name = "versao_hidro_aprovacao", length = 80)
+    private String versaoHidroAprovacao;
+
+    @Column(name = "versao_estrutural_aprovacao", length = 80)
+    private String versaoEstruturalAprovacao;
+
+    @Column(name = "memoria_calculo_aprovacao", columnDefinition = "TEXT")
+    private String memoriaCalculoAprovacao;
+
+    @Column(name = "aprovado_em")
+    private LocalDateTime aprovadoEm;
 
     @Version
     private Long versao;
@@ -116,61 +207,4 @@ public class EstivagemPlan {
             criadoEm = atualizadoEm;
         }
     }
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public Long getBayPlanId() { return bayPlanId; }
-    public void setBayPlanId(Long bayPlanId) { this.bayPlanId = bayPlanId; }
-    public Long getNavioCadastroId() { return navioCadastroId; }
-    public void setNavioCadastroId(Long navioCadastroId) { this.navioCadastroId = navioCadastroId; }
-    public Long getVisitaNavioId() { return visitaNavioId; }
-    public void setVisitaNavioId(Long visitaNavioId) { this.visitaNavioId = visitaNavioId; }
-    public String getCodigoVisita() { return codigoVisita; }
-    public void setCodigoVisita(String codigoVisita) { this.codigoVisita = codigoVisita; }
-    public Long getVersaoNavioCanonico() { return versaoNavioCanonico; }
-    public void setVersaoNavioCanonico(Long versaoNavioCanonico) { this.versaoNavioCanonico = versaoNavioCanonico; }
-    public Long getVersaoVisita() { return versaoVisita; }
-    public void setVersaoVisita(Long versaoVisita) { this.versaoVisita = versaoVisita; }
-    public String getCodigoNavio() { return codigoNavio; }
-    public void setCodigoNavio(String codigoNavio) { this.codigoNavio = codigoNavio; }
-    public String getCodigoViagem() { return codigoViagem; }
-    public void setCodigoViagem(String codigoViagem) { this.codigoViagem = codigoViagem; }
-    public Long getPerfilGeometriaId() { return perfilGeometriaId; }
-    public void setPerfilGeometriaId(Long perfilGeometriaId) { this.perfilGeometriaId = perfilGeometriaId; }
-    public Long getPerfilGeometriaVersao() { return perfilGeometriaVersao; }
-    public void setPerfilGeometriaVersao(Long perfilGeometriaVersao) { this.perfilGeometriaVersao = perfilGeometriaVersao; }
-    public String getCondicaoCarregamento() { return condicaoCarregamento; }
-    public void setCondicaoCarregamento(String condicaoCarregamento) { this.condicaoCarregamento = condicaoCarregamento; }
-    public StatusEstivagemPlan getStatus() { return status; }
-    public void setStatus(StatusEstivagemPlan status) { this.status = status; }
-    public Double getComprimentoLpp() { return comprimentoLpp; }
-    public void setComprimentoLpp(Double comprimentoLpp) { this.comprimentoLpp = comprimentoLpp; }
-    public Double getBoca() { return boca; }
-    public void setBoca(Double boca) { this.boca = boca; }
-    public Double getCalado() { return calado; }
-    public void setCalado(Double calado) { this.calado = calado; }
-    public Double getDeslocamento() { return deslocamento; }
-    public void setDeslocamento(Double deslocamento) { this.deslocamento = deslocamento; }
-    public Double getGm() { return gm; }
-    public void setGm(Double gm) { this.gm = gm; }
-    public Double getTpc() { return tpc; }
-    public void setTpc(Double tpc) { this.tpc = tpc; }
-    public Double getLcb() { return lcb; }
-    public void setLcb(Double lcb) { this.lcb = lcb; }
-    public Double getTrimCalculado() { return trimCalculado; }
-    public void setTrimCalculado(Double trimCalculado) { this.trimCalculado = trimCalculado; }
-    public Double getListCalculado() { return listCalculado; }
-    public void setListCalculado(Double listCalculado) { this.listCalculado = listCalculado; }
-    public Double getLcgCalculado() { return lcgCalculado; }
-    public void setLcgCalculado(Double lcgCalculado) { this.lcgCalculado = lcgCalculado; }
-    public Double getTcgCalculado() { return tcgCalculado; }
-    public void setTcgCalculado(Double tcgCalculado) { this.tcgCalculado = tcgCalculado; }
-    public Long getVersao() { return versao; }
-    public void setVersao(Long versao) { this.versao = versao; }
-    public List<SlotNavio> getSlots() { return slots; }
-    public void setSlots(List<SlotNavio> slots) { this.slots = slots; }
-    public LocalDateTime getCriadoEm() { return criadoEm; }
-    public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
-    public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
-    public void setAtualizadoEm(LocalDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
 }

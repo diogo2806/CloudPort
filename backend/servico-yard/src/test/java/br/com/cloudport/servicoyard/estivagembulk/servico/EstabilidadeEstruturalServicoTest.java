@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.estivagembulk.servico;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import br.com.cloudport.servicoyard.estivagembulk.dto.EstabilidadeEstrutural;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
@@ -13,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("EstabilidadeEstruturalServico - Momento Fletor e Força de Cisalhamento")
+@DisplayName("EstabilidadeEstruturalServico - cálculo operacional versionado")
 class EstabilidadeEstruturalServicoTest {
 
     private EstabilidadeEstruturalServico servico;
@@ -24,114 +25,110 @@ class EstabilidadeEstruturalServicoTest {
     }
 
     @Test
-    @DisplayName("Plano sem navio retorna estabilidade vazia e aprovado")
-    void planoVazioRetornaAprovado() {
+    @DisplayName("Plano sem perfil completo é simulação não operacional e não aprova")
+    void planoSemPerfilCompletoNaoAprova() {
         PlanoEstivaBulk plano = new PlanoEstivaBulk();
 
-        EstabilidadeEstrutural dto = servico.calcular(plano);
+        EstabilidadeEstrutural resultado = servico.calcular(plano);
 
-        assertTrue(dto.isAprovado());
-        assertEquals(0.0, dto.getBmMaxKnm());
-        assertEquals(0.0, dto.getSfMaxKn());
+        assertFalse(resultado.isOperacional());
+        assertFalse(resultado.isAprovado());
+        assertTrue(resultado.getViolacoes().stream()
+                .anyMatch(violacao -> "DADOS_ESTABILIDADE_INCOMPLETOS".equals(violacao.getTipo())));
     }
 
     @Test
-    @DisplayName("Peso concentrado no centro do navio gera sagging")
-    void pesoConcentradoNoCentroGeraSagging() {
-        NavioGranel navio = criarNavioHandymax();
-        PlanoEstivaBulk plano = new PlanoEstivaBulk();
-        plano.setNavio(navio);
+    @DisplayName("Perfil e distribuição versionados produzem cálculo operacional")
+    void perfilVersionadoProduzCalculoOperacional() {
+        NavioGranel navio = criarNavioOperacional();
+        PlanoEstivaBulk plano = criarPlanoComBobina(navio);
 
-        // Place heavy load in midship hold (pos 100m on a 200m ship)
-        PoraoNavio poraoMeio = criarPorao(navio, 2, 90.0, 110.0);
-        navio.getPoroes().add(poraoMeio);
-        for (int i = 0; i < 5; i++) {
-            PosicaoBobina pos = criarPosicao(plano, poraoMeio, 30000.0);
-            plano.getPosicoes().add(pos);
-        }
+        EstabilidadeEstrutural resultado = servico.calcular(plano);
 
-        EstabilidadeEstrutural dto = servico.calcular(plano);
-
-        assertTrue(dto.getPesoTotalToneladas() > 0);
-        assertTrue(dto.getCaladoSaidaMetros() > 0);
+        assertTrue(resultado.isOperacional());
+        assertTrue(resultado.isAprovado());
+        assertTrue(resultado.getCaladoSaidaMetros() > 0.0);
+        assertTrue(resultado.getGmMetros() > navio.getGmMinimo());
+        assertTrue(resultado.getMemoriaCalculo().contains("hidro=HYDRO-2026-01"));
+        assertTrue(resultado.getMemoriaCalculo().contains("estrutural=STRUCT-2026-01"));
     }
 
     @Test
-    @DisplayName("BM excedido gera violação PERIGO")
-    void bmExcedidoGeraViolacaoPerigo() {
-        NavioGranel navio = criarNavioHandymax();
-        navio.setBmMaxPermitido(1.0); // absurdly low limit to force violation
+    @DisplayName("GM abaixo do mínimo versionado bloqueia a aprovação")
+    void gmAbaixoDoMinimoBloqueiaAprovacao() {
+        NavioGranel navio = criarNavioOperacional();
+        navio.setKm(8.1);
+        PlanoEstivaBulk plano = criarPlanoComBobina(navio);
+
+        EstabilidadeEstrutural resultado = servico.calcular(plano);
+
+        assertTrue(resultado.isOperacional());
+        assertFalse(resultado.isAprovado());
+        assertTrue(resultado.getViolacoes().stream()
+                .anyMatch(violacao -> "GM_INSUFICIENTE".equals(violacao.getTipo())
+                        && "PERIGO".equals(violacao.getSeveridade())));
+    }
+
+    private NavioGranel criarNavioOperacional() {
+        NavioGranel navio = new NavioGranel();
+        navio.setNome("MV TEST HANDYMAX");
+        navio.setClasse(ClasseNavio.HANDYMAX);
+        navio.setLpp(200.0);
+        navio.setBoca(32.0);
+        navio.setCalado(10.0);
+        navio.setDeslocamento(39000.0);
+        navio.setTpc(40.0);
+        navio.setLcb(100.0);
+        navio.setKm(15.0);
+        navio.setMct1cm(2000.0);
+        navio.setCaladoMaximo(11.0);
+        navio.setTrimMaximo(3.0);
+        navio.setBandaMaxima(5.0);
+        navio.setGmMinimo(0.5);
+        navio.setPesoLeveToneladas(39000.0);
+        navio.setLcgPesoLeve(100.0);
+        navio.setTcgPesoLeve(0.0);
+        navio.setVcgPesoLeve(8.0);
+        navio.setPesoLastroToneladas(0.0);
+        navio.setBmMaxPermitido(1_000_000_000.0);
+        navio.setSfMaxPermitido(1_000_000_000.0);
+        navio.setVersaoDadosHidrostaticos("HYDRO-2026-01");
+        navio.setVersaoDadosEstruturais("STRUCT-2026-01");
+        navio.setPosicoesSecoes("0;50;100;150;200");
+        navio.setPesoLeveSecoes("5000;9000;11000;9000;5000");
+        navio.setEmpuxoSecoes("5000;9000;11000;9000;5000");
+        navio.setLimitesSfSecoes("1000000000;1000000000;1000000000;1000000000;1000000000");
+        navio.setLimitesBmSecoes("1000000000;1000000000;1000000000;1000000000;1000000000");
+        return navio;
+    }
+
+    private PlanoEstivaBulk criarPlanoComBobina(NavioGranel navio) {
         PlanoEstivaBulk plano = new PlanoEstivaBulk();
         plano.setNavio(navio);
 
-        PoraoNavio porao = criarPorao(navio, 1, 50.0, 100.0);
+        PoraoNavio porao = new PoraoNavio();
+        porao.setNavio(navio);
+        porao.setNumero(2);
+        porao.setPosLongInicio(90.0);
+        porao.setPosLongFim(110.0);
+        porao.setLargura(20.0);
+        porao.setAlturaUtil(12.0);
         navio.getPoroes().add(porao);
-        for (int i = 0; i < 10; i++) {
-            plano.getPosicoes().add(criarPosicao(plano, porao, 50000.0));
-        }
 
-        EstabilidadeEstrutural dto = servico.calcular(plano);
-
-        assertTrue(dto.getViolacoes().stream()
-                .anyMatch(v -> "MOMENTO_FLETOR_EXCEDIDO".equals(v.getTipo())
-                        && "PERIGO".equals(v.getSeveridade())));
-        assertFalse(dto.isAprovado());
-    }
-
-    @Test
-    @DisplayName("Calado de saída calculado é positivo para carga real")
-    void caladoSaidaPositivoParaCargaReal() {
-        NavioGranel navio = criarNavioHandymax();
-        PlanoEstivaBulk plano = new PlanoEstivaBulk();
-        plano.setNavio(navio);
-
-        PoraoNavio porao = criarPorao(navio, 1, 20.0, 80.0);
-        navio.getPoroes().add(porao);
-        plano.getPosicoes().add(criarPosicao(plano, porao, 10000.0));
-
-        EstabilidadeEstrutural dto = servico.calcular(plano);
-
-        assertTrue(dto.getCaladoSaidaMetros() > 0, "Calado de saída deve ser positivo");
-    }
-
-    private NavioGranel criarNavioHandymax() {
-        NavioGranel n = new NavioGranel();
-        n.setNome("MV TEST HANDYMAX");
-        n.setClasse(ClasseNavio.HANDYMAX);
-        n.setLpp(200.0);
-        n.setBoca(32.0);
-        n.setCalado(10.0);
-        n.setDeslocamento(45000.0);
-        n.setGm(1.5);
-        n.setBmMaxPermitido(250000.0);
-        n.setSfMaxPermitido(50000.0);
-        return n;
-    }
-
-    private PoraoNavio criarPorao(NavioGranel navio, int numero, double inicio, double fim) {
-        PoraoNavio p = new PoraoNavio();
-        p.setNavio(navio);
-        p.setNumero(numero);
-        p.setPosLongInicio(inicio);
-        p.setPosLongFim(fim);
-        p.setLargura(20.0);
-        p.setAlturaUtil(12.0);
-        return p;
-    }
-
-    private PosicaoBobina criarPosicao(PlanoEstivaBulk plano, PoraoNavio porao, double pesoKg) {
         BobinaManifesto bobina = new BobinaManifesto();
-        bobina.setPesoKg(pesoKg);
+        bobina.setPesoKg(10000.0);
         bobina.setDiametroExternoMm(1500.0);
         bobina.setLarguraMm(2000.0);
 
-        PosicaoBobina pos = new PosicaoBobina();
-        pos.setPlano(plano);
-        pos.setBobina(bobina);
-        pos.setPorao(porao);
-        pos.setCamada(1);
-        pos.setPosicaoX(5.0);
-        pos.setPosicaoY(5.0);
-        return pos;
+        PosicaoBobina posicao = new PosicaoBobina();
+        posicao.setPlano(plano);
+        posicao.setBobina(bobina);
+        posicao.setPorao(porao);
+        posicao.setCamada(1);
+        posicao.setPosicaoX(10.0);
+        posicao.setPosicaoY(0.0);
+        posicao.setEspessuraDunnageMm(50.0);
+        plano.getPosicoes().add(posicao);
+        return plano;
     }
 }

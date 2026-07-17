@@ -21,6 +21,7 @@ import br.com.cloudport.servicoyard.vesselplanner.modelo.SlotNavio;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.StatusEstivagemPlan;
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.EstivagemPlanRepositorio;
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.SlotNavioRepositorio;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -167,6 +168,7 @@ public class VesselPlannerServico {
         slot.setExcessoAlturaCm(requisicao.getExcessoAlturaCm());
         slot.setStatusAlertas(violacoes.isEmpty() ? "OK" : "AVISO");
 
+        invalidarAprovacao(plan);
         EstabilidadeDto estabilidade = recalcularEstabilidade(plan);
         planRepositorio.save(plan);
 
@@ -194,6 +196,7 @@ public class VesselPlannerServico {
                             + " contêiner(es) incompatível(is) com o perfil geométrico");
         }
 
+        invalidarAprovacao(plan);
         EstabilidadeDto estabilidade = recalcularEstabilidade(plan);
         planRepositorio.save(plan);
         return toDto(plan, estabilidade);
@@ -230,18 +233,27 @@ public class VesselPlannerServico {
     public EstivagemPlanDto validarEAprovar(Long planId) {
         EstivagemPlan plan = buscarPlanOperacional(planId);
         validarFonteCanonica(plan);
-        if (plan.getStatus() == StatusEstivagemPlan.APROVADO) {
-            return toDto(plan, estabilidadeServico.calcular(plan));
-        }
         if (plan.getStatus() == StatusEstivagemPlan.TRANSMITIDO) {
             throw new IllegalStateException("Plano transmitido não pode ser aprovado novamente");
         }
         geometriaServico.validarPlanoParaAprovacao(plan);
         EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
-        if (!estabilidade.isAprovado()) {
-            throw new IllegalStateException("Plano possui violações de Hard Constraint e não pode ser aprovado");
+        aplicarResultadoCalculo(plan, estabilidade);
+
+        if (!estabilidade.isOperacional()) {
+            throw new IllegalStateException(
+                    "Plano não pode ser aprovado: cálculo de estabilidade não operacional ou incompleto");
         }
+        if (!estabilidade.isAprovado()) {
+            throw new IllegalStateException(
+                    "Plano possui violações de estabilidade, segurança ou resistência longitudinal e não pode ser aprovado");
+        }
+
         plan.setStatus(StatusEstivagemPlan.APROVADO);
+        plan.setVersaoHidroAprovacao(estabilidade.getVersaoDadosHidrostaticos());
+        plan.setVersaoEstruturalAprovacao(estabilidade.getVersaoDadosEstruturais());
+        plan.setMemoriaCalculoAprovacao(estabilidade.getMemoriaCalculo());
+        plan.setAprovadoEm(LocalDateTime.now());
         planRepositorio.save(plan);
         return toDto(plan, estabilidade);
     }
@@ -273,11 +285,27 @@ public class VesselPlannerServico {
     private EstabilidadeDto recalcularEstabilidade(EstivagemPlan plan) {
         geometriaServico.validarPlanoOperacional(plan);
         EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
+        aplicarResultadoCalculo(plan, estabilidade);
+        return estabilidade;
+    }
+
+    private void aplicarResultadoCalculo(EstivagemPlan plan, EstabilidadeDto estabilidade) {
         plan.setTrimCalculado(estabilidade.getTrimMetros());
         plan.setListCalculado(estabilidade.getListGraus());
+        plan.setCaladoCalculado(estabilidade.getCaladoMedioMetros());
+        plan.setGmCalculado(estabilidade.getGmMetros());
         plan.setLcgCalculado(estabilidade.getLcgMetros());
         plan.setTcgCalculado(estabilidade.getTcgMetros());
-        return estabilidade;
+        plan.setSfMaxCalculado(estabilidade.getSfMaxKn());
+        plan.setBmMaxCalculado(estabilidade.getBmMaxKnm());
+    }
+
+    private void invalidarAprovacao(EstivagemPlan plan) {
+        plan.setStatus(StatusEstivagemPlan.RASCUNHO);
+        plan.setVersaoHidroAprovacao(null);
+        plan.setVersaoEstruturalAprovacao(null);
+        plan.setMemoriaCalculoAprovacao(null);
+        plan.setAprovadoEm(null);
     }
 
     private EstivagemPlanDto toDto(EstivagemPlan plan, EstabilidadeDto estabilidade) {
@@ -324,6 +352,9 @@ public class VesselPlannerServico {
         dto.setAceita45Pes(slot.isAceita45Pes());
         dto.setMaxPesoKg(slot.getMaxPesoKg());
         dto.setMaxPesoPilhaKg(slot.getMaxPesoPilhaKg());
+        dto.setPosLongitudinalMetros(slot.getPosLongitudinalMetros());
+        dto.setPosTransversalMetros(slot.getPosTransversalMetros());
+        dto.setPosVerticalMetros(slot.getPosVerticalMetros());
         dto.setCodigoContainer(slot.getCodigoContainer());
         dto.setIsoCode(slot.getIsoCode());
         dto.setPesoKg(slot.getPesoKg());

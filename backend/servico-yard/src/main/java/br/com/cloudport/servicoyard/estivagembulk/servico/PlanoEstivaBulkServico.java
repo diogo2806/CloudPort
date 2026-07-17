@@ -79,15 +79,39 @@ public class PlanoEstivaBulkServico {
         navio.setBoca(dto.getBoca());
         navio.setCalado(dto.getCalado());
         navio.setDeslocamento(dto.getDeslocamento());
-        navio.setGm(dto.getGm() != null ? dto.getGm() : 1.5);
+        navio.setGm(dto.getGm());
+        navio.setTpc(dto.getTpc());
+        navio.setLcb(dto.getLcb());
+        navio.setKm(dto.getKm());
+        navio.setMct1cm(dto.getMct1cm());
+        navio.setCaladoMaximo(dto.getCaladoMaximo());
+        navio.setTrimMaximo(dto.getTrimMaximo());
+        navio.setBandaMaxima(dto.getBandaMaxima());
+        navio.setGmMinimo(dto.getGmMinimo());
+        navio.setPesoLeveToneladas(dto.getPesoLeveToneladas());
+        navio.setLcgPesoLeve(dto.getLcgPesoLeve());
+        navio.setTcgPesoLeve(dto.getTcgPesoLeve());
+        navio.setVcgPesoLeve(dto.getVcgPesoLeve());
+        navio.setPesoLastroToneladas(dto.getPesoLastroToneladas());
+        navio.setLcgLastro(dto.getLcgLastro());
+        navio.setTcgLastro(dto.getTcgLastro());
+        navio.setVcgLastro(dto.getVcgLastro());
         navio.setBmMaxPermitido(dto.getBmMaxPermitido());
         navio.setSfMaxPermitido(dto.getSfMaxPermitido());
+        navio.setVersaoDadosHidrostaticos(dto.getVersaoDadosHidrostaticos());
+        navio.setVersaoDadosEstruturais(dto.getVersaoDadosEstruturais());
+        navio.setPosicoesSecoes(dto.getPosicoesSecoes());
+        navio.setPesoLeveSecoes(dto.getPesoLeveSecoes());
+        navio.setEmpuxoSecoes(dto.getEmpuxoSecoes());
+        navio.setLimitesSfSecoes(dto.getLimitesSfSecoes());
+        navio.setLimitesBmSecoes(dto.getLimitesBmSecoes());
         navio.setTemplate(dto.isTemplate());
         return navioRepositorio.save(navio);
     }
 
     @Transactional
-    public PlanoEstivaBulk criarPlano(Long navioId, String codigoViagem, String portoCarga, String portoDescarga) {
+    public PlanoEstivaBulk criarPlano(Long navioId, String codigoViagem, String portoCarga,
+            String portoDescarga) {
         NavioGranel navio = navioRepositorio.findById(navioId)
                 .orElseThrow(() -> new EntityNotFoundException("Navio não encontrado: " + navioId));
         PlanoEstivaBulk plano = new PlanoEstivaBulk();
@@ -101,7 +125,6 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public BobinaManifesto adicionarBobina(Long planoId, BobinaManifesto bobina) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
-        exigirPlanoEditavel(plano);
         bobina.setPlano(plano);
         plano.getBobinas().add(bobina);
         invalidarValidacao(plano);
@@ -112,7 +135,6 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public PosicaoBobinaDto posicionarBobina(Long planoId, PosicionarBobinaRequisicaoDto requisicao) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
-        exigirPlanoEditavel(plano);
         BobinaManifesto bobina = localizarBobina(plano, requisicao.getBobinaId());
         PoraoNavio porao = localizarPorao(plano, requisicao.getPoraoId());
         SetorTanktop setor = localizarSetor(porao, requisicao.getSetorId());
@@ -179,8 +201,8 @@ public class PlanoEstivaBulkServico {
     @Transactional
     public ValidacaoPlanoBulkDto validarPlanoCompleto(Long planoId) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
-        exigirPlanoEditavel(plano);
         ValidacaoPlanoBulkDto validacao = executarValidacaoCompleta(plano, true);
+        aplicarResultadoCalculo(plano, validacao.getEstabilidade());
         planoRepositorio.save(plano);
         return validacao;
     }
@@ -188,33 +210,30 @@ public class PlanoEstivaBulkServico {
     @Transactional(noRollbackFor = ValidacaoPlanoBulkException.class)
     public PlanoEstivaBulkDto validarEAprovar(Long planoId) {
         PlanoEstivaBulk plano = buscarPlano(planoId);
-        if (plano.getStatus() == StatusPlanoEstiva.APROVADO) {
-            ValidacaoPlanoBulkDto validacaoAtual = executarValidacaoCompleta(plano, false);
-            return toDto(plano, validacaoAtual.getEstabilidade(), validacaoAtual);
-        }
-        if (plano.getStatus() == StatusPlanoEstiva.EMITIDO) {
-            throw new IllegalStateException("Plano emitido não pode ser aprovado novamente");
-        }
         ValidacaoPlanoBulkDto validacao = executarValidacaoCompleta(plano, true);
-        if (!validacao.isAprovado()) {
+        EstabilidadeEstrutural estabilidade = validacao.getEstabilidade();
+        aplicarResultadoCalculo(plano, estabilidade);
+
+        if (!validacao.isAprovado() || !estabilidade.isOperacional()) {
             plano.setStatus(StatusPlanoEstiva.RASCUNHO);
+            limparSnapshotAprovacao(plano);
             planoRepositorio.save(plano);
             throw new ValidacaoPlanoBulkException(
-                    "Plano reprovado pela validação completa de tank top, empilhamento, dunnage, calçamento, lashing, sequência de descarga ou estabilidade",
+                    "Plano reprovado pela validação completa de tank top, empilhamento, dunnage, calçamento, lashing, sequência de descarga ou estabilidade operacional",
                     validacao);
         }
 
-        EstabilidadeEstrutural estabilidade = validacao.getEstabilidade();
         plano.setStatus(StatusPlanoEstiva.APROVADO);
-        plano.setBmMaxCalculado(estabilidade.getBmMaxKnm());
-        plano.setSfMaxCalculado(estabilidade.getSfMaxKn());
-        plano.setTrimCalculado(estabilidade.getTrimMetros());
-        plano.setCaladoSaida(estabilidade.getCaladoSaidaMetros());
+        plano.setVersaoHidroAprovacao(estabilidade.getVersaoDadosHidrostaticos());
+        plano.setVersaoEstruturalAprovacao(estabilidade.getVersaoDadosEstruturais());
+        plano.setMemoriaCalculoAprovacao(estabilidade.getMemoriaCalculo());
+        plano.setAprovadoEm(LocalDateTime.now());
         planoRepositorio.save(plano);
         return toDto(plano, estabilidade, validacao);
     }
 
-    private ValidacaoPlanoBulkDto executarValidacaoCompleta(PlanoEstivaBulk plano, boolean persistirResultado) {
+    private ValidacaoPlanoBulkDto executarValidacaoCompleta(PlanoEstivaBulk plano,
+            boolean persistirResultado) {
         LocalDateTime validadoEm = LocalDateTime.now();
         List<ViolacaoEstivaDto> violacoes = new ArrayList<>();
         validarManifestoEPosicoes(plano, violacoes);
@@ -238,20 +257,39 @@ public class PlanoEstivaBulkServico {
 
         EstabilidadeEstrutural estabilidade = estabilidadeServico.calcular(plano);
         adicionarTodas(violacoes, estabilidade.getViolacoes());
-        if (!estabilidade.isAprovado()) {
-            violacoes.add(perigo("ESTABILIDADE_REPROVADA",
-                    "A estabilidade estrutural foi reprovada para o mesmo snapshot do plano", plano.getId()));
+        if (!estabilidade.isOperacional()) {
+            violacoes.add(perigo(
+                    "ESTABILIDADE_NAO_OPERACIONAL",
+                    "A estabilidade não possui dados hidrostáticos e estruturais versionados suficientes para aprovação",
+                    plano.getId()));
+        } else if (!estabilidade.isAprovado()) {
+            violacoes.add(perigo(
+                    "ESTABILIDADE_REPROVADA",
+                    "A estabilidade estrutural foi reprovada para o mesmo snapshot do plano",
+                    plano.getId()));
         }
 
-        String versaoEspecificacao = valorUnico(plano.getPosicoes(), PosicaoBobina::getVersaoEspecificacao,
-                "VERSAO_ESPECIFICACAO_DIVERGENTE", "Todas as posições devem usar a mesma versão de especificação",
-                plano.getId(), violacoes);
-        String referenciaRegra = valorUnico(plano.getPosicoes(), PosicaoBobina::getReferenciaRegra,
-                "REGRA_SEGURANCA_DIVERGENTE", "Todas as posições devem usar a mesma referência de regra",
-                plano.getId(), violacoes);
-        String responsavel = valorUnico(plano.getPosicoes(), PosicaoBobina::getResponsavelValidacao,
-                "RESPONSAVEL_VALIDACAO_DIVERGENTE", "Todas as posições devem possuir o mesmo responsável pelo snapshot",
-                plano.getId(), violacoes);
+        String versaoEspecificacao = valorUnico(
+                plano.getPosicoes(),
+                PosicaoBobina::getVersaoEspecificacao,
+                "VERSAO_ESPECIFICACAO_DIVERGENTE",
+                "Todas as posições devem usar a mesma versão de especificação",
+                plano.getId(),
+                violacoes);
+        String referenciaRegra = valorUnico(
+                plano.getPosicoes(),
+                PosicaoBobina::getReferenciaRegra,
+                "REGRA_SEGURANCA_DIVERGENTE",
+                "Todas as posições devem usar a mesma referência de regra",
+                plano.getId(),
+                violacoes);
+        String responsavel = valorUnico(
+                plano.getPosicoes(),
+                PosicaoBobina::getResponsavelValidacao,
+                "RESPONSAVEL_VALIDACAO_DIVERGENTE",
+                "Todas as posições devem possuir o mesmo responsável pelo snapshot",
+                plano.getId(),
+                violacoes);
 
         boolean aprovado = violacoes.stream().noneMatch(this::isPerigo);
         ValidacaoPlanoBulkDto dto = new ValidacaoPlanoBulkDto();
@@ -273,12 +311,15 @@ public class PlanoEstivaBulkServico {
         return dto;
     }
 
-    private void validarManifestoEPosicoes(PlanoEstivaBulk plano, List<ViolacaoEstivaDto> violacoes) {
+    private void validarManifestoEPosicoes(PlanoEstivaBulk plano,
+            List<ViolacaoEstivaDto> violacoes) {
         if (plano.getBobinas().isEmpty()) {
-            violacoes.add(perigo("MANIFESTO_VAZIO", "O plano não possui bobinas manifestadas", plano.getId()));
+            violacoes.add(perigo(
+                    "MANIFESTO_VAZIO", "O plano não possui bobinas manifestadas", plano.getId()));
         }
         if (plano.getPosicoes().isEmpty()) {
-            violacoes.add(perigo("PLANO_SEM_POSICOES", "O plano não possui bobinas posicionadas", plano.getId()));
+            violacoes.add(perigo(
+                    "PLANO_SEM_POSICOES", "O plano não possui bobinas posicionadas", plano.getId()));
         }
 
         Set<Long> bobinasPosicionadas = new HashSet<>();
@@ -286,49 +327,69 @@ public class PlanoEstivaBulkServico {
         for (PosicaoBobina posicao : plano.getPosicoes()) {
             Long referencia = posicao.getId();
             if (posicao.getBobina() == null || posicao.getBobina().getId() == null) {
-                violacoes.add(perigo("BOBINA_POSICAO_AUSENTE", "A posição não possui bobina válida", referencia));
+                violacoes.add(perigo(
+                        "BOBINA_POSICAO_AUSENTE", "A posição não possui bobina válida", referencia));
             } else if (!bobinasPosicionadas.add(posicao.getBobina().getId())) {
-                violacoes.add(perigo("BOBINA_POSICIONADA_DUPLICADA",
-                        "A mesma bobina foi posicionada mais de uma vez", referencia));
+                violacoes.add(perigo(
+                        "BOBINA_POSICIONADA_DUPLICADA",
+                        "A mesma bobina foi posicionada mais de uma vez",
+                        referencia));
             }
             if (posicao.getEspessuraDunnageMm() == null || posicao.getEspessuraDunnageMm() <= 0.0
                     || posicao.getQuantidadeLinhasDunnage() == null
                     || posicao.getQuantidadeLinhasDunnage() < MINIMO_LINHAS_DUNNAGE
-                    || posicao.getLarguraDunnageMm() == null || posicao.getLarguraDunnageMm() <= 0.0
+                    || posicao.getLarguraDunnageMm() == null
+                    || posicao.getLarguraDunnageMm() <= 0.0
                     || posicao.getComprimentoContatoDunnageMm() == null
                     || posicao.getComprimentoContatoDunnageMm() <= 0.0) {
-                violacoes.add(perigo("DUNNAGE_NAO_COMPROVADO",
+                violacoes.add(perigo(
+                        "DUNNAGE_NAO_COMPROVADO",
                         "Espessura, quantidade de linhas, largura e contato real do dunnage são obrigatórios",
                         referencia));
             }
-            if (posicao.getQuantidadeCalcos() == null || posicao.getQuantidadeCalcos() < MINIMO_CALCOS) {
-                violacoes.add(perigo("CALCAMENTO_INSUFICIENTE",
-                        "Cada posição deve comprovar ao menos dois calços", referencia));
+            if (posicao.getQuantidadeCalcos() == null
+                    || posicao.getQuantidadeCalcos() < MINIMO_CALCOS) {
+                violacoes.add(perigo(
+                        "CALCAMENTO_INSUFICIENTE",
+                        "Cada posição deve comprovar ao menos dois calços",
+                        referencia));
             }
             if (posicao.getSequenciaDescarga() == null || posicao.getSequenciaDescarga() <= 0) {
-                violacoes.add(perigo("SEQUENCIA_DESCARGA_AUSENTE",
-                        "A sequência de descarga deve ser positiva", referencia));
+                violacoes.add(perigo(
+                        "SEQUENCIA_DESCARGA_AUSENTE",
+                        "A sequência de descarga deve ser positiva",
+                        referencia));
             } else if (!sequencias.add(posicao.getSequenciaDescarga())) {
-                violacoes.add(perigo("SEQUENCIA_DESCARGA_DUPLICADA",
-                        "A sequência de descarga deve ser única no plano", referencia));
+                violacoes.add(perigo(
+                        "SEQUENCIA_DESCARGA_DUPLICADA",
+                        "A sequência de descarga deve ser única no plano",
+                        referencia));
             }
-            if (vazio(posicao.getReferenciaRegra()) || vazio(posicao.getVersaoEspecificacao())
+            if (vazio(posicao.getReferenciaRegra())
+                    || vazio(posicao.getVersaoEspecificacao())
                     || vazio(posicao.getResponsavelValidacao())) {
-                violacoes.add(perigo("RASTREABILIDADE_POSICAO_AUSENTE",
-                        "Regra, versão da especificação e responsável são obrigatórios por posição", referencia));
+                violacoes.add(perigo(
+                        "RASTREABILIDADE_POSICAO_AUSENTE",
+                        "Regra, versão da especificação e responsável são obrigatórios por posição",
+                        referencia));
             }
         }
 
         for (BobinaManifesto bobina : plano.getBobinas()) {
             if (bobina.getId() != null && !bobinasPosicionadas.contains(bobina.getId())) {
-                violacoes.add(perigo("BOBINA_NAO_POSICIONADA",
-                        "A bobina " + bobina.getCodigo() + " ainda não foi posicionada", bobina.getId()));
+                violacoes.add(perigo(
+                        "BOBINA_NAO_POSICIONADA",
+                        "A bobina " + bobina.getCodigo() + " ainda não foi posicionada",
+                        bobina.getId()));
             }
             if (bobina.getPesoKg() == null || bobina.getPesoKg() <= 0.0
-                    || bobina.getDiametroExternoMm() == null || bobina.getDiametroExternoMm() <= 0.0
-                    || bobina.getLarguraMm() == null || bobina.getLarguraMm() <= 0.0
+                    || bobina.getDiametroExternoMm() == null
+                    || bobina.getDiametroExternoMm() <= 0.0
+                    || bobina.getLarguraMm() == null
+                    || bobina.getLarguraMm() <= 0.0
                     || vazio(bobina.getPortoDescarga())) {
-                violacoes.add(perigo("DADOS_MANIFESTO_INCOMPLETOS",
+                violacoes.add(perigo(
+                        "DADOS_MANIFESTO_INCOMPLETOS",
                         "Peso, diâmetro, largura e porto de descarga reais são obrigatórios para a bobina "
                                 + bobina.getCodigo(),
                         bobina.getId()));
@@ -336,7 +397,8 @@ public class PlanoEstivaBulkServico {
         }
     }
 
-    private void persistirResultadoValidacao(PlanoEstivaBulk plano, ValidacaoPlanoBulkDto validacao) {
+    private void persistirResultadoValidacao(PlanoEstivaBulk plano,
+            ValidacaoPlanoBulkDto validacao) {
         ResultadoValidacaoSeguranca resultado = validacao.isAprovado()
                 ? ResultadoValidacaoSeguranca.APROVADO
                 : ResultadoValidacaoSeguranca.REPROVADO;
@@ -358,6 +420,16 @@ public class PlanoEstivaBulkServico {
         }
     }
 
+    private void aplicarResultadoCalculo(PlanoEstivaBulk plano,
+            EstabilidadeEstrutural estabilidade) {
+        plano.setBmMaxCalculado(estabilidade.getBmMaxKnm());
+        plano.setSfMaxCalculado(estabilidade.getSfMaxKn());
+        plano.setTrimCalculado(estabilidade.getTrimMetros());
+        plano.setListCalculado(estabilidade.getListGraus());
+        plano.setGmCalculado(estabilidade.getGmMetros());
+        plano.setCaladoSaida(estabilidade.getCaladoSaidaMetros());
+    }
+
     private void validarTanktopSeCompleto(PosicaoBobina posicao) {
         boolean completo = posicao.getQuantidadeLinhasDunnage() != null
                 && posicao.getLarguraDunnageMm() != null
@@ -367,8 +439,9 @@ public class PlanoEstivaBulkServico {
         }
         PressaoTanktopDto pressao = tanktopServico.calcularPressao(posicao);
         if (pressao.isExcedido()) {
-            throw new IllegalStateException("Posicionamento bloqueado por tank top: "
-                    + pressao.getViolacoes().get(0).getDescricao());
+            throw new IllegalStateException(
+                    "Posicionamento bloqueado por tank top: "
+                            + pressao.getViolacoes().get(0).getDescricao());
         }
         if (!pressao.getViolacoes().isEmpty()) {
             posicao.setAlertaTanktop(pressao.getViolacoes().get(0).getDescricao());
@@ -404,11 +477,14 @@ public class PlanoEstivaBulkServico {
     private double calcularCapacidadeLashing(PlanoEstivaBulk plano, PosicaoBobina posicao) {
         return plano.getMateriais().stream()
                 .filter(material -> material.getPosicao() == posicao
-                        || material.getPosicao() != null && material.getPosicao().getId() != null
+                        || material.getPosicao() != null
+                        && material.getPosicao().getId() != null
                         && material.getPosicao().getId().equals(posicao.getId()))
                 .filter(material -> material.getCargaTrabalhoSeguraKn() != null
-                        && material.getCargaTrabalhoSeguraKn() > 0.0 && material.getQuantidade() > 0)
-                .mapToDouble(material -> material.getQuantidade() * material.getCargaTrabalhoSeguraKn())
+                        && material.getCargaTrabalhoSeguraKn() > 0.0
+                        && material.getQuantidade() > 0)
+                .mapToDouble(material -> material.getQuantidade()
+                        * material.getCargaTrabalhoSeguraKn())
                 .sum();
     }
 
@@ -424,8 +500,12 @@ public class PlanoEstivaBulkServico {
     }
 
     private void invalidarValidacao(PlanoEstivaBulk plano) {
+        plano.setStatus(StatusPlanoEstiva.RASCUNHO);
+        limparSnapshotAprovacao(plano);
         plano.setResultadoValidacaoSeguranca(ResultadoValidacaoSeguranca.PENDENTE);
         plano.setVersaoValidacaoSeguranca(null);
+        plano.setVersaoEspecificacaoSeguranca(null);
+        plano.setReferenciaRegraSeguranca(null);
         plano.setValidadoEmSeguranca(null);
         plano.setValidadoPorSeguranca(null);
         for (PosicaoBobina posicao : plano.getPosicoes()) {
@@ -438,41 +518,45 @@ public class PlanoEstivaBulkServico {
         }
     }
 
+    private void limparSnapshotAprovacao(PlanoEstivaBulk plano) {
+        plano.setVersaoHidroAprovacao(null);
+        plano.setVersaoEstruturalAprovacao(null);
+        plano.setMemoriaCalculoAprovacao(null);
+        plano.setAprovadoEm(null);
+    }
+
     private BobinaManifesto localizarBobina(PlanoEstivaBulk plano, Long bobinaId) {
         return plano.getBobinas().stream()
                 .filter(bobina -> bobina.getId().equals(bobinaId))
                 .findFirst()
-                .orElseThrow(() -> new EntityNotFoundException("Bobina não encontrada: " + bobinaId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Bobina não encontrada: " + bobinaId));
     }
 
     private PoraoNavio localizarPorao(PlanoEstivaBulk plano, Long poraoId) {
         return plano.getNavio().getPoroes().stream()
                 .filter(porao -> porao.getId().equals(poraoId))
                 .findFirst()
-                .orElseThrow(() -> new EntityNotFoundException("Porão não encontrado: " + poraoId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Porão não encontrado: " + poraoId));
     }
 
     private SetorTanktop localizarSetor(PoraoNavio porao, Long setorId) {
         return porao.getSetores().stream()
                 .filter(setor -> setor.getId().equals(setorId))
                 .findFirst()
-                .orElseThrow(() -> new EntityNotFoundException("Setor não encontrado: " + setorId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Setor não encontrado: " + setorId));
     }
 
     private PlanoEstivaBulk buscarPlano(Long planoId) {
         return planoRepositorio.findById(planoId)
-                .orElseThrow(() -> new EntityNotFoundException("PlanoEstivaBulk não encontrado: " + planoId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "PlanoEstivaBulk não encontrado: " + planoId));
     }
 
-    private void exigirPlanoEditavel(PlanoEstivaBulk plano) {
-        if (plano.getStatus() == StatusPlanoEstiva.APROVADO
-                || plano.getStatus() == StatusPlanoEstiva.EMITIDO) {
-            throw new IllegalStateException("Plano aprovado ou emitido não pode ser alterado por este comando");
-        }
-    }
-
-    private PlanoEstivaBulkDto toDto(PlanoEstivaBulk plano, EstabilidadeEstrutural estabilidade,
-            ValidacaoPlanoBulkDto validacao) {
+    private PlanoEstivaBulkDto toDto(PlanoEstivaBulk plano,
+            EstabilidadeEstrutural estabilidade, ValidacaoPlanoBulkDto validacao) {
         PlanoEstivaBulkDto dto = new PlanoEstivaBulkDto();
         dto.setId(plano.getId());
         if (plano.getNavio() != null) {
@@ -485,7 +569,9 @@ public class PlanoEstivaBulkServico {
         dto.setStatus(plano.getStatus() != null ? plano.getStatus().name() : null);
         dto.setTotalBobinas(plano.getBobinas().size());
         double pesoTotal = plano.getBobinas().stream()
-                .mapToDouble(bobina -> bobina.getPesoKg() != null ? bobina.getPesoKg() / 1000.0 : 0.0)
+                .mapToDouble(bobina -> bobina.getPesoKg() != null
+                        ? bobina.getPesoKg() / 1000.0
+                        : 0.0)
                 .sum();
         dto.setPesoTotalToneladas(Math.round(pesoTotal * 10.0) / 10.0);
         dto.setPosicoes(plano.getPosicoes().stream()
@@ -523,7 +609,9 @@ public class PlanoEstivaBulkServico {
         dto.setComprimentoContatoDunnageMm(posicao.getComprimentoContatoDunnageMm());
         dto.setQuantidadeCalcos(posicao.getQuantidadeCalcos());
         dto.setEspacamentoFileirasMm(posicao.getEspacamentoFileirasMm());
-        dto.setTipoLashing(posicao.getTipoLashing() != null ? posicao.getTipoLashing().name() : null);
+        dto.setTipoLashing(posicao.getTipoLashing() != null
+                ? posicao.getTipoLashing().name()
+                : null);
         dto.setForcaRequeridaLashingKn(posicao.getForcaRequeridaLashingKn());
         dto.setCapacidadeLashingDisponivelKn(posicao.getCapacidadeLashingDisponivelKn());
         dto.setSequenciaDescarga(posicao.getSequenciaDescarga());
@@ -531,11 +619,13 @@ public class PlanoEstivaBulkServico {
         dto.setVersaoEspecificacao(posicao.getVersaoEspecificacao());
         dto.setResponsavelValidacao(posicao.getResponsavelValidacao());
         dto.setResultadoValidacao(posicao.getResultadoValidacao() != null
-                ? posicao.getResultadoValidacao().name() : null);
+                ? posicao.getResultadoValidacao().name()
+                : null);
         dto.setAlertaTanktop(posicao.getAlertaTanktop());
         dto.setMateriaisLashing(plano.getMateriais().stream()
                 .filter(material -> material.getPosicao() == posicao
-                        || material.getPosicao() != null && material.getPosicao().getId() != null
+                        || material.getPosicao() != null
+                        && material.getPosicao().getId() != null
                         && material.getPosicao().getId().equals(posicao.getId()))
                 .map(this::toMaterialDto)
                 .toList());
@@ -558,25 +648,29 @@ public class PlanoEstivaBulkServico {
         dto.setVersaoEspecificacao(material.getVersaoEspecificacao());
         dto.setResponsavelValidacao(material.getResponsavelValidacao());
         dto.setResultadoValidacao(material.getResultadoValidacao() != null
-                ? material.getResultadoValidacao().name() : null);
+                ? material.getResultadoValidacao().name()
+                : null);
         dto.setDescricao(material.getDescricao());
         return dto;
     }
 
-    private String valorUnico(List<PosicaoBobina> posicoes, Function<PosicaoBobina, String> extrator,
-            String tipoViolacao, String descricao, Long referenciaId, List<ViolacaoEstivaDto> violacoes) {
+    private String valorUnico(List<PosicaoBobina> posicoes,
+            Function<PosicaoBobina, String> extrator, String tipoViolacao, String descricao,
+            Long referenciaId, List<ViolacaoEstivaDto> violacoes) {
         Set<String> valores = posicoes.stream()
                 .map(extrator)
                 .filter(valor -> valor != null && !valor.isBlank())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        if (valores.size() != 1 || valores.size() < posicoes.size()
+        if (valores.size() != 1
+                || valores.size() < posicoes.size()
                 && posicoes.stream().anyMatch(posicao -> vazio(extrator.apply(posicao)))) {
             violacoes.add(perigo(tipoViolacao, descricao, referenciaId));
         }
         return valores.size() == 1 ? valores.iterator().next() : null;
     }
 
-    private void adicionarTodas(List<ViolacaoEstivaDto> destino, List<ViolacaoEstivaDto> origem) {
+    private void adicionarTodas(List<ViolacaoEstivaDto> destino,
+            List<ViolacaoEstivaDto> origem) {
         if (origem != null) {
             destino.addAll(origem);
         }

@@ -1,24 +1,10 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-17 após implementação do requisito `ARCH20`.
+Status: atualizado em 2026-07-17 após implementação do requisito `BUS20`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
-## 1. Cálculo, aprovação e segurança operacional
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| BUS20 | Impedir aprovação com cálculos hidrostáticos ou estruturais sintéticos. | Planos operacionais usam dados e limites versionados do navio para calado, trim, banda, GM, força cortante e momento fletor; ausência de dados obrigatórios bloqueia a aprovação ou identifica o resultado como simulação não operacional. | ⬜ Pendente |
-
-### BUS20 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/servico/EstabilidadeNavioServico.java` | `calcular()` | Usa limites globais, altura fixa e coordenadas derivadas da malha; não calcula calado, força cortante ou momento fletor. | Usar dados hidrostáticos e de resistência longitudinal do navio, condição de pesos/lastro e limites da viagem. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/servico/EstabilidadeEstruturalServico.java` | `calcular()` | Aplica 20 seções, distribuições uniformes, fatores e dimensões padrão; retorna trim `0`. | Substituir aproximações por curvas, limites e distribuição real versionados; falhar fechado quando faltarem entradas. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/servico/VesselPlannerServico.java` e `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/estivagembulk/servico/PlanoEstivaBulkServico.java` | `validarEAprovar()` | A aprovação depende dos cálculos simplificados e o fluxo bulk aceita GM padrão `1,5`. | Exigir validações completas e registrar versão das entradas, memória de cálculo e resultado da aprovação. |
-
-## 2. Autenticação e autorização
+## 1. Autenticação e autorização
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
@@ -32,7 +18,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueueOperacaoControlador.java` | `@PreAuthorize` da classe; `despachar()`, `suspender()`, `retomar()`, `bloquear()`, `concluir()`, `resetar()`, `cancelar()`, `atualizarPrioridades()` | A mesma regra global permite que perfis de Gate e integração de Navio executem dispatch, conclusão, bloqueio, reset, cancelamento e alteração de prioridades. | Definir autorização por método conforme a responsabilidade operacional e falhar com `403` antes de executar o serviço ou publicar eventos quando o perfil não for autorizado. |
 | `frontend/cloudport/src/pages/yard/YardWorkPages.jsx` | `canOperate` | A interface replica a regra ampla e exibe todos os comandos para `OPERADOR_GATE` e `SERVICE_NAVIO`, sem distinguir leitura, planejamento, execução e administração. | Derivar permissões por comando a partir dos perfis autorizados pelo backend e ocultar ou desabilitar apenas as ações não permitidas, sem usar a interface como única proteção. |
 
-## 3. Processamento assíncrono
+## 2. Processamento assíncrono
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

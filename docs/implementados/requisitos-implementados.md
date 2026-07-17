@@ -493,10 +493,10 @@ GET   /api/v1/visibilidade/conteiners/buscar
 5. Cobrir criação condicional, delegação ao serviço e concentração das anotações de agendamento por testes unitários.
 6. Retirar ASYNC40 das pendências técnicas após registrar a implementação neste arquivo.
 
-## INT20 — atributos operacionais e de segurança do BAPLIE implementado
+## INT20 — atributos operacionais e de segurança do BAPLIE implementados
 
-1. Validar os perfis BAPLIE D.95B/SMDG e D.13B/SMDG31, rejeitando identidade do navio, viagem e dados obrigatórios ausentes sem criar identificadores sintéticos.
-2. Normalizar pesos recebidos em quilogramas e manter peso bruto e VGM em campos distintos, com unidade original, origem e status do VGM.
+1. Validar obrigatoriamente o código real do navio, viagem e ao menos uma operação suportada antes de aceitar o BAPLIE.
+2. Normalizar pesos de quilogramas e toneladas e rejeitar unidades não suportadas, sem criar identificadores sintéticos.
 3. Persistir posição, operação, cheio/vazio, parâmetros reefer, classe IMO, número ONU, grupo de embalagem, segregação, dimensões OOG e instruções de manuseio.
 4. Preservar os segmentos originais associados a cada equipamento para auditoria e evolução do mapeamento.
 5. Propagar os atributos estruturados ao Vessel Planner e usar o VGM como peso operacional quando disponível.
@@ -505,3 +505,15 @@ GET   /api/v1/visibilidade/conteiners/buscar
 8. Manter a atualização VERMAS separada do peso bruto do contêiner.
 9. Criar migração aditiva para `bay_plan_container` e `slot_navio`, com índices para cargas reefer, perigosas e OOG.
 10. Cobrir os perfis suportados, unidades, VGM, reefer, IMO/ONU, segregação, OOG e rejeições obrigatórias por testes automatizados.
+
+## BUS20 — estabilidade operacional versionada implementada
+
+1. Remover os valores hidrostáticos sintéticos dos planos e o GM padrão do navio graneleiro.
+2. Exigir versões identificáveis dos dados hidrostáticos e de resistência longitudinal antes de classificar o cálculo como operacional.
+3. Calcular peso total, LCG, TCG, VCG, GM, calado, trim e banda a partir da condição real de peso leve, lastro e carga planejada.
+4. Calcular força cortante e momento fletor por seções usando distribuições e limites versionados do navio.
+5. Usar coordenadas físicas persistidas dos slots e das bobinas, sem derivar centro de gravidade da malha artificial.
+6. Marcar como simulação não operacional e bloquear aprovação quando qualquer entrada obrigatória estiver ausente ou inválida.
+7. Persistir versões de entrada, memória de cálculo, resultados e instante da aprovação.
+8. Invalidar a aprovação anterior sempre que o plano ou a distribuição de carga for alterado.
+9. Cobrir cálculo operacional, dados incompletos e GM insuficiente por testes unitários.

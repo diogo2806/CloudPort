@@ -19,7 +19,11 @@ import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import javax.persistence.Version;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "plano_estiva_bulk")
 public class PlanoEstivaBulk {
@@ -75,8 +79,23 @@ public class PlanoEstivaBulk {
     @Column(name = "list_calculado")
     private Double listCalculado;
 
+    @Column(name = "gm_calculado")
+    private Double gmCalculado;
+
     @Column(name = "calado_saida")
     private Double caladoSaida;
+
+    @Column(name = "versao_hidro_aprovacao", length = 80)
+    private String versaoHidroAprovacao;
+
+    @Column(name = "versao_estrutural_aprovacao", length = 80)
+    private String versaoEstruturalAprovacao;
+
+    @Column(name = "memoria_calculo_aprovacao", columnDefinition = "TEXT")
+    private String memoriaCalculoAprovacao;
+
+    @Column(name = "aprovado_em")
+    private LocalDateTime aprovadoEm;
 
     @Column(name = "versao_validacao_seguranca")
     private Long versaoValidacaoSeguranca;
@@ -110,7 +129,6 @@ public class PlanoEstivaBulk {
     private List<MaterialLashingBulk> materiais = new ArrayList<>();
 
     private LocalDateTime criadoEm;
-
     private LocalDateTime atualizadoEm;
 
     public PlanoEstivaBulk() {
@@ -125,237 +143,5 @@ public class PlanoEstivaBulk {
             criadoEm = now;
         }
         atualizadoEm = now;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public NavioGranel getNavio() {
-        return navio;
-    }
-
-    public void setNavio(NavioGranel navio) {
-        this.navio = navio;
-    }
-
-    public Long getNavioCadastroId() {
-        return navioCadastroId;
-    }
-
-    public void setNavioCadastroId(Long navioCadastroId) {
-        this.navioCadastroId = navioCadastroId;
-    }
-
-    public Long getVisitaNavioId() {
-        return visitaNavioId;
-    }
-
-    public void setVisitaNavioId(Long visitaNavioId) {
-        this.visitaNavioId = visitaNavioId;
-    }
-
-    public String getCodigoVisita() {
-        return codigoVisita;
-    }
-
-    public void setCodigoVisita(String codigoVisita) {
-        this.codigoVisita = codigoVisita;
-    }
-
-    public Long getVersaoPerfilNavio() {
-        return versaoPerfilNavio;
-    }
-
-    public void setVersaoPerfilNavio(Long versaoPerfilNavio) {
-        this.versaoPerfilNavio = versaoPerfilNavio;
-    }
-
-    public Long getVersaoNavioCanonico() {
-        return versaoNavioCanonico;
-    }
-
-    public void setVersaoNavioCanonico(Long versaoNavioCanonico) {
-        this.versaoNavioCanonico = versaoNavioCanonico;
-    }
-
-    public Long getVersaoVisita() {
-        return versaoVisita;
-    }
-
-    public void setVersaoVisita(Long versaoVisita) {
-        this.versaoVisita = versaoVisita;
-    }
-
-    public String getCodigoViagem() {
-        return codigoViagem;
-    }
-
-    public void setCodigoViagem(String codigoViagem) {
-        this.codigoViagem = codigoViagem;
-    }
-
-    public String getPortoCarga() {
-        return portoCarga;
-    }
-
-    public void setPortoCarga(String portoCarga) {
-        this.portoCarga = portoCarga;
-    }
-
-    public String getPortoDescarga() {
-        return portoDescarga;
-    }
-
-    public void setPortoDescarga(String portoDescarga) {
-        this.portoDescarga = portoDescarga;
-    }
-
-    public StatusPlanoEstiva getStatus() {
-        return status;
-    }
-
-    public void setStatus(StatusPlanoEstiva status) {
-        this.status = status;
-    }
-
-    public Double getBmMaxCalculado() {
-        return bmMaxCalculado;
-    }
-
-    public void setBmMaxCalculado(Double bmMaxCalculado) {
-        this.bmMaxCalculado = bmMaxCalculado;
-    }
-
-    public Double getSfMaxCalculado() {
-        return sfMaxCalculado;
-    }
-
-    public void setSfMaxCalculado(Double sfMaxCalculado) {
-        this.sfMaxCalculado = sfMaxCalculado;
-    }
-
-    public Double getTrimCalculado() {
-        return trimCalculado;
-    }
-
-    public void setTrimCalculado(Double trimCalculado) {
-        this.trimCalculado = trimCalculado;
-    }
-
-    public Double getListCalculado() {
-        return listCalculado;
-    }
-
-    public void setListCalculado(Double listCalculado) {
-        this.listCalculado = listCalculado;
-    }
-
-    public Double getCaladoSaida() {
-        return caladoSaida;
-    }
-
-    public void setCaladoSaida(Double caladoSaida) {
-        this.caladoSaida = caladoSaida;
-    }
-
-    public Long getVersaoValidacaoSeguranca() {
-        return versaoValidacaoSeguranca;
-    }
-
-    public void setVersaoValidacaoSeguranca(Long versaoValidacaoSeguranca) {
-        this.versaoValidacaoSeguranca = versaoValidacaoSeguranca;
-    }
-
-    public String getVersaoEspecificacaoSeguranca() {
-        return versaoEspecificacaoSeguranca;
-    }
-
-    public void setVersaoEspecificacaoSeguranca(String versaoEspecificacaoSeguranca) {
-        this.versaoEspecificacaoSeguranca = versaoEspecificacaoSeguranca;
-    }
-
-    public String getReferenciaRegraSeguranca() {
-        return referenciaRegraSeguranca;
-    }
-
-    public void setReferenciaRegraSeguranca(String referenciaRegraSeguranca) {
-        this.referenciaRegraSeguranca = referenciaRegraSeguranca;
-    }
-
-    public String getValidadoPorSeguranca() {
-        return validadoPorSeguranca;
-    }
-
-    public void setValidadoPorSeguranca(String validadoPorSeguranca) {
-        this.validadoPorSeguranca = validadoPorSeguranca;
-    }
-
-    public LocalDateTime getValidadoEmSeguranca() {
-        return validadoEmSeguranca;
-    }
-
-    public void setValidadoEmSeguranca(LocalDateTime validadoEmSeguranca) {
-        this.validadoEmSeguranca = validadoEmSeguranca;
-    }
-
-    public ResultadoValidacaoSeguranca getResultadoValidacaoSeguranca() {
-        return resultadoValidacaoSeguranca;
-    }
-
-    public void setResultadoValidacaoSeguranca(ResultadoValidacaoSeguranca resultadoValidacaoSeguranca) {
-        this.resultadoValidacaoSeguranca = resultadoValidacaoSeguranca;
-    }
-
-    public Long getVersao() {
-        return versao;
-    }
-
-    public void setVersao(Long versao) {
-        this.versao = versao;
-    }
-
-    public List<BobinaManifesto> getBobinas() {
-        return bobinas;
-    }
-
-    public void setBobinas(List<BobinaManifesto> bobinas) {
-        this.bobinas = bobinas;
-    }
-
-    public List<PosicaoBobina> getPosicoes() {
-        return posicoes;
-    }
-
-    public void setPosicoes(List<PosicaoBobina> posicoes) {
-        this.posicoes = posicoes;
-    }
-
-    public List<MaterialLashingBulk> getMateriais() {
-        return materiais;
-    }
-
-    public void setMateriais(List<MaterialLashingBulk> materiais) {
-        this.materiais = materiais;
-    }
-
-    public LocalDateTime getCriadoEm() {
-        return criadoEm;
-    }
-
-    public void setCriadoEm(LocalDateTime criadoEm) {
-        this.criadoEm = criadoEm;
-    }
-
-    public LocalDateTime getAtualizadoEm() {
-        return atualizadoEm;
-    }
-
-    public void setAtualizadoEm(LocalDateTime atualizadoEm) {
-        this.atualizadoEm = atualizadoEm;
     }
 }

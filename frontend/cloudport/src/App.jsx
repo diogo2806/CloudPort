@@ -118,7 +118,7 @@ function LoginPage({ onAuthenticated, navigate, returnPath }) {
   return <main className="login-shell">
     <section className="login-visual" aria-hidden="true"><div><span className="brand-mark">CP</span><h1>Operação portuária em uma única visão.</h1><p>Gate, ferrovia, pátio, navio e embarque conectados pelo CloudPort.</p></div></section>
     <section className="login-panel"><form className="login-card" onSubmit={submit}>
-      <div className="login-brand"><span className="brand-mark small">CP</span><div><strong>CloudPort</strong><small>Portal operacional</small></div></div>
+      <div className="login-brand"><span className="brand-mark small">CP</span><div><strong>CloudPort</strong><small>Portal operacional React</small></div></div>
       <div><span className="eyebrow">Acesso seguro</span><h2>Entrar</h2><p>Use uma conta autorizada para acessar os módulos.</p></div>
       <label className="field"><span>Login</span><input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" maxLength={120} required autoFocus /></label>
       <label className="field"><span>Senha</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>

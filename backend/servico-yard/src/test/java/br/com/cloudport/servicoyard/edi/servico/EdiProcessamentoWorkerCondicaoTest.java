@@ -32,8 +32,8 @@ class EdiProcessamentoWorkerCondicaoTest {
     }
 
     @Test
-    void deveCriarWorkerPorPadraoParaPreservarExecucaoStandalone() {
+    void naoDeveCriarWorkerQuandoPropriedadeNaoFoiInformada() {
         contextRunner.run(contexto -> assertThat(contexto)
-                .hasSingleBean(EdiProcessamentoWorker.class));
+                .doesNotHaveBean(EdiProcessamentoWorker.class));
     }
 }

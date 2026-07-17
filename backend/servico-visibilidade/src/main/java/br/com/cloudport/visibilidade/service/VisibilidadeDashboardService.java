@@ -43,6 +43,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 @Service
@@ -222,7 +224,7 @@ public class VisibilidadeDashboardService {
         alerta.setAcaoSugerida(acaoAnterior + (acaoAnterior.isEmpty() ? "" : " | ")
                 + "Resolvido: " + motivo.trim());
         Alerta salvo = alertaRepository.save(alerta);
-        publicarDashboard();
+        publicarDashboardAposCommit();
         return mapearAlerta(salvo);
     }
 
@@ -263,11 +265,28 @@ public class VisibilidadeDashboardService {
         messagingTemplate.convertAndSend(TOPICO_DASHBOARD, atualizacao);
     }
 
+    public void publicarDashboardAposCommit() {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            publicarDashboard();
+            return;
+        }
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            throw new IllegalStateException(
+                    "Nao foi possivel registrar a publicacao do dashboard apos o commit da transacao.");
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                publicarDashboard();
+            }
+        });
+    }
+
     @Transactional
     public void detectarAlertasAutomaticos() {
         alertasService.detectarAtrasos();
         alertasService.detectarGargalos();
-        publicarDashboard();
+        publicarDashboardAposCommit();
     }
 
     private StatusNavioDTO mapearNavioResumo(StatusNavio navio) {

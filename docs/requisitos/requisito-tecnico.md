@@ -78,7 +78,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
 | ASYNC50 | Subordinar o reshuffling noturno ao controle canônico de jobs. | `executarReshuffflingNoturno()` só é registrado com `cloudport.runtime.jobs-enabled=true`; deployments de rollback não analisam candidatos nem criam ordens, enquanto chamadas explícitas permanecem disponíveis. | ⬜ Pendente |
-| ASYNC60 | Subordinar a reconciliação noturna de barcode ao controle canônico de jobs e impedir execução concorrente. | O cron de reconciliação só é registrado quando `cloudport.runtime.jobs-enabled=true`; uma única instância reivindica cada ciclo e cada alerta pendente antes do envio, sem duplicar reconciliações ou notificações durante coexistência, restart ou retry. | ⬜ Pendente |
 
 ### ASYNC50 — arquivos e métodos
 
@@ -87,21 +86,12 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/otimizacao/PredictiveReshuffflingServico.java` | `executarReshuffflingNoturno()` | O `@Scheduled` está no serviço e não consulta `cloudport.runtime.jobs-enabled`; runtime e standalone podem executar o mesmo cron. | Criar `novo método sugerido: PredictiveReshuffflingJob.executar()`, condicionado pela propriedade canônica, e manter o caso de uso sem anotação. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/ServicoYardApplication.java` e `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/CloudPortRuntimeApplication.java` | `@EnableScheduling` e component scan | Ambos carregam scheduling e o serviço do Yard. | Garantir que somente a instância com jobs habilitados registre o cron, sem criar flag concorrente. |
 
-### ASYNC60 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/scheduler/ReconciliacaoBarcodeScheduler.java` | classe, `executarReconciliacaoNocturna()` | O componente possui `@Scheduled` sem `@ConditionalOnProperty`; captura qualquer exceção e conclui o disparo, enquanto runtime e serviço standalone podem registrar o mesmo cron. | Condicionar o job a `cloudport.runtime.jobs-enabled=true`, separar o caso de uso do agendamento e propagar falha do ciclo para permitir recuperação coerente. |
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/scheduler/ReconciliacaoBarcodeScheduler.java` | `enviarAlertas()` e `enviarAlerta()` | A consulta `findNaoResolvidosSemAlerta()` não reivindica os registros; duas instâncias podem carregar e enviar o mesmo alerta antes de qualquer uma persistir a confirmação. | Criar `novo método sugerido: reivindicarAlertasPendentes()` com lease ou transição atômica e identidade idempotente por ocorrência/canal; somente a instância proprietária pode enviar e confirmar. |
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/ServicoGateApplication.java` e `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/CloudPortRuntimeApplication.java` | `@EnableScheduling` e component scan | Ambos habilitam scheduling e o runtime carrega `br.com.cloudport.servicogate`, permitindo duplicidade durante coexistência ou rollback. | Manter scheduling habilitado, mas registrar o job apenas na instância canônica e usar coordenação persistente quando houver mais de uma réplica habilitada. |
-
 ## 5. Interface operacional React
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
 | UI40 | Implementar o planejamento operacional React do navio siderúrgico. | A rota de steel coils permite selecionar navio e visita, criar ou carregar plano, manter manifesto de bobinas, posicionar carga por porão, consultar tank top, empilhamento, estabilidade e securing, validar e abrir relatório; toda confirmação vem do backend e o estado é recarregado após persistência. | ⬜ Pendente |
 | UI50 | Transformar o módulo Pátio em telas React operacionais, e não apenas consultas genéricas. | Mapa, posições, lista de trabalho, movimentações, recursos, indicadores e automação possuem telas próprias; o operador navega pela estrutura real do pátio, consulta detalhes e executa somente comandos autorizados, com motivo quando exigido e sucesso apenas após confirmação persistida. | ⬜ Pendente |
-| UI60 | Implementar o Vessel Planner React para navio de contêiner. | A rota de planejamento permite selecionar escala e Bay Plan, acompanhar processamento BAPLIE, visualizar bays, rows, tiers e restrições, tratar contêineres não alocados, executar alocação manual ou autoestivagem, consultar estabilidade, restow e sequenciamento e validar o plano usando exclusivamente resultados do backend. | ⬜ Pendente |
 
 ### UI40 — arquivos e métodos
 
@@ -120,12 +110,3 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `frontend/cloudport/src/pages/OperationalPages.jsx` | `YardMapPage()` | O mapa atual exibe duas tabelas de contêineres e equipamentos; não representa blocos ou zonas, linhas, colunas, camadas, ocupação, reserva, bloqueio e interdição como estrutura navegável. | Implementar visualização operacional baseada nas posições reais, permitindo abrir pilha, unidade, equipamento, restrições e reservas sem inventar coordenadas. |
 | `frontend/cloudport/src/api.js` | `obterMapaPatio()`, `listarPosicoesPatio()`, `listarMovimentacoesPatio()`, `listarConteineresPatio()`, `listarRecursosPatio()` | O portal principal expõe somente leituras simples do Yard e não possui contratos para work queues, work instructions, reservas, placement, remanejamento ou reshuffling. | Adicionar métodos para consultas e comandos do Pátio, enviar motivo e identidade operacional quando exigidos e recarregar o estado persistido depois de cada comando. |
 | `frontend/servico-navio-siderurgico/src/Ui20ControlRoom.jsx` e `frontend/cloudport/src/pages/OperationalPages.jsx` | ações do Control Room e módulo Pátio | Parte das operações de Yard existe apenas dentro do Control Room incorporado por `iframe`, enquanto as rotas próprias do Pátio permanecem somente leitura. | Reutilizar contratos e componentes compartilháveis ou expor fluxos equivalentes nas páginas do Pátio, sem duplicar regra e sem manter comportamentos divergentes. |
-
-### UI60 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/pages/OperationalPages.jsx` | `ShippingPage()` | A tela de planejamento mostra apenas uma tabela de escalas e não permite selecionar Bay Plan, abrir plano, visualizar slots ou executar qualquer ação de estiva. | Criar `novo componente sugerido: ContainerVesselPlannerPage` com contexto de escala, visita, Bay Plan e plano persistido. |
-| `frontend/cloudport/src/api.js` | `listarEscalasEmbarque()` e objeto `api` | Não existem chamadas React para EDI/BAPLIE nem para `/api/vessel-planner`; o frontend não acompanha importação, plano, alocação, estabilidade, restow ou aprovação. | Adicionar métodos para processamentos EDI, criação e consulta do plano, alocação de slot, autoestivagem, estabilidade, restow, sequenciamento de guindastes e validação. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/controlador/VesselPlannerControlador.java` | `/api/vessel-planner/planos/**` | O backend já expõe criação, consulta, alocação, autoestivagem, estabilidade, restow, sequenciamento e validação, mas não há consumidor no portal React. | Estabilizar DTOs necessários à representação de bays e slots e conectar cada comando a uma ação explícita da tela, respeitando status e autorização. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/controlador/EdiIntegracaoControlador.java` e `frontend/cloudport/src/pages/OperationalPages.jsx` | recepção e auditoria BAPLIE | O processamento EDI existe no backend, porém a tela de embarque não permite enviar arquivo, acompanhar `X-EDI-Processing-Id`, consultar rejeição ou selecionar o Bay Plan produzido. | Integrar upload, acompanhamento, detalhe de erro e reprocessamento autorizado antes da criação do plano; nenhuma falha pode ser convertida em lista vazia ou sucesso visual. |

@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -23,10 +24,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthenticationController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -78,6 +82,26 @@ class AuthenticationControllerTest {
     }
 
     @Test
+    void login_encaminhaSenhaComoSequenciaOpaca() throws Exception {
+        String senhaRecebida = "  Ⅳ<senha>\t ";
+        Usuario usuario = new Usuario("test", "hash", Collections.emptySet());
+        Authentication autenticacao = new UsernamePasswordAuthenticationToken(usuario, null, Collections.emptyList());
+        when(authenticationManager.authenticate(any())).thenReturn(autenticacao);
+        when(tokenService.generateToken(usuario)).thenReturn("token");
+
+        AuthenticationDTO dto = new AuthenticationDTO("test", senhaRecebida);
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Authentication> captor = ArgumentCaptor.forClass(Authentication.class);
+        verify(authenticationManager).authenticate(captor.capture());
+        assertEquals(senhaRecebida, captor.getValue().getCredentials());
+    }
+
+    @Test
     void login_credenciaisInvalidas() throws Exception {
         when(authenticationManager.authenticate(any()))
                 .thenThrow(new BadCredentialsException("bad creds"));
@@ -104,7 +128,7 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void login_camposCurtos_retornaErrosDeValidacao() throws Exception {
+    void login_loginCurto_retornaErroSemAplicarPoliticaDeNovaSenha() throws Exception {
         AuthenticationDTO dto = new AuthenticationDTO("ab", "123");
 
         mockMvc.perform(post("/auth/login")
@@ -113,7 +137,18 @@ class AuthenticationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensagem").value("Erro de validação dos dados enviados."))
                 .andExpect(jsonPath("$.erros.login").value("O login deve ter entre 3 e 100 caracteres."))
-                .andExpect(jsonPath("$.erros.password").value("A senha deve ter pelo menos 6 caracteres."));
+                .andExpect(jsonPath("$.erros.password").doesNotExist());
+    }
+
+    @Test
+    void login_senhaAcimaDoLimiteDeTransporte_retornaErro() throws Exception {
+        AuthenticationDTO dto = new AuthenticationDTO("test", "a".repeat(256));
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.erros.password").value("A senha deve ter no máximo 255 caracteres."));
     }
 
     @Test

@@ -55,19 +55,18 @@ public class AuthenticationController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO dados){
         String loginSanitizado;
-        String senhaSanitizada;
         try {
             loginSanitizado = SanitizadorEntrada.sanitizarLogin(dados.getLogin());
-            senhaSanitizada = SanitizadorEntrada.sanitizarSenha(dados.getPassword());
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
 
-        var usernamePassword = new UsernamePasswordAuthenticationToken(loginSanitizado, senhaSanitizada);
-        var autenticacao = authenticate(usernamePassword);
+        UsernamePasswordAuthenticationToken usernamePassword =
+                new UsernamePasswordAuthenticationToken(loginSanitizado, dados.getPassword());
+        org.springframework.security.core.Authentication autenticacao = authenticate(usernamePassword);
 
         Usuario usuario = (Usuario) autenticacao.getPrincipal();
-        var token = tokenService.generateToken(usuario);
+        String token = tokenService.generateToken(usuario);
 
         Set<String> papeis = java.util.Optional.ofNullable(usuario.getPapeis()).orElse(java.util.Collections.emptySet()).stream()
                                  .map(UsuarioPapel::getPapel)

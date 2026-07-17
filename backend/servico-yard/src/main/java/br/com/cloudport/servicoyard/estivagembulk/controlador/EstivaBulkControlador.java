@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.estivagembulk.controlador;
 
 import br.com.cloudport.servicoyard.estivagembulk.dto.AnaliseEmpilhamentoDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.CriarPlanoEstivaBulkRequisicaoDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.EstabilidadeEstrutural;
 import br.com.cloudport.servicoyard.estivagembulk.dto.NavioGranelDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.PlanoEstivaBulkDto;
@@ -12,12 +13,13 @@ import br.com.cloudport.servicoyard.estivagembulk.dto.ValidacaoPlanoBulkDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
 import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
-import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
+import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkIdentidadeServico;
 import br.com.cloudport.servicoyard.estivagembulk.servico.ValidacaoPlanoBulkException;
 import br.com.cloudport.servicoyard.seguranca.PoliticaAutorizacaoEstiva;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityNotFoundException;
+import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,17 +34,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/estivagem-bulk")
 public class EstivaBulkControlador {
 
-    private final PlanoEstivaBulkServico servico;
+    private final PlanoEstivaBulkIdentidadeServico servico;
     private final NavioGranelRepositorio navioRepositorio;
 
-    public EstivaBulkControlador(PlanoEstivaBulkServico servico, NavioGranelRepositorio navioRepositorio) {
+    public EstivaBulkControlador(
+            PlanoEstivaBulkIdentidadeServico servico,
+            NavioGranelRepositorio navioRepositorio) {
         this.servico = servico;
         this.navioRepositorio = navioRepositorio;
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/navios")
-    public ResponseEntity<NavioGranel> registrarNavio(@RequestBody NavioGranelDto dto) {
+    public ResponseEntity<NavioGranel> registrarNavio(@Valid @RequestBody NavioGranelDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(servico.registrarNavio(dto));
     }
 
@@ -60,14 +64,15 @@ public class EstivaBulkControlador {
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos")
-    public ResponseEntity<?> criarPlano(@RequestBody Map<String, Object> body) {
-        Long navioId = Long.valueOf(body.get("navioId").toString());
-        String codigoViagem = (String) body.get("codigoViagem");
-        String portoCarga = (String) body.get("portoCarga");
-        String portoDescarga = (String) body.get("portoDescarga");
+    public ResponseEntity<?> criarPlano(@Valid @RequestBody CriarPlanoEstivaBulkRequisicaoDto requisicao) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(servico.criarPlano(navioId, codigoViagem, portoCarga, portoDescarga));
+                    .body(servico.criarPlano(
+                            requisicao.getNavioId(),
+                            requisicao.getVisitaNavioId(),
+                            requisicao.getCodigoViagem(),
+                            requisicao.getPortoCarga(),
+                            requisicao.getPortoDescarga()));
         } catch (EntityNotFoundException exception) {
             return ResponseEntity.notFound().build();
         }

@@ -4,6 +4,8 @@ import br.com.cloudport.servicoyard.edi.modelo.BayPlan;
 import br.com.cloudport.servicoyard.edi.modelo.BayPlanContainer;
 import br.com.cloudport.servicoyard.edi.modelo.EstadoCargaContainer;
 import br.com.cloudport.servicoyard.edi.repositorio.BayPlanRepositorio;
+import br.com.cloudport.servicoyard.integracao.navio.ContextoPlanejamentoNavio;
+import br.com.cloudport.servicoyard.integracao.navio.IdentidadePlanejamentoNavioServico;
 import br.com.cloudport.servicoyard.vesselplanner.dto.AlocacaoSlotRequisicaoDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.AlocacaoSlotRespostaDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.EstabilidadeDto;
@@ -39,6 +41,7 @@ public class VesselPlannerServico {
     private final AutoStowageServico autoStowageServico;
     private final GeometriaNavioServico geometriaServico;
     private final VesselPlannerEventoPublicador publicador;
+    private final IdentidadePlanejamentoNavioServico identidadeServico;
 
     public VesselPlannerServico(EstivagemPlanRepositorio planRepositorio,
                                   SlotNavioRepositorio slotRepositorio,
@@ -48,7 +51,8 @@ public class VesselPlannerServico {
                                   SequenciamentoGuindasteServico sequenciamentoServico,
                                   AutoStowageServico autoStowageServico,
                                   GeometriaNavioServico geometriaServico,
-                                  VesselPlannerEventoPublicador publicador) {
+                                  VesselPlannerEventoPublicador publicador,
+                                  IdentidadePlanejamentoNavioServico identidadeServico) {
         this.planRepositorio = planRepositorio;
         this.slotRepositorio = slotRepositorio;
         this.bayPlanRepositorio = bayPlanRepositorio;
@@ -58,18 +62,29 @@ public class VesselPlannerServico {
         this.autoStowageServico = autoStowageServico;
         this.geometriaServico = geometriaServico;
         this.publicador = publicador;
+        this.identidadeServico = identidadeServico;
     }
 
     @Transactional
-    public EstivagemPlanDto criarPlanoDeBayPlan(Long bayPlanId) {
+    public EstivagemPlanDto criarPlanoDeBayPlan(Long bayPlanId, Long visitaNavioId) {
         BayPlan bayPlan = bayPlanRepositorio.findById(bayPlanId)
                 .orElseThrow(() -> new EntityNotFoundException("BayPlan não encontrado: " + bayPlanId));
-        PerfilGeometriaNavio perfil = geometriaServico.carregarPerfilAprovado(bayPlan.getCodigoNavio());
+        ContextoPlanejamentoNavio contexto = identidadeServico.resolverVisita(
+                visitaNavioId,
+                null,
+                bayPlan.getCodigoNavio(),
+                bayPlan.getCodigoViagem());
+        PerfilGeometriaNavio perfil = geometriaServico.carregarPerfilAprovado(contexto.navio().codigoImo());
 
         EstivagemPlan plan = new EstivagemPlan();
         plan.setBayPlanId(bayPlanId);
-        plan.setCodigoNavio(bayPlan.getCodigoNavio());
-        plan.setCodigoViagem(bayPlan.getCodigoViagem());
+        plan.setNavioCadastroId(contexto.navio().identificador());
+        plan.setVisitaNavioId(contexto.visita().identificador());
+        plan.setCodigoVisita(contexto.visita().codigoVisita());
+        plan.setVersaoNavioCanonico(contexto.navio().versao());
+        plan.setVersaoVisita(contexto.visita().versao());
+        plan.setCodigoNavio(contexto.navio().codigoImo());
+        plan.setCodigoViagem(contexto.codigoViagem());
         geometriaServico.aplicarPerfil(plan, perfil);
         geometriaServico.posicionarConteineresImportados(plan, bayPlan.getContainers());
 
@@ -81,6 +96,7 @@ public class VesselPlannerServico {
     @Transactional
     public AlocacaoSlotRespostaDto alocarContainer(Long planId, AlocacaoSlotRequisicaoDto requisicao) {
         EstivagemPlan plan = buscarPlanOperacional(planId);
+        validarFonteCanonica(plan);
         exigirPlanoEditavel(plan);
         SlotNavio slot = slotRepositorio.findById(requisicao.getSlotDestinoId())
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -162,6 +178,7 @@ public class VesselPlannerServico {
     @Transactional
     public EstivagemPlanDto autoEstivar(Long planId) {
         EstivagemPlan plan = buscarPlanOperacional(planId);
+        validarFonteCanonica(plan);
         exigirPlanoEditavel(plan);
         autoStowageServico.limparEstivagem(plan);
         List<BayPlanContainer> containers = bayPlanRepositorio
@@ -190,22 +207,29 @@ public class VesselPlannerServico {
 
     @Transactional(readOnly = true)
     public EstabilidadeDto calcularEstabilidade(Long planId) {
-        return estabilidadeServico.calcular(buscarPlanOperacional(planId));
+        EstivagemPlan plan = buscarPlanOperacional(planId);
+        validarFonteCanonica(plan);
+        return estabilidadeServico.calcular(plan);
     }
 
     @Transactional(readOnly = true)
     public RestowAnaliseDto analisarRestow(Long planId) {
-        return restowServico.analisar(buscarPlanOperacional(planId));
+        EstivagemPlan plan = buscarPlanOperacional(planId);
+        validarFonteCanonica(plan);
+        return restowServico.analisar(plan);
     }
 
     @Transactional(readOnly = true)
     public SequenciamentoGuindasteDto sequenciarGuindastes(Long planId, int numGuindastes) {
-        return sequenciamentoServico.sequenciar(buscarPlanOperacional(planId), numGuindastes);
+        EstivagemPlan plan = buscarPlanOperacional(planId);
+        validarFonteCanonica(plan);
+        return sequenciamentoServico.sequenciar(plan, numGuindastes);
     }
 
     @Transactional
     public EstivagemPlanDto validarEAprovar(Long planId) {
         EstivagemPlan plan = buscarPlanOperacional(planId);
+        validarFonteCanonica(plan);
         if (plan.getStatus() == StatusEstivagemPlan.APROVADO) {
             return toDto(plan, estabilidadeServico.calcular(plan));
         }
@@ -229,6 +253,16 @@ public class VesselPlannerServico {
         return plan;
     }
 
+    private void validarFonteCanonica(EstivagemPlan plan) {
+        identidadeServico.validarFontePersistida(
+                plan.getVisitaNavioId(),
+                plan.getNavioCadastroId(),
+                plan.getCodigoNavio(),
+                plan.getCodigoViagem(),
+                plan.getVersaoNavioCanonico(),
+                plan.getVersaoVisita());
+    }
+
     private void exigirPlanoEditavel(EstivagemPlan plan) {
         if (plan.getStatus() == StatusEstivagemPlan.APROVADO
                 || plan.getStatus() == StatusEstivagemPlan.TRANSMITIDO) {
@@ -250,6 +284,11 @@ public class VesselPlannerServico {
         EstivagemPlanDto dto = new EstivagemPlanDto();
         dto.setId(plan.getId());
         dto.setBayPlanId(plan.getBayPlanId());
+        dto.setNavioCadastroId(plan.getNavioCadastroId());
+        dto.setVisitaNavioId(plan.getVisitaNavioId());
+        dto.setCodigoVisita(plan.getCodigoVisita());
+        dto.setVersaoNavioCanonico(plan.getVersaoNavioCanonico());
+        dto.setVersaoVisita(plan.getVersaoVisita());
         dto.setCodigoNavio(plan.getCodigoNavio());
         dto.setCodigoViagem(plan.getCodigoViagem());
         dto.setPerfilGeometriaId(plan.getPerfilGeometriaId());

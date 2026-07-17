@@ -13,6 +13,7 @@ public class NavioDetalheDTO {
     private final BigDecimal loaMetros;
     private final BigDecimal caladoMaximoMetros;
     private final String callSign;
+    private final Long versao;
 
     public NavioDetalheDTO(Long identificador,
                            String nome,
@@ -23,6 +24,20 @@ public class NavioDetalheDTO {
                            BigDecimal loaMetros,
                            BigDecimal caladoMaximoMetros,
                            String callSign) {
+        this(identificador, nome, codigoImo, paisBandeira, empresaArmadora, capacidadeTeu,
+                loaMetros, caladoMaximoMetros, callSign, null);
+    }
+
+    public NavioDetalheDTO(Long identificador,
+                           String nome,
+                           String codigoImo,
+                           String paisBandeira,
+                           String empresaArmadora,
+                           Integer capacidadeTeu,
+                           BigDecimal loaMetros,
+                           BigDecimal caladoMaximoMetros,
+                           String callSign,
+                           Long versao) {
         this.identificador = identificador;
         this.nome = nome;
         this.codigoImo = codigoImo;
@@ -32,6 +47,7 @@ public class NavioDetalheDTO {
         this.loaMetros = loaMetros;
         this.caladoMaximoMetros = caladoMaximoMetros;
         this.callSign = callSign;
+        this.versao = versao;
     }
 
     public Long getIdentificador() {
@@ -68,5 +84,9 @@ public class NavioDetalheDTO {
 
     public String getCallSign() {
         return callSign;
+    }
+
+    public Long getVersao() {
+        return versao;
     }
 }

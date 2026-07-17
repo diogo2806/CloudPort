@@ -1,5 +1,8 @@
 package br.com.cloudport.servicoyard.estivagembulk.modelo;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -13,9 +16,6 @@ import javax.persistence.OneToMany;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "navio_granel")
@@ -24,6 +24,15 @@ public class NavioGranel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "navio_cadastro_id")
+    private Long navioCadastroId;
+
+    @Column(name = "versao_perfil", nullable = false)
+    private Long versaoPerfil = 1L;
+
+    @Column(name = "versao_navio_canonico")
+    private Long versaoNavioCanonico;
 
     @Column(length = 10)
     private String imo;
@@ -78,6 +87,30 @@ public class NavioGranel {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getNavioCadastroId() {
+        return navioCadastroId;
+    }
+
+    public void setNavioCadastroId(Long navioCadastroId) {
+        this.navioCadastroId = navioCadastroId;
+    }
+
+    public Long getVersaoPerfil() {
+        return versaoPerfil;
+    }
+
+    public void setVersaoPerfil(Long versaoPerfil) {
+        this.versaoPerfil = versaoPerfil;
+    }
+
+    public Long getVersaoNavioCanonico() {
+        return versaoNavioCanonico;
+    }
+
+    public void setVersaoNavioCanonico(Long versaoNavioCanonico) {
+        this.versaoNavioCanonico = versaoNavioCanonico;
     }
 
     public String getImo() {

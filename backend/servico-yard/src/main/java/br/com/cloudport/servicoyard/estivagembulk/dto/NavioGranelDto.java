@@ -6,6 +6,9 @@ import java.util.List;
 public class NavioGranelDto {
 
     private Long id;
+    private Long navioCadastroId;
+    private Long versaoPerfil;
+    private Long versaoNavioCanonico;
     private String imo;
     private String nome;
     private String classe;
@@ -26,7 +29,18 @@ public class NavioGranelDto {
     public NavioGranelDto(Long id, String imo, String nome, String classe, Double lpp, Double boca,
             Double calado, Double deslocamento, Double gm, Double bmMaxPermitido, Double sfMaxPermitido,
             boolean isTemplate, int totalPoroes) {
+        this(id, null, null, null, imo, nome, classe, lpp, boca, calado, deslocamento, gm,
+                bmMaxPermitido, sfMaxPermitido, isTemplate, totalPoroes);
+    }
+
+    public NavioGranelDto(Long id, Long navioCadastroId, Long versaoPerfil, Long versaoNavioCanonico,
+            String imo, String nome, String classe, Double lpp, Double boca, Double calado,
+            Double deslocamento, Double gm, Double bmMaxPermitido, Double sfMaxPermitido,
+            boolean isTemplate, int totalPoroes) {
         this.id = id;
+        this.navioCadastroId = navioCadastroId;
+        this.versaoPerfil = versaoPerfil;
+        this.versaoNavioCanonico = versaoNavioCanonico;
         this.imo = imo;
         this.nome = nome;
         this.classe = classe;
@@ -47,6 +61,30 @@ public class NavioGranelDto {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getNavioCadastroId() {
+        return navioCadastroId;
+    }
+
+    public void setNavioCadastroId(Long navioCadastroId) {
+        this.navioCadastroId = navioCadastroId;
+    }
+
+    public Long getVersaoPerfil() {
+        return versaoPerfil;
+    }
+
+    public void setVersaoPerfil(Long versaoPerfil) {
+        this.versaoPerfil = versaoPerfil;
+    }
+
+    public Long getVersaoNavioCanonico() {
+        return versaoNavioCanonico;
+    }
+
+    public void setVersaoNavioCanonico(Long versaoNavioCanonico) {
+        this.versaoNavioCanonico = versaoNavioCanonico;
     }
 
     public String getImo() {

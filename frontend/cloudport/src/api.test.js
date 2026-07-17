@@ -105,6 +105,30 @@ test('resposta 401 limpa a sessão e publica sua expiração para a árvore Reac
   assert.equal(readSession(), null);
 });
 
+test('requisição protegida sem token encerra localmente sem chamar a API', async () => {
+  let calls = 0;
+  globalThis.fetch = async (url) => {
+    calls += 1;
+    if (url === '/assets/configuracao.json') {
+      return new Response(JSON.stringify({ baseApiUrl: 'http://localhost:8080' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ mensagem: 'Não deveria ser chamada' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  };
+  await loadRuntimeConfig();
+  calls = 0;
+  let expirations = 0;
+  const unsubscribe = subscribeSessionExpired(() => { expirations += 1; });
+
+  await assert.rejects(
+    () => request('/yard/patio/ordens'),
+    (error) => error.status === 401 && /sessão expirou/i.test(error.message)
+  );
+  unsubscribe();
+
+  assert.equal(calls, 0);
+  assert.equal(expirations, 1);
+});
+
 test('login envia a senha sem sanitização destrutiva', async () => {
   const calls = [];
   globalThis.fetch = async (url, options = {}) => {
@@ -169,6 +193,7 @@ test('comandos motivados do pátio rejeitam motivo vazio antes da requisição',
 });
 
 test('consulta de posições operacionais usa contrato de reservas e restrições reais', async () => {
+  saveSession({ token: jwt({ nome: 'Diogo', roles: ['PLANEJADOR'], exp: Math.floor(Date.now() / 1000) + 3600 }) });
   const calls = [];
   globalThis.fetch = async (url, options = {}) => {
     calls.push({ url, options });

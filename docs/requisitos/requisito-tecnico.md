@@ -18,7 +18,21 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/servico/AutomacaoPatioServico.java` | `executarAutoplanejamento()`, `encontrarMelhorPosicao()`, `estaOcupada()` e `calcularRehandles()` | O serviço seleciona como candidatos os contêineres que podem estar sem posição, mas `estaOcupada()` e `calcularRehandles()` dereferenciam `c.getPosicao()` sem verificar `null`. Além disso, `encontrarMelhorPosicao()` executa novo `findAll()` a cada contêiner e a lista `posicoes` não é atualizada ou reservada em memória após uma alocação, permitindo que duas iterações escolham a mesma posição antes de uma leitura coerente do estado persistido. A captura ampla de `Exception` converte essas falhas em item de exceção e ainda retorna sucesso global. | Ignorar contêineres sem posição nas consultas de ocupação e rehandles; manter no ciclo uma visão mutável de posições já ocupadas ou reservar a posição com garantia transacional/constraint antes de seguir; eliminar o `findAll()` repetido por item; tratar colisão de persistência como falha operacional explícita e não como sucesso silencioso do lote. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/modelo/ConteinerPatio.java` e migrations proprietárias do Yard | associação de posição e restrição de ocupação | O fluxo depende da associação de posição para representar ocupação, mas a seleção em memória não demonstra exclusividade entre contêineres durante o lote. | Confirmar a cardinalidade e criar, se inexistente, restrição persistente que impeça duas unidades ativas de ocupar a mesma posição; alinhar a regra do serviço à restrição, preservando rollback transacional quando houver conflito. |
 
-## 2. Eventos, idempotência e confirmação de mensagens
+## 2. Autenticação e validade temporal dos tokens
+
+| ID | Tarefa técnica | Critério de conclusão | Status |
+|---|---|---|---|
+| SEC10 | Calcular a expiração do JWT a partir de um instante absoluto, sem depender do fuso horário da JVM. | Tokens emitidos pelo endpoint de autenticação expiram exatamente após a duração configurada em qualquer fuso do host; emissor e Resource Server usam o mesmo segredo e o instante `exp` é gerado com `Instant`/`Clock`, sem conversão de `LocalDateTime` por offset fixo. | ⬜ Pendente |
+
+### SEC10 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-autenticacao/src/main/java/br/com/cloudport/servicoautenticacao/config/TokenService.java` | `generateToken()` e `genExpirationDate()` | O login real chama `generateToken()`, que grava `exp` usando `LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-03:00"))`. `LocalDateTime.now()` usa o fuso padrão da JVM e depois é reinterpretado como UTC−03. Em host configurado em UTC, por exemplo, um token nominal de duas horas recebe expiração aproximadamente cinco horas à frente; em outro fuso, a duração muda novamente. | Injetar `Clock` e uma duração configurada; criar novo método sugerido: `calcularExpiracao()` usando `Instant.now(clock).plus(duracaoToken)`; remover o offset fixo e preservar issuer, subject, roles e assinatura. |
+| `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/configuracao/ConfiguracaoSegurancaRuntime.java` | `jwtDecoder()` e validação do claim `exp` | O Resource Server usa `NimbusJwtDecoder`, que valida o instante absoluto recebido no token. Assim, o erro de conversão do emissor amplia ou reduz efetivamente a sessão aceita pela API, e não é apenas diferença de exibição. | Manter a validação padrão de `exp` e alinhar o segredo/configuração do emissor e decoder; a duração deve ser determinada exclusivamente no emissor a partir de `Instant`. |
+| `backend/cloudport-runtime/src/main/resources/application.properties` e documentação de implantação | propriedades de segredo e duração do token | A configuração auditada não define uma propriedade canônica de duração para o token; o período de duas horas está embutido no código. | Adicionar uma propriedade explícita, por exemplo `cloudport.security.jwt.expiration`, conectá-la ao emissor e documentar o valor esperado sem fornecer default inseguro para o segredo. |
+
+## 3. Eventos, idempotência e confirmação de mensagens
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
@@ -41,7 +55,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/integration/ocr/ProcessamentoOcrPublisher.java` | `enfileirarProcessamento()` | Apesar do nome, o método apenas chama `executor.processar(...)` de forma síncrona, no mesmo thread e na mesma chamada do serviço de upload. Não existe enfileiramento, isolamento transacional, retry controlado nem recuperação após reinício. | Substituir a chamada direta por publicação durável ou agendamento após commit; incluir identidade idempotente do documento e política explícita de retry/rejeição. Se mantido um executor local, criar novo método sugerido: `publicarAposCommit()` com persistência de pendência antes da execução. |
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/integration/ocr/ProcessamentoOcrExecutor.java` | `processar()` e `validarImagem()` | O executor altera para `PROCESSANDO`, valida a imagem e grava o resultado sob uma única transação. No fluxo atual, essa transação participa da chamada síncrona iniciada durante o upload. Notificações são disparadas imediatamente após `save()`, antes do commit; em falha de `IOException`, o método grava `FALHA` e depois lança `BusinessException`, provocando rollback da própria gravação de falha. | Executar em transação independente e idempotente; separar transições de estado; persistir `FALHA` em transação que não seja revertida pela exceção usada para retry; classificar erro permanente e transitório; notificar somente após commit e impedir execução concorrente do mesmo documento. |
 
-## 3. Integrações e alertas operacionais
+## 4. Integrações e alertas operacionais
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
@@ -55,7 +69,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/gestor/ReconciliacaoBarcodeService.java` | `executarReconciliacao()` e criação de `ReconciliacaoBarcode` | O serviço persiste ocorrências reais com `alertaEnviado=false`, e o scheduler é o único consumidor que altera esse estado. Portanto, o log usado como substituto de entrega encerra indevidamente o ciclo funcional de alerta dessas ocorrências. | Preservar a criação idempotente das ocorrências e separar o estado de detecção do estado de entrega; disponibilizar ao scheduler somente ocorrências elegíveis para envio/reenvio e não considerar log como confirmação operacional. |
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/model/ReconciliacaoBarcode.java` e migration correspondente | `alertaEnviado` e metadados de entrega | O modelo representa apenas o booleano de alerta, sem evidência no fluxo auditado de data, canal, identificador externo ou último erro que permita distinguir entrega confirmada, tentativa falha e item ainda não processado. | Acrescentar, se inexistentes, campos persistidos de status da entrega, instante, canal, identificador do provedor, quantidade de tentativas e último erro; manter transição idempotente para impedir reenvio depois de confirmação. |
 
-## 4. Interface operacional de reconciliação
+## 5. Interface operacional de reconciliação
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

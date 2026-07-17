@@ -17,6 +17,7 @@ import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.PosicaoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.servico.MapaPatioServico;
 import br.com.cloudport.servicoyard.patio.servico.ValidadorYardPlacementService;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -36,6 +37,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class OrdemTrabalhoPatioServico {
 
+    private static final Duration DURACAO_RESERVA_REMANEJAMENTO = Duration.ofHours(12);
+
     private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
     private final ConteinerPatioRepositorio conteinerRepositorio;
     private final PosicaoPatioRepositorio posicaoPatioRepositorio;
@@ -44,11 +47,11 @@ public class OrdemTrabalhoPatioServico {
     private final ValidadorYardPlacementService validadorYardPlacement;
 
     public OrdemTrabalhoPatioServico(OrdemTrabalhoPatioRepositorio ordemRepositorio,
-                                     ConteinerPatioRepositorio conteinerRepositorio,
-                                     PosicaoPatioRepositorio posicaoPatioRepositorio,
-                                     MapaPatioServico mapaPatioServico,
-                                     OtimizadorRotasPatioServico otimizadorRotas,
-                                     ValidadorYardPlacementService validadorYardPlacement) {
+                                      ConteinerPatioRepositorio conteinerRepositorio,
+                                      PosicaoPatioRepositorio posicaoPatioRepositorio,
+                                      MapaPatioServico mapaPatioServico,
+                                      OtimizadorRotasPatioServico otimizadorRotas,
+                                      ValidadorYardPlacementService validadorYardPlacement) {
         this.ordemRepositorio = ordemRepositorio;
         this.conteinerRepositorio = conteinerRepositorio;
         this.posicaoPatioRepositorio = posicaoPatioRepositorio;
@@ -130,7 +133,10 @@ public class OrdemTrabalhoPatioServico {
 
     @Transactional
     public OrdemTrabalhoPatioRespostaDto registrarOrdem(OrdemTrabalhoPatioRequisicaoDto dto) {
-        return criarOrdem(dto, false);
+        if (dto.getTipoMovimento() == TipoMovimentoPatio.REMANEJAMENTO) {
+            return registrarOuReutilizarRemanejamento(dto);
+        }
+        return criarOrdem(dto, false, null, false);
     }
 
     @Transactional
@@ -145,7 +151,19 @@ public class OrdemTrabalhoPatioServico {
         if (existente.isPresent()) {
             return OrdemTrabalhoPatioRespostaDto.deEntidade(existente.get());
         }
-        return criarOrdem(dto, true);
+        return criarOrdem(dto, true, null, false);
+    }
+
+    @Transactional
+    public OrdemTrabalhoPatioRespostaDto registrarOuReutilizarRemanejamento(
+            OrdemTrabalhoPatioRequisicaoDto dto) {
+        validarCamposObrigatorios(dto);
+        String chaveIdempotencia = dto.getChaveIdempotencia().trim();
+        Optional<OrdemTrabalhoPatio> existente = ordemRepositorio.findByChaveIdempotencia(chaveIdempotencia);
+        if (existente.isPresent()) {
+            return OrdemTrabalhoPatioRespostaDto.deEntidade(existente.get());
+        }
+        return criarOrdem(dto, false, chaveIdempotencia, true);
     }
 
     @Transactional
@@ -192,12 +210,25 @@ public class OrdemTrabalhoPatioServico {
             aplicarAtualizacaoInventario(ordem);
         }
         OrdemTrabalhoPatio atualizado = ordemRepositorio.save(ordem);
+        if (novoStatus == StatusOrdemTrabalhoPatio.CONCLUIDA
+                || novoStatus == StatusOrdemTrabalhoPatio.CANCELADA) {
+            liberarReservaDestino(atualizado);
+        }
         return OrdemTrabalhoPatioRespostaDto.deEntidade(atualizado);
     }
 
-    private OrdemTrabalhoPatioRespostaDto criarOrdem(OrdemTrabalhoPatioRequisicaoDto dto, boolean origemNavio) {
+    private OrdemTrabalhoPatioRespostaDto criarOrdem(OrdemTrabalhoPatioRequisicaoDto dto,
+                                                       boolean origemNavio,
+                                                       String chaveIdempotencia,
+                                                       boolean reservarDestino) {
         validarCamposObrigatorios(dto);
-        validarDestinoPatio(dto, origemNavio);
+        PosicaoPatio posicaoDestino = validarDestinoPatio(
+                dto,
+                origemNavio || dto.getTipoMovimento() == TipoMovimentoPatio.REMANEJAMENTO,
+                chaveIdempotencia);
+        if (reservarDestino) {
+            reservarDestino(posicaoDestino, dto, chaveIdempotencia);
+        }
         String codigoNormalizado = dto.getCodigoConteiner().toUpperCase(Locale.ROOT);
         if (dto.getItemOperacaoNavioId() != null
                 && ordemRepositorio.existsByItemOperacaoNavioIdAndStatusOrdemIn(dto.getItemOperacaoNavioId(), statusAtivos())) {
@@ -235,6 +266,7 @@ public class OrdemTrabalhoPatioServico {
         ordem.setTipoDestino(StringUtils.hasText(dto.getTipoDestino()) ? dto.getTipoDestino().toUpperCase(Locale.ROOT) : null);
         ordem.setSequenciaNavio(dto.getSequenciaNavio());
         ordem.setPrioridadeOperacional(dto.getPrioridadeOperacional());
+        ordem.setChaveIdempotencia(chaveIdempotencia);
         OrdemTrabalhoPatio salvo = ordemRepositorio.save(ordem);
         return OrdemTrabalhoPatioRespostaDto.deEntidade(salvo);
     }
@@ -279,28 +311,50 @@ public class OrdemTrabalhoPatioServico {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "O status final do contêiner é obrigatório e deve ser válido.");
         }
+        if (dto.getTipoMovimento() == TipoMovimentoPatio.REMANEJAMENTO
+                && !StringUtils.hasText(dto.getChaveIdempotencia())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A chave de idempotência é obrigatória para remanejamento.");
+        }
     }
 
-    private void validarDestinoPatio(OrdemTrabalhoPatioRequisicaoDto dto, boolean exigirPosicaoReal) {
-        Optional<PosicaoPatio> posicao = posicaoPatioRepositorio.findByLinhaAndColunaAndCamadaOperacional(
+    private PosicaoPatio validarDestinoPatio(OrdemTrabalhoPatioRequisicaoDto dto,
+                                              boolean exigirPosicaoReal,
+                                              String chaveIdempotencia) {
+        Optional<PosicaoPatio> posicaoOptional = posicaoPatioRepositorio.findByLinhaAndColunaAndCamadaOperacional(
                 dto.getLinhaDestino(), dto.getColunaDestino(), dto.getCamadaDestino());
-        if (posicao.isEmpty()) {
+        if (posicaoOptional.isEmpty()) {
             if (exigirPosicaoReal) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Posição de pátio inexistente para a ordem de navio.");
+                        "Posição de pátio inexistente para a ordem.");
             }
-            return;
+            return null;
         }
-        boolean ocupadaPorOutraCarga = conteinerRepositorio.findAll().stream()
-                .filter(conteiner -> conteiner.getPosicao() != null)
-                .filter(conteiner -> conteiner.getPosicao().getLinha().equals(dto.getLinhaDestino()))
-                .filter(conteiner -> conteiner.getPosicao().getColuna().equals(dto.getColunaDestino()))
-                .filter(conteiner -> conteiner.getPosicao().getCamadaOperacional().equalsIgnoreCase(dto.getCamadaDestino()))
-                .anyMatch(conteiner -> !conteiner.getCodigo().equalsIgnoreCase(dto.getCodigoConteiner()));
-        if (ocupadaPorOutraCarga) {
+
+        PosicaoPatio posicao = posicaoOptional.get();
+        LocalDateTime agora = LocalDateTime.now();
+        if (posicao.getReservaChave() != null && !posicao.possuiReservaAtiva(agora)) {
+            posicao.liberarReserva();
+            posicaoPatioRepositorio.save(posicao);
+        }
+        if (posicao.possuiReservaAtiva(agora)
+                && !posicao.getReservaChave().equals(chaveIdempotencia)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Posição de pátio já ocupada por outra carga.");
+                    "Posição de pátio reservada por outra ordem.");
         }
+
+        validarRestricoesPosicao(posicao, dto);
+        validarOcupacao(posicao, dto);
+        validarApoioPilha(posicao);
+
+        boolean destinoComOrdemAtiva = ordemRepositorio
+                .existsByLinhaDestinoAndColunaDestinoAndCamadaDestinoIgnoreCaseAndStatusOrdemIn(
+                        dto.getLinhaDestino(), dto.getColunaDestino(), dto.getCamadaDestino(), statusAtivos());
+        if (destinoComOrdemAtiva) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Posição de pátio já destinada a outra ordem ativa.");
+        }
+
         ConteinerPatioRequisicaoDto requisicao = new ConteinerPatioRequisicaoDto();
         requisicao.setCodigo(dto.getCodigoConteiner());
         requisicao.setLinha(dto.getLinhaDestino());
@@ -314,10 +368,126 @@ public class OrdemTrabalhoPatioServico {
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, ex.getMessage());
         }
+        return posicao;
+    }
+
+    private void validarRestricoesPosicao(PosicaoPatio posicao, OrdemTrabalhoPatioRequisicaoDto dto) {
+        if (posicao.isBloqueada() || posicao.isInterditada() || !posicao.isAreaPermitida()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Posição de pátio indisponível para alocação.");
+        }
+        Integer nivel = extrairNivelCamada(posicao.getCamadaOperacional());
+        if (nivel != null && posicao.getCamadaMaxima() != null && nivel > posicao.getCamadaMaxima()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A camada excede o limite configurado da posição.");
+        }
+        if (nivel != null && posicao.getCapacidadePilha() != null && nivel > posicao.getCapacidadePilha()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A camada excede a capacidade configurada da pilha.");
+        }
+        ConteinerPatio conteiner = conteinerRepositorio.findByCodigoIgnoreCase(dto.getCodigoConteiner()).orElse(null);
+        if (conteiner != null
+                && conteiner.getPesoToneladas() != null
+                && posicao.getPesoMaximoToneladas() != null
+                && conteiner.getPesoToneladas().compareTo(posicao.getPesoMaximoToneladas()) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "O peso do contêiner excede o limite da posição.");
+        }
+        if (StringUtils.hasText(dto.getTipoCarga()) && StringUtils.hasText(posicao.getTiposCargaPermitidos())) {
+            String tipo = dto.getTipoCarga().trim().toUpperCase(Locale.ROOT);
+            boolean permitido = List.of(posicao.getTiposCargaPermitidos().split("[,;|]"))
+                    .stream()
+                    .map(String::trim)
+                    .map(valor -> valor.toUpperCase(Locale.ROOT))
+                    .anyMatch(tipo::equals);
+            if (!permitido) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "O tipo de carga não é permitido na posição de destino.");
+            }
+        }
+    }
+
+    private void validarOcupacao(PosicaoPatio posicao, OrdemTrabalhoPatioRequisicaoDto dto) {
+        boolean ocupadaPorOutraCarga = conteinerRepositorio.findAll().stream()
+                .filter(conteiner -> conteiner.getPosicao() != null)
+                .filter(conteiner -> conteiner.getPosicao().getId().equals(posicao.getId()))
+                .anyMatch(conteiner -> !conteiner.getCodigo().equalsIgnoreCase(dto.getCodigoConteiner()));
+        if (ocupadaPorOutraCarga) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Posição de pátio já ocupada por outra carga.");
+        }
+    }
+
+    private void validarApoioPilha(PosicaoPatio posicao) {
+        Integer nivel = extrairNivelCamada(posicao.getCamadaOperacional());
+        if (nivel == null || nivel <= 1) {
+            return;
+        }
+        List<ConteinerPatio> pilha = conteinerRepositorio.findByPosicaoLinhaAndPosicaoColuna(
+                posicao.getLinha(), posicao.getColuna());
+        for (int nivelInferior = 1; nivelInferior < nivel; nivelInferior++) {
+            int nivelEsperado = nivelInferior;
+            boolean ocupado = pilha.stream()
+                    .filter(conteiner -> conteiner.getPosicao() != null)
+                    .map(conteiner -> extrairNivelCamada(conteiner.getPosicao().getCamadaOperacional()))
+                    .anyMatch(nivelAtual -> nivelAtual != null && nivelAtual == nivelEsperado);
+            if (!ocupado) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "A posição de destino criaria uma lacuna na pilha real.");
+            }
+        }
+    }
+
+    private void reservarDestino(PosicaoPatio posicao,
+                                  OrdemTrabalhoPatioRequisicaoDto dto,
+                                  String chaveIdempotencia) {
+        if (posicao == null || !StringUtils.hasText(chaveIdempotencia)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Não foi possível reservar uma posição real para o remanejamento.");
+        }
+        LocalDateTime agora = LocalDateTime.now();
+        if (posicao.possuiReservaAtiva(agora)
+                && !chaveIdempotencia.equals(posicao.getReservaChave())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Posição de pátio reservada por outra ordem.");
+        }
+        posicao.reservar(
+                chaveIdempotencia,
+                dto.getCodigoConteiner().toUpperCase(Locale.ROOT),
+                agora.plus(DURACAO_RESERVA_REMANEJAMENTO));
+        posicaoPatioRepositorio.save(posicao);
+    }
+
+    private void liberarReservaDestino(OrdemTrabalhoPatio ordem) {
+        if (!StringUtils.hasText(ordem.getChaveIdempotencia())) {
+            return;
+        }
+        posicaoPatioRepositorio.findByLinhaAndColunaAndCamadaOperacional(
+                        ordem.getLinhaDestino(), ordem.getColunaDestino(), ordem.getCamadaDestino())
+                .filter(posicao -> ordem.getChaveIdempotencia().equals(posicao.getReservaChave()))
+                .ifPresent(posicao -> {
+                    posicao.liberarReserva();
+                    posicaoPatioRepositorio.save(posicao);
+                });
+    }
+
+    private Integer extrairNivelCamada(String camada) {
+        if (!StringUtils.hasText(camada)) {
+            return null;
+        }
+        String digitos = camada.replaceAll("\\D+", "");
+        if (!StringUtils.hasText(digitos)) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(digitos);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private void validarTransicaoStatus(StatusOrdemTrabalhoPatio statusAtual,
-                                        StatusOrdemTrabalhoPatio novoStatus) {
+                                         StatusOrdemTrabalhoPatio novoStatus) {
         if (statusAtual == novoStatus) {
             return;
         }

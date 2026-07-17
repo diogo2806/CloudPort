@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, formatError, normalizePage, sanitizeText } from '../api.js';
-import { DataTable, EmptyState, JsonDetails, Loading, Message, MetricCard, PageHeader, Section, StatusBadge } from '../components.jsx';
+import { formatError, normalizePage, sanitizeText } from '../api.js';
+import { steelCoilApi } from '../steelCoilApi.js';
+import { DataTable, EmptyState, JsonDetails, Message, MetricCard, PageHeader, Section, StatusBadge } from '../components.jsx';
 
 const EMPTY_COIL = {
   codigo: '',
@@ -23,8 +24,12 @@ const EMPTY_POSITION = {
   tipoLashing: 'SEM_LASHING'
 };
 
-function visitKey(visit, index) {
-  return String(visit?.id ?? visit?.codigoVisita ?? visit?.codigo ?? `${visit?.codigoImo ?? 'navio'}-${visit?.viagemEntrada ?? visit?.codigoViagem ?? index}`);
+function normalizeList(payload) {
+  return Array.isArray(payload) ? payload : normalizePage(payload);
+}
+
+function visitIdentifier(visit) {
+  return visit?.id ?? visit?.visitaNavioId ?? visit?.identificador ?? '';
 }
 
 function visitCode(visit) {
@@ -34,21 +39,18 @@ function visitCode(visit) {
 function formatNumber(value, suffix = '') {
   if (value === undefined || value === null || value === '') return '—';
   const number = Number(value);
-  return Number.isFinite(number) ? `${number.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}${suffix}` : '—';
-}
-
-function normalizeList(payload) {
-  return Array.isArray(payload) ? payload : normalizePage(payload);
+  return Number.isFinite(number)
+    ? `${number.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}${suffix}`
+    : '—';
 }
 
 export function SteelCoilPlannerPage() {
   const [navios, setNavios] = useState([]);
-  const [templates, setTemplates] = useState([]);
   const [visitas, setVisitas] = useState([]);
   const [planos, setPlanos] = useState([]);
-  const [plano, setPlano] = useState(null);
   const [navioId, setNavioId] = useState('');
-  const [visitaSelecionada, setVisitaSelecionada] = useState('');
+  const [visitaNavioId, setVisitaNavioId] = useState('');
+  const [plano, setPlano] = useState(null);
   const [novoPlano, setNovoPlano] = useState({ codigoViagem: '', portoCarga: '', portoDescarga: '' });
   const [novaBobina, setNovaBobina] = useState(EMPTY_COIL);
   const [novaPosicao, setNovaPosicao] = useState(EMPTY_POSITION);
@@ -67,18 +69,22 @@ export function SteelCoilPlannerPage() {
     () => navios.find((item) => String(item.id) === String(navioId)) ?? null,
     [navios, navioId]
   );
+
   const selectedVisit = useMemo(
-    () => visitas.find((item, index) => visitKey(item, index) === visitaSelecionada) ?? null,
-    [visitas, visitaSelecionada]
+    () => visitas.find((item) => String(visitIdentifier(item)) === String(visitaNavioId)) ?? null,
+    [visitas, visitaNavioId]
   );
+
   const selectedHold = useMemo(
     () => selectedNavio?.poroes?.find((item) => String(item.id) === String(novaPosicao.poraoId)) ?? null,
     [selectedNavio, novaPosicao.poraoId]
   );
+
   const unpositionedCoils = useMemo(
     () => (plano?.bobinas ?? []).filter((item) => !item.posicionada),
     [plano]
   );
+
   const approved = plano?.status === 'APROVADO';
 
   const resetAnalyses = useCallback(() => {
@@ -93,20 +99,48 @@ export function SteelCoilPlannerPage() {
     setLoading(true);
     setError('');
     try {
-      const [naviosResponse, templatesResponse, visitsResponse] = await Promise.all([
-        api.listarNaviosEstivagemBulk(),
-        api.listarTemplatesEstivagemBulk(),
-        api.listarEscalasEmbarque(60)
+      const [naviosResponse, visitasResponse] = await Promise.all([
+        steelCoilApi.listarNavios(),
+        steelCoilApi.listarEscalas(60)
       ]);
       setNavios(normalizeList(naviosResponse));
-      setTemplates(normalizeList(templatesResponse));
-      setVisitas(normalizeList(visitsResponse));
+      setVisitas(normalizeList(visitasResponse).filter((item) => visitIdentifier(item)));
     } catch (reason) {
-      setError(formatError(reason, 'Não foi possível carregar navios, visitas e templates do planejamento.'));
+      setError(formatError(reason, 'Não foi possível carregar navios e visitas do planejamento.'));
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const loadPlans = useCallback(async () => {
+    if (!navioId || !visitaNavioId) {
+      setPlanos([]);
+      return;
+    }
+    setLoadingPlanos(true);
+    setError('');
+    try {
+      const response = await steelCoilApi.listarPlanos(Number(navioId), Number(visitaNavioId));
+      setPlanos(normalizeList(response));
+    } catch (reason) {
+      setPlanos([]);
+      setError(formatError(reason, 'Não foi possível carregar os planos persistidos da visita.'));
+    } finally {
+      setLoadingPlanos(false);
+    }
+  }, [navioId, visitaNavioId]);
+
+  const refreshPlan = useCallback(async (planId = plano?.id) => {
+    if (!planId) return null;
+    const response = await steelCoilApi.buscarPlano(planId);
+    setPlano(response);
+    const firstAvailable = (response?.bobinas ?? []).find((item) => !item.posicionada);
+    setNovaPosicao((current) => ({
+      ...current,
+      bobinaId: firstAvailable?.id ? String(firstAvailable.id) : ''
+    }));
+    return response;
+  }, [plano?.id]);
 
   useEffect(() => {
     loadInitialData();
@@ -140,51 +174,19 @@ export function SteelCoilPlannerPage() {
     }));
   }, [selectedHold]);
 
-  const loadPlans = useCallback(async () => {
-    if (!navioId || !selectedVisit) {
-      setPlanos([]);
-      return;
-    }
-    setLoadingPlanos(true);
-    setError('');
-    try {
-      const response = await api.listarPlanosEstivagemBulk(Number(navioId), visitCode(selectedVisit));
-      setPlanos(normalizeList(response));
-    } catch (reason) {
-      setPlanos([]);
-      setError(formatError(reason, 'Não foi possível carregar os planos do navio e da visita selecionados.'));
-    } finally {
-      setLoadingPlanos(false);
-    }
-  }, [navioId, selectedVisit]);
-
   useEffect(() => {
     setPlano(null);
     resetAnalyses();
     loadPlans();
   }, [loadPlans, resetAnalyses]);
 
-  const refreshPlan = useCallback(async (planId = plano?.id) => {
-    if (!planId) return null;
-    const response = await api.buscarPlanoEstivagemBulk(planId);
-    setPlano(response);
-    setNovaPosicao((current) => ({
-      ...current,
-      bobinaId: (response?.bobinas ?? []).find((item) => !item.posicionada)?.id
-        ? String((response?.bobinas ?? []).find((item) => !item.posicionada).id)
-        : ''
-    }));
-    return response;
-  }, [plano?.id]);
-
-  async function runAction(action, operation, message, reload = false) {
+  async function runAction(action, operation, message) {
     if (busyAction) return null;
     setBusyAction(action);
     setError('');
     setSuccess('');
     try {
       const result = await operation();
-      if (reload && plano?.id) await refreshPlan(plano.id);
       if (message) setSuccess(message);
       return result;
     } catch (reason) {
@@ -197,34 +199,40 @@ export function SteelCoilPlannerPage() {
 
   async function createPlan(event) {
     event.preventDefault();
-    if (!navioId || !selectedVisit) return;
-    const result = await runAction('create-plan', () => api.criarPlanoEstivagemBulk({
+    if (!navioId || !visitaNavioId) return;
+    const result = await runAction('create-plan', () => steelCoilApi.criarPlano({
       navioId: Number(navioId),
-      codigoViagem: sanitizeText(novoPlano.codigoViagem),
+      visitaNavioId: Number(visitaNavioId),
+      codigoViagem: visitCode(selectedVisit) || sanitizeText(novoPlano.codigoViagem),
       portoCarga: sanitizeText(novoPlano.portoCarga),
       portoDescarga: sanitizeText(novoPlano.portoDescarga)
-    }), 'Plano criado e recarregado a partir do backend.');
+    }), 'Plano criado e vinculado à visita selecionada.');
     if (result?.id) {
-      setPlano(result);
-      resetAnalyses();
       await loadPlans();
+      await refreshPlan(result.id);
+      resetAnalyses();
     }
   }
 
   async function openPlan(planId) {
-    const result = await runAction('open-plan', () => api.buscarPlanoEstivagemBulk(planId));
+    if (!planId) {
+      setPlano(null);
+      resetAnalyses();
+      return;
+    }
+    const result = await runAction('open-plan', () => steelCoilApi.buscarPlano(planId));
     if (result) {
       setPlano(result);
-      resetAnalyses();
       const firstAvailable = (result.bobinas ?? []).find((item) => !item.posicionada);
       setNovaPosicao((current) => ({ ...current, bobinaId: firstAvailable?.id ? String(firstAvailable.id) : '' }));
+      resetAnalyses();
     }
   }
 
   async function addCoil(event) {
     event.preventDefault();
     if (!plano?.id || approved) return;
-    const result = await runAction('add-coil', () => api.adicionarBobinaEstivagemBulk(plano.id, {
+    const result = await runAction('add-coil', () => steelCoilApi.adicionarBobina(plano.id, {
       codigo: sanitizeText(novaBobina.codigo),
       pesoKg: Number(novaBobina.pesoKg),
       diametroExternoMm: Number(novaBobina.diametroExternoMm),
@@ -244,7 +252,7 @@ export function SteelCoilPlannerPage() {
   async function placeCoil(event) {
     event.preventDefault();
     if (!plano?.id || approved) return;
-    const result = await runAction('place-coil', () => api.posicionarBobinaEstivagemBulk(plano.id, {
+    const result = await runAction('place-coil', () => steelCoilApi.posicionarBobina(plano.id, {
       bobinaId: Number(novaPosicao.bobinaId),
       poraoId: Number(novaPosicao.poraoId),
       setorId: Number(novaPosicao.setorId),
@@ -253,7 +261,7 @@ export function SteelCoilPlannerPage() {
       posicaoY: Number(novaPosicao.posicaoY),
       espessuraDunnageMm: Number(novaPosicao.espessuraDunnageMm),
       tipoLashing: novaPosicao.tipoLashing
-    }), 'Posição confirmada pelo backend e plano recarregado.');
+    }), 'Posição validada e persistida pelo backend.');
     if (result) {
       await refreshPlan(plano.id);
       await loadPlans();
@@ -262,7 +270,7 @@ export function SteelCoilPlannerPage() {
   }
 
   async function loadTanktop() {
-    const result = await runAction('tanktop', () => api.analisarTanktopEstivagemBulk(plano.id));
+    const result = await runAction('tanktop', () => steelCoilApi.analisarTanktop(plano.id));
     if (result) setTanktop(normalizeList(result));
   }
 
@@ -272,25 +280,22 @@ export function SteelCoilPlannerPage() {
       setError('Selecione um porão para analisar o empilhamento.');
       return;
     }
-    const result = await runAction('stacking', () => api.analisarEmpilhamentoEstivagemBulk(plano.id, poraoId));
+    const result = await runAction('stacking', () => steelCoilApi.analisarEmpilhamento(plano.id, poraoId));
     if (result) setEmpilhamento(result);
   }
 
   async function loadStability() {
-    const result = await runAction('stability', () => api.calcularEstabilidadeEstivagemBulk(plano.id));
+    const result = await runAction('stability', () => steelCoilApi.calcularEstabilidade(plano.id));
     if (result) setEstabilidade(result);
   }
 
   async function loadSecuring() {
-    const result = await runAction('securing', () => api.calcularSecuringEstivagemBulk(plano.id), 'Securing calculado e materiais persistidos.');
-    if (result) {
-      setSecuring(result);
-      await refreshPlan(plano.id);
-    }
+    const result = await runAction('securing', () => steelCoilApi.calcularSecuring(plano.id));
+    if (result) setSecuring(result);
   }
 
   async function validatePlan() {
-    const result = await runAction('validate', () => api.validarPlanoEstivagemBulk(plano.id), 'Plano validado e status recarregado do backend.');
+    const result = await runAction('validate', () => steelCoilApi.validarPlano(plano.id), 'Plano validado e recarregado.');
     if (result) {
       setPlano(result);
       setEstabilidade(result.estabilidade ?? null);
@@ -298,69 +303,63 @@ export function SteelCoilPlannerPage() {
     }
   }
 
-  async function openReport() {
-    const reportWindow = typeof window !== 'undefined' ? window.open('', '_blank') : null;
-    const result = await runAction('report', () => api.obterRelatorioEstivagemBulk(plano.id));
-    if (!result) {
-      reportWindow?.close();
-      return;
-    }
-    setRelatorio(result);
-    if (reportWindow && typeof Blob !== 'undefined' && globalThis.URL?.createObjectURL) {
-      const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      reportWindow.location.href = url;
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    }
+  async function loadReport() {
+    const result = await runAction('report', () => steelCoilApi.obterRelatorio(plano.id));
+    if (result) setRelatorio(result);
   }
 
-  if (loading) return <><PageHeader eyebrow="Embarque" title="Planejamento de steel coils" description="Planejamento operacional persistido para navios siderúrgicos." /><Loading label="Carregando contexto operacional..." /></>;
+  if (loading) {
+    return <>
+      <PageHeader eyebrow="Embarque" title="Planejamento de steel coils" description="Carregando contexto operacional persistido." />
+      <p>Carregando navios e visitas...</p>
+    </>;
+  }
 
   return <>
     <PageHeader
       eyebrow="Embarque"
       title="Planejamento de steel coils"
-      description="Selecione o navio e a visita, mantenha o manifesto e execute somente cálculos e confirmações retornados pelo backend."
+      description="O plano é carregado por navio e visita canônica. Criação, posicionamento e cálculos usam os contratos publicados pelo backend."
       actions={<button className="secondary" onClick={loadInitialData} disabled={!!busyAction}>Atualizar contexto</button>}
     />
     <Message type="error" onClose={() => setError('')}>{error}</Message>
     <Message type="success" onClose={() => setSuccess('')}>{success}</Message>
 
-    <Section title="Contexto operacional" description="Navio, visita e plano são selecionados explicitamente antes de qualquer comando.">
+    <Section title="Contexto operacional" description="Selecione o perfil estrutural do navio e a visita antes de criar ou abrir um plano.">
       <div className="planner-context-grid">
-        <label className="field"><span>Navio siderúrgico</span><select value={navioId} onChange={(event) => setNavioId(event.target.value)}><option value="">Selecione</option>{navios.map((item) => <option key={item.id} value={item.id}>{item.nome} {item.imo ? `· IMO ${item.imo}` : ''}</option>)}</select><small>{selectedNavio ? `${selectedNavio.totalPoroes ?? selectedNavio.poroes?.length ?? 0} porão(ões) configurado(s)` : `${templates.length} template(s) disponível(is)`}</small></label>
-        <label className="field"><span>Visita / viagem</span><select value={visitaSelecionada} onChange={(event) => setVisitaSelecionada(event.target.value)}><option value="">Selecione</option>{visitas.map((item, index) => <option key={visitKey(item, index)} value={visitKey(item, index)}>{item.nomeNavio ?? item.navioNome ?? 'Navio'} · {visitCode(item) || 'viagem sem código'} · {item.fase ?? 'fase não informada'}</option>)}</select></label>
-        <label className="field"><span>Plano persistido</span><select value={plano?.id ?? ''} onChange={(event) => event.target.value ? openPlan(Number(event.target.value)) : setPlano(null)} disabled={!navioId || !selectedVisit || loadingPlanos}><option value="">{loadingPlanos ? 'Carregando...' : 'Criar ou selecionar'}</option>{planos.map((item) => <option key={item.id} value={item.id}>#{item.id} · {item.status ?? 'RASCUNHO'} · {item.totalBobinas ?? 0} bobina(s)</option>)}</select></label>
+        <label className="field"><span>Navio siderúrgico</span><select value={navioId} onChange={(event) => setNavioId(event.target.value)}><option value="">Selecione</option>{navios.map((item) => <option key={item.id} value={item.id}>{item.nome} {item.imo ? `· IMO ${item.imo}` : ''}</option>)}</select></label>
+        <label className="field"><span>Visita / viagem</span><select value={visitaNavioId} onChange={(event) => setVisitaNavioId(event.target.value)}><option value="">Selecione</option>{visitas.map((item) => <option key={visitIdentifier(item)} value={visitIdentifier(item)}>{item.nomeNavio ?? item.navioNome ?? 'Navio'} · {visitCode(item) || item.codigoVisita || `visita ${visitIdentifier(item)}`}</option>)}</select></label>
+        <label className="field"><span>Plano persistido</span><select value={plano?.id ?? ''} onChange={(event) => openPlan(Number(event.target.value))} disabled={!navioId || !visitaNavioId || loadingPlanos}><option value="">{loadingPlanos ? 'Carregando...' : 'Criar ou selecionar'}</option>{planos.map((item) => <option key={item.id} value={item.id}>#{item.id} · {item.status ?? 'RASCUNHO'} · {item.totalBobinas ?? item.bobinas?.length ?? 0} bobina(s)</option>)}</select></label>
       </div>
     </Section>
 
-    {!plano && <Section title="Criar plano" description="O plano será criado para o navio e a visita selecionados e, em seguida, recarregado do servidor.">
+    {!plano && <Section title="Criar plano" description="A identidade da visita selecionada será enviada obrigatoriamente ao backend.">
       <form className="planner-form-grid" onSubmit={createPlan}>
         <label className="field"><span>Código da viagem</span><input value={novoPlano.codigoViagem} onChange={(event) => setNovoPlano((current) => ({ ...current, codigoViagem: event.target.value }))} maxLength={30} required /></label>
         <label className="field"><span>Porto de carga</span><input value={novoPlano.portoCarga} onChange={(event) => setNovoPlano((current) => ({ ...current, portoCarga: event.target.value }))} maxLength={10} required /></label>
         <label className="field"><span>Porto de descarga</span><input value={novoPlano.portoDescarga} onChange={(event) => setNovoPlano((current) => ({ ...current, portoDescarga: event.target.value }))} maxLength={10} required /></label>
-        <button type="submit" disabled={!navioId || !selectedVisit || busyAction === 'create-plan'}>{busyAction === 'create-plan' ? 'Criando...' : 'Criar plano'}</button>
+        <button type="submit" disabled={!navioId || !visitaNavioId || busyAction === 'create-plan'}>{busyAction === 'create-plan' ? 'Criando...' : 'Criar plano'}</button>
       </form>
-      {!loadingPlanos && navioId && selectedVisit && !planos.length && <EmptyState title="Nenhum plano para esta visita" description="Preencha os portos e crie o primeiro plano persistido." />}
+      {!loadingPlanos && navioId && visitaNavioId && !planos.length && <EmptyState title="Nenhum plano para esta visita" description="Crie o primeiro plano persistido para o contexto selecionado." />}
     </Section>}
 
     {plano && <>
       <div className="metrics-grid">
-        <MetricCard label="Plano" value={`#${plano.id}`} detail={`${plano.nomeNavio ?? 'Navio'} · ${plano.codigoViagem ?? 'Viagem'}`} />
-        <MetricCard label="Status" value={<StatusBadge value={plano.status} />} detail={approved ? 'Comandos de alteração bloqueados' : 'Plano editável'} />
+        <MetricCard label="Plano" value={`#${plano.id}`} detail={`${plano.nomeNavio ?? selectedNavio?.nome ?? 'Navio'} · ${plano.codigoViagem ?? visitCode(selectedVisit) ?? 'Viagem'}`} />
+        <MetricCard label="Visita" value={plano.codigoVisita ?? visitaNavioId} detail={`Identificador ${plano.visitaNavioId ?? visitaNavioId}`} />
+        <MetricCard label="Status" value={<StatusBadge value={plano.status} />} detail={approved ? 'Alterações bloqueadas' : 'Plano editável'} />
         <MetricCard label="Manifesto" value={plano.totalBobinas ?? plano.bobinas?.length ?? 0} detail={`${unpositionedCoils.length} sem posição`} />
-        <MetricCard label="Peso total" value={formatNumber(plano.pesoTotalToneladas, ' t')} detail={`${plano.portoCarga ?? '—'} → ${plano.portoDescarga ?? '—'}`} />
       </div>
 
-      <Section title="Manifesto de bobinas" description="A inclusão é confirmada pelo backend; o plano é recarregado após a persistência.">
+      <Section title="Manifesto de bobinas" description="As inclusões são persistidas e o plano é recarregado após cada comando.">
         <form className="planner-form-grid coil-form" onSubmit={addCoil}>
-          <label className="field"><span>Código</span><input value={novaBobina.codigo} onChange={(event) => setNovaBobina((current) => ({ ...current, codigo: event.target.value }))} maxLength={30} required disabled={approved} /></label>
+          <label className="field"><span>Código</span><input value={novaBobina.codigo} onChange={(event) => setNovaBobina((current) => ({ ...current, codigo: event.target.value }))} required disabled={approved} /></label>
           <label className="field"><span>Peso (kg)</span><input type="number" min="1" step="0.01" value={novaBobina.pesoKg} onChange={(event) => setNovaBobina((current) => ({ ...current, pesoKg: event.target.value }))} required disabled={approved} /></label>
           <label className="field"><span>Diâmetro externo (mm)</span><input type="number" min="1" step="0.01" value={novaBobina.diametroExternoMm} onChange={(event) => setNovaBobina((current) => ({ ...current, diametroExternoMm: event.target.value }))} required disabled={approved} /></label>
           <label className="field"><span>Diâmetro interno (mm)</span><input type="number" min="0" step="0.01" value={novaBobina.diametroInternoMm} onChange={(event) => setNovaBobina((current) => ({ ...current, diametroInternoMm: event.target.value }))} required disabled={approved} /></label>
           <label className="field"><span>Largura (mm)</span><input type="number" min="1" step="0.01" value={novaBobina.larguraMm} onChange={(event) => setNovaBobina((current) => ({ ...current, larguraMm: event.target.value }))} required disabled={approved} /></label>
-          <label className="field"><span>Grau do aço</span><input value={novaBobina.grauAco} onChange={(event) => setNovaBobina((current) => ({ ...current, grauAco: event.target.value }))} maxLength={20} required disabled={approved} /></label>
-          <label className="field"><span>Porto de descarga</span><input value={novaBobina.portoDescarga} onChange={(event) => setNovaBobina((current) => ({ ...current, portoDescarga: event.target.value }))} maxLength={10} required disabled={approved} /></label>
+          <label className="field"><span>Grau do aço</span><input value={novaBobina.grauAco} onChange={(event) => setNovaBobina((current) => ({ ...current, grauAco: event.target.value }))} required disabled={approved} /></label>
+          <label className="field"><span>Porto de descarga</span><input value={novaBobina.portoDescarga} onChange={(event) => setNovaBobina((current) => ({ ...current, portoDescarga: event.target.value }))} required disabled={approved} /></label>
           <button type="submit" disabled={approved || busyAction === 'add-coil'}>{busyAction === 'add-coil' ? 'Salvando...' : 'Adicionar bobina'}</button>
         </form>
         <DataTable rows={plano.bobinas ?? []} columns={[
@@ -373,16 +372,16 @@ export function SteelCoilPlannerPage() {
         ]} emptyTitle="Manifesto sem bobinas" />
       </Section>
 
-      <Section title="Plano por porão" description="O frontend informa a intenção; tank top, restrições e aceite da posição são avaliados pelo serviço de domínio.">
+      <Section title="Plano por porão" description="O serviço valida tank top, setor, camada, dunnage e securing antes de aceitar a posição.">
         <form className="planner-form-grid position-form" onSubmit={placeCoil}>
-          <label className="field"><span>Bobina pendente</span><select value={novaPosicao.bobinaId} onChange={(event) => setNovaPosicao((current) => ({ ...current, bobinaId: event.target.value }))} required disabled={approved}><option value="">Selecione</option>{unpositionedCoils.map((item) => <option key={item.id} value={item.id}>{item.codigo} · {formatNumber(item.pesoKg, ' kg')}</option>)}</select></label>
-          <label className="field"><span>Porão</span><select value={novaPosicao.poraoId} onChange={(event) => setNovaPosicao((current) => ({ ...current, poraoId: event.target.value }))} required disabled={approved}><option value="">Selecione</option>{(selectedNavio?.poroes ?? []).map((item) => <option key={item.id} value={item.id}>Porão {item.numero} · {formatNumber(item.areaUtil, ' m²')}</option>)}</select></label>
-          <label className="field"><span>Setor de tank top</span><select value={novaPosicao.setorId} onChange={(event) => setNovaPosicao((current) => ({ ...current, setorId: event.target.value }))} required disabled={approved}><option value="">Selecione</option>{(selectedHold?.setores ?? []).map((item) => <option key={item.id} value={item.id}>{item.nome} · limite {formatNumber(item.capacidadeTM2, ' t/m²')}</option>)}</select></label>
-          <label className="field"><span>Camada</span><input type="number" min="1" step="1" value={novaPosicao.camada} onChange={(event) => setNovaPosicao((current) => ({ ...current, camada: event.target.value }))} required disabled={approved} /></label>
+          <label className="field"><span>Bobina pendente</span><select value={novaPosicao.bobinaId} onChange={(event) => setNovaPosicao((current) => ({ ...current, bobinaId: event.target.value }))} required disabled={approved}><option value="">Selecione</option>{unpositionedCoils.map((item) => <option key={item.id} value={item.id}>{item.codigo}</option>)}</select></label>
+          <label className="field"><span>Porão</span><select value={novaPosicao.poraoId} onChange={(event) => setNovaPosicao((current) => ({ ...current, poraoId: event.target.value }))} required disabled={approved}><option value="">Selecione</option>{(selectedNavio?.poroes ?? []).map((item) => <option key={item.id} value={item.id}>Porão {item.numero}</option>)}</select></label>
+          <label className="field"><span>Setor</span><select value={novaPosicao.setorId} onChange={(event) => setNovaPosicao((current) => ({ ...current, setorId: event.target.value }))} required disabled={approved}><option value="">Selecione</option>{(selectedHold?.setores ?? []).map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></label>
+          <label className="field"><span>Camada</span><input type="number" min="1" value={novaPosicao.camada} onChange={(event) => setNovaPosicao((current) => ({ ...current, camada: event.target.value }))} required disabled={approved} /></label>
           <label className="field"><span>Posição X (m)</span><input type="number" step="0.01" value={novaPosicao.posicaoX} onChange={(event) => setNovaPosicao((current) => ({ ...current, posicaoX: event.target.value }))} required disabled={approved} /></label>
           <label className="field"><span>Posição Y (m)</span><input type="number" step="0.01" value={novaPosicao.posicaoY} onChange={(event) => setNovaPosicao((current) => ({ ...current, posicaoY: event.target.value }))} required disabled={approved} /></label>
           <label className="field"><span>Dunnage (mm)</span><input type="number" min="1" step="0.01" value={novaPosicao.espessuraDunnageMm} onChange={(event) => setNovaPosicao((current) => ({ ...current, espessuraDunnageMm: event.target.value }))} required disabled={approved} /></label>
-          <label className="field"><span>Securing informado</span><select value={novaPosicao.tipoLashing} onChange={(event) => setNovaPosicao((current) => ({ ...current, tipoLashing: event.target.value }))} disabled={approved}><option value="SEM_LASHING">Sem lashing</option><option value="CORRENTE">Corrente</option><option value="CINTA_ACO">Cinta de aço</option><option value="CINTA_SINTETICA">Cinta sintética</option><option value="MADEIRA_CUNHA">Cunha de madeira</option><option value="CALCO_BORRACHA">Calço de borracha</option></select></label>
+          <label className="field"><span>Securing</span><select value={novaPosicao.tipoLashing} onChange={(event) => setNovaPosicao((current) => ({ ...current, tipoLashing: event.target.value }))} disabled={approved}><option value="SEM_LASHING">Sem lashing</option><option value="CORRENTE">Corrente</option><option value="CINTA_ACO">Cinta de aço</option><option value="CINTA_SINTETICA">Cinta sintética</option><option value="MADEIRA_CUNHA">Cunha de madeira</option><option value="CALCO_BORRACHA">Calço de borracha</option></select></label>
           <button type="submit" disabled={approved || !unpositionedCoils.length || busyAction === 'place-coil'}>{busyAction === 'place-coil' ? 'Validando...' : 'Posicionar bobina'}</button>
         </form>
         <DataTable rows={plano.posicoes ?? []} columns={[
@@ -391,35 +390,31 @@ export function SteelCoilPlannerPage() {
           { key: 'setorNome', label: 'Setor' },
           { key: 'camada', label: 'Camada' },
           { key: 'coordenada', label: 'Coordenada', render: (row) => `X ${formatNumber(row.posicaoX)} · Y ${formatNumber(row.posicaoY)}` },
-          { key: 'dunnage', label: 'Dunnage', render: (row) => formatNumber(row.espessuraDunnageMm, ' mm') },
           { key: 'tipoLashing', label: 'Securing' },
           { key: 'alertaTanktop', label: 'Alerta', render: (row) => row.alertaTanktop || '—' }
         ]} emptyTitle="Nenhuma bobina posicionada" />
       </Section>
 
-      <Section title="Análises e aprovação" description="Os valores exibidos são respostas do backend. A validação não é reproduzida no navegador.">
+      <Section title="Análises e aprovação" description="Todas as análises abaixo são respostas do backend; tacktop é consultado por GET.">
         <div className="planner-analysis-actions">
-          <button className="secondary" onClick={loadTanktop} disabled={!!busyAction}>{busyAction === 'tanktop' ? 'Consultando...' : 'Tank top'}</button>
-          <button className="secondary" onClick={loadStacking} disabled={!!busyAction}>{busyAction === 'stacking' ? 'Consultando...' : 'Empilhamento do porão'}</button>
-          <button className="secondary" onClick={loadStability} disabled={!!busyAction}>{busyAction === 'stability' ? 'Calculando...' : 'Estabilidade'}</button>
-          <button className="secondary" onClick={loadSecuring} disabled={!!busyAction || approved}>{busyAction === 'securing' ? 'Calculando...' : 'Securing / tacktop'}</button>
-          <button onClick={validatePlan} disabled={!!busyAction || approved}>{busyAction === 'validate' ? 'Validando...' : approved ? 'Plano aprovado' : 'Validar e aprovar'}</button>
-          <button className="secondary" onClick={openReport} disabled={!!busyAction}>{busyAction === 'report' ? 'Abrindo...' : 'Abrir relatório'}</button>
+          <button className="secondary" onClick={loadTanktop} disabled={!!busyAction}>Tank top</button>
+          <button className="secondary" onClick={loadStacking} disabled={!!busyAction}>Empilhamento</button>
+          <button className="secondary" onClick={loadStability} disabled={!!busyAction}>Estabilidade</button>
+          <button className="secondary" onClick={loadSecuring} disabled={!!busyAction}>Securing / tacktop</button>
+          <button onClick={validatePlan} disabled={!!busyAction || approved}>{approved ? 'Plano aprovado' : 'Validar e aprovar'}</button>
+          <button className="secondary" onClick={loadReport} disabled={!!busyAction}>Carregar relatório</button>
         </div>
-
         <div className="planner-analysis-grid">
-          <article className="analysis-card"><span>Estabilidade</span>{estabilidade || plano.estabilidade ? <><strong><StatusBadge value={(estabilidade ?? plano.estabilidade)?.aprovado ? 'APROVADA' : 'REPROVADA'} /></strong><small>BM {formatNumber((estabilidade ?? plano.estabilidade)?.bmMaxKnm, ' kNm')} · SF {formatNumber((estabilidade ?? plano.estabilidade)?.sfMaxKn, ' kN')} · trim {formatNumber((estabilidade ?? plano.estabilidade)?.trimMetros, ' m')}</small></> : <small>Execute a análise.</small>}</article>
-          <article className="analysis-card"><span>Empilhamento</span>{empilhamento ? <><strong>{empilhamento.totalCamadas} camada(s)</strong><small>{empilhamento.descricaoEmpilhamento || 'Sem descrição'} · corredor {empilhamento.corredorOperacaoLivre ? 'livre' : 'bloqueado'}</small></> : <small>Selecione o porão e consulte.</small>}</article>
-          <article className="analysis-card"><span>Securing</span>{securing ? <><strong>{securing.numeroBobinasTopLayer} bobina(s) no topo</strong><small>{formatNumber(securing.pesoTotalLashingKg, ' kg')} de materiais · ângulo {formatNumber(securing.anguloInclinacaoGraus, '°')}</small></> : <small>Execute o cálculo do servidor.</small>}</article>
+          <article className="analysis-card"><span>Estabilidade</span>{estabilidade || plano.estabilidade ? <><strong><StatusBadge value={(estabilidade ?? plano.estabilidade)?.aprovado ? 'APROVADA' : 'REPROVADA'} /></strong><small>BM {formatNumber((estabilidade ?? plano.estabilidade)?.bmMaxKnm, ' kNm')} · SF {formatNumber((estabilidade ?? plano.estabilidade)?.sfMaxKn, ' kN')}</small></> : <small>Execute a análise.</small>}</article>
+          <article className="analysis-card"><span>Empilhamento</span>{empilhamento ? <><strong>{empilhamento.totalCamadas ?? '—'} camada(s)</strong><small>{empilhamento.descricaoEmpilhamento || 'Sem descrição'}</small></> : <small>Selecione o porão e consulte.</small>}</article>
+          <article className="analysis-card"><span>Securing</span>{securing ? <><strong>{securing.numeroBobinasTopLayer ?? '—'} bobina(s) no topo</strong><small>{formatNumber(securing.pesoTotalLashingKg, ' kg')} de materiais</small></> : <small>Consulte o tacktop.</small>}</article>
         </div>
-
-        {tanktop && <div className="analysis-result"><h3>Pressão por setor</h3><DataTable rows={tanktop} columns={[
+        {tanktop && <DataTable rows={tanktop} columns={[
           { key: 'nomeSetor', label: 'Setor' },
           { key: 'pressaoCalculadaTM2', label: 'Pressão', render: (row) => formatNumber(row.pressaoCalculadaTM2, ' t/m²') },
           { key: 'capacidadeNominalTM2', label: 'Capacidade', render: (row) => formatNumber(row.capacidadeNominalTM2, ' t/m²') },
-          { key: 'percentualOcupacao', label: 'Utilização', render: (row) => formatNumber(row.percentualOcupacao, '%') },
           { key: 'excedido', label: 'Resultado', render: (row) => <StatusBadge value={row.excedido ? 'EXCEDIDO' : 'DENTRO DO LIMITE'} /> }
-        ]} /></div>}
+        ]} />}
         <JsonDetails value={empilhamento} title="Detalhes do empilhamento" />
         <JsonDetails value={securing} title="Materiais e observações de securing" />
         <JsonDetails value={relatorio} title="Relatório operacional retornado" />

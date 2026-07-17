@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, formatError, getRuntimeConfig, normalizePage } from '../api.js';
 import { DataTable, EmptyState, JsonDetails, Loading, Message, MetricCard, PageHeader, Section, StatusBadge } from '../components.jsx';
 import { selectGateAppointments } from '../gateDataset.js';
+import { gateOperatorApi, selectGateOperatorVehicles } from '../gateOperatorApi.js';
 
 function displayValue(value) {
   if (value === undefined || value === null || value === '') return '—';
@@ -80,7 +81,7 @@ export function GenericDatasetPage({ eyebrow, title, description, loader, prefer
 
 export function GateDashboardPage() {
   const central = useLoader(() => api.obterCentralGate(), []);
-  const appointments = central.data?.agendamentos ?? [];
+  const appointments = selectGateAppointments(central.data);
   return <>
     <PageHeader eyebrow="Gate" title="Central de ação" description="Acompanhamento dos próximos agendamentos e ações disponíveis." actions={<button className="secondary" onClick={central.reload}>Atualizar</button>} />
     <Message type="error">{central.error}</Message>
@@ -192,14 +193,15 @@ export function ControlRoomPage({ session }) {
 }
 
 const loadGateAppointments = () => api.obterCentralGate().then(selectGateAppointments);
+const loadGateOperatorVehicles = () => gateOperatorApi.obterPainel().then(selectGateOperatorVehicles);
 
 export const DATASET_ROUTES = {
   '/home/gate/agendamentos': { eyebrow: 'Gate', title: 'Agendamentos', description: 'Agendamentos operacionais do gate.', loader: () => api.listarGateAgendamentos(), preferredColumns: ['codigo', 'status', 'tipoOperacao', 'placaVeiculo', 'transportadoraNome'] },
   '/home/gate/janelas': { eyebrow: 'Gate', title: 'Janelas de atendimento', description: 'Janelas configuradas para recebimento e expedição.', loader: () => api.listarGateJanelas(), preferredColumns: ['id', 'data', 'horaInicio', 'horaFim', 'capacidade', 'status'] },
   '/home/gate/relatorios': { eyebrow: 'Gate', title: 'Relatórios', description: 'Visão consolidada do gate.', loader: loadGateAppointments, preferredColumns: ['codigo', 'status', 'tipoOperacaoDescricao'] },
-  '/home/gate/operador': { eyebrow: 'Gate', title: 'Console do operador', description: 'Fila operacional e situação dos agendamentos.', loader: loadGateAppointments, preferredColumns: ['codigo', 'status', 'mensagemOrientacao'] },
-  '/home/gate/operador/console': { eyebrow: 'Gate', title: 'Console do operador', description: 'Fila operacional e situação dos agendamentos.', loader: loadGateAppointments, preferredColumns: ['codigo', 'status', 'mensagemOrientacao'] },
-  '/home/gate/operador/eventos': { eyebrow: 'Gate', title: 'Eventos do operador', description: 'Eventos vinculados aos agendamentos.', loader: loadGateAppointments, preferredColumns: ['codigo', 'status', 'horarioPrevistoChegada'] },
+  '/home/gate/operador': { eyebrow: 'Gate', title: 'Console do operador', description: 'Filas e veículos do painel operacional.', loader: loadGateOperatorVehicles, preferredColumns: ['placa', 'statusDescricao', 'motorista', 'transportadora', 'filaOperacional', 'fluxoOperacional', 'tempoFilaMinutos'] },
+  '/home/gate/operador/console': { eyebrow: 'Gate', title: 'Console do operador', description: 'Filas e veículos do painel operacional.', loader: loadGateOperatorVehicles, preferredColumns: ['placa', 'statusDescricao', 'motorista', 'transportadora', 'filaOperacional', 'fluxoOperacional', 'tempoFilaMinutos'] },
+  '/home/gate/operador/eventos': { eyebrow: 'Gate', title: 'Eventos do operador', description: 'Histórico operacional recente do Gate.', loader: () => gateOperatorApi.listarEventos(), preferredColumns: ['registradoEm', 'tipo', 'nivel', 'descricao', 'placaVeiculo', 'transportadora', 'usuario'] },
   '/home/ferrovia/lista-trabalho': { eyebrow: 'Ferrovia', title: 'Lista de trabalho', description: 'Visitas com operações ferroviárias pendentes.', loader: () => api.listarVisitasFerrovia(30), preferredColumns: ['identificadorTrem', 'statusVisita', 'horaChegadaPrevista'] },
   '/home/embarque/steel-coils': { eyebrow: 'Embarque', title: 'Steel coils', description: 'Escalas e planejamento de cargas siderúrgicas.', loader: () => api.listarEscalasEmbarque(30), preferredColumns: ['nomeNavio', 'codigoImo', 'viagemEntrada', 'fase'] }
 };

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, clearSession, formatError, hasAnyRole, readSession, sanitizeText, saveSession } from './api.js';
+import { api, clearSession, formatError, hasAnyRole, readSession, sanitizeText, saveSession, subscribeSessionExpired } from './api.js';
 import { Message } from './components.jsx';
 import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
@@ -199,6 +199,12 @@ export default function App() {
   const { path, navigate } = usePortalRouter();
   const [session, setSession] = useState(() => readSession());
   const [requestedPath, setRequestedPath] = useState('/home/dashboard');
+
+  useEffect(() => subscribeSessionExpired(() => {
+    setRequestedPath(path.startsWith('/home') ? path : '/home/dashboard');
+    setSession(null);
+    navigate('/login', { replace: true });
+  }), [path, navigate]);
 
   useEffect(() => {
     if (!session && path !== '/login') {

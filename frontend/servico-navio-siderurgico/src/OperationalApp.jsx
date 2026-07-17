@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, clearSession, formatError, hasAnyRole, loadRuntimeConfig, readSession, saveSession } from './api.js';
+import ReconciliacaoBarcodePage from './ReconciliacaoBarcodePage.jsx';
 import Ui20ControlRoom from './Ui20ControlRoom.jsx';
 import { ROLES, clean } from './ui20-model.js';
 import './ui20.css';
+import './reconciliacao-barcode.css';
+
+const RECONCILIACAO_ROUTE = '#/reconciliacao-barcode';
+
+function currentRoute() {
+  return typeof window === 'undefined' ? '' : window.location.hash;
+}
 
 function Auth({ onAuthenticated }) {
   const [login, setLogin] = useState('');
@@ -51,8 +59,21 @@ export default function OperationalApp() {
   const [session, setSession] = useState(() => readSession());
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
+  const [route, setRoute] = useState(currentRoute);
   useEffect(() => { loadRuntimeConfig().then(() => setReady(true)).catch((reason) => setError(formatError(reason))); }, []);
+  useEffect(() => {
+    const updateRoute = () => setRoute(currentRoute());
+    window.addEventListener('hashchange', updateRoute);
+    return () => window.removeEventListener('hashchange', updateRoute);
+  }, []);
   if (error) return <main className="auth-shell"><div className="auth-card"><h1>Control Room indisponível</h1><div className="message error">{error}</div></div></main>;
   if (!ready) return <main className="auth-shell"><div className="auth-card"><h1>CloudPort</h1><p>Carregando configuração...</p></div></main>;
-  return session && hasAnyRole(session, ...ROLES) ? <Ui20ControlRoom session={session} onLogout={() => { clearSession(); setSession(null); }} /> : <Auth onAuthenticated={setSession} />;
+  if (!session || !hasAnyRole(session, ...ROLES)) return <Auth onAuthenticated={setSession} />;
+
+  const logout = () => { clearSession(); setSession(null); window.location.hash = ''; };
+  if (route === RECONCILIACAO_ROUTE && hasAnyRole(session, 'ADMIN_PORTO')) {
+    return <ReconciliacaoBarcodePage session={session} onBack={() => { window.location.hash = ''; }} onLogout={logout} />;
+  }
+
+  return <><nav className="admin-navigation">{hasAnyRole(session, 'ADMIN_PORTO') && <button className="secondary" onClick={() => { window.location.hash = RECONCILIACAO_ROUTE; }}>Reconciliação de Barcode</button>}</nav><Ui20ControlRoom session={session} onLogout={logout} /></>;
 }

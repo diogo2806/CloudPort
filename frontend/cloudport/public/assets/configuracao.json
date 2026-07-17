@@ -1,4 +1,20 @@
 {
   "baseApiUrl": "http://localhost:8080",
-  "navioControlRoomUrl": "http://localhost:8086"
+  "navioControlRoomUrl": "http://localhost:8086",
+  "googleMaps": {
+    "apiKey": "",
+    "mapId": "",
+    "center": {
+      "lat": -22.93315,
+      "lng": -43.83731
+    },
+    "zoom": 19,
+    "mapTypeId": "satellite",
+    "slotWidthMeters": 3.2,
+    "slotLengthMeters": 12.2,
+    "stackGapMeters": 1,
+    "blockGapMeters": 24,
+    "blockColumns": 2,
+    "rotationDegrees": 0
+  }
 }

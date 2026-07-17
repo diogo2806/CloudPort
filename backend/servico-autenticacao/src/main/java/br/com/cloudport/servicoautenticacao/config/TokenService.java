@@ -9,12 +9,13 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -26,22 +27,40 @@ import org.springframework.util.StringUtils;
 
 @Service
 public class TokenService {
-    @Value("${api.security.token.secret}")
-    private String secret;
 
-    public String generateToken(Usuario usuario){
-        try{
+    private final String secret;
+    private final Duration tokenExpiration;
+    private final Clock clock;
+
+    public TokenService(
+            @Value("${cloudport.security.jwt.secret}") String secret,
+            @Value("${cloudport.security.jwt.expiration}") Duration tokenExpiration) {
+        this(secret, tokenExpiration, Clock.systemUTC());
+    }
+
+    TokenService(String secret, Duration tokenExpiration, Clock clock) {
+        if (tokenExpiration == null || tokenExpiration.isZero() || tokenExpiration.isNegative()) {
+            throw new IllegalArgumentException("A duração do token JWT deve ser positiva.");
+        }
+        this.secret = secret;
+        this.tokenExpiration = tokenExpiration;
+        this.clock = clock;
+    }
+
+    public String generateToken(Usuario usuario) {
+        try {
             SecretKey algorithm = signingKey();
             Set<String> papeis = Optional.ofNullable(usuario.getPapeis()).orElseGet(Collections::emptySet).stream()
                     .map(UsuarioPapel::getPapel)
                     .map(Papel::getNome)
                     .filter(StringUtils::hasText)
-                    .map(nomePapel -> nomePapel.startsWith("ROLE_") ? nomePapel : "ROLE_" + nomePapel.toUpperCase())
+                    .map(nomePapel -> nomePapel.startsWith("ROLE_")
+                            ? nomePapel
+                            : "ROLE_" + nomePapel.toUpperCase())
                     .collect(Collectors.toSet());
 
             String perfil = papeis.stream().findFirst().orElse(null);
-
-            var claims = new HashMap<String, Object>();
+            Map<String, Object> claims = new HashMap<>();
             if (usuario.getId() != null) {
                 claims.put("userId", usuario.getId().toString());
             }
@@ -61,10 +80,12 @@ public class TokenService {
                 claims.put("transportadoraNome", usuario.getTransportadoraNome());
             }
 
+            Instant emitidoEm = Instant.now(clock);
             return Jwts.builder()
                     .setIssuer("auth-api")
                     .setSubject(usuario.getLogin())
-                    .setExpiration(Date.from(genExpirationDate()))
+                    .setIssuedAt(Date.from(emitidoEm))
+                    .setExpiration(Date.from(calcularExpiracao(emitidoEm)))
                     .addClaims(claims)
                     .signWith(algorithm, SignatureAlgorithm.HS256)
                     .compact();
@@ -73,7 +94,7 @@ public class TokenService {
         }
     }
 
-    public Optional<String> validateToken(String token){
+    public Optional<String> validateToken(String token) {
         try {
             SecretKey algorithm = signingKey();
             Claims claims = Jwts.parserBuilder()
@@ -83,13 +104,13 @@ public class TokenService {
                     .parseClaimsJws(token)
                     .getBody();
             return Optional.ofNullable(claims.getSubject());
-        } catch (JwtException | IllegalArgumentException exception){
+        } catch (JwtException | IllegalArgumentException exception) {
             return Optional.empty();
         }
     }
 
-    private Instant genExpirationDate(){
-        return LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-03:00"));
+    Instant calcularExpiracao(Instant emitidoEm) {
+        return emitidoEm.plus(tokenExpiration);
     }
 
     private SecretKey signingKey() {

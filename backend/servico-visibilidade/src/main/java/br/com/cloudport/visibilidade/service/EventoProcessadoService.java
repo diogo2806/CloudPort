@@ -35,32 +35,40 @@ public class EventoProcessadoService {
     public boolean processarUmaVez(String consumidor,
                                    Map<String, Object> envelope,
                                    Consumer<EventoRecebido> processador) {
+        return processarUmaVez(consumidor, EventoRecebido.de(envelope), processador);
+    }
+
+    @Transactional
+    public boolean processarUmaVez(String consumidor,
+                                   EventoRecebido evento,
+                                   Consumer<EventoRecebido> processador) {
         if (!StringUtils.hasText(consumidor)) {
             throw new EventoEnvelopeInvalidoException("O consumidor do evento e obrigatorio.");
+        }
+        if (evento == null) {
+            throw new EventoEnvelopeInvalidoException("O evento e obrigatorio.");
         }
         if (processador == null) {
             throw new EventoEnvelopeInvalidoException("O processador do evento e obrigatorio.");
         }
 
-        EventoRecebido evento = EventoRecebido.de(envelope);
         String hashPayload = calcularHash(evento.getEnvelope());
         Optional<EventoProcessado> existente = eventoProcessadoRepository
                 .findByIdentidadeEvento(evento.getIdentidade());
-
         if (existente.isPresent()) {
             validarRedelivery(existente.get(), evento, hashPayload);
             return false;
         }
 
+        processador.accept(evento);
         EventoProcessado registro = criarRegistro(consumidor, evento, hashPayload);
         eventoProcessadoRepository.saveAndFlush(registro);
-        processador.accept(evento);
         return true;
     }
 
     private EventoProcessado criarRegistro(String consumidor,
-                                            EventoRecebido evento,
-                                            String hashPayload) {
+                                             EventoRecebido evento,
+                                             String hashPayload) {
         EventoProcessado registro = new EventoProcessado();
         registro.setIdentidadeEvento(evento.getIdentidade());
         registro.setTipoEvento(evento.getTipo());
@@ -73,8 +81,8 @@ public class EventoProcessadoService {
     }
 
     private void validarRedelivery(EventoProcessado existente,
-                                   EventoRecebido evento,
-                                   String hashPayload) {
+                                    EventoRecebido evento,
+                                    String hashPayload) {
         if (!hashPayload.equals(existente.getHashPayload())) {
             throw new EventoIdentidadeColidenteException(
                     "A identidade " + evento.getIdentidade()

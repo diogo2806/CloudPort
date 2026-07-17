@@ -1,0 +1,77 @@
+.admin-navigation {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1.5rem 0;
+  background: var(--surface, #f5f7fa);
+}
+
+.reconciliation-app {
+  min-height: 100vh;
+  background: var(--surface, #f5f7fa);
+  color: var(--text, #172033);
+}
+
+.reconciliation-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--panel, #ffffff);
+  border-bottom: 1px solid rgba(23, 32, 51, 0.14);
+}
+
+.reconciliation-topbar h1,
+.reconciliation-topbar p {
+  margin: 0.2rem 0;
+}
+
+.reconciliation-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.reconciliation-content {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.reconciliation-filter {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.reconciliation-filter label {
+  min-width: min(32rem, 100%);
+}
+
+.reconciliation-table textarea {
+  min-width: 16rem;
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.reconciliation-table td {
+  vertical-align: top;
+}
+
+.reconciliation-table td:last-child {
+  display: grid;
+  gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .reconciliation-topbar,
+  .reconciliation-filter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reconciliation-actions {
+    flex-wrap: wrap;
+  }
+}

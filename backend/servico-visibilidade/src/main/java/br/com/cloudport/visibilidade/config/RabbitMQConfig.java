@@ -8,6 +8,7 @@ import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFacto
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -20,24 +21,44 @@ public class RabbitMQConfig {
     public static final String VISIBILIDADE_YARD_QUEUE = "visibilidade.yard.events";
     public static final String VISIBILIDADE_NAVIO_QUEUE = "visibilidade.navio.events";
     public static final String VISIBILIDADE_RAIL_QUEUE = "visibilidade.rail.events";
+    public static final String VISIBILIDADE_RAIL_REJEITADOS_QUEUE = "visibilidade.rail.rejeitados";
 
     private final String exchangeLegado;
     private final String exchangeYard;
     private final String routingYard;
     private final String exchangeRail;
     private final String routingRail;
+    private final String exchangeRailRejeitados;
+    private final String queueRailRejeitados;
+    private final String routingRailRejeitados;
 
+    public RabbitMQConfig(String exchangeLegado,
+                          String exchangeYard,
+                          String routingYard,
+                          String exchangeRail,
+                          String routingRail) {
+        this(exchangeLegado, exchangeYard, routingYard, exchangeRail, routingRail,
+                "visibilidade.rail.rejeitados", VISIBILIDADE_RAIL_REJEITADOS_QUEUE, "rail.rejeitado");
+    }
+
+    @Autowired
     public RabbitMQConfig(
             @Value("${cloudport.visibilidade.eventos.legado.exchange:port.events}") String exchangeLegado,
             @Value("${cloudport.visibilidade.eventos.yard.exchange:yard.eventos}") String exchangeYard,
             @Value("${cloudport.visibilidade.eventos.yard.routing:yard.movimento.registrado}") String routingYard,
             @Value("${cloudport.visibilidade.eventos.rail.exchange:ferrovia.eventos}") String exchangeRail,
-            @Value("${cloudport.visibilidade.eventos.rail.routing:rail.movimentacao.concluida}") String routingRail) {
+            @Value("${cloudport.visibilidade.eventos.rail.routing:rail.movimentacao.concluida}") String routingRail,
+            @Value("${cloudport.visibilidade.eventos.rail.rejeitados.exchange:visibilidade.rail.rejeitados}") String exchangeRailRejeitados,
+            @Value("${cloudport.visibilidade.eventos.rail.rejeitados.queue:visibilidade.rail.rejeitados}") String queueRailRejeitados,
+            @Value("${cloudport.visibilidade.eventos.rail.rejeitados.routing:rail.rejeitado}") String routingRailRejeitados) {
         this.exchangeLegado = exchangeLegado;
         this.exchangeYard = exchangeYard;
         this.routingYard = routingYard;
         this.exchangeRail = exchangeRail;
         this.routingRail = routingRail;
+        this.exchangeRailRejeitados = exchangeRailRejeitados;
+        this.queueRailRejeitados = queueRailRejeitados;
+        this.routingRailRejeitados = routingRailRejeitados;
     }
 
     @Bean("eventosLegadoExchange")
@@ -53,6 +74,11 @@ public class RabbitMQConfig {
     @Bean("eventosRailExchange")
     public TopicExchange eventosRailExchange() {
         return new TopicExchange(exchangeRail, true, false);
+    }
+
+    @Bean("eventosRailRejeitadosExchange")
+    public TopicExchange eventosRailRejeitadosExchange() {
+        return new TopicExchange(exchangeRailRejeitados, true, false);
     }
 
     @Bean
@@ -73,6 +99,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue visibilidadeRailQueue() {
         return new Queue(VISIBILIDADE_RAIL_QUEUE, true);
+    }
+
+    @Bean
+    public Queue visibilidadeRailRejeitadosQueue() {
+        return new Queue(queueRailRejeitados, true);
     }
 
     @Bean
@@ -112,6 +143,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Binding railRejeitadosBinding(
+            @Qualifier("visibilidadeRailRejeitadosQueue") Queue queue,
+            @Qualifier("eventosRailRejeitadosExchange") TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(routingRailRejeitados);
+    }
+
+    @Bean
     public Jackson2JsonMessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
     }
@@ -133,6 +171,7 @@ public class RabbitMQConfig {
         factory.setMessageConverter(messageConverter);
         factory.setConcurrentConsumers(5);
         factory.setMaxConcurrentConsumers(10);
+        factory.setDefaultRequeueRejected(true);
         return factory;
     }
 }

@@ -45,7 +45,7 @@ public class ConteinerPatio {
     private String destino;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "posicao_id", nullable = false)
+    @JoinColumn(name = "posicao_id")
     private PosicaoPatio posicao;
 
     @Column(name = "peso_toneladas", precision = 10, scale = 3)

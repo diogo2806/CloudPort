@@ -9,4 +9,6 @@ public interface GateEventRepository extends JpaRepository<GateEvent, Long> {
     List<GateEvent> findByGatePassIdOrderByRegistradoEmAsc(Long gatePassId);
 
     List<GateEvent> findTop100ByOrderByRegistradoEmDesc();
+
+    boolean existsByGatePassIdAndObservacaoStartingWith(Long gatePassId, String observacao);
 }

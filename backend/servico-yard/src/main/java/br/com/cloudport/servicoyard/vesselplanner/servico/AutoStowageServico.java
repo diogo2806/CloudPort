@@ -4,7 +4,6 @@ import br.com.cloudport.servicoyard.edi.modelo.BayPlanContainer;
 import br.com.cloudport.servicoyard.edi.modelo.EstadoCargaContainer;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.EstivagemPlan;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.SlotNavio;
-import br.com.cloudport.servicoyard.vesselplanner.modelo.TipoSlotNavio;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -18,9 +17,17 @@ public class AutoStowageServico {
     private static final double LIMITE_CONTAINER_PESADO_KG = 20_000.0;
     private static final int TIER_MAXIMO_CONTAINER_PESADO = 3;
 
+    private final GeometriaNavioServico geometriaServico;
+
+    public AutoStowageServico(GeometriaNavioServico geometriaServico) {
+        this.geometriaServico = geometriaServico;
+    }
+
     public int sugerirEstivagem(EstivagemPlan plan, List<BayPlanContainer> containers) {
+        geometriaServico.validarPlanoOperacional(plan);
         List<SlotNavio> slotsLivres = plan.getSlots().stream()
                 .filter(slot -> slot.getCodigoContainer() == null)
+                .filter(slot -> !slot.isRestrito())
                 .collect(Collectors.toList());
 
         List<BayPlanContainer> ordenados = containers.stream()
@@ -40,7 +47,7 @@ public class AutoStowageServico {
                     .findFirst();
 
             if (destino.isPresent()) {
-                preencherSlot(destino.get(), container);
+                geometriaServico.preencherSlot(destino.get(), container);
                 slotsLivres.remove(destino.get());
                 alocados++;
             }
@@ -60,23 +67,23 @@ public class AutoStowageServico {
     }
 
     private boolean compativel(EstivagemPlan plan, SlotNavio slot, BayPlanContainer container) {
-        if (slot.getCodigoContainer() != null || slot.getTipoSlot() == TipoSlotNavio.ESCOTILHA) {
-            return false;
-        }
-
         Double pesoOperacional = container.getPesoOperacionalKg();
-        if (pesoOperacional == null || pesoOperacional <= 0) {
-            return false;
-        }
-        if (slot.getMaxPesoKg() != null && pesoOperacional > slot.getMaxPesoKg()) {
+        boolean possuiViolacaoGeometrica = geometriaServico.verificarAlocacao(
+                        plan,
+                        slot,
+                        container.getCodigoContainer(),
+                        container.getIsoCode(),
+                        pesoOperacional,
+                        container.isReefer(),
+                        container.isPerigoso(),
+                        container.isOog())
+                .stream()
+                .anyMatch(violacao -> "PERIGO".equals(violacao.getSeveridade()));
+        if (possuiViolacaoGeometrica) {
             return false;
         }
         if (pesoOperacional > LIMITE_CONTAINER_PESADO_KG
                 && slot.getTier() > TIER_MAXIMO_CONTAINER_PESADO) {
-            return false;
-        }
-
-        if (!tipoSlotCompativel(slot.getTipoSlot(), container)) {
             return false;
         }
         if (container.isOog() && existeCargaAdjacente(plan, slot)) {
@@ -88,28 +95,9 @@ public class AutoStowageServico {
         return !container.isPerigoso() || segregacaoCompativel(plan, slot, container);
     }
 
-    private boolean tipoSlotCompativel(TipoSlotNavio tipoSlot, BayPlanContainer container) {
-        if (tipoSlot == null) {
-            return false;
-        }
-        if (container.isOog()) {
-            return !container.isPerigoso() && !container.isReefer() && tipoSlot == TipoSlotNavio.OOG;
-        }
-        if (container.isPerigoso() && container.isReefer()) {
-            return tipoSlot == TipoSlotNavio.REEFER_PERIGOSO;
-        }
-        if (container.isPerigoso()) {
-            return tipoSlot == TipoSlotNavio.PERIGOSO;
-        }
-        if (container.isReefer()) {
-            return tipoSlot == TipoSlotNavio.REEFER;
-        }
-        return tipoSlot == TipoSlotNavio.NORMAL;
-    }
-
     private boolean segregacaoCompativel(EstivagemPlan plan,
-                                          SlotNavio destino,
-                                          BayPlanContainer container) {
+                                           SlotNavio destino,
+                                           BayPlanContainer container) {
         return plan.getSlots().stream()
                 .filter(SlotNavio::isPerigoso)
                 .filter(slot -> slot.getCodigoContainer() != null)
@@ -154,31 +142,6 @@ public class AutoStowageServico {
                 .thenComparing(porTier);
     }
 
-    private void preencherSlot(SlotNavio slot, BayPlanContainer container) {
-        slot.setCodigoContainer(container.getCodigoContainer());
-        slot.setIsoCode(container.getIsoCode());
-        slot.setPesoKg(container.getPesoOperacionalKg());
-        slot.setPesoVgmKg(container.getPesoVgmKg());
-        slot.setEstadoCarga(container.getEstadoCarga());
-        slot.setPortoCarga(container.getPortoCarga());
-        slot.setPortoDescarga(container.getPortoDescarga());
-        slot.setClasseImo(container.getClasseImo());
-        slot.setNumeroOnu(container.getNumeroOnu());
-        slot.setGrupoSegregacao(container.getGrupoSegregacao());
-        slot.setPerigoso(container.isPerigoso());
-        slot.setReefer(container.isReefer());
-        slot.setTemperaturaRequeridaC(container.getTemperaturaRequeridaC());
-        slot.setTemperaturaMinimaC(container.getTemperaturaMinimaC());
-        slot.setTemperaturaMaximaC(container.getTemperaturaMaximaC());
-        slot.setOog(container.isOog());
-        slot.setExcessoFrontalCm(container.getExcessoFrontalCm());
-        slot.setExcessoTraseiroCm(container.getExcessoTraseiroCm());
-        slot.setExcessoEsquerdoCm(container.getExcessoEsquerdoCm());
-        slot.setExcessoDireitoCm(container.getExcessoDireitoCm());
-        slot.setExcessoAlturaCm(container.getExcessoAlturaCm());
-        slot.setStatusAlertas("OK");
-    }
-
     private void limparSlot(SlotNavio slot) {
         slot.setCodigoContainer(null);
         slot.setIsoCode(null);
@@ -201,7 +164,7 @@ public class AutoStowageServico {
         slot.setExcessoEsquerdoCm(null);
         slot.setExcessoDireitoCm(null);
         slot.setExcessoAlturaCm(null);
-        slot.setStatusAlertas("OK");
+        slot.setStatusAlertas(slot.isRestrito() ? "RESTRITO" : "OK");
     }
 
     private boolean iguaisNaoVazios(String primeiro, String segundo) {

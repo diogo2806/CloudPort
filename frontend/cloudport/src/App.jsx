@@ -4,6 +4,7 @@ import { Message } from './components.jsx';
 import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
+import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 import {
   ControlRoomPage,
   DATASET_ROUTES,
@@ -123,6 +124,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
   if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage />;
   if (path === '/home/embarque' || path === '/home/embarque/planejamento') return <ContainerVesselPlannerPage session={session} />;
+  if (path === '/home/embarque/steel-coils') return <SteelCoilPlannerPage />;
 
   const definition = DATASET_ROUTES[path]
     ?? Object.entries(DATASET_ROUTES).find(([route]) => path.startsWith(`${route}/`))?.[1];

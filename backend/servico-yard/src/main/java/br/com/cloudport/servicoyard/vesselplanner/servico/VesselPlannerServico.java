@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.vesselplanner.servico;
 
 import br.com.cloudport.servicoyard.edi.modelo.BayPlan;
+import br.com.cloudport.servicoyard.edi.modelo.EstadoCargaContainer;
 import br.com.cloudport.servicoyard.edi.repositorio.BayPlanRepositorio;
 import br.com.cloudport.servicoyard.vesselplanner.dto.AlocacaoSlotRequisicaoDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.AlocacaoSlotRespostaDto;
@@ -36,13 +37,13 @@ public class VesselPlannerServico {
     private final VesselPlannerEventoPublicador publicador;
 
     public VesselPlannerServico(EstivagemPlanRepositorio planRepositorio,
-                                 SlotNavioRepositorio slotRepositorio,
-                                 BayPlanRepositorio bayPlanRepositorio,
-                                 EstabilidadeNavioServico estabilidadeServico,
-                                 RestowCalculadorServico restowServico,
-                                 SequenciamentoGuindasteServico sequenciamentoServico,
-                                 AutoStowageServico autoStowageServico,
-                                 VesselPlannerEventoPublicador publicador) {
+                                  SlotNavioRepositorio slotRepositorio,
+                                  BayPlanRepositorio bayPlanRepositorio,
+                                  EstabilidadeNavioServico estabilidadeServico,
+                                  RestowCalculadorServico restowServico,
+                                  SequenciamentoGuindasteServico sequenciamentoServico,
+                                  AutoStowageServico autoStowageServico,
+                                  VesselPlannerEventoPublicador publicador) {
         this.planRepositorio = planRepositorio;
         this.slotRepositorio = slotRepositorio;
         this.bayPlanRepositorio = bayPlanRepositorio;
@@ -92,44 +93,65 @@ public class VesselPlannerServico {
     }
 
     @Transactional
-    public AlocacaoSlotRespostaDto alocarContainer(Long planId, AlocacaoSlotRequisicaoDto req) {
+    public AlocacaoSlotRespostaDto alocarContainer(Long planId, AlocacaoSlotRequisicaoDto requisicao) {
         EstivagemPlan plan = buscarPlan(planId);
-        SlotNavio slot = slotRepositorio.findById(req.getSlotDestinoId())
-                .orElseThrow(() -> new EntityNotFoundException("Slot não encontrado: " + req.getSlotDestinoId()));
+        SlotNavio slot = slotRepositorio.findById(requisicao.getSlotDestinoId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Slot não encontrado: " + requisicao.getSlotDestinoId()));
 
         if (!slot.getEstivagem().getId().equals(planId)) {
             return AlocacaoSlotRespostaDto.falha("Slot não pertence ao plano informado", List.of());
         }
+        if (!tipoSlotCompativel(slot.getTipoSlot(), requisicao)) {
+            return AlocacaoSlotRespostaDto.falha(
+                    "Slot incompatível com os atributos operacionais e de segurança do contêiner",
+                    List.of());
+        }
 
+        Double pesoOperacional = requisicao.getPesoVgmKg() != null
+                ? requisicao.getPesoVgmKg()
+                : requisicao.getPesoKg();
         List<ViolacaoHardConstraintDto> violacoes = estabilidadeServico.verificarSlot(
-                plan, slot, req.getCodigoContainer(), req.getPesoKg(), req.getClasseImo(), req.isReefer());
+                plan,
+                slot,
+                requisicao.getCodigoContainer(),
+                pesoOperacional,
+                requisicao.getClasseImo(),
+                requisicao.isReefer());
 
-        boolean temPerigo = violacoes.stream().anyMatch(v -> "PERIGO".equals(v.getSeveridade()));
+        boolean temPerigo = violacoes.stream().anyMatch(violacao -> "PERIGO".equals(violacao.getSeveridade()));
         if (temPerigo) {
             return AlocacaoSlotRespostaDto.falha(
                     "Alocação bloqueada por violação de Hard Constraint", violacoes);
         }
 
         plan.getSlots().stream()
-                .filter(s -> req.getCodigoContainer().equals(s.getCodigoContainer()))
-                .forEach(s -> {
-                    s.setCodigoContainer(null);
-                    s.setIsoCode(null);
-                    s.setPesoKg(null);
-                    s.setPortoCarga(null);
-                    s.setPortoDescarga(null);
-                    s.setClasseImo(null);
-                    s.setReefer(false);
-                    s.setStatusAlertas("OK");
-                });
+                .filter(item -> requisicao.getCodigoContainer().equals(item.getCodigoContainer()))
+                .forEach(this::limparSlot);
 
-        slot.setCodigoContainer(req.getCodigoContainer());
-        slot.setIsoCode(req.getIsoCode());
-        slot.setPesoKg(req.getPesoKg());
-        slot.setPortoCarga(req.getPortoCarga());
-        slot.setPortoDescarga(req.getPortoDescarga());
-        slot.setClasseImo(req.getClasseImo());
-        slot.setReefer(req.isReefer());
+        slot.setCodigoContainer(requisicao.getCodigoContainer());
+        slot.setIsoCode(requisicao.getIsoCode());
+        slot.setPesoKg(pesoOperacional);
+        slot.setPesoVgmKg(requisicao.getPesoVgmKg());
+        slot.setEstadoCarga(requisicao.getEstadoCarga() != null
+                ? requisicao.getEstadoCarga()
+                : EstadoCargaContainer.DESCONHECIDO);
+        slot.setPortoCarga(requisicao.getPortoCarga());
+        slot.setPortoDescarga(requisicao.getPortoDescarga());
+        slot.setClasseImo(requisicao.getClasseImo());
+        slot.setNumeroOnu(requisicao.getNumeroOnu());
+        slot.setGrupoSegregacao(requisicao.getGrupoSegregacao());
+        slot.setPerigoso(requisicao.isPerigoso());
+        slot.setReefer(requisicao.isReefer());
+        slot.setTemperaturaRequeridaC(requisicao.getTemperaturaRequeridaC());
+        slot.setTemperaturaMinimaC(requisicao.getTemperaturaMinimaC());
+        slot.setTemperaturaMaximaC(requisicao.getTemperaturaMaximaC());
+        slot.setOog(requisicao.isOog());
+        slot.setExcessoFrontalCm(requisicao.getExcessoFrontalCm());
+        slot.setExcessoTraseiroCm(requisicao.getExcessoTraseiroCm());
+        slot.setExcessoEsquerdoCm(requisicao.getExcessoEsquerdoCm());
+        slot.setExcessoDireitoCm(requisicao.getExcessoDireitoCm());
+        slot.setExcessoAlturaCm(requisicao.getExcessoAlturaCm());
         slot.setStatusAlertas(violacoes.isEmpty() ? "OK" : "AVISO");
 
         EstabilidadeDto estabilidade = estabilidadeServico.calcular(plan);
@@ -214,27 +236,89 @@ public class VesselPlannerServico {
                 .map(this::toSlotDto)
                 .collect(Collectors.toList());
         dto.setSlots(slots);
-        dto.setTotalSlotsOcupados((int) slots.stream().filter(s -> s.getCodigoContainer() != null).count());
+        dto.setTotalSlotsOcupados((int) slots.stream()
+                .filter(item -> item.getCodigoContainer() != null)
+                .count());
         dto.setTotalContainers(dto.getTotalSlotsOcupados());
         return dto;
     }
 
-    private SlotNavioDto toSlotDto(SlotNavio s) {
+    private SlotNavioDto toSlotDto(SlotNavio slot) {
         SlotNavioDto dto = new SlotNavioDto();
-        dto.setId(s.getId());
-        dto.setBay(s.getBay());
-        dto.setRowBay(s.getRowBay());
-        dto.setTier(s.getTier());
-        dto.setTipoSlot(s.getTipoSlot() != null ? s.getTipoSlot().name() : null);
-        dto.setMaxPesoKg(s.getMaxPesoKg());
-        dto.setCodigoContainer(s.getCodigoContainer());
-        dto.setIsoCode(s.getIsoCode());
-        dto.setPesoKg(s.getPesoKg());
-        dto.setPortoCarga(s.getPortoCarga());
-        dto.setPortoDescarga(s.getPortoDescarga());
-        dto.setClasseImo(s.getClasseImo());
-        dto.setReefer(s.isReefer());
-        dto.setStatusAlertas(s.getStatusAlertas());
+        dto.setId(slot.getId());
+        dto.setBay(slot.getBay());
+        dto.setRowBay(slot.getRowBay());
+        dto.setTier(slot.getTier());
+        dto.setTipoSlot(slot.getTipoSlot() != null ? slot.getTipoSlot().name() : null);
+        dto.setMaxPesoKg(slot.getMaxPesoKg());
+        dto.setCodigoContainer(slot.getCodigoContainer());
+        dto.setIsoCode(slot.getIsoCode());
+        dto.setPesoKg(slot.getPesoKg());
+        dto.setPesoVgmKg(slot.getPesoVgmKg());
+        dto.setEstadoCarga(slot.getEstadoCarga());
+        dto.setPortoCarga(slot.getPortoCarga());
+        dto.setPortoDescarga(slot.getPortoDescarga());
+        dto.setClasseImo(slot.getClasseImo());
+        dto.setNumeroOnu(slot.getNumeroOnu());
+        dto.setGrupoSegregacao(slot.getGrupoSegregacao());
+        dto.setPerigoso(slot.isPerigoso());
+        dto.setReefer(slot.isReefer());
+        dto.setTemperaturaRequeridaC(slot.getTemperaturaRequeridaC());
+        dto.setTemperaturaMinimaC(slot.getTemperaturaMinimaC());
+        dto.setTemperaturaMaximaC(slot.getTemperaturaMaximaC());
+        dto.setOog(slot.isOog());
+        dto.setExcessoFrontalCm(slot.getExcessoFrontalCm());
+        dto.setExcessoTraseiroCm(slot.getExcessoTraseiroCm());
+        dto.setExcessoEsquerdoCm(slot.getExcessoEsquerdoCm());
+        dto.setExcessoDireitoCm(slot.getExcessoDireitoCm());
+        dto.setExcessoAlturaCm(slot.getExcessoAlturaCm());
+        dto.setStatusAlertas(slot.getStatusAlertas());
         return dto;
+    }
+
+    private boolean tipoSlotCompativel(TipoSlotNavio tipoSlot, AlocacaoSlotRequisicaoDto requisicao) {
+        if (tipoSlot == null || tipoSlot == TipoSlotNavio.ESCOTILHA) {
+            return false;
+        }
+        if (requisicao.isOog()) {
+            return !requisicao.isPerigoso()
+                    && !requisicao.isReefer()
+                    && tipoSlot == TipoSlotNavio.OOG;
+        }
+        if (requisicao.isPerigoso() && requisicao.isReefer()) {
+            return tipoSlot == TipoSlotNavio.REEFER_PERIGOSO;
+        }
+        if (requisicao.isPerigoso()) {
+            return tipoSlot == TipoSlotNavio.PERIGOSO;
+        }
+        if (requisicao.isReefer()) {
+            return tipoSlot == TipoSlotNavio.REEFER;
+        }
+        return tipoSlot == TipoSlotNavio.NORMAL;
+    }
+
+    private void limparSlot(SlotNavio slot) {
+        slot.setCodigoContainer(null);
+        slot.setIsoCode(null);
+        slot.setPesoKg(null);
+        slot.setPesoVgmKg(null);
+        slot.setEstadoCarga(EstadoCargaContainer.DESCONHECIDO);
+        slot.setPortoCarga(null);
+        slot.setPortoDescarga(null);
+        slot.setClasseImo(null);
+        slot.setNumeroOnu(null);
+        slot.setGrupoSegregacao(null);
+        slot.setPerigoso(false);
+        slot.setReefer(false);
+        slot.setTemperaturaRequeridaC(null);
+        slot.setTemperaturaMinimaC(null);
+        slot.setTemperaturaMaximaC(null);
+        slot.setOog(false);
+        slot.setExcessoFrontalCm(null);
+        slot.setExcessoTraseiroCm(null);
+        slot.setExcessoEsquerdoCm(null);
+        slot.setExcessoDireitoCm(null);
+        slot.setExcessoAlturaCm(null);
+        slot.setStatusAlertas("OK");
     }
 }

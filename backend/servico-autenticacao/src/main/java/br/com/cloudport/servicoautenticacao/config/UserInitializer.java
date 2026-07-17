@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoautenticacao.config;
 
+import br.com.cloudport.servicoautenticacao.app.configuracoes.validacao.SanitizadorEntrada;
 import java.util.UUID;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -39,6 +40,7 @@ public class UserInitializer implements CommandLineRunner {
     }
 
     private void garantirAdministradorInicial() {
+        SanitizadorEntrada.validarNovaSenha(SENHA_ADMIN);
         String senhaCodificada = passwordEncoder.encode(SENHA_ADMIN);
 
         jdbcTemplate.update(

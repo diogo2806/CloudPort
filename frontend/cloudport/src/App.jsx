@@ -11,9 +11,17 @@ import {
   HomeDashboard,
   RailImportPage,
   RailVisitsPage,
-  ShippingPage,
-  YardMapPage
+  ShippingPage
 } from './pages/OperationalPages.jsx';
+import {
+  YardAutomationPage,
+  YardKpiPage,
+  YardMapPage,
+  YardMovementsPage,
+  YardPositionsPage,
+  YardResourcesPage,
+  YardWorkListPage
+} from './pages/YardPages.jsx';
 
 const FALLBACK_NAVIGATION = [
   { group: 'Visão geral', items: [{ label: 'Painel', path: '/home/dashboard', roles: [] }] },
@@ -121,7 +129,13 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
-  if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage />;
+  if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage navigate={navigate} />;
+  if (path === '/home/patio/posicoes') return <YardPositionsPage navigate={navigate} />;
+  if (path === '/home/patio/lista-trabalho') return <YardWorkListPage navigate={navigate} session={session} />;
+  if (path === '/home/patio/movimentacoes' || path === '/home/patio/movimentacao') return <YardMovementsPage navigate={navigate} />;
+  if (path === '/home/patio/recursos') return <YardResourcesPage navigate={navigate} />;
+  if (path === '/home/patio/dashboard-kpi') return <YardKpiPage navigate={navigate} />;
+  if (path === '/home/patio/automacao' || path === '/home/patio/simulador') return <YardAutomationPage navigate={navigate} session={session} />;
   if (path === '/home/embarque' || path === '/home/embarque/planejamento') return <ShippingPage />;
 
   const definition = DATASET_ROUTES[path]

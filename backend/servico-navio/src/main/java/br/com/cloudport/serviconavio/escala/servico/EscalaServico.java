@@ -5,6 +5,7 @@ import br.com.cloudport.serviconavio.escala.dto.AtualizacaoEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.CadastroEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaDetalheDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaResumoDTO;
+import br.com.cloudport.serviconavio.escala.dto.LineUpPublicoDTO;
 import br.com.cloudport.serviconavio.escala.entidade.Escala;
 import br.com.cloudport.serviconavio.escala.entidade.FaseEscala;
 import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
@@ -33,8 +34,8 @@ public class EscalaServico {
     private final SanitizadorEntrada sanitizadorEntrada;
 
     public EscalaServico(EscalaRepositorio escalaRepositorio,
-                         NavioRepositorio navioRepositorio,
-                         SanitizadorEntrada sanitizadorEntrada) {
+                          NavioRepositorio navioRepositorio,
+                          SanitizadorEntrada sanitizadorEntrada) {
         this.escalaRepositorio = escalaRepositorio;
         this.navioRepositorio = navioRepositorio;
         this.sanitizadorEntrada = sanitizadorEntrada;
@@ -42,15 +43,15 @@ public class EscalaServico {
 
     @Transactional(readOnly = true)
     public List<EscalaResumoDTO> listarCronograma(int dias) {
-        if (dias < 1 || dias > DIAS_MAXIMO_CONSULTA) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    String.format(Locale.ROOT, "O intervalo de consulta deve estar entre 1 e %d dias.", DIAS_MAXIMO_CONSULTA));
-        }
-        LocalDateTime agora = LocalDateTime.now();
-        LocalDateTime inicio = agora.minusDays(1);
-        LocalDateTime limite = agora.plusDays(dias);
-        return escalaRepositorio.buscarCronograma(inicio, limite, FASES_FORA_CRONOGRAMA).stream()
+        return buscarEscalasCronograma(dias).stream()
                 .map(this::mapearResumo)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<LineUpPublicoDTO> listarLineUpPublico(int dias) {
+        return buscarEscalasCronograma(dias).stream()
+                .map(this::mapearLineUpPublico)
                 .collect(Collectors.toList());
     }
 
@@ -153,6 +154,17 @@ public class EscalaServico {
         escalaRepositorio.delete(obterEscala(id));
     }
 
+    private List<Escala> buscarEscalasCronograma(int dias) {
+        if (dias < 1 || dias > DIAS_MAXIMO_CONSULTA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format(Locale.ROOT, "O intervalo de consulta deve estar entre 1 e %d dias.", DIAS_MAXIMO_CONSULTA));
+        }
+        LocalDateTime agora = LocalDateTime.now();
+        LocalDateTime inicio = agora.minusDays(1);
+        LocalDateTime limite = agora.plusDays(dias);
+        return escalaRepositorio.buscarCronograma(inicio, limite, FASES_FORA_CRONOGRAMA);
+    }
+
     private void carimbarTemposEfetivos(Escala escala, FaseEscala destino, LocalDateTime agora) {
         if (destino == FaseEscala.ATRACADO) {
             if (escala.getChegadaEfetiva() == null) {
@@ -174,8 +186,8 @@ public class EscalaServico {
     }
 
     private void validarOrdemTempos(LocalDateTime chegada,
-                                    LocalDateTime atracacao,
-                                    LocalDateTime partida) {
+                                     LocalDateTime atracacao,
+                                     LocalDateTime partida) {
         if (chegada == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A chegada prevista é obrigatória.");
         }
@@ -230,6 +242,28 @@ public class EscalaServico {
                 escala.getFase(),
                 escala.getChegadaPrevista(),
                 escala.getBercoPrevisto()
+        );
+    }
+
+    private LineUpPublicoDTO mapearLineUpPublico(Escala escala) {
+        Navio navio = escala.getNavio();
+        String berco = StringUtils.hasText(escala.getBercoAtual())
+                ? escala.getBercoAtual()
+                : escala.getBercoPrevisto();
+        return new LineUpPublicoDTO(
+                navio.getNome(),
+                navio.getCodigoImo(),
+                escala.getViagemEntrada(),
+                escala.getViagemSaida(),
+                escala.getFase(),
+                escala.getChegadaPrevista(),
+                escala.getAtracacaoPrevista(),
+                escala.getPartidaPrevista(),
+                escala.getChegadaEfetiva(),
+                escala.getAtracacaoEfetiva(),
+                escala.getPartidaEfetiva(),
+                berco,
+                escala.getAtualizadoEm()
         );
     }
 }

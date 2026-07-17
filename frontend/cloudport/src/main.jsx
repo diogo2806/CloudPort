@@ -5,6 +5,7 @@ import { loadRuntimeConfig } from './api.js';
 import './styles.css';
 import './steel-coil-planner.css';
 import './vessel-lineup.css';
+import './public-line-up.css';
 
 function renderConfigurationError(error) {
   createRoot(document.getElementById('root')).render(

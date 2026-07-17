@@ -10,8 +10,8 @@ import br.com.cloudport.servicoyard.estivagembulk.dto.PressaoTanktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
+import br.com.cloudport.servicoyard.estivagembulk.modelo.PlanoEstivaBulk;
 import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
-import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.EntityNotFoundException;
@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -29,11 +30,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class EstivaBulkControlador {
 
     private final PlanoEstivaBulkServico servico;
-    private final NavioGranelRepositorio navioRepositorio;
 
-    public EstivaBulkControlador(PlanoEstivaBulkServico servico, NavioGranelRepositorio navioRepositorio) {
+    public EstivaBulkControlador(PlanoEstivaBulkServico servico) {
         this.servico = servico;
-        this.navioRepositorio = navioRepositorio;
     }
 
     @PostMapping("/navios")
@@ -42,27 +41,34 @@ public class EstivaBulkControlador {
     }
 
     @GetMapping("/navios")
-    public ResponseEntity<List<NavioGranel>> listarNavios() {
-        return ResponseEntity.ok(navioRepositorio.findByIsTemplateFalseOrderByNomeAsc());
+    public ResponseEntity<List<NavioGranelDto>> listarNavios() {
+        return ResponseEntity.ok(servico.listarNavios(false));
     }
 
     @GetMapping("/navios/templates")
-    public ResponseEntity<List<NavioGranel>> listarTemplates() {
-        return ResponseEntity.ok(navioRepositorio.findByIsTemplateTrue());
+    public ResponseEntity<List<NavioGranelDto>> listarTemplates() {
+        return ResponseEntity.ok(servico.listarNavios(true));
     }
 
     @PostMapping("/planos")
     public ResponseEntity<?> criarPlano(@RequestBody Map<String, Object> body) {
-        Long navioId = Long.valueOf(body.get("navioId").toString());
-        String codigoViagem = (String) body.get("codigoViagem");
-        String portoCarga = (String) body.get("portoCarga");
-        String portoDescarga = (String) body.get("portoDescarga");
         try {
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(servico.criarPlano(navioId, codigoViagem, portoCarga, portoDescarga));
+            Long navioId = Long.valueOf(body.get("navioId").toString());
+            String codigoViagem = (String) body.get("codigoViagem");
+            String portoCarga = (String) body.get("portoCarga");
+            String portoDescarga = (String) body.get("portoDescarga");
+            PlanoEstivaBulk plano = servico.criarPlano(navioId, codigoViagem, portoCarga, portoDescarga);
+            return ResponseEntity.status(HttpStatus.CREATED).body(servico.buscarPorId(plano.getId()));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @GetMapping("/planos")
+    public ResponseEntity<List<PlanoEstivaBulkDto>> listarPlanos(
+            @RequestParam Long navioId,
+            @RequestParam(required = false) String codigoViagem) {
+        return ResponseEntity.ok(servico.listarPlanos(navioId, codigoViagem));
     }
 
     @GetMapping("/planos/{id}")
@@ -75,10 +81,11 @@ public class EstivaBulkControlador {
     }
 
     @PostMapping("/planos/{id}/bobinas")
-    public ResponseEntity<BobinaManifesto> adicionarBobina(
+    public ResponseEntity<?> adicionarBobina(
             @PathVariable Long id, @RequestBody BobinaManifesto bobina) {
         try {
-            return ResponseEntity.status(HttpStatus.CREATED).body(servico.adicionarBobina(id, bobina));
+            servico.adicionarBobina(id, bobina);
+            return ResponseEntity.status(HttpStatus.CREATED).body(servico.buscarPorId(id));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
@@ -86,9 +93,9 @@ public class EstivaBulkControlador {
 
     @PostMapping("/planos/{id}/posicionar")
     public ResponseEntity<?> posicionarBobina(
-            @PathVariable Long id, @RequestBody PosicionarBobinaRequisicaoDto req) {
+            @PathVariable Long id, @RequestBody PosicionarBobinaRequisicaoDto requisicao) {
         try {
-            PosicaoBobinaDto dto = servico.posicionarBobina(id, req);
+            PosicaoBobinaDto dto = servico.posicionarBobina(id, requisicao);
             return ResponseEntity.ok(dto);
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)

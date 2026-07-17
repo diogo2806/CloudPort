@@ -226,9 +226,8 @@ export async function request(path, options = {}) {
         : await response.text();
     if (!response.ok) {
       if (response.status === 401) {
-        const authenticatedRequest = Boolean(session?.token);
         clearSession();
-        if (authenticatedRequest) notifySessionExpired();
+        notifySessionExpired();
       }
       const error = new Error(payload?.mensagem ?? payload?.erro ?? payload?.message ?? `Falha HTTP ${response.status}`);
       error.payload = payload;

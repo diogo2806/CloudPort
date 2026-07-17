@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import javax.imageio.ImageIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,30 +36,27 @@ public class ProcessamentoOcrExecutor {
     private final OcrIntegrationProperties properties;
     private final TransactionTemplate requiresNew;
     private final Duration retryDelay;
-    private final Duration processamentoExpirado;
     private final int maxTentativas;
 
     public ProcessamentoOcrExecutor(DocumentoAgendamentoRepository documentoAgendamentoRepository,
-                                    DocumentoStorageService documentoStorageService,
-                                    AgendamentoRealtimeService agendamentoRealtimeService,
-                                    OcrIntegrationProperties properties,
-                                    PlatformTransactionManager transactionManager,
-                                    @Value("${cloudport.gate.ocr.retry-atraso:PT1M}") Duration retryDelay,
-                                    @Value("${cloudport.gate.ocr.processamento-expirado:PT10M}") Duration processamentoExpirado,
-                                    @Value("${cloudport.gate.ocr.max-tentativas:3}") int maxTentativas) {
+                                     DocumentoStorageService documentoStorageService,
+                                     AgendamentoRealtimeService agendamentoRealtimeService,
+                                     OcrIntegrationProperties properties,
+                                     PlatformTransactionManager transactionManager,
+                                     @Value("${cloudport.gate.ocr.retry-atraso:PT1M}") Duration retryDelay,
+                                     @Value("${cloudport.gate.ocr.max-tentativas:3}") int maxTentativas) {
         this.documentoAgendamentoRepository = documentoAgendamentoRepository;
         this.documentoStorageService = documentoStorageService;
         this.agendamentoRealtimeService = agendamentoRealtimeService;
         this.properties = properties;
         this.retryDelay = retryDelay;
-        this.processamentoExpirado = processamentoExpirado;
         this.maxTentativas = maxTentativas;
         this.requiresNew = new TransactionTemplate(transactionManager);
         this.requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     public void processar(ProcessamentoOcrMensagem mensagem) {
-        ContextoOcr contexto = iniciarProcessamento(mensagem);
+        ContextoOcr contexto = carregarReivindicacao(mensagem);
         if (contexto == null) {
             return;
         }
@@ -66,61 +64,53 @@ public class ProcessamentoOcrExecutor {
 
         try {
             validarImagem(contexto.chaveArmazenamento, properties.getTempoMaximoProcessamento());
-            ContextoOcr concluido = concluirProcessamento(contexto.documentoId);
+            ContextoOcr concluido = concluirProcessamento(contexto);
+            if (concluido == null) {
+                return;
+            }
             notificarAtualizacao(concluido.agendamento);
             agendamentoRealtimeService.notificarDocumentosRevalidados(concluido.agendamento);
             LOGGER.info("event=ocr.validado documentoId={} agendamentoId={} tentativa={}",
                     contexto.documentoId, contexto.agendamento.getId(), contexto.tentativa);
         } catch (BusinessException ex) {
-            ContextoOcr falha = registrarFalha(contexto.documentoId, ex.getMessage(), false);
+            ContextoOcr falha = registrarFalha(contexto, ex.getMessage(), false);
+            if (falha == null) {
+                return;
+            }
             notificarAtualizacao(falha.agendamento);
             LOGGER.warn("event=ocr.falha-permanente documentoId={} tentativa={} mensagem={}",
                     contexto.documentoId, contexto.tentativa, ex.getMessage());
         } catch (IOException | RuntimeException ex) {
-            String mensagem = "Falha transitória ao acessar o arquivo para validação OCR.";
-            ContextoOcr falha = registrarFalha(contexto.documentoId, mensagem, true);
+            String mensagemFalha = "Falha transitória ao acessar o arquivo para validação OCR.";
+            ContextoOcr falha = registrarFalha(contexto, mensagemFalha, true);
+            if (falha == null) {
+                return;
+            }
             notificarAtualizacao(falha.agendamento);
             LOGGER.error("event=ocr.falha-transitoria documentoId={} tentativa={}",
                     contexto.documentoId, contexto.tentativa, ex);
         }
     }
 
-    private ContextoOcr iniciarProcessamento(ProcessamentoOcrMensagem mensagem) {
+    private ContextoOcr carregarReivindicacao(ProcessamentoOcrMensagem mensagem) {
         return requiresNew.execute(status -> {
             DocumentoAgendamento documento = documentoAgendamentoRepository.findOneById(mensagem.getDocumentoId())
                     .orElseThrow(() -> new NotFoundException("Documento para OCR não encontrado"));
-            LocalDateTime agora = LocalDateTime.now();
-            int tentativas = documento.getTentativasOcr() == null ? 0 : documento.getTentativasOcr();
-            if (documento.getStatusValidacao() == StatusValidacaoDocumento.VALIDADO || tentativas >= maxTentativas) {
+            if (!correspondeReivindicacaoAtual(documento, mensagem.getReivindicadoEm(), mensagem.getTentativa())) {
                 return null;
             }
-            if (documento.getStatusValidacao() == StatusValidacaoDocumento.PROCESSANDO
-                    && documento.getProcessamentoOcrIniciadoEm() != null
-                    && documento.getProcessamentoOcrIniciadoEm().isAfter(agora.minus(processamentoExpirado))) {
-                return null;
-            }
-            if (documento.getStatusValidacao() == StatusValidacaoDocumento.FALHA
-                    && documento.getProximaTentativaOcrEm() == null) {
-                return null;
-            }
-
-            documento.setTentativasOcr(tentativas + 1);
-            documento.setStatusValidacao(StatusValidacaoDocumento.PROCESSANDO);
-            documento.setMensagemValidacao("Documento em análise pelo OCR...");
-            documento.setUltimoErroOcr(null);
-            documento.setProximaTentativaOcrEm(null);
-            documento.setProcessamentoOcrIniciadoEm(agora);
-            documentoAgendamentoRepository.saveAndFlush(documento);
             inicializarDocumentos(documento.getAgendamento());
-            return new ContextoOcr(documento.getId(), documento.getUrlDocumento(),
-                    documento.getTentativasOcr(), documento.getAgendamento());
+            return contexto(documento);
         });
     }
 
-    private ContextoOcr concluirProcessamento(Long documentoId) {
+    private ContextoOcr concluirProcessamento(ContextoOcr contexto) {
         return requiresNew.execute(status -> {
-            DocumentoAgendamento documento = documentoAgendamentoRepository.findOneById(documentoId)
+            DocumentoAgendamento documento = documentoAgendamentoRepository.findOneById(contexto.documentoId)
                     .orElseThrow(() -> new NotFoundException("Documento para OCR não encontrado"));
+            if (!correspondeReivindicacaoAtual(documento, contexto.reivindicadoEm, contexto.tentativa)) {
+                return null;
+            }
             documento.setStatusValidacao(StatusValidacaoDocumento.VALIDADO);
             documento.setUltimaRevalidacao(LocalDateTime.now());
             documento.setMensagemValidacao("Documento validado automaticamente via OCR.");
@@ -129,15 +119,17 @@ public class ProcessamentoOcrExecutor {
             documento.setProcessamentoOcrIniciadoEm(null);
             documentoAgendamentoRepository.saveAndFlush(documento);
             inicializarDocumentos(documento.getAgendamento());
-            return new ContextoOcr(documento.getId(), documento.getUrlDocumento(),
-                    documento.getTentativasOcr(), documento.getAgendamento());
+            return contexto(documento);
         });
     }
 
-    private ContextoOcr registrarFalha(Long documentoId, String mensagem, boolean retryable) {
+    private ContextoOcr registrarFalha(ContextoOcr contexto, String mensagem, boolean retryable) {
         return requiresNew.execute(status -> {
-            DocumentoAgendamento documento = documentoAgendamentoRepository.findOneById(documentoId)
+            DocumentoAgendamento documento = documentoAgendamentoRepository.findOneById(contexto.documentoId)
                     .orElseThrow(() -> new NotFoundException("Documento para OCR não encontrado"));
+            if (!correspondeReivindicacaoAtual(documento, contexto.reivindicadoEm, contexto.tentativa)) {
+                return null;
+            }
             documento.setStatusValidacao(StatusValidacaoDocumento.FALHA);
             documento.setMensagemValidacao(mensagem);
             documento.setUltimoErroOcr(mensagem);
@@ -148,9 +140,27 @@ public class ProcessamentoOcrExecutor {
                     : null);
             documentoAgendamentoRepository.saveAndFlush(documento);
             inicializarDocumentos(documento.getAgendamento());
-            return new ContextoOcr(documento.getId(), documento.getUrlDocumento(),
-                    documento.getTentativasOcr(), documento.getAgendamento());
+            return contexto(documento);
         });
+    }
+
+    private boolean correspondeReivindicacaoAtual(
+            DocumentoAgendamento documento,
+            LocalDateTime reivindicadoEm,
+            Integer tentativa) {
+        return reivindicadoEm != null
+                && documento.getStatusValidacao() == StatusValidacaoDocumento.PROCESSANDO
+                && Objects.equals(documento.getProcessamentoOcrIniciadoEm(), reivindicadoEm)
+                && (tentativa == null || Objects.equals(documento.getTentativasOcr(), tentativa));
+    }
+
+    private ContextoOcr contexto(DocumentoAgendamento documento) {
+        return new ContextoOcr(
+                documento.getId(),
+                documento.getUrlDocumento(),
+                documento.getTentativasOcr() == null ? 0 : documento.getTentativasOcr(),
+                documento.getProcessamentoOcrIniciadoEm(),
+                documento.getAgendamento());
     }
 
     private void validarImagem(String chaveArmazenamento, Duration timeout) throws IOException {
@@ -190,12 +200,18 @@ public class ProcessamentoOcrExecutor {
         private final Long documentoId;
         private final String chaveArmazenamento;
         private final int tentativa;
+        private final LocalDateTime reivindicadoEm;
         private final Agendamento agendamento;
 
-        private ContextoOcr(Long documentoId, String chaveArmazenamento, int tentativa, Agendamento agendamento) {
+        private ContextoOcr(Long documentoId,
+                            String chaveArmazenamento,
+                            int tentativa,
+                            LocalDateTime reivindicadoEm,
+                            Agendamento agendamento) {
             this.documentoId = documentoId;
             this.chaveArmazenamento = chaveArmazenamento;
             this.tentativa = tentativa;
+            this.reivindicadoEm = reivindicadoEm;
             this.agendamento = agendamento;
         }
     }

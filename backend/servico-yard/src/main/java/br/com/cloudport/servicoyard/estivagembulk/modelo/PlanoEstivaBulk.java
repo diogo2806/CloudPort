@@ -65,7 +65,7 @@ public class PlanoEstivaBulk {
     private Double gmCalculado;
 
     @Column(name = "calado_saida")
-    private Double calado_saida;
+    private Double caladoSaida;
 
     @Column(name = "versao_hidro_aprovacao", length = 80)
     private String versaoHidroAprovacao;
@@ -78,6 +78,25 @@ public class PlanoEstivaBulk {
 
     @Column(name = "aprovado_em")
     private LocalDateTime aprovadoEm;
+
+    @Column(name = "versao_validacao_seguranca")
+    private Long versaoValidacaoSeguranca;
+
+    @Column(name = "versao_especificacao_seguranca", length = 60)
+    private String versaoEspecificacaoSeguranca;
+
+    @Column(name = "referencia_regra_seguranca", length = 120)
+    private String referenciaRegraSeguranca;
+
+    @Column(name = "validado_por_seguranca", length = 100)
+    private String validadoPorSeguranca;
+
+    @Column(name = "validado_em_seguranca")
+    private LocalDateTime validadoEmSeguranca;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "resultado_validacao_seguranca", length = 20)
+    private ResultadoValidacaoSeguranca resultadoValidacaoSeguranca = ResultadoValidacaoSeguranca.PENDENTE;
 
     @Version
     private Long versao;

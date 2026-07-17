@@ -28,6 +28,21 @@ public class EstabilidadeEstrutural {
     public EstabilidadeEstrutural() {
     }
 
+    public EstabilidadeEstrutural(double bmMaxKnm, double sfMaxKn, double trimMetros,
+            double caladoSaidaMetros, double pesoTotalToneladas, boolean hogging, boolean sagging,
+            boolean aprovado, List<ViolacaoEstivaDto> violacoes) {
+        this.bmMaxKnm = bmMaxKnm;
+        this.sfMaxKn = sfMaxKn;
+        this.trimMetros = trimMetros;
+        this.caladoSaidaMetros = caladoSaidaMetros;
+        this.pesoTotalToneladas = pesoTotalToneladas;
+        this.hogging = hogging;
+        this.sagging = sagging;
+        this.operacional = aprovado;
+        this.aprovado = aprovado;
+        this.violacoes = violacoes;
+    }
+
     public static EstabilidadeEstrutural vazia() {
         EstabilidadeEstrutural dto = new EstabilidadeEstrutural();
         dto.operacional = false;

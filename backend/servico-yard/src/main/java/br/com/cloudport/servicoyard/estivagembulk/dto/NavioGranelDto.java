@@ -1,5 +1,7 @@
 package br.com.cloudport.servicoyard.estivagembulk.dto;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -43,6 +45,7 @@ public class NavioGranelDto {
     private String limitesBmSecoes;
     private boolean isTemplate;
     private int totalPoroes;
+    private List<PoraoNavioDto> poroes = new ArrayList<>();
 
     public NavioGranelDto() {
     }

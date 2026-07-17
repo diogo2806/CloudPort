@@ -13,7 +13,7 @@ import br.com.cloudport.servicoyard.configuracao.InternalServiceAuthenticationFi
 import br.com.cloudport.servicoyard.estivagembulk.controlador.EstivaBulkControlador;
 import br.com.cloudport.servicoyard.estivagembulk.dto.ValidacaoPlanoBulkDto;
 import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
-import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
+import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkIdentidadeServico;
 import br.com.cloudport.servicoyard.vesselplanner.controlador.VesselPlannerControlador;
 import br.com.cloudport.servicoyard.vesselplanner.dto.EstivagemPlanDto;
 import br.com.cloudport.servicoyard.vesselplanner.servico.VesselPlannerServico;
@@ -50,7 +50,7 @@ class PlanejamentoEstivaAutorizacaoControladorTest {
     private VesselPlannerServico vesselPlannerServico;
 
     @MockBean
-    private PlanoEstivaBulkServico planoEstivaBulkServico;
+    private PlanoEstivaBulkIdentidadeServico planoEstivaBulkServico;
 
     @MockBean
     private NavioGranelRepositorio navioGranelRepositorio;
@@ -60,7 +60,7 @@ class PlanejamentoEstivaAutorizacaoControladorTest {
         mockMvc.perform(post("/api/vessel-planner/planos")
                         .with(jwtComRole("OPERADOR_PATIO"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"bayPlanId\":1}"))
+                        .content("{\"bayPlanId\":1,\"visitaNavioId\":2}"))
                 .andExpect(status().isForbidden());
 
         verifyNoInteractions(vesselPlannerServico);
@@ -68,15 +68,15 @@ class PlanejamentoEstivaAutorizacaoControladorTest {
 
     @Test
     void devePermitirCriacaoDoVesselPlannerParaPlanejador() throws Exception {
-        when(vesselPlannerServico.criarPlanoDeBayPlan(1L)).thenReturn(new EstivagemPlanDto());
+        when(vesselPlannerServico.criarPlanoDeBayPlan(1L, 2L)).thenReturn(new EstivagemPlanDto());
 
         mockMvc.perform(post("/api/vessel-planner/planos")
                         .with(jwtComRole("PLANEJADOR"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"bayPlanId\":1}"))
+                        .content("{\"bayPlanId\":1,\"visitaNavioId\":2}"))
                 .andExpect(status().isCreated());
 
-        verify(vesselPlannerServico).criarPlanoDeBayPlan(1L);
+        verify(vesselPlannerServico).criarPlanoDeBayPlan(1L, 2L);
     }
 
     @Test

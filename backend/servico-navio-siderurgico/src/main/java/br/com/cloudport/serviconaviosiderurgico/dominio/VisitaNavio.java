@@ -14,6 +14,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
+import javax.persistence.Version;
 
 @Entity
 @Table(name = "visita_navio")
@@ -78,6 +79,10 @@ public class VisitaNavio {
     @Column(length = 1000)
     private String observacoes;
 
+    @Version
+    @Column(name = "versao", nullable = false)
+    private Long versao;
+
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
 
@@ -139,6 +144,8 @@ public class VisitaNavio {
     public void setFase(FaseVisitaNavio fase) { this.fase = fase; }
     public String getObservacoes() { return observacoes; }
     public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
+    public Long getVersao() { return versao; }
+    public void setVersao(Long versao) { this.versao = versao; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
     public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
 }

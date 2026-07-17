@@ -3,12 +3,13 @@ package br.com.cloudport.servicoyard.vesselplanner.controlador;
 import br.com.cloudport.servicoyard.seguranca.PoliticaAutorizacaoEstiva;
 import br.com.cloudport.servicoyard.vesselplanner.dto.AlocacaoSlotRequisicaoDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.AlocacaoSlotRespostaDto;
+import br.com.cloudport.servicoyard.vesselplanner.dto.CriarEstivagemPlanRequisicaoDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.EstabilidadeDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.EstivagemPlanDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.RestowAnaliseDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.SequenciamentoGuindasteDto;
 import br.com.cloudport.servicoyard.vesselplanner.servico.VesselPlannerServico;
-import java.util.Map;
+import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,12 +33,11 @@ public class VesselPlannerControlador {
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos")
-    public ResponseEntity<EstivagemPlanDto> criarPlano(@RequestBody Map<String, Long> body) {
-        Long bayPlanId = body.get("bayPlanId");
-        if (bayPlanId == null) {
-            return ResponseEntity.badRequest().build();
-        }
-        EstivagemPlanDto dto = servico.criarPlanoDeBayPlan(bayPlanId);
+    public ResponseEntity<EstivagemPlanDto> criarPlano(
+            @Valid @RequestBody CriarEstivagemPlanRequisicaoDto requisicao) {
+        EstivagemPlanDto dto = servico.criarPlanoDeBayPlan(
+                requisicao.getBayPlanId(),
+                requisicao.getVisitaNavioId());
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 

@@ -1,12 +1,13 @@
 package br.com.cloudport.serviconavio.navio.entidade;
 
+import java.math.BigDecimal;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import java.math.BigDecimal;
+import javax.persistence.Version;
 
 @Entity
 @Table(name = "navio")
@@ -40,6 +41,10 @@ public class Navio {
 
     @Column(name = "call_sign", length = 15)
     private String callSign;
+
+    @Version
+    @Column(name = "versao", nullable = false)
+    private Long versao;
 
     public Long getIdentificador() {
         return identificador;
@@ -111,5 +116,13 @@ public class Navio {
 
     public void setCallSign(String callSign) {
         this.callSign = callSign;
+    }
+
+    public Long getVersao() {
+        return versao;
+    }
+
+    public void setVersao(Long versao) {
+        this.versao = versao;
     }
 }

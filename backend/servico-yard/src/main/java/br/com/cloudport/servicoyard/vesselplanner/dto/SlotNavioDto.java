@@ -10,6 +10,9 @@ public class SlotNavioDto {
     private int tier;
     private String tipoSlot;
     private Double maxPesoKg;
+    private Double posLongitudinalMetros;
+    private Double posTransversalMetros;
+    private Double posVerticalMetros;
     private String codigoContainer;
     private String isoCode;
     private Double pesoKg;
@@ -45,6 +48,12 @@ public class SlotNavioDto {
     public void setTipoSlot(String tipoSlot) { this.tipoSlot = tipoSlot; }
     public Double getMaxPesoKg() { return maxPesoKg; }
     public void setMaxPesoKg(Double maxPesoKg) { this.maxPesoKg = maxPesoKg; }
+    public Double getPosLongitudinalMetros() { return posLongitudinalMetros; }
+    public void setPosLongitudinalMetros(Double posLongitudinalMetros) { this.posLongitudinalMetros = posLongitudinalMetros; }
+    public Double getPosTransversalMetros() { return posTransversalMetros; }
+    public void setPosTransversalMetros(Double posTransversalMetros) { this.posTransversalMetros = posTransversalMetros; }
+    public Double getPosVerticalMetros() { return posVerticalMetros; }
+    public void setPosVerticalMetros(Double posVerticalMetros) { this.posVerticalMetros = posVerticalMetros; }
     public String getCodigoContainer() { return codigoContainer; }
     public void setCodigoContainer(String codigoContainer) { this.codigoContainer = codigoContainer; }
     public String getIsoCode() { return isoCode; }

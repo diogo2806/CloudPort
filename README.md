@@ -1,6 +1,12 @@
 # CloudPort
 
-O CloudPort é uma plataforma para operações portuárias com módulos de Navio, carga siderúrgica, Yard, Gate, Rail, Autenticação e Visibilidade.
+O CloudPort é uma plataforma para operações portuárias com módulos de Navio, contêineres, carga siderúrgica, Yard, Gate, Rail, Autenticação e Visibilidade.
+
+## Escopo funcional
+
+Contêineres fazem parte do fluxo principal do CloudPort, com planejamento de recebimento no pátio, inventário, movimentações, gate, ferrovia, Bay Plan/BAPLIE e planejamento de estiva no navio.
+
+Bobinas de aço são atendidas por um módulo especializado de carga siderúrgica. Esse módulo complementa o planejamento de contêineres e não limita o escopo do sistema a bobinas.
 
 ## Ponto de entrada canônico
 

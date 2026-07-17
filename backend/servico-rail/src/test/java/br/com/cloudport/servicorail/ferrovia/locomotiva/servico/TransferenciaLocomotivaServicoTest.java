@@ -43,8 +43,6 @@ class TransferenciaLocomotivaServicoTest {
                 transferenciaRepositorio,
                 visitaTremRepositorio,
                 new SanitizadorEntrada());
-        when(transferenciaRepositorio.save(any(TransferenciaLocomotiva.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -54,6 +52,7 @@ class TransferenciaLocomotivaServicoTest {
         when(transferenciaRepositorio
                 .existsByVisitaTremIdAndIdentificadorLocomotivaIgnoreCase(1L, "LOCO-9001"))
                 .thenReturn(false);
+        salvarRetornandoEntidade();
 
         CadastroTransferenciaLocomotivaDto dto = new CadastroTransferenciaLocomotivaDto();
         dto.setVisitaTremId(1L);
@@ -72,6 +71,7 @@ class TransferenciaLocomotivaServicoTest {
     void deveExecutarCustodiaPlanejamentoLiberacaoEEmbarque() {
         TransferenciaLocomotiva transferencia = transferencia();
         when(transferenciaRepositorio.findById(10L)).thenReturn(Optional.of(transferencia));
+        salvarRetornandoEntidade();
 
         EntregaCustodiaLocomotivaDto entrega = new EntregaCustodiaLocomotivaDto();
         entrega.setNomeMaquinista("João Operador");
@@ -110,6 +110,11 @@ class TransferenciaLocomotivaServicoTest {
 
         assertThrows(ResponseStatusException.class,
                 () -> servico.liberarEmbarque(10L, liberacao));
+    }
+
+    private void salvarRetornandoEntidade() {
+        when(transferenciaRepositorio.save(any(TransferenciaLocomotiva.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     private LiberacaoEmbarqueLocomotivaDto checklistCompleto() {

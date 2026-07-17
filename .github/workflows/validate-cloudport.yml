@@ -9,6 +9,38 @@ permissions:
   contents: read
 
 jobs:
+  resolve-pr-301:
+    name: Resolver conflitos do PR 301
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 301 && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout da branch do PR
+        uses: actions/checkout@v4
+        with:
+          ref: feat/arch20-identidade-canonica-20260717
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Reaplicar ARCH20 sobre a main atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          FEATURE_HEAD="e14815ad9e5343e5d067e4bf6b341431ced63cef"
+          MERGE_BASE="$(git merge-base "$FEATURE_HEAD" origin/main)"
+          git diff --binary "$MERGE_BASE" "$FEATURE_HEAD" -- \
+            . \
+            ':(exclude).github/workflows/resolve-pr-301.yml' \
+            ':(exclude).github/workflows/validate-cloudport.yml' \
+            > /tmp/arch20.patch
+          git reset --hard origin/main
+          git apply --3way --index /tmp/arch20.patch
+          git commit -m "chore(arch20): resolver conflitos com a main atual"
+          git push --force-with-lease origin HEAD:feat/arch20-identidade-canonica-20260717
+
   backend:
     name: Backend Java
     runs-on: ubuntu-latest

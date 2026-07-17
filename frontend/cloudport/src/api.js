@@ -6,6 +6,8 @@ let runtimeConfig = {
   baseApiUrl: '',
   navioControlRoomUrl: ''
 };
+let sessionExpired = false;
+const sessionExpiredListeners = new Set();
 
 function storage() {
   return typeof globalThis.localStorage !== 'undefined' ? globalThis.localStorage : null;
@@ -76,6 +78,7 @@ export function mapSession(response) {
 export function saveSession(response) {
   const session = mapSession(response);
   const target = storage();
+  sessionExpired = false;
   target?.setItem(SESSION_KEY, JSON.stringify(session));
   target?.setItem(USERNAME_KEY, JSON.stringify(session.nome));
   return session;
@@ -106,8 +109,23 @@ export function readSession() {
 
 export function clearSession() {
   const target = storage();
+  sessionExpired = false;
   target?.removeItem(SESSION_KEY);
   target?.removeItem(USERNAME_KEY);
+}
+
+export function notifySessionExpired() {
+  sessionExpired = true;
+  sessionExpiredListeners.forEach((listener) => listener());
+}
+
+export function subscribeSessionExpired(listener) {
+  if (typeof listener !== 'function') {
+    throw new TypeError('O listener de sessão expirada deve ser uma função.');
+  }
+  sessionExpiredListeners.add(listener);
+  if (sessionExpired) listener();
+  return () => sessionExpiredListeners.delete(listener);
 }
 
 export function hasAnyRole(session, ...roles) {
@@ -174,11 +192,23 @@ function enrichCommand(path, method, body, session, correlationId) {
   return command;
 }
 
+function sessionExpiredError() {
+  const error = new Error('Sua sessão expirou. Entre novamente.');
+  error.status = 401;
+  return error;
+}
+
 export async function request(path, options = {}) {
   const method = String(options.method ?? 'GET').toUpperCase();
+  const session = options.public ? null : readSession();
+  if (!options.public && !session?.token) {
+    clearSession();
+    notifySessionExpired();
+    throw sessionExpiredError();
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS);
-  const session = options.public ? null : readSession();
   const correlationId = createCorrelationId();
   const headers = new Headers(options.headers ?? {});
   headers.set('Accept', 'application/json');
@@ -205,7 +235,10 @@ export async function request(path, options = {}) {
         ? await response.json()
         : await response.text();
     if (!response.ok) {
-      if (response.status === 401) clearSession();
+      if (response.status === 401) {
+        clearSession();
+        notifySessionExpired();
+      }
       const error = new Error(payload?.mensagem ?? payload?.erro ?? payload?.message ?? `Falha HTTP ${response.status}`);
       error.payload = payload;
       error.status = response.status;

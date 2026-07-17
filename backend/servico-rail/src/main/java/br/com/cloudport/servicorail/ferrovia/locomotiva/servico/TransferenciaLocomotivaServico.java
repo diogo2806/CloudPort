@@ -10,6 +10,7 @@ import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.PlanejamentoEmbarque
 import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.TransferenciaLocomotivaRespostaDto;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.modelo.StatusTransferenciaLocomotiva;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.modelo.TransferenciaLocomotiva;
+import br.com.cloudport.servicorail.ferrovia.locomotiva.porta.ConsultaVisitaNavioPorta;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.repositorio.TransferenciaLocomotivaRepositorio;
 import br.com.cloudport.servicorail.ferrovia.modelo.VisitaTrem;
 import br.com.cloudport.servicorail.ferrovia.repositorio.VisitaTremRepositorio;
@@ -32,13 +33,16 @@ public class TransferenciaLocomotivaServico {
     private final TransferenciaLocomotivaRepositorio transferenciaRepositorio;
     private final VisitaTremRepositorio visitaTremRepositorio;
     private final SanitizadorEntrada sanitizadorEntrada;
+    private final Optional<ConsultaVisitaNavioPorta> consultaVisitaNavioPorta;
 
     public TransferenciaLocomotivaServico(TransferenciaLocomotivaRepositorio transferenciaRepositorio,
                                           VisitaTremRepositorio visitaTremRepositorio,
-                                          SanitizadorEntrada sanitizadorEntrada) {
+                                          SanitizadorEntrada sanitizadorEntrada,
+                                          Optional<ConsultaVisitaNavioPorta> consultaVisitaNavioPorta) {
         this.transferenciaRepositorio = transferenciaRepositorio;
         this.visitaTremRepositorio = visitaTremRepositorio;
         this.sanitizadorEntrada = sanitizadorEntrada;
+        this.consultaVisitaNavioPorta = consultaVisitaNavioPorta;
     }
 
     @Transactional
@@ -108,9 +112,15 @@ public class TransferenciaLocomotivaServico {
         Long visitaNavioId = Optional.ofNullable(dto.getVisitaNavioId())
                 .filter(valor -> valor > 0)
                 .orElseThrow(() -> erro(HttpStatus.BAD_REQUEST, "A visita de navio deve ser informada."));
+        String codigoVisitaNavio = textoObrigatorio(dto.getCodigoVisitaNavio(),
+                "código da visita de navio", 60).toUpperCase(Locale.ROOT);
+        if (consultaVisitaNavioPorta.isPresent()
+                && !consultaVisitaNavioPorta.get().existe(visitaNavioId, codigoVisitaNavio)) {
+            throw erro(HttpStatus.NOT_FOUND,
+                    "A visita de navio informada não existe ou não corresponde ao código fornecido.");
+        }
         transferencia.setVisitaNavioId(visitaNavioId);
-        transferencia.setCodigoVisitaNavio(textoObrigatorio(dto.getCodigoVisitaNavio(),
-                "código da visita de navio", 60).toUpperCase(Locale.ROOT));
+        transferencia.setCodigoVisitaNavio(codigoVisitaNavio);
         transferencia.setModalidadeEmbarque(Optional.ofNullable(dto.getModalidadeEmbarque())
                 .orElseThrow(() -> erro(HttpStatus.BAD_REQUEST, "A modalidade de embarque deve ser informada.")));
         transferencia.setDeckPlanejado(textoObrigatorio(dto.getDeckPlanejado(), "deck planejado", 80));

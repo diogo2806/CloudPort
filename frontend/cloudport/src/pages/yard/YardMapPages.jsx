@@ -3,7 +3,12 @@ import { api, hasAnyRole, readSession, sanitizeText } from '../../api.js';
 import { DataTable, Loading, Message, MetricCard, Section, StatusBadge } from '../../components.jsx';
 import { GoogleYardMap } from './GoogleYardMap.jsx';
 import { OperationalYardViews } from './OperationalYardViews.jsx';
+import { YardAllocationEditor } from './YardAllocationEditor.jsx';
+import { yardOperationalApi } from './yardOperationalApi.js';
+import { YardReeferPanel } from './YardReeferPanel.jsx';
 import { buildStacks, DetailGrid, FilterField, normalized, Pagination, positionKey, usePagination, useRemote, YardPageHeader } from './YardShared.jsx';
+
+const FINAL_ORDER_STATUSES = new Set(['CONCLUIDA', 'CANCELADA']);
 
 export function YardMapPage({ navigate }) {
   const [filters, setFilters] = useState({ status: '', tipoCarga: '', destino: '', camada: '', tipoEquipamento: '' });
@@ -12,13 +17,15 @@ export function YardMapPage({ navigate }) {
   const canOperate = hasAnyRole(session, 'ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO');
   const remote = useRemote(async () => {
     const query = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
-    const [map, positions, availableFilters, orders, movements, telemetry] = await Promise.all([
+    const [map, positions, availableFilters, orders, movements, telemetry, allContainers, reeferTelemetry] = await Promise.all([
       api.obterMapaPatio(query),
       api.listarPosicoesReservaveisPatio(),
       api.obterFiltrosMapaPatio(),
       api.listarOrdensPatio(),
       api.listarMovimentacoesPatio(),
-      api.listarTelemetriaEquipamentosPatio()
+      api.listarTelemetriaEquipamentosPatio(),
+      api.listarConteineresPatio(),
+      yardOperationalApi.listarTelemetriaReefers()
     ]);
     return {
       map: map ?? {},
@@ -26,7 +33,9 @@ export function YardMapPage({ navigate }) {
       filters: availableFilters ?? {},
       orders: orders ?? [],
       movements: movements ?? [],
-      telemetry: telemetry ?? []
+      telemetry: telemetry ?? [],
+      allContainers: allContainers ?? [],
+      reeferTelemetry: reeferTelemetry ?? []
     };
   }, [filters.status, filters.tipoCarga, filters.destino, filters.camada, filters.tipoEquipamento]);
 
@@ -36,7 +45,7 @@ export function YardMapPage({ navigate }) {
   }, [remote.reload]);
 
   const map = remote.data?.map ?? {};
-  const containers = map.conteineres ?? [];
+  const containers = remote.data?.allContainers ?? [];
   const equipment = map.equipamentos ?? [];
   const enrichedPositions = useMemo(() => {
     const containersByPosition = new Map(containers.map((container) => [positionKey(container), container]));
@@ -52,15 +61,31 @@ export function YardMapPage({ navigate }) {
     });
   }, [remote.data?.positions, containers]);
   const stacks = useMemo(() => buildStacks(enrichedPositions, remote.data?.orders), [enrichedPositions, remote.data?.orders]);
+  const routes = useMemo(() => {
+    const containersByCode = new Map(containers.map((container) => [sanitizeText(container.codigo), container]));
+    return (remote.data?.orders ?? [])
+      .filter((order) => !FINAL_ORDER_STATUSES.has(order.statusOrdem))
+      .map((order) => {
+        const container = containersByCode.get(sanitizeText(order.codigoConteiner));
+        if (!container || container.linha === undefined || container.coluna === undefined) return null;
+        return {
+          id: order.id,
+          codigoConteiner: order.codigoConteiner,
+          origem: { linha: container.linha, coluna: container.coluna },
+          destino: { linha: order.linhaDestino, coluna: order.colunaDestino }
+        };
+      })
+      .filter(Boolean);
+  }, [containers, remote.data?.orders]);
 
   function optionList(key) {
     return remote.data?.filters?.[key] ?? [];
   }
 
   return <>
-    <YardPageHeader path="/home/patio/mapa" navigate={navigate} title="Mapa operacional" description="Vistas de bloco, seção, scan e microvisão com heatmaps, CHEs, restrições, workspaces e simulação antes da movimentação." actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
+    <YardPageHeader path="/home/patio/mapa" navigate={navigate} title="Mapa operacional" description="Vistas de bloco, seção, scan e microvisão com heatmaps, rotas, reefers, CHEs, allocations, workspaces e simulação antes da movimentação." actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
     <Message type="error">{remote.error}</Message>
-    {!canOperate && <Message type="warning">Seu perfil pode consultar todas as vistas, mas não pode confirmar movimentações nem editar restrições.</Message>}
+    {!canOperate && <Message type="warning">Seu perfil pode consultar todas as vistas, mas não pode confirmar movimentações, replanejar allocations nem editar restrições.</Message>}
     <Section title="Filtros do mapa" description="Os valores são fornecidos pelo backend do Yard."><div className="filter-grid">
       <FilterField label="Status do contêiner"><select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}><option value="">Todos</option>{optionList('statusDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
       <FilterField label="Tipo de carga"><select value={filters.tipoCarga} onChange={(event) => setFilters((current) => ({ ...current, tipoCarga: event.target.value }))}><option value="">Todos</option>{optionList('tiposCargaDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
@@ -68,10 +93,11 @@ export function YardMapPage({ navigate }) {
       <FilterField label="Camada"><select value={filters.camada} onChange={(event) => setFilters((current) => ({ ...current, camada: event.target.value }))}><option value="">Todas</option>{optionList('camadasOperacionaisDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
       <FilterField label="Equipamento"><select value={filters.tipoEquipamento} onChange={(event) => setFilters((current) => ({ ...current, tipoEquipamento: event.target.value }))}><option value="">Todos</option>{optionList('tiposEquipamentoDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
     </div></Section>
-    {remote.loading ? <Loading label="Carregando mapa, telemetria e restrições..." /> : <>
-      <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label="Equipamentos" value={equipment.length} /></div>
-      <Section title="Pátio georreferenciado" description="O Google Maps desenha cada pilha como polígono interativo e mantém áreas bloqueadas, interditadas e destinos planejados visíveis.">
-        <GoogleYardMap blocks={stacks} selectedStack={selectedStack} onSelectStack={setSelectedStack} />
+    {remote.loading ? <Loading label="Carregando mapa, rotas e telemetria..." /> : <>
+      <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label="Rotas ativas" value={routes.length} /></div>
+      <Section title="Pátio georreferenciado" description="O Google Maps desenha pilhas, áreas bloqueadas e interditadas e as rotas planejadas entre a posição atual e o destino da work instruction.">
+        <GoogleYardMap blocks={stacks} selectedStack={selectedStack} onSelectStack={setSelectedStack} routes={routes} />
+        {!!routes.length && <div className="yard-route-summary">{routes.slice(0, 20).map((route) => <span key={route.id}>WI #{route.id} · {sanitizeText(route.codigoConteiner)} · L{route.origem.linha}/C{route.origem.coluna} → L{route.destino.linha}/C{route.destino.coluna}</span>)}</div>}
       </Section>
       <Section title="Console operacional do pátio" description="Arraste um contêiner para uma posição livre. O sistema monta uma simulação e só persiste após confirmação motivada.">
         <OperationalYardViews
@@ -84,6 +110,12 @@ export function YardMapPage({ navigate }) {
           canOperate={canOperate}
           onReload={remote.reload}
         />
+      </Section>
+      <Section title="Reefers e alarmes de temperatura" description="Leituras reais, faixa configurada, alimentação elétrica e alerta de telemetria desatualizada.">
+        <YardReeferPanel telemetry={remote.data?.reeferTelemetry} />
+      </Section>
+      <Section title="Editor gráfico de allocations" description="Selecione uma work instruction e reposicione visualmente seu destino. A alteração só é aplicada após simulação e justificativa.">
+        <YardAllocationEditor blocks={stacks} canOperate={canOperate} onReload={remote.reload} />
       </Section>
       {!!map.alertas?.length && <Section title="Alertas do mapa"><div className="card-list">{map.alertas.map((alert, index) => <article className="content-card" key={`${alert.tipoAlerta}-${index}`}><div className="card-meta"><StatusBadge value={alert.nivelSeveridade} /><span>{sanitizeText(alert.tipoAlerta)}</span></div><h3>{sanitizeText(alert.mensagem)}</h3><p>{sanitizeText(alert.recomendacao)}</p></article>)}</div></Section>}
     </>}

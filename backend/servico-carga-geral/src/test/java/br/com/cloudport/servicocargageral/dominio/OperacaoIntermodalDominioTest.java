@@ -65,13 +65,7 @@ class OperacaoIntermodalDominioTest {
 
     @Test
     void deveRegistrarCicloCompletoDaAvaria() {
-        AvariaOperacionalCarga avaria = new AvariaOperacionalCarga();
-        avaria.setCodigo("av-1");
-        avaria.setDescricao("Embalagem danificada");
-        avaria.setQuantidadeAfetada(decimal("2.000"));
-        avaria.setVolumeAfetadoM3(decimal("1.000"));
-        avaria.setPesoAfetadoKg(decimal("20.000"));
-        avaria.setResponsavel("inspetor");
+        AvariaOperacionalCarga avaria = avariaValida();
 
         avaria.segregar("inspetor");
         avaria.iniciarInspecao("Reparo possível", "inspetor");
@@ -79,6 +73,42 @@ class OperacaoIntermodalDominioTest {
 
         assertEquals(StatusAvariaOperacional.REINTEGRADA, avaria.getStatus());
         assertTrue(avaria.getHistoricoOperacional().contains("REINTEGRAR"));
+    }
+
+    @Test
+    void deveExigirInspecaoAntesDeEncerrarAvaria() {
+        AvariaOperacionalCarga avaria = avariaValida();
+        avaria.segregar("inspetor");
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> avaria.encerrar(ResultadoAvaria.BAIXAR, "Carga sem recuperação", "supervisor"));
+
+        assertEquals("Avaria deve estar em tratamento após inspeção para ser encerrada.", exception.getMessage());
+        assertEquals(StatusAvariaOperacional.SEGREGADA, avaria.getStatus());
+    }
+
+    @Test
+    void devePermitirManterAvariaBloqueadaDepoisDaInspecao() {
+        AvariaOperacionalCarga avaria = avariaValida();
+        avaria.segregar("inspetor");
+        avaria.iniciarInspecao("Necessária decisão externa", "inspetor");
+
+        avaria.encerrar(ResultadoAvaria.MANTER_BLOQUEADA, "Aguardar seguradora", "supervisor");
+
+        assertEquals(StatusAvariaOperacional.BLOQUEADA, avaria.getStatus());
+        assertEquals(ResultadoAvaria.MANTER_BLOQUEADA, avaria.getResultadoTratamento());
+        assertTrue(avaria.getHistoricoOperacional().contains("MANTER_BLOQUEADA"));
+    }
+
+    private AvariaOperacionalCarga avariaValida() {
+        AvariaOperacionalCarga avaria = new AvariaOperacionalCarga();
+        avaria.setCodigo("av-1");
+        avaria.setDescricao("Embalagem danificada");
+        avaria.setQuantidadeAfetada(decimal("2.000"));
+        avaria.setVolumeAfetadoM3(decimal("1.000"));
+        avaria.setPesoAfetadoKg(decimal("20.000"));
+        avaria.setResponsavel("inspetor");
+        return avaria;
     }
 
     private PlanoOperacionalCarga planoValido() {

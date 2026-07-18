@@ -28,7 +28,7 @@ export function GateOperationsTabs() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [trocaForm, setTrocaForm] = useState({ cpfMotorista: '', numeroCnh: '', cavaloAtual: '', gatePassId: '' });
-  const [callForm, setCallForm] = useState({ gatePassId: '', prioridade: 'NORMAL' });
+  const [callForm, setCallForm] = useState({ gatePassId: '', prioridade: 'NORMAL', gatePista: '', validadeMinutos: '5' });
   const [queueForm, setQueueForm] = useState({ gatePassId: '' });
 
   const load = useCallback(async () => {
@@ -90,8 +90,30 @@ export function GateOperationsTabs() {
     execute(() => gateOperationsApi.chamarVeiculo({
       gatePassId: Number(callForm.gatePassId),
       prioridade: callForm.prioridade,
+      gatePista: callForm.gatePista.trim(),
+      validadeMinutos: Number(callForm.validadeMinutos),
       operador: readSession()?.nome
     }), 'Veículo chamado.');
+  }
+
+  function acceptCall(item) {
+    execute(() => gateOperationsApi.aceitarChamado(item.id), 'Chamada aceita.');
+  }
+
+  function expireCall(item) {
+    if (!window.confirm(`Expirar a chamada do GatePass ${item.codigoGatePass || item.gatePassId}?`)) return;
+    execute(() => gateOperationsApi.expirarChamado(item.id), 'Chamada expirada.');
+  }
+
+  function recallCall(item) {
+    const gatePista = window.prompt('Informe o gate ou pista da rechamada:', item.gatePista || 'PATIO');
+    if (!gatePista) return;
+    const validadeMinutos = Number(window.prompt('Validade da rechamada em minutos:', '5'));
+    if (!Number.isInteger(validadeMinutos) || validadeMinutos < 1 || validadeMinutos > 60) {
+      setError('A validade da rechamada deve estar entre 1 e 60 minutos.');
+      return;
+    }
+    execute(() => gateOperationsApi.rechamarVeiculo(item.id, { gatePista, validadeMinutos }), 'Veículo rechamado.');
   }
 
   function cancelCall(item) {
@@ -140,15 +162,34 @@ export function GateOperationsTabs() {
           <button disabled={saving} type="submit">Abrir sessão</button>
         </form>
         <label className="gate-operation-filter">Pesquisar<input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="CPF, CNH, placa ou status" /></label>
-        {filteredTrocas.length ? <div className="gate-operation-table"><table><thead><tr><th>CPF</th><th>CNH</th><th>Cavalo</th><th>Status</th><th>Abertura</th><th>Ações</th></tr></thead><tbody>{filteredTrocas.map((item) => <tr key={item.id}><td>{item.cpfMotorista}</td><td>{item.numeroCnh}</td><td>{item.cavaloAtual}</td><td><StatusBadge value={item.status} /></td><td>{dateTime(item.abertaEm)}</td><td>{item.status === 'ABERTA' && <button type="button" className="secondary" onClick={() => closeTroca(item)}>Encerrar</button>}</td></tr>)}</tbody></table></div> : <EmptyState title="Nenhuma sessão encontrada" />}
+        {filteredTrocas.length ? <div className="gate-operation-table"><table><thead><tr><th>CPF</th><th>CNH</th><th>Cavalo</th><th>Status</th><th>Abertura</th><th>Ações</th></tr></thead><tbody>{filteredTrocas.map((item) => <tr key={item.id}><td>{item.cpfMotorista}</td><td>{item.numeroCnh}</td><td>{item.cavaloAtual}</td><td><StatusBadge value={item.status} /></td><td>{dateTime(item.abertaEm)}</td><td>{item.status === 'ABERTA' && <button type="button" className="secondary" disabled={saving} onClick={() => closeTroca(item)}>Encerrar</button>}</td></tr>)}</tbody></table></div> : <EmptyState title="Nenhuma sessão encontrada" />}
       </div>}
       {tab === 'chamados' && <div className="gate-operation-panel">
         <form className="gate-operation-form" onSubmit={submitCall}>
           <label>GatePass ID<input required min="1" type="number" value={callForm.gatePassId} onChange={(event) => setCallForm({ ...callForm, gatePassId: event.target.value })} /></label>
+          <label>Gate ou pista<input required maxLength="80" value={callForm.gatePista} onChange={(event) => setCallForm({ ...callForm, gatePista: event.target.value })} placeholder="Ex.: Gate 2 / Pista 4" /></label>
+          <label>Validade (min)<input required min="1" max="60" type="number" value={callForm.validadeMinutos} onChange={(event) => setCallForm({ ...callForm, validadeMinutos: event.target.value })} /></label>
           <label>Prioridade<select value={callForm.prioridade} onChange={(event) => setCallForm({ ...callForm, prioridade: event.target.value })}><option>NORMAL</option><option>ALTA</option><option>EMERGENCIAL</option></select></label>
           <button disabled={saving} type="submit">Chamar veículo</button>
         </form>
-        {chamados.length ? <div className="gate-operation-table"><table><thead><tr><th>GatePass</th><th>Prioridade</th><th>Status</th><th>Chamado</th><th>Ações</th></tr></thead><tbody>{chamados.map((item) => <tr key={item.id}><td>{item.codigoGatePass || item.gatePassId}</td><td><StatusBadge value={item.prioridade} /></td><td><StatusBadge value={item.status} /></td><td>{dateTime(item.chamadoEm)}</td><td className="gate-operation-actions">{item.status === 'CHAMADO' && <button type="button" onClick={() => execute(() => gateOperationsApi.iniciarChamado(item.id), 'Atendimento iniciado.')}>Iniciar</button>}{item.status === 'EM_ATENDIMENTO' && <button type="button" onClick={() => execute(() => gateOperationsApi.finalizarChamado(item.id), 'Atendimento finalizado.')}>Finalizar</button>}{['CHAMADO', 'EM_ATENDIMENTO'].includes(item.status) && <button type="button" className="secondary" onClick={() => cancelCall(item)}>Cancelar</button>}</td></tr>)}</tbody></table></div> : <EmptyState title="Nenhum chamado registrado" />}
+        {chamados.length ? <div className="gate-operation-table"><table><thead><tr><th>GatePass</th><th>Posição</th><th>Gate / pista</th><th>Prioridade</th><th>Status</th><th>Chamada</th><th>Aceite / expiração</th><th>Rechamadas</th><th>Ações</th></tr></thead><tbody>{chamados.map((item) => <tr key={item.id}>
+          <td>{item.codigoGatePass || item.gatePassId}</td>
+          <td>{item.posicaoFila ?? '—'}</td>
+          <td>{item.gatePista || '—'}</td>
+          <td><StatusBadge value={item.prioridade} /></td>
+          <td><StatusBadge value={item.status} /></td>
+          <td>{dateTime(item.chamadoEm)}<small>Expira: {dateTime(item.expiraEm)}</small></td>
+          <td>{item.aceitoEm ? dateTime(item.aceitoEm) : item.expiradoEm ? `Expirada em ${dateTime(item.expiradoEm)}` : 'Aguardando aceite'}</td>
+          <td>{item.quantidadeRechamadas ?? 0}{item.ultimaRechamadaEm && <small>Última: {dateTime(item.ultimaRechamadaEm)}</small>}</td>
+          <td className="gate-operation-actions">
+            {item.status === 'CHAMADO' && <button type="button" disabled={saving} onClick={() => acceptCall(item)}>Aceitar</button>}
+            {item.status === 'CHAMADO' && <button type="button" className="secondary" disabled={saving} onClick={() => expireCall(item)}>Expirar</button>}
+            {item.status === 'ACEITO' && <button type="button" disabled={saving} onClick={() => execute(() => gateOperationsApi.iniciarChamado(item.id), 'Atendimento iniciado.')}>Iniciar</button>}
+            {item.status === 'EM_ATENDIMENTO' && <button type="button" disabled={saving} onClick={() => execute(() => gateOperationsApi.finalizarChamado(item.id), 'Atendimento finalizado.')}>Finalizar</button>}
+            {item.status === 'EXPIRADO' && <button type="button" disabled={saving} onClick={() => recallCall(item)}>Rechamar</button>}
+            {['CHAMADO', 'ACEITO', 'EM_ATENDIMENTO'].includes(item.status) && <button type="button" className="secondary" disabled={saving} onClick={() => cancelCall(item)}>Cancelar</button>}
+          </td>
+        </tr>)}</tbody></table></div> : <EmptyState title="Nenhum chamado registrado" />}
       </div>}
       {tab === 'filas' && <div className="gate-operation-panel">
         <form className="gate-operation-form" onSubmit={submitQueue}>
@@ -156,7 +197,7 @@ export function GateOperationsTabs() {
           <label>GatePass ID<input required min="1" type="number" value={queueForm.gatePassId} onChange={(event) => setQueueForm({ gatePassId: event.target.value })} /></label>
           <button disabled={saving} type="submit">Adicionar à fila</button>
         </form>
-        {fila.length ? <div className="gate-operation-table"><table><thead><tr><th>Posição</th><th>GatePass</th><th>Prioridade</th><th>Status</th><th>Entrada</th><th>Ações</th></tr></thead><tbody>{fila.map((item) => <tr key={item.id}><td>{item.posicaoAtual}<small>Original: {item.posicaoOriginal}</small></td><td>{item.codigoGatePass || item.gatePassId}</td><td><StatusBadge value={item.prioridade} /></td><td><StatusBadge value={item.status} /></td><td>{dateTime(item.entrouEm)}</td><td className="gate-operation-actions"><button type="button" className="secondary" onClick={() => prioritize(item)}>Prioridade</button><button type="button" className="secondary" onClick={() => reorder(item)}>Reordenar</button></td></tr>)}</tbody></table></div> : <EmptyState title="Fila vazia" />}
+        {fila.length ? <div className="gate-operation-table"><table><thead><tr><th>Posição</th><th>GatePass</th><th>Prioridade</th><th>Status</th><th>Entrada</th><th>Ações</th></tr></thead><tbody>{fila.map((item) => <tr key={item.id}><td>{item.posicaoAtual}<small>Original: {item.posicaoOriginal}</small></td><td>{item.codigoGatePass || item.gatePassId}</td><td><StatusBadge value={item.prioridade} /></td><td><StatusBadge value={item.status} /></td><td>{dateTime(item.entrouEm)}</td><td className="gate-operation-actions"><button type="button" className="secondary" disabled={saving} onClick={() => prioritize(item)}>Prioridade</button><button type="button" className="secondary" disabled={saving} onClick={() => reorder(item)}>Reordenar</button></td></tr>)}</tbody></table></div> : <EmptyState title="Fila vazia" />}
       </div>}
     </>}
   </div>;

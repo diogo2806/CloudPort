@@ -19,6 +19,14 @@ export const generalCargoApi = {
   listarAvarias: (loteId) => request(`${INTERMODAL}/lotes/${encodeURIComponent(loteId)}/avarias`),
   inspecionarAvaria: (id, body) => request(`${INTERMODAL}/avarias/${encodeURIComponent(id)}/inspecionar`, { method: 'POST', body }),
   encerrarAvaria: (id, body) => request(`${INTERMODAL}/avarias/${encodeURIComponent(id)}/encerrar`, { method: 'POST', body }),
+  listarInventarios: () => request(`${INTERMODAL}/inventarios`),
+  obterInventario: (id) => request(`${INTERMODAL}/inventarios/${encodeURIComponent(id)}`),
+  abrirInventario: (body) => request(`${INTERMODAL}/inventarios`, { method: 'POST', body }),
+  registrarContagemInventario: (id, body) => request(`${INTERMODAL}/inventarios/${encodeURIComponent(id)}/contagens`, { method: 'POST', body }),
+  enviarInventarioParaAprovacao: (id, usuario) => request(`${INTERMODAL}/inventarios/${encodeURIComponent(id)}/enviar-aprovacao`, {
+    method: 'POST', query: { usuario }
+  }),
+  conciliarInventario: (id, body) => request(`${INTERMODAL}/inventarios/${encodeURIComponent(id)}/conciliar`, { method: 'POST', body }),
   listarReferencias: (categoria) => request(`${BASE}/referencias`, { query: categoria ? { categoria } : undefined }),
   criarReferencia: (body) => request(`${BASE}/referencias`, { method: 'POST', body }),
   atualizarReferencia: (id, ativo) => request(`${BASE}/referencias/${encodeURIComponent(id)}/status`, { method: 'PATCH', query: { ativo } }),

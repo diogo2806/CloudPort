@@ -6,6 +6,7 @@ import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
 import { BillingPage, CapPage } from './pages/BillingCapPages.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
+import { ControlRoomEquipamentosPage } from './pages/ControlRoomEquipamentosPage.jsx';
 import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
 import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
@@ -39,6 +40,9 @@ const FALLBACK_NAVIGATION = [
   { group: 'Visão geral', items: [
     { label: 'Painel', path: '/home/dashboard', roles: [] },
     { label: 'Central de alertas', path: '/home/alertas', roles: [] }
+  ] },
+  { group: 'Control Room', items: [
+    { label: 'Equipamentos e telemetria', path: '/home/control-room', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO', 'OPERADOR_GATE'] }
   ] },
   { group: 'Configurações', items: [
     { label: 'Papéis de acesso', path: '/home/role', roles: ['ADMIN_PORTO'] },
@@ -154,6 +158,7 @@ function NotFoundPage({ navigate }) {
 function RouteContent({ path, navigate, session }) {
   if (path === '/home' || path === '/home/dashboard') return <HomeDashboard navigate={navigate} />;
   if (path === '/home/alertas') return <AlertCenterPage navigate={navigate} session={session} />;
+  if (path === '/home/control-room' || path === '/home/patio/control-room') return <ControlRoomEquipamentosPage session={session} />;
   if (path === '/home/role') return <RolesPage />;
   if (path === '/home/seguranca') return <SecurityPage />;
   if (path === '/home/notificacoes') return <NotificationsPage />;

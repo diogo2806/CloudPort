@@ -3,6 +3,7 @@ package br.com.cloudport.servicocargageral.controlador;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.CategoriaReferenciaCarga;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.NaturezaCarga;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusLoteCarga;
+import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoMovimentacaoCarga;
 import br.com.cloudport.servicocargageral.dto.CargaGeralDTOs.ConhecimentoDetalhe;
 import br.com.cloudport.servicocargageral.dto.CargaGeralDTOs.ConhecimentoResumo;
 import br.com.cloudport.servicocargageral.dto.CargaGeralDTOs.CriarConhecimentoRequest;
@@ -25,6 +26,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import javax.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/carga-geral")
@@ -130,6 +133,11 @@ public class CargaGeralControlador {
     public LoteDetalhe registrarMovimentacao(
             @PathVariable UUID id,
             @Valid @RequestBody RegistrarMovimentacaoRequest request) {
+        if (request.tipo() == TipoMovimentacaoCarga.AJUSTE_INVENTARIO) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Ajuste de inventário exige sessão de contagem e aprovação motivada da divergência.");
+        }
         return cargaGeralServico.registrarMovimentacao(id, request);
     }
 

@@ -2,12 +2,10 @@ package br.com.cloudport.servicogate.app.gestor;
 
 import br.com.cloudport.servicogate.model.GateCall;
 import br.com.cloudport.servicogate.model.GateQueueEntry;
-import br.com.cloudport.servicogate.model.TruckHoppingSession;
 import br.com.cloudport.servicogate.model.enums.GateCallPriority;
 import br.com.cloudport.servicogate.model.enums.GateQueueDirection;
 import br.com.cloudport.servicogate.model.enums.GateQueuePriority;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -16,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.validation.Valid;
+import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -32,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/gate")
-@Tag(name = "Operações de Gate", description = "Troca de cavalo, chamados e filas operacionais")
+@Tag(name = "Operações de Gate", description = "Fila e ciclo persistente de chamadas de caminhões")
 @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
 public class GateOperationsController {
 
@@ -42,41 +41,28 @@ public class GateOperationsController {
         this.service = service;
     }
 
-    @GetMapping("/truck-hopping")
-    @Operation(summary = "Lista sessões de troca de cavalo")
-    public List<Map<String, Object>> listarTrocas() {
-        return service.listarTrocas().stream().map(this::mapearTroca).collect(Collectors.toList());
-    }
-
-    @PostMapping("/truck-hopping")
-    @Operation(summary = "Abre uma sessão de troca de cavalo")
-    public ResponseEntity<Map<String, Object>> abrirTroca(@Valid @RequestBody TruckHoppingRequest request) {
-        return ResponseEntity.ok(mapearTroca(service.abrirTroca(
-                request.getCpfMotorista(), request.getNumeroCnh(), request.getCavaloAtual(), request.getGatePassId())));
-    }
-
-    @PostMapping("/truck-hopping/{cpf}/close")
-    @Operation(summary = "Encerra a sessão aberta de troca de cavalo")
-    public ResponseEntity<Map<String, Object>> encerrarTroca(@PathVariable String cpf,
-                                                              @Valid @RequestBody CloseTruckHoppingRequest request) {
-        return ResponseEntity.ok(mapearTroca(service.encerrarTroca(cpf, request.getCavaloAtual(), request.getGatePassId())));
-    }
-
     @GetMapping("/calls")
-    @Operation(summary = "Lista chamados do gate")
+    @Operation(summary = "Lista o histórico persistente de chamadas")
     public List<Map<String, Object>> listarChamados() {
         return service.listarChamados().stream().map(this::mapearChamado).collect(Collectors.toList());
     }
 
     @PostMapping("/calls")
-    @Operation(summary = "Chama um veículo para atendimento")
+    @Operation(summary = "Chama um veículo e registra posição, prioridade, gate/pista e expiração")
     public ResponseEntity<Map<String, Object>> chamar(@Valid @RequestBody CallRequest request) {
         return ResponseEntity.ok(mapearChamado(service.chamarVeiculo(
-                request.getGatePassId(), request.getPrioridade(), request.getOperador())));
+                request.getGatePassId(), request.getPrioridade(), request.getGatePista(),
+                request.getValidadeMinutos(), request.getOperador())));
+    }
+
+    @PostMapping("/calls/{id}/accept")
+    @Operation(summary = "Registra o aceite da chamada")
+    public ResponseEntity<Map<String, Object>> aceitar(@PathVariable Long id) {
+        return ResponseEntity.ok(mapearChamado(service.aceitarChamado(id)));
     }
 
     @PostMapping("/calls/{id}/start")
-    @Operation(summary = "Inicia o atendimento de um chamado")
+    @Operation(summary = "Inicia o atendimento após o aceite")
     public ResponseEntity<Map<String, Object>> iniciar(@PathVariable Long id) {
         return ResponseEntity.ok(mapearChamado(service.iniciarAtendimento(id)));
     }
@@ -87,8 +73,22 @@ public class GateOperationsController {
         return ResponseEntity.ok(mapearChamado(service.finalizarAtendimento(id)));
     }
 
+    @PostMapping("/calls/{id}/expire")
+    @Operation(summary = "Expira manualmente uma chamada não aceita")
+    public ResponseEntity<Map<String, Object>> expirar(@PathVariable Long id) {
+        return ResponseEntity.ok(mapearChamado(service.expirarChamado(id)));
+    }
+
+    @PostMapping("/calls/{id}/recall")
+    @Operation(summary = "Rechama um veículo cuja chamada expirou")
+    public ResponseEntity<Map<String, Object>> rechamar(@PathVariable Long id,
+                                                         @Valid @RequestBody RecallRequest request) {
+        return ResponseEntity.ok(mapearChamado(
+                service.rechamar(id, request.getGatePista(), request.getValidadeMinutos())));
+    }
+
     @PostMapping("/calls/{id}/cancel")
-    @Operation(summary = "Cancela um chamado ativo")
+    @Operation(summary = "Cancela um chamado ativo com justificativa")
     public ResponseEntity<Map<String, Object>> cancelar(@PathVariable Long id,
                                                          @Valid @RequestBody CancellationRequest request) {
         return ResponseEntity.ok(mapearChamado(service.cancelar(id, request.getJustificativa())));
@@ -122,24 +122,12 @@ public class GateOperationsController {
                 id, request.getPrioridade(), request.getJustificativa(), request.getOperador())));
     }
 
-    private Map<String, Object> mapearTroca(TruckHoppingSession sessao) {
-        Map<String, Object> dto = new LinkedHashMap<>();
-        dto.put("id", sessao.getId());
-        dto.put("cpfMotorista", sessao.getCpfMotorista());
-        dto.put("numeroCnh", sessao.getNumeroCnh());
-        dto.put("cavaloAtual", sessao.getCavaloAtual());
-        dto.put("status", sessao.getStatus());
-        dto.put("gateInId", sessao.getGateIn() != null ? sessao.getGateIn().getId() : null);
-        dto.put("gateOutId", sessao.getGateOut() != null ? sessao.getGateOut().getId() : null);
-        dto.put("abertaEm", sessao.getCreatedAt());
-        dto.put("encerradaEm", sessao.getEncerradaEm());
-        return dto;
-    }
-
     private Map<String, Object> mapearChamado(GateCall chamado) {
         LocalDateTime fim = chamado.getFinalizadoEm() != null
                 ? chamado.getFinalizadoEm()
-                : chamado.getCanceladoEm() != null ? chamado.getCanceladoEm() : LocalDateTime.now();
+                : chamado.getCanceladoEm() != null
+                ? chamado.getCanceladoEm()
+                : chamado.getExpiradoEm() != null ? chamado.getExpiradoEm() : LocalDateTime.now();
         LocalDateTime inicioAtendimento = chamado.getAtendimentoIniciadoEm();
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", chamado.getId());
@@ -147,10 +135,17 @@ public class GateOperationsController {
         dto.put("codigoGatePass", chamado.getGatePass().getCodigo());
         dto.put("status", chamado.getStatus());
         dto.put("prioridade", chamado.getPrioridade());
+        dto.put("posicaoFila", chamado.getPosicaoFila());
+        dto.put("gatePista", chamado.getGatePista());
         dto.put("chamadoEm", chamado.getChamadoEm());
+        dto.put("aceitoEm", chamado.getAceitoEm());
+        dto.put("expiraEm", chamado.getExpiraEm());
+        dto.put("expiradoEm", chamado.getExpiradoEm());
         dto.put("atendimentoIniciadoEm", inicioAtendimento);
         dto.put("finalizadoEm", chamado.getFinalizadoEm());
         dto.put("canceladoEm", chamado.getCanceladoEm());
+        dto.put("quantidadeRechamadas", chamado.getQuantidadeRechamadas());
+        dto.put("ultimaRechamadaEm", chamado.getUltimaRechamadaEm());
         dto.put("duracaoEsperaSegundos", segundos(chamado.getChamadoEm(),
                 inicioAtendimento != null ? inicioAtendimento : fim));
         dto.put("duracaoAtendimentoSegundos", inicioAtendimento != null ? segundos(inicioAtendimento, fim) : 0L);
@@ -185,40 +180,31 @@ public class GateOperationsController {
         return dto;
     }
 
-    public static class TruckHoppingRequest {
-        @NotBlank @Schema(example = "123.456.789-00") private String cpfMotorista;
-        @NotBlank @Schema(example = "01234567890") private String numeroCnh;
-        @NotBlank @Schema(example = "ABC1D23") private String cavaloAtual;
-        @NotNull private Long gatePassId;
-        public String getCpfMotorista() { return cpfMotorista; }
-        public void setCpfMotorista(String cpfMotorista) { this.cpfMotorista = cpfMotorista; }
-        public String getNumeroCnh() { return numeroCnh; }
-        public void setNumeroCnh(String numeroCnh) { this.numeroCnh = numeroCnh; }
-        public String getCavaloAtual() { return cavaloAtual; }
-        public void setCavaloAtual(String cavaloAtual) { this.cavaloAtual = cavaloAtual; }
-        public Long getGatePassId() { return gatePassId; }
-        public void setGatePassId(Long gatePassId) { this.gatePassId = gatePassId; }
-    }
-
-    public static class CloseTruckHoppingRequest {
-        @NotBlank private String cavaloAtual;
-        @NotNull private Long gatePassId;
-        public String getCavaloAtual() { return cavaloAtual; }
-        public void setCavaloAtual(String cavaloAtual) { this.cavaloAtual = cavaloAtual; }
-        public Long getGatePassId() { return gatePassId; }
-        public void setGatePassId(Long gatePassId) { this.gatePassId = gatePassId; }
-    }
-
     public static class CallRequest {
         @NotNull private Long gatePassId;
         private GateCallPriority prioridade = GateCallPriority.NORMAL;
+        @NotBlank private String gatePista;
+        @Min(1) @Max(60) private Integer validadeMinutos = 5;
         private String operador;
         public Long getGatePassId() { return gatePassId; }
         public void setGatePassId(Long gatePassId) { this.gatePassId = gatePassId; }
         public GateCallPriority getPrioridade() { return prioridade; }
         public void setPrioridade(GateCallPriority prioridade) { this.prioridade = prioridade; }
+        public String getGatePista() { return gatePista; }
+        public void setGatePista(String gatePista) { this.gatePista = gatePista; }
+        public Integer getValidadeMinutos() { return validadeMinutos; }
+        public void setValidadeMinutos(Integer validadeMinutos) { this.validadeMinutos = validadeMinutos; }
         public String getOperador() { return operador; }
         public void setOperador(String operador) { this.operador = operador; }
+    }
+
+    public static class RecallRequest {
+        private String gatePista;
+        @Min(1) @Max(60) private Integer validadeMinutos = 5;
+        public String getGatePista() { return gatePista; }
+        public void setGatePista(String gatePista) { this.gatePista = gatePista; }
+        public Integer getValidadeMinutos() { return validadeMinutos; }
+        public void setValidadeMinutos(Integer validadeMinutos) { this.validadeMinutos = validadeMinutos; }
     }
 
     public static class CancellationRequest {

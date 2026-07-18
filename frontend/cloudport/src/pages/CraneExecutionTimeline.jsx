@@ -24,7 +24,16 @@ function localDateTimeValue(value) {
   return String(value ?? '').replace(/Z$/, '').slice(0, 19);
 }
 
-export function CraneExecutionTimeline({ plan, sequencing, disabled }) {
+export function CraneExecutionTimeline({
+  plan,
+  sequencing,
+  disabled,
+  selectedSlotId,
+  onSelectSlot,
+  overlayMode,
+  onOverlayModeChange,
+  showOverlayToolbar = true
+}) {
   const [execution, setExecution] = useState(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState('');
@@ -176,7 +185,16 @@ export function CraneExecutionTimeline({ plan, sequencing, disabled }) {
   if (!plan?.id) return null;
 
   return <>
-    <VesselPlannerPhase3Dashboard plan={plan} sequencing={sequencing} disabled={disabled} />
+    <VesselPlannerPhase3Dashboard
+      plan={plan}
+      sequencing={sequencing}
+      disabled={disabled}
+      selectedSlotId={selectedSlotId}
+      onSelectSlot={onSelectSlot}
+      overlayMode={overlayMode}
+      onOverlayModeChange={onOverlayModeChange}
+      showOverlayToolbar={showOverlayToolbar}
+    />
     <section className="crane-execution-panel" aria-label="Execução persistida dos guindastes">
       <header className="crane-execution-heading">
         <div><span className="view-kicker">Planejado × realizado</span><h3>Execução dos guindastes</h3></div>

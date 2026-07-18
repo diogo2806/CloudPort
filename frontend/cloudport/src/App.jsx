@@ -11,11 +11,13 @@ import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
 import { GateOperationsPage } from './pages/GateOperationsPage.jsx';
 import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
+import { GeneralCargoPage } from './pages/GeneralCargoPage.jsx';
 import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
+import { StuffUnstuffPage } from './pages/StuffUnstuffPage.jsx';
 import { VesselLineUpPage } from './pages/VesselLineUpPage.jsx';
 import {
   ControlRoomPage,
@@ -51,6 +53,10 @@ const FALLBACK_NAVIGATION = [
     { label: 'Notificações', path: '/home/notificacoes', roles: [] },
     { label: 'Privacidade', path: '/home/privacidade', roles: [] },
     { label: 'Usuários', path: '/home/lista-de-usuarios', roles: ['ADMIN_PORTO'] }
+  ] },
+  { group: 'Carga geral', items: [
+    { label: 'Bill of Lading e cargo lots', path: '/home/carga-geral', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
+    { label: 'Stuff e unstuff', path: '/home/carga-geral/stuff-unstuff', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] }
   ] },
   { group: 'Gate', items: [
     { label: 'Gate visual', path: '/home/gate/dashboard', roles: [] },
@@ -136,7 +142,7 @@ function LoginPage({ onAuthenticated, navigate, returnPath }) {
     } finally { setBusy(false); }
   }
 
-  return <main className="login-shell"><section className="login-visual" aria-hidden="true"><div><span className="brand-mark">CP</span><h1>Operação portuária em uma única visão.</h1><p>Gate, ferrovia, pátio, navio e embarque conectados pelo CloudPort.</p></div></section><section className="login-panel"><form className="login-card" onSubmit={submit}><div className="login-brand"><span className="brand-mark small">CP</span><div><strong>CloudPort</strong><small>Portal operacional React</small></div></div><div><span className="eyebrow">Acesso seguro</span><h2>Entrar</h2><p>Use uma conta autorizada para acessar os módulos.</p></div><label className="field"><span>Login</span><input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" maxLength={120} required autoFocus /></label><label className="field"><span>Senha</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label><Message type="error">{error}</Message><button className="large" type="submit" disabled={busy || !login || !password}>{busy ? 'Autenticando...' : 'Entrar no CloudPort'}</button></form></section></main>;
+  return <main className="login-shell"><section className="login-visual" aria-hidden="true"><div><span className="brand-mark">CP</span><h1>Operação portuária em uma única visão.</h1><p>Gate, ferrovia, pátio, navio e embarque conectados pelo CloudPort.</p></div></section><section className="login-panel"><form className="login-card" onSubmit={submit}><div className="login-brand"><span className="brand-mark small">CP</span><div><strong>CloudPort</strong><small>Portal operacional</small></div></div><div><span className="eyebrow">Acesso seguro</span><h2>Entrar</h2><p>Use uma conta autorizada para acessar os módulos.</p></div><label className="field"><span>Login</span><input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" maxLength={120} required autoFocus /></label><label className="field"><span>Senha</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label><Message type="error">{error}</Message><button className="large" type="submit" disabled={busy || !login || !password}>{busy ? 'Autenticando...' : 'Entrar no CloudPort'}</button></form></section></main>;
 }
 
 function NotFoundPage({ navigate }) {
@@ -152,6 +158,8 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/notificacoes') return <NotificationsPage />;
   if (path === '/home/privacidade') return <PrivacyPage />;
   if (path === '/home/lista-de-usuarios') return <UsersPage />;
+  if (path === '/home/carga-geral') return <GeneralCargoPage />;
+  if (path === '/home/carga-geral/stuff-unstuff') return <StuffUnstuffPage />;
   if (path === '/home/billing') return <BillingPage />;
   if (path === '/home/cap') return <CapPage />;
   if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;

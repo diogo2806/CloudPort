@@ -39,14 +39,17 @@ public class ExecucaoSequenciaGuindasteServico {
     private final EstivagemPlanRepositorio planRepositorio;
     private final ExecucaoSequenciaGuindasteRepositorio execucaoRepositorio;
     private final SequenciamentoGuindasteServico sequenciamentoServico;
+    private final OperacaoTampaPoraoServico operacaoTampaPoraoServico;
 
     public ExecucaoSequenciaGuindasteServico(
             EstivagemPlanRepositorio planRepositorio,
             ExecucaoSequenciaGuindasteRepositorio execucaoRepositorio,
-            SequenciamentoGuindasteServico sequenciamentoServico) {
+            SequenciamentoGuindasteServico sequenciamentoServico,
+            OperacaoTampaPoraoServico operacaoTampaPoraoServico) {
         this.planRepositorio = planRepositorio;
         this.execucaoRepositorio = execucaoRepositorio;
         this.sequenciamentoServico = sequenciamentoServico;
+        this.operacaoTampaPoraoServico = operacaoTampaPoraoServico;
     }
 
     @Transactional
@@ -55,6 +58,7 @@ public class ExecucaoSequenciaGuindasteServico {
             throw conflito("O plano já possui execução de sequência de guindastes.");
         });
 
+        operacaoTampaPoraoServico.sincronizar(planId);
         EstivagemPlan plan = planRepositorio.findById(planId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -98,6 +102,8 @@ public class ExecucaoSequenciaGuindasteServico {
             movimento.setRowBay(operacao.getRowBay());
             movimento.setTier(operacao.getTier());
             movimento.setTipoOperacao(operacao.getTipoOperacao());
+            movimento.setCodigoHatchCover(operacao.getCodigoHatchCover());
+            movimento.setSobreHatchCover(operacao.isSobreHatchCover());
             movimento.setJanelaInicioPlanejada(inicioMovimento);
             movimento.setJanelaFimPlanejada(fimMovimento);
             movimento.setQuantidadePlanejada(BigDecimal.ONE);
@@ -117,26 +123,33 @@ public class ExecucaoSequenciaGuindasteServico {
     }
 
     @Transactional
-    public ExecucaoResponse iniciar(Long execucaoId,
-                                     Long movimentoId,
-                                     IniciarMovimentoRequest request,
-                                     String usuario) {
+    public ExecucaoResponse iniciar(
+            Long execucaoId,
+            Long movimentoId,
+            IniciarMovimentoRequest request,
+            String usuario) {
         ExecucaoSequenciaGuindaste execucao = buscarExecucao(execucaoId);
         MovimentoExecucaoGuindaste movimento = buscarMovimento(execucao, movimentoId);
         validarVersao(movimento.getVersao(), request.versao(), "movimento");
-        executarTransicao(() -> movimento.iniciar(request.ocorridoEm(), usuario));
+        bloquearPlano(execucao);
+        executarTransicao(() -> {
+            operacaoTampaPoraoServico.validarInicioMovimento(execucao, movimento);
+            movimento.iniciar(request.ocorridoEm(), usuario);
+        });
         execucao.atualizarStatus();
         return toResponse(execucaoRepositorio.saveAndFlush(execucao));
     }
 
     @Transactional
-    public ExecucaoResponse concluir(Long execucaoId,
-                                      Long movimentoId,
-                                      ConcluirMovimentoRequest request,
-                                      String usuario) {
+    public ExecucaoResponse concluir(
+            Long execucaoId,
+            Long movimentoId,
+            ConcluirMovimentoRequest request,
+            String usuario) {
         ExecucaoSequenciaGuindaste execucao = buscarExecucao(execucaoId);
         MovimentoExecucaoGuindaste movimento = buscarMovimento(execucao, movimentoId);
         validarVersao(movimento.getVersao(), request.versao(), "movimento");
+        bloquearPlano(execucao);
         executarTransicao(() -> movimento.concluir(
                 request.quantidadeRealizada(),
                 request.concluidoEm(),
@@ -146,13 +159,15 @@ public class ExecucaoSequenciaGuindasteServico {
     }
 
     @Transactional
-    public ExecucaoResponse falhar(Long execucaoId,
-                                    Long movimentoId,
-                                    FalharMovimentoRequest request,
-                                    String usuario) {
+    public ExecucaoResponse falhar(
+            Long execucaoId,
+            Long movimentoId,
+            FalharMovimentoRequest request,
+            String usuario) {
         ExecucaoSequenciaGuindaste execucao = buscarExecucao(execucaoId);
         MovimentoExecucaoGuindaste movimento = buscarMovimento(execucao, movimentoId);
         validarVersao(movimento.getVersao(), request.versao(), "movimento");
+        bloquearPlano(execucao);
         executarTransicao(() -> movimento.falhar(
                 request.excecao(),
                 request.quantidadeRealizada(),
@@ -163,13 +178,15 @@ public class ExecucaoSequenciaGuindasteServico {
     }
 
     @Transactional
-    public ExecucaoResponse replanejar(Long execucaoId,
-                                        Long movimentoId,
-                                        ReplanejarMovimentoRequest request,
-                                        String usuario) {
+    public ExecucaoResponse replanejar(
+            Long execucaoId,
+            Long movimentoId,
+            ReplanejarMovimentoRequest request,
+            String usuario) {
         ExecucaoSequenciaGuindaste execucao = buscarExecucao(execucaoId);
         MovimentoExecucaoGuindaste movimento = buscarMovimento(execucao, movimentoId);
         validarVersao(movimento.getVersao(), request.versao(), "movimento");
+        bloquearPlano(execucao);
         validarOrdemDisponivel(execucao, movimento, request.ordemPlanejada());
         validarJanelaDisponivel(
                 execucao,
@@ -189,11 +206,13 @@ public class ExecucaoSequenciaGuindasteServico {
     }
 
     @Transactional
-    public ExecucaoResponse reconciliar(Long execucaoId,
-                                         ReconciliarExecucaoRequest request,
-                                         String usuario) {
+    public ExecucaoResponse reconciliar(
+            Long execucaoId,
+            ReconciliarExecucaoRequest request,
+            String usuario) {
         ExecucaoSequenciaGuindaste execucao = buscarExecucao(execucaoId);
         validarVersao(execucao.getVersao(), request.versao(), "execução");
+        bloquearPlano(execucao);
         executarTransicao(() -> execucao.reconciliar(request.observacao(), usuario));
         return toResponse(execucaoRepositorio.saveAndFlush(execucao));
     }
@@ -214,6 +233,14 @@ public class ExecucaoSequenciaGuindasteServico {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Movimento não pertence à execução informada: " + movimentoId));
+    }
+
+    private void bloquearPlano(ExecucaoSequenciaGuindaste execucao) {
+        Long planId = execucao.getEstivagem().getId();
+        planRepositorio.findLockedById(planId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Plano de estivagem não encontrado: " + planId));
     }
 
     private void validarVersao(Long versaoAtual, Long versaoEsperada, String recurso) {
@@ -316,6 +343,11 @@ public class ExecucaoSequenciaGuindasteServico {
         boolean atrasado = !movimento.terminal()
                 && movimento.getJanelaFimPlanejada() != null
                 && LocalDateTime.now().isAfter(movimento.getJanelaFimPlanejada());
+        String motivoBloqueio = operacaoTampaPoraoServico.motivoBloqueio(
+                movimento.getExecucao(),
+                movimento);
+        boolean planejavel = movimento.getStatus() == StatusMovimentoExecucaoGuindaste.PLANEJADO
+                || movimento.getStatus() == StatusMovimentoExecucaoGuindaste.REPLANEJADO;
         return new MovimentoResponse(
                 movimento.getId(),
                 movimento.getVersao(),
@@ -326,6 +358,10 @@ public class ExecucaoSequenciaGuindasteServico {
                 movimento.getRowBay(),
                 movimento.getTier(),
                 movimento.getTipoOperacao(),
+                movimento.getCodigoHatchCover(),
+                movimento.isSobreHatchCover(),
+                planejavel && motivoBloqueio != null,
+                planejavel ? motivoBloqueio : null,
                 movimento.getJanelaInicioPlanejada(),
                 movimento.getJanelaFimPlanejada(),
                 movimento.getQuantidadePlanejada(),

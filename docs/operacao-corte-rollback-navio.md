@@ -1,5 +1,7 @@
 # Operação de corte e rollback do monólito modular CloudPort
 
+Atualizado em 2026-07-18 para o runtime com oito módulos, oito schemas, Carga Geral incorporada e imagens de implantação do EasyPanel.
+
 Este runbook usa `backend/cloudport-runtime` como runtime canônico do CloudPort.
 
 O executável `backend/cloudport-monolito-navio` é o primeiro corte preservado exclusivamente para rollback intermediário. Os serviços `backend/servico-*` permanecem como última camada de retorno durante a janela de compatibilidade.
@@ -13,14 +15,20 @@ O executável `backend/cloudport-monolito-navio` é o primeiro corte preservado 
 5. Cada schema e seu `flyway_schema_history` permanecem sob ownership do módulo correspondente.
 6. Rollback troca binário e roteamento; não executa downgrade de banco.
 7. Deployments, imagens e credenciais anteriores permanecem disponíveis até a paridade e o retorno serem comprovados.
+8. Nenhum corte é aprovado enquanto existir conflito de branch, migração pendente, rota duplicada ou execução concorrente de escritor, job ou consumidor.
 
 ## Artefatos oficiais
 
 | Finalidade | Artefato |
 | --- | --- |
 | Runtime canônico | `backend/cloudport-runtime` |
-| Build canônico | `backend/cloudport-modules` |
+| Parent Maven | `backend/cloudport-navio-modules` |
+| Reator Maven | `backend/cloudport-modules` |
+| Contratos compartilhados | `backend/cloudport-contracts` |
+| Docker pela raiz | `backend/cloudport-runtime/Dockerfile` |
+| Docker com contexto `/backend` | `backend/Dockerfile` |
 | Compose canônico | `deploy/cloudport-runtime/docker-compose.yml` |
+| Frontend no EasyPanel | `frontend/Dockerfile` e `frontend/nginx.conf` |
 | Rollback intermediário | `backend/cloudport-monolito-navio` |
 | Compose de rollback | `deploy/navio-monolito/docker-compose.yml`, perfil `rollback` |
 | Serviços isolados anteriores | `backend/servico-*` e manifests do ambiente |
@@ -42,31 +50,74 @@ Jobs críticos usam `pg_try_advisory_xact_lock`. Consumidores e comandos sujeito
 | Módulo | Schema |
 | --- | --- |
 | Autenticação | `cloudport_autenticacao` |
-| Gate | `cloudport_gate` |
+| Carga Geral | `cloudport_carga_geral` |
+| Gate, Billing e CAP | `cloudport_gate` |
 | Rail | `cloudport_rail` |
 | Visibilidade | `cloudport_visibilidade` |
-| Yard | `cloudport_yard` |
+| Yard e Inventory Management | `cloudport_yard` |
 | Navio | `cloudport_navio` |
 | Navio Siderúrgico | `cloudport_siderurgico` |
 
 Cada schema mantém sua própria tabela `flyway_schema_history`. Não alterar checksum, versão ou conteúdo de migração já aplicada.
 
+## Build de validação
+
+```bash
+cd backend/cloudport-modules
+mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install
+mvn -B -Dspring-boot.repackage.skip=true \
+  -pl :cloudport-runtime -am \
+  -DskipTests install
+mvn -B -pl :cloudport-runtime test package
+```
+
+Validar também as duas formas de construção da imagem:
+
+```bash
+# contexto da raiz
+docker build -f backend/cloudport-runtime/Dockerfile -t cloudport-runtime:cutover .
+
+# mesmo contexto usado pelo EasyPanel
+docker build -f backend/Dockerfile -t cloudport-runtime-easypanel:cutover backend
+```
+
+## Variáveis mínimas do runtime
+
+```bash
+SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/cloudport
+SPRING_DATASOURCE_USERNAME=cloudport
+SPRING_DATASOURCE_PASSWORD=<segredo>
+CLOUDPORT_SECURITY_JWT_SECRET=<mínimo-32-bytes>
+CLOUDPORT_SECURITY_JWT_EXPIRATION=PT2H
+SPRING_RABBITMQ_HOST=rabbitmq
+SPRING_RABBITMQ_USERNAME=cloudport
+SPRING_RABBITMQ_PASSWORD=<segredo>
+SPRING_REDIS_HOST=redis
+SPRING_REDIS_PORT=6379
+CLOUDPORT_WRITES_ENABLED=true
+CLOUDPORT_JOBS_ENABLED=true
+CLOUDPORT_CONSUMERS_ENABLED=true
+```
+
+Também devem ser configurados CORS, credencial interna de compatibilidade, TOS, storage, webhooks e demais integrações habilitadas no ambiente.
+
 ## Validações antes do corte
 
 1. Sincronizar a branch de implantação com `main` e confirmar ausência de conflitos.
-2. Executar o build em `backend/cloudport-modules` e os testes de `cloudport-runtime`.
-3. Validar `deploy/cloudport-runtime/docker-compose.yml` e construir a imagem canônica.
-4. Executar `Flyway.validate()` nos sete schemas e confirmar ausência de migração pendente.
-5. Confirmar ownership e contagens essenciais de cada domínio.
+2. Executar o build do parent, do reator e os testes de `cloudport-runtime`.
+3. Validar `deploy/cloudport-runtime/docker-compose.yml` e construir as imagens canônicas.
+4. Executar `Flyway.validate()` nos oito schemas e confirmar ausência de migração pendente.
+5. Confirmar ownership, contagens essenciais e vínculos de cada domínio.
 6. Criar backup consistente e registrar o ponto de restauração.
 7. Confirmar que o proxy direciona cada rota para exatamente um backend.
 8. Confirmar que o runtime canônico usa integrações internas em modo `local`.
 9. Validar login, autorização, CORS, OpenAPI, erros, correlação, métricas e health checks.
 10. Validar produção e consumo de eventos externos sem duplicação.
-11. Executar smoke dos fluxos de Navio, Yard, Gate, Rail, Autenticação e Visibilidade.
-12. Registrar responsável, janela, critérios de aborto e procedimento de comunicação.
+11. Executar smoke de Autenticação, Carga Geral, Gate, Billing/CAP, Rail, Visibilidade, Yard, Inventory, Navio e Navio Siderúrgico.
+12. Validar o portal, Control Room, central de alertas, grade operacional e ajuda contextual.
+13. Registrar responsável, janela, critérios de aborto e procedimento de comunicação.
 
-## Início do runtime canônico
+## Início pelo Docker Compose
 
 ```bash
 docker compose \
@@ -82,25 +133,49 @@ Durante a operação consolidada:
 - serviços isolados anteriores permanecem parados ou com escrita, jobs e consumidores desativados;
 - nenhuma credencial ou imagem de rollback é removida antes do encerramento formal da janela.
 
+## Início pelo EasyPanel
+
+### Backend
+
+- caminho de build: `/backend`;
+- arquivo: `Dockerfile`;
+- porta: `8080`;
+- health check: `/actuator/health/readiness`.
+
+### Frontend
+
+- caminho de build: `/frontend`;
+- arquivo: `Dockerfile`;
+- porta: `80`;
+- health check: `/health`.
+
+Antes de promover, confirmar que o frontend usa a URL do backend canônico e que o fallback de SPA retorna `index.html` para rotas do portal.
+
 ## Smoke obrigatório do runtime canônico
 
 Validar, no mínimo:
 
-1. `health` e `prometheus`;
+1. `health`, readiness e Prometheus;
 2. portal, Control Room e configuração dinâmica;
 3. login e emissão de JWT;
 4. rejeição de chamada sem token;
 5. roles e restrições administrativas;
-6. cadastro canônico e projeção siderúrgica por porta local;
-7. mapa, reserva, ordem, work queue e work instruction do Yard;
-8. Gate para Yard e Gate para Autenticação por porta local;
-9. visita de trem e integração Rail/Yard;
-10. projeções e alertas de Visibilidade;
-11. `X-Correlation-Id` e `traceparent`;
-12. erro padronizado;
-13. OpenAPI sem rota ou operação duplicada;
-14. persistência no schema proprietário;
-15. um único job e um único consumidor por chave ou fila.
+6. Carga Geral com Bill of Lading, item, lote e movimentação de estoque;
+7. Gate com appointment, truck visit, transação, inspeção, documento e EIR;
+8. Billing/CAP com tarifa, cobrança, fatura, pagamento e isolamento da transportadora;
+9. inventário canônico e movimentação do Yard;
+10. mapa, reserva, allocation, work queue e work instruction do Yard;
+11. Gate → Yard e Gate → Autenticação por porta local;
+12. visita de trem, line-up e integração Rail/Yard;
+13. cadastro canônico, escala, Vessel Planner, crane plan e integração Navio/Yard;
+14. projeções e alertas de Visibilidade;
+15. telemetria, alarmes, dispositivos e comandos do Control Room;
+16. BAPLIE, COPRAR, COARRI e VERMAS com idempotência e auditoria;
+17. `X-Correlation-Id` e `traceparent`;
+18. erro padronizado;
+19. OpenAPI sem rota, schema ou `operationId` duplicado;
+20. persistência no schema proprietário;
+21. um único job e um único consumidor por chave ou fila.
 
 ## Critérios de aprovação
 
@@ -112,7 +187,8 @@ O corte é aprovado quando:
 - eventos não apresentam duplicação não tratada;
 - contagens e vínculos de dados permanecem consistentes;
 - a operação confirma paridade dos fluxos críticos;
-- o procedimento de rollback foi ensaiado no ambiente de aceitação.
+- o procedimento de rollback foi ensaiado no ambiente de aceitação;
+- as pendências técnicas conhecidas foram aceitas formalmente ou corrigidas antes da produção.
 
 ## Rollback intermediário para `cloudport-monolito-navio`
 
@@ -129,8 +205,6 @@ O retorno não desfaz migrações. Ele reativa um binário anterior compatível 
 9. Executar uma escrita controlada em cada domínio afetado.
 10. Validar auditoria, dados, filas e integrações externas.
 
-Comando:
-
 ```bash
 ROLLBACK_WRITES_ENABLED=true \
 ROLLBACK_JOBS_ENABLED=true \
@@ -141,9 +215,7 @@ docker compose \
   up -d --build
 ```
 
-O perfil define `CLOUDPORT_ROLLBACK_ENABLED=true`. O executável possui adaptadores locais para `OtimizacaoYardCliente` e `PlanoOtimizadoYardCliente`, além das demais portas locais já existentes.
-
-Nunca execute o perfil `rollback` com escrita, jobs ou consumidores ativos enquanto o `cloudport-runtime` estiver operacional.
+O perfil define `CLOUDPORT_ROLLBACK_ENABLED=true`. Nunca execute o perfil com escrita, jobs ou consumidores ativos enquanto o `cloudport-runtime` estiver operacional.
 
 ## Rollback adicional para serviços isolados
 
@@ -157,7 +229,7 @@ docker compose \
   up -d --build servico-navio servico-navio-siderurgico
 ```
 
-Os demais serviços anteriores devem ser reativados pelos manifests atuais de cada ambiente.
+Os demais serviços anteriores devem ser reativados pelos manifests atuais de cada ambiente. Antes de cada ativação, garantir que o domínio correspondente não está aceitando escrita no runtime canônico.
 
 ## Compatibilidade Flyway
 
@@ -171,7 +243,7 @@ Durante a janela de retorno:
 6. não renomear diretamente estruturas usadas pelo rollback;
 7. nunca editar migração aplicada;
 8. corrigir por nova versão;
-9. validar os sete históricos antes da promoção;
+9. validar os oito históricos antes da promoção;
 10. encerrar formalmente a janela de rollback antes da fase destrutiva.
 
 ## Retirada de deployments e credenciais anteriores
@@ -199,3 +271,5 @@ A remoção exige:
 - OpenAPI com operação duplicada;
 - ausência de correlação, tracing ou métricas operacionais;
 - incapacidade de executar o rollback ensaiado.
+
+As pendências técnicas que exigem correção antes de determinados ambientes estão em `docs/requisitos/requisito-tecnico.md`.

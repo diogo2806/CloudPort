@@ -12,7 +12,7 @@ RUN mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install \
     && mvn -B -Dspring-boot.repackage.skip=true \
         -pl :cloudport-runtime -am \
         -DskipTests install \
-    && mvn -B -pl :cloudport-runtime -DskipTests package
+    && mvn -B -pl :cloudport-runtime -DskipTests clean package
 
 FROM eclipse-temurin:17-jre
 

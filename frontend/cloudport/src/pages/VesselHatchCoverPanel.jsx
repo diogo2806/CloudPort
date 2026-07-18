@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatError, request, sanitizeText } from '../api.js';
 import '../vessel-hatch-covers.css';
+import { VesselPlannerReconciliationPanel } from './VesselPlannerReconciliationPanel.jsx';
 
 const OPERATIONS_BY_STATE = {
   FECHADA: ['ABRIR'],
@@ -33,13 +34,29 @@ function taskDescription(task) {
   return `${OPERATION_LABELS[task.tipo] ?? task.tipo} · ${task.status} · ${task.recurso}${dependencies}`;
 }
 
-export function VesselHatchCoverPanel({ planId, canEdit, busy }) {
+export function VesselHatchCoverPanel({
+  planId,
+  canEdit,
+  busy,
+  selectedCoverCode = '',
+  onSelectCover,
+  onCoversChange
+}) {
   const [covers, setCovers] = useState([]);
   const [resource, setResource] = useState('EQUIPE_TAMPA');
   const [loading, setLoading] = useState(false);
   const [command, setCommand] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const coversChangeRef = useRef(onCoversChange);
+
+  useEffect(() => {
+    coversChangeRef.current = onCoversChange;
+  }, [onCoversChange]);
+
+  useEffect(() => {
+    coversChangeRef.current?.(covers);
+  }, [covers]);
 
   async function load() {
     if (!planId) return;
@@ -133,39 +150,48 @@ export function VesselHatchCoverPanel({ planId, canEdit, busy }) {
     );
   }
 
-  return <section className="hatch-cover-panel" aria-label="Operação de tampas de porão">
-    <header>
-      <div><span className="view-kicker">Hatch covers</span><h3>Tampas de porão</h3><p>O estado persistido bloqueia movimentos incompatíveis no porão e sobre a tampa.</p></div>
-      <div className="hatch-cover-controls">
-        <label>Recurso<input value={resource} maxLength="120" onChange={(event) => setResource(event.target.value)} disabled={!canEdit || Boolean(command)} /></label>
-        <button type="button" className="secondary" onClick={load} disabled={loading || Boolean(command)}>{loading ? 'Carregando...' : 'Atualizar'}</button>
+  return <>
+    <section className="hatch-cover-panel" aria-label="Operação de tampas de porão">
+      <header>
+        <div><span className="view-kicker">Hatch covers</span><h3>Tampas de porão</h3><p>O estado persistido é sincronizado com os slots e bloqueia movimentos incompatíveis.</p></div>
+        <div className="hatch-cover-controls">
+          <label>Recurso<input value={resource} maxLength="120" onChange={(event) => setResource(event.target.value)} disabled={!canEdit || Boolean(command)} /></label>
+          <button type="button" className="secondary" onClick={load} disabled={loading || Boolean(command)}>{loading ? 'Carregando...' : 'Atualizar'}</button>
+        </div>
+      </header>
+      {error && <div className="hatch-cover-message error">{error}</div>}
+      {success && <div className="hatch-cover-message success">{success}</div>}
+      <div className="hatch-cover-summary">
+        <span>Fechadas <strong>{summary.FECHADA ?? 0}</strong></span>
+        <span>Abertas <strong>{summary.ABERTA ?? 0}</strong></span>
+        <span>Removidas <strong>{summary.REMOVIDA ?? 0}</strong></span>
+        <span>Posicionadas <strong>{summary.POSICIONADA ?? 0}</strong></span>
       </div>
-    </header>
-    {error && <div className="hatch-cover-message error">{error}</div>}
-    {success && <div className="hatch-cover-message success">{success}</div>}
-    <div className="hatch-cover-summary">
-      <span>Fechadas <strong>{summary.FECHADA ?? 0}</strong></span>
-      <span>Abertas <strong>{summary.ABERTA ?? 0}</strong></span>
-      <span>Removidas <strong>{summary.REMOVIDA ?? 0}</strong></span>
-      <span>Posicionadas <strong>{summary.POSICIONADA ?? 0}</strong></span>
-    </div>
-    <div className="hatch-cover-grid">
-      {covers.map((cover) => {
-        const task = currentTask(cover);
-        const operations = task ? [] : (OPERATIONS_BY_STATE[cover.estado] ?? []);
-        return <article key={cover.id} className={`hatch-cover-card state-${String(cover.estado).toLowerCase()}`}>
-          <div className="hatch-cover-heading"><div><strong>{cover.codigo}</strong><small>{cover.posicaoAtual?.referencia || 'Posição não informada'}</small></div><span>{cover.estado}</span></div>
-          <p>{taskDescription(task)}</p>
-          <div className="hatch-cover-actions">
-            {task?.status === 'PLANEJADA' && <button type="button" onClick={() => startTask(cover, task)} disabled={!canEdit || busy || Boolean(command)}>{command === `start-${task.id}` ? 'Iniciando...' : 'Iniciar'}</button>}
-            {task?.status === 'EM_EXECUCAO' && <button type="button" onClick={() => confirmTask(cover, task)} disabled={!canEdit || busy || Boolean(command)}>{command === `confirm-${task.id}` ? 'Confirmando...' : 'Confirmar'}</button>}
-            {task && <button type="button" className="secondary" onClick={() => cancelTask(cover, task)} disabled={!canEdit || busy || Boolean(command)}>{command === `cancel-${task.id}` ? 'Cancelando...' : 'Cancelar'}</button>}
-            {operations.map((type) => <button key={type} type="button" onClick={() => createTask(cover, type)} disabled={!canEdit || busy || Boolean(command)}>{command === `create-${cover.id}-${type}` ? 'Criando...' : OPERATION_LABELS[type]}</button>)}
-          </div>
-          <details><summary>Histórico ({cover.tarefas?.length ?? 0})</summary><ol>{(cover.tarefas ?? []).slice().reverse().map((item) => <li key={item.id}><strong>#{item.id} · {OPERATION_LABELS[item.tipo] ?? item.tipo}</strong><span>{item.status} · {item.operador}</span></li>)}</ol></details>
-        </article>;
-      })}
-      {!loading && !covers.length && <div className="visual-empty">O perfil do navio não possui tampas de porão mapeadas.</div>}
-    </div>
-  </section>;
+      <div className="hatch-cover-grid">
+        {covers.map((cover) => {
+          const task = currentTask(cover);
+          const operations = task ? [] : (OPERATIONS_BY_STATE[cover.estado] ?? []);
+          const selected = String(selectedCoverCode).toUpperCase() === String(cover.codigo).toUpperCase();
+          return <article key={cover.id} className={`hatch-cover-card state-${String(cover.estado).toLowerCase()}${selected ? ' selected-cover' : ''}`}>
+            <div className="hatch-cover-heading">
+              <button type="button" className="hatch-cover-select" onClick={() => onSelectCover?.(cover)} aria-pressed={selected}>
+                <strong>{cover.codigo}</strong><small>{cover.posicaoAtual?.referencia || 'Posição não informada'}</small>
+              </button>
+              <span>{cover.estado}</span>
+            </div>
+            <p>{taskDescription(task)}</p>
+            <div className="hatch-cover-actions">
+              {task?.status === 'PLANEJADA' && <button type="button" onClick={() => startTask(cover, task)} disabled={!canEdit || busy || Boolean(command)}>{command === `start-${task.id}` ? 'Iniciando...' : 'Iniciar'}</button>}
+              {task?.status === 'EM_EXECUCAO' && <button type="button" onClick={() => confirmTask(cover, task)} disabled={!canEdit || busy || Boolean(command)}>{command === `confirm-${task.id}` ? 'Confirmando...' : 'Confirmar'}</button>}
+              {task && <button type="button" className="secondary" onClick={() => cancelTask(cover, task)} disabled={!canEdit || busy || Boolean(command)}>{command === `cancel-${task.id}` ? 'Cancelando...' : 'Cancelar'}</button>}
+              {operations.map((type) => <button key={type} type="button" onClick={() => createTask(cover, type)} disabled={!canEdit || busy || Boolean(command)}>{command === `create-${cover.id}-${type}` ? 'Criando...' : OPERATION_LABELS[type]}</button>)}
+            </div>
+            <details><summary>Histórico ({cover.tarefas?.length ?? 0})</summary><ol>{(cover.tarefas ?? []).slice().reverse().map((item) => <li key={item.id}><strong>#{item.id} · {OPERATION_LABELS[item.tipo] ?? item.tipo}</strong><span>{item.status} · {item.operador}</span></li>)}</ol></details>
+          </article>;
+        })}
+        {!loading && !covers.length && <div className="visual-empty">O perfil do navio não possui tampas de porão mapeadas.</div>}
+      </div>
+    </section>
+    <VesselPlannerReconciliationPanel planId={planId} canCommand={canEdit} busy={busy} />
+  </>;
 }

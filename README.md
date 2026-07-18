@@ -62,8 +62,9 @@ Cada módulo mantém histórico Flyway independente.
 
 ```text
 backend/
+├── cloudport-navio-modules/       # parent Maven compartilhado
+├── cloudport-modules/             # reator Maven canônico
 ├── cloudport-contracts/
-├── cloudport-modules/
 ├── cloudport-runtime/
 ├── cloudport-monolito-navio/
 ├── servico-autenticacao/
@@ -86,6 +87,8 @@ deploy/
 ## Build do backend
 
 Pré-requisitos: JDK 17, Maven 3.9+ e Docker.
+
+O parent compartilhado em `backend/cloudport-navio-modules` deve ser instalado antes do reator `backend/cloudport-modules`, que agrega contratos, módulos de domínio e o runtime executável.
 
 ```bash
 cd backend/cloudport-modules

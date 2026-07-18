@@ -2,6 +2,7 @@ package br.com.cloudport.servicoyard.configuracao;
 
 import java.security.Principal;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -29,22 +30,32 @@ public class InterceptadorAutorizacaoWebSocket implements ChannelInterceptor {
             return message;
         }
 
-        Authentication authentication = obterAutenticacao(accessor);
-        CanalWebSocketOperacional canal = obterCanal(accessor);
+        Optional<CanalWebSocketOperacional> canal = obterCanal(accessor);
+        String destino = accessor.getDestination();
 
         if (command == StompCommand.CONNECT) {
-            validarConexao(authentication, canal);
+            canal.ifPresent(canalOperacional -> validarConexao(obterAutenticacao(accessor), canalOperacional));
             return message;
         }
 
         if (command == StompCommand.SUBSCRIBE) {
-            validarConexao(authentication, canal);
-            validarAssinatura(authentication, canal, accessor.getDestination());
+            if (canal.isPresent()) {
+                Authentication authentication = obterAutenticacao(accessor);
+                validarConexao(authentication, canal.get());
+                validarAssinatura(authentication, canal.get(), destino);
+                return message;
+            }
+            if (CanalWebSocketOperacional.identificarPorDestino(destino).isPresent()) {
+                throw new AccessDeniedException("Assinatura WebSocket não autorizada para o destino solicitado.");
+            }
             return message;
         }
 
         if (command == StompCommand.SEND) {
-            throw new AccessDeniedException("Clientes WebSocket não podem publicar em tópicos operacionais.");
+            if (canal.isPresent() || CanalWebSocketOperacional.identificarPorDestino(destino).isPresent()) {
+                throw new AccessDeniedException("Clientes WebSocket não podem publicar em tópicos operacionais.");
+            }
+            return message;
         }
 
         return message;
@@ -75,19 +86,22 @@ public class InterceptadorAutorizacaoWebSocket implements ChannelInterceptor {
         return authentication;
     }
 
-    private CanalWebSocketOperacional obterCanal(StompHeaderAccessor accessor) {
+    private Optional<CanalWebSocketOperacional> obterCanal(StompHeaderAccessor accessor) {
         Map<String, Object> atributos = accessor.getSessionAttributes();
         if (atributos == null) {
-            throw new AccessDeniedException("Canal WebSocket operacional não identificado.");
+            return Optional.empty();
         }
 
         Object valor = atributos.get(InterceptadorHandshakeWebSocket.ATRIBUTO_CANAL);
+        if (valor == null) {
+            return Optional.empty();
+        }
         if (!(valor instanceof String)) {
-            throw new AccessDeniedException("Canal WebSocket operacional não identificado.");
+            throw new AccessDeniedException("Canal WebSocket operacional inválido.");
         }
 
         try {
-            return CanalWebSocketOperacional.valueOf((String) valor);
+            return Optional.of(CanalWebSocketOperacional.valueOf((String) valor));
         } catch (IllegalArgumentException exception) {
             throw new AccessDeniedException("Canal WebSocket operacional inválido.", exception);
         }

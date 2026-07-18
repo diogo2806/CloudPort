@@ -1,0 +1,118 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { readSession } from './api.js';
+import { buildHelpSections, filterHelpSections, resolveContextHelp } from './contextHelp.js';
+import './context-help.css';
+
+function isTypingTarget(target) {
+  const tagName = String(target?.tagName ?? '').toLowerCase();
+  return target?.isContentEditable || ['input', 'select', 'textarea'].includes(tagName);
+}
+
+function HelpSection({ section }) {
+  const List = section.id === 'flow' ? 'ol' : 'ul';
+  return <section className={`context-help-section context-help-section-${section.id}`}>
+    <h3>{section.title}</h3>
+    <List>{section.items.map((item, index) => <li key={`${section.id}-${index}`}>{item}</li>)}</List>
+  </section>;
+}
+
+export function ContextHelp({ path, navigate, session }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const triggerRef = useRef(null);
+  const closeRef = useRef(null);
+  const activePath = path ?? globalThis.location?.pathname ?? '/home/dashboard';
+  const activeSession = session ?? readSession() ?? {};
+  const help = useMemo(() => resolveContextHelp(activePath, activeSession), [activePath, activeSession]);
+  const sections = useMemo(() => buildHelpSections(help), [help]);
+  const visibleSections = useMemo(() => filterHelpSections(sections, query), [sections, query]);
+
+  useEffect(() => {
+    setOpen(false);
+    setQuery('');
+  }, [activePath]);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && open) {
+        event.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      const openShortcut = event.key === 'F1' || (event.shiftKey && event.key === '?');
+      if (!openShortcut || isTypingTarget(event.target)) return;
+      event.preventDefault();
+      setOpen(true);
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) closeRef.current?.focus();
+  }, [open]);
+
+  function close() {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function openProcess() {
+    close();
+    if (typeof navigate === 'function') {
+      navigate(help.processPath);
+      return;
+    }
+    globalThis.history?.pushState({}, '', help.processPath);
+    globalThis.dispatchEvent?.(new PopStateEvent('popstate'));
+    globalThis.scrollTo?.({ top: 0, behavior: 'smooth' });
+  }
+
+  return <div className="context-help">
+    <button
+      ref={triggerRef}
+      type="button"
+      className="context-help-trigger secondary"
+      aria-label={`Abrir ajuda contextual de ${help.title}`}
+      aria-expanded={open}
+      onClick={() => setOpen((value) => !value)}
+    >
+      <span aria-hidden="true">?</span><strong>Ajuda</strong>
+    </button>
+    {open && <>
+      <button type="button" className="context-help-backdrop" aria-label="Fechar ajuda contextual" onClick={close} />
+      <aside className="context-help-drawer" role="dialog" aria-modal="true" aria-labelledby="context-help-title">
+        <header>
+          <div><span>{help.module}</span><h2 id="context-help-title">{help.title}</h2><p>{help.path}</p></div>
+          <button ref={closeRef} type="button" className="icon-button" aria-label="Fechar ajuda" onClick={close}>×</button>
+        </header>
+
+        <div className="context-help-search">
+          <label htmlFor="context-help-query">Pesquisar nesta ajuda</label>
+          <input id="context-help-query" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ex.: permissão, status, bloqueio" />
+        </div>
+
+        <div className="context-help-access">
+          <span>Perfil atual</span>
+          <strong>{help.currentRoles.length ? help.currentRoles.join(' · ') : 'Perfil não informado'}</strong>
+        </div>
+
+        <div className="context-help-content">
+          {visibleSections.length
+            ? visibleSections.map((section) => <HelpSection key={section.id} section={section} />)
+            : <div className="context-help-empty"><strong>Nenhum conteúdo encontrado</strong><span>Altere o termo pesquisado.</span></div>}
+        </div>
+
+        <footer>
+          <div>
+            <button type="button" className="secondary small" onClick={openProcess}>{help.processLabel}</button>
+            <a href={help.documentationUrl} target="_blank" rel="noreferrer">Documentação técnica</a>
+          </div>
+          <span>F1 ou Shift + ? abre a ajuda · Esc fecha</span>
+        </footer>
+      </aside>
+    </>}
+  </div>;
+}

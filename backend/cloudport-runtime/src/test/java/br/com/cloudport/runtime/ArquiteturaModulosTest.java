@@ -22,6 +22,7 @@ class ArquiteturaModulosTest {
     static final ArchRule MODULOS_NAO_DEPENDEM_DO_RUNTIME = noClasses()
             .that().resideInAnyPackage(
                     "br.com.cloudport.servicoautenticacao..",
+                    "br.com.cloudport.servicocargageral..",
                     "br.com.cloudport.servicogate..",
                     "br.com.cloudport.servicorail..",
                     "br.com.cloudport.servicoyard..",

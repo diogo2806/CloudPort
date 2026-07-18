@@ -12,6 +12,7 @@ import org.springframework.web.util.HtmlUtils;
 public class VisitaTremRespostaDto {
 
     private final Long id;
+    private final Long versao;
     private final String identificadorTrem;
     private final String operadoraFerroviaria;
     private final TipoVisitaTrem tipoVisita;
@@ -23,6 +24,7 @@ public class VisitaTremRespostaDto {
     private final List<VagaoVisitaRespostaDto> listaVagoes;
 
     public VisitaTremRespostaDto(Long id,
+                                  Long versao,
                                   String identificadorTrem,
                                   String operadoraFerroviaria,
                                   TipoVisitaTrem tipoVisita,
@@ -33,6 +35,7 @@ public class VisitaTremRespostaDto {
                                   List<OperacaoConteinerVisitaRespostaDto> listaCarga,
                                   List<VagaoVisitaRespostaDto> listaVagoes) {
         this.id = id;
+        this.versao = versao;
         this.identificadorTrem = identificadorTrem;
         this.operadoraFerroviaria = operadoraFerroviaria;
         this.tipoVisita = tipoVisita;
@@ -47,6 +50,7 @@ public class VisitaTremRespostaDto {
     public static VisitaTremRespostaDto deEntidade(VisitaTrem entidade) {
         return new VisitaTremRespostaDto(
                 entidade.getId(),
+                entidade.getVersao(),
                 HtmlUtils.htmlEscape(entidade.getIdentificadorTrem()),
                 HtmlUtils.htmlEscape(entidade.getOperadoraFerroviaria()),
                 entidade.getTipoVisita(),
@@ -71,6 +75,7 @@ public class VisitaTremRespostaDto {
     public static VisitaTremRespostaDto deEntidadeSemListas(VisitaTrem entidade) {
         return new VisitaTremRespostaDto(
                 entidade.getId(),
+                entidade.getVersao(),
                 HtmlUtils.htmlEscape(entidade.getIdentificadorTrem()),
                 HtmlUtils.htmlEscape(entidade.getOperadoraFerroviaria()),
                 entidade.getTipoVisita(),
@@ -85,6 +90,10 @@ public class VisitaTremRespostaDto {
 
     public Long getId() {
         return id;
+    }
+
+    public Long getVersao() {
+        return versao;
     }
 
     public String getIdentificadorTrem() {

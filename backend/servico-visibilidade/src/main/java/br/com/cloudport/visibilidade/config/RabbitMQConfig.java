@@ -31,6 +31,7 @@ public class RabbitMQConfig {
     private final String exchangeRailRejeitados;
     private final String queueRailRejeitados;
     private final String routingRailRejeitados;
+    private final boolean rabbitEnabled;
 
     public RabbitMQConfig(String exchangeLegado,
                           String exchangeYard,
@@ -38,7 +39,7 @@ public class RabbitMQConfig {
                           String exchangeRail,
                           String routingRail) {
         this(exchangeLegado, exchangeYard, routingYard, exchangeRail, routingRail,
-                "visibilidade.rail.rejeitados", VISIBILIDADE_RAIL_REJEITADOS_QUEUE, "rail.rejeitado");
+                "visibilidade.rail.rejeitados", VISIBILIDADE_RAIL_REJEITADOS_QUEUE, "rail.rejeitado", false);
     }
 
     @Autowired
@@ -50,7 +51,8 @@ public class RabbitMQConfig {
             @Value("${cloudport.visibilidade.eventos.rail.routing:rail.movimentacao.concluida}") String routingRail,
             @Value("${cloudport.visibilidade.eventos.rail.rejeitados.exchange:visibilidade.rail.rejeitados}") String exchangeRailRejeitados,
             @Value("${cloudport.visibilidade.eventos.rail.rejeitados.queue:visibilidade.rail.rejeitados}") String queueRailRejeitados,
-            @Value("${cloudport.visibilidade.eventos.rail.rejeitados.routing:rail.rejeitado}") String routingRailRejeitados) {
+            @Value("${cloudport.visibilidade.eventos.rail.rejeitados.routing:rail.rejeitado}") String routingRailRejeitados,
+            @Value("${cloudport.messaging.rabbit.enabled:false}") boolean rabbitEnabled) {
         this.exchangeLegado = exchangeLegado;
         this.exchangeYard = exchangeYard;
         this.routingYard = routingYard;
@@ -59,6 +61,7 @@ public class RabbitMQConfig {
         this.exchangeRailRejeitados = exchangeRailRejeitados;
         this.queueRailRejeitados = queueRailRejeitados;
         this.routingRailRejeitados = routingRailRejeitados;
+        this.rabbitEnabled = rabbitEnabled;
     }
 
     @Bean("eventosLegadoExchange")
@@ -172,6 +175,7 @@ public class RabbitMQConfig {
         factory.setConcurrentConsumers(5);
         factory.setMaxConcurrentConsumers(10);
         factory.setDefaultRequeueRejected(true);
+        factory.setAutoStartup(rabbitEnabled);
         return factory;
     }
 }

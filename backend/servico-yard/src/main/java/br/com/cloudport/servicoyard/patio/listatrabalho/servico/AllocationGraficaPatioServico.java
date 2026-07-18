@@ -59,6 +59,12 @@ public class AllocationGraficaPatioServico {
     }
 
     private void validarDestino(OrdemTrabalhoPatio ordem, PosicaoPatio destino) {
+        boolean mesmoDestino = Objects.equals(ordem.getLinhaDestino(), destino.getLinha())
+                && Objects.equals(ordem.getColunaDestino(), destino.getColuna())
+                && ordem.getCamadaDestino().equalsIgnoreCase(destino.getCamadaOperacional());
+        if (mesmoDestino) {
+            throw new IllegalArgumentException("Selecione uma posição diferente do destino atual da allocation.");
+        }
         if (destino.isInterditada()) {
             throw new IllegalArgumentException("A posição escolhida para a allocation está interditada.");
         }

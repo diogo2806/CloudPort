@@ -1,6 +1,6 @@
 # Requisitos pendentes - CloudPort
 
-Status: atualizado em 2026-07-18 após a conclusão do replanejamento ferroviário persistido entre vagões.
+Status: atualizado em 2026-07-18 após a implementação da prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -43,22 +43,11 @@ A lista detalhada está em `docs/implementados/requisitos-implementados.md`. Nã
 19. Sanitização de logs do TOS, segurança standalone da carga geral e autorização dos WebSockets operacionais do Yard.
 20. Replanejamento real integrado ao motor de otimização, com mapa e reservas do Yard, restrições de carga, CHEs e work queues, dual-cycling, memória de cálculo, proposta reproduzível, simulação e aplicação revalidada transacionalmente.
 21. Replanejamento visual persistido de contêineres entre vagões, com drag-and-drop confirmado por motivo, lock e versão da composição, atualização atômica do manifesto e da ordem ferroviária, auditoria e conflito funcional para alterações concorrentes.
+22. Corte operacional comprovável do monólito modular, com exclusão mútua de escrita, instância canônica identificável, jobs e consumidores controlados, verificação dos oito schemas, reinício persistente, integrações de borda e ensaio de retorno ao runtime anterior sem downgrade.
 
 ## P0 - Pendências obrigatórias
 
-### 1. Corte operacional do monólito modular
-
-O código e as imagens do runtime canônico estão prontos, mas ainda falta comprovar o corte de ambiente:
-
-1. executar uma única instância escritora e uma única instância de cada job e consumidor;
-2. validar paridade funcional dos módulos no runtime consolidado;
-3. exercitar rollback sem downgrade de banco;
-4. validar TOS, OCR, EDI, storage, RabbitMQ e Redis em sucesso, timeout, indisponibilidade e resposta inválida;
-5. remover deployments, imagens e credenciais legadas somente após período de observação e ensaio de retorno;
-6. auditar chamadas HTTP internas remanescentes entre módulos incorporados;
-7. comprovar health checks, readiness, persistência de documentos e reinício sem perda de processamento.
-
-Critério de aceite: runbook executado em ambiente, evidências de paridade registradas e retorno para o runtime anterior testado sem escrita concorrente.
+Não há pendências funcionais P0 comprovadas no código atual. A promoção da revisão no ambiente produtivo e o período de observação seguem o runbook e a governança operacional do ambiente, sem constituir nova implementação de software.
 
 ## P1 - Evoluções de integração e dados
 

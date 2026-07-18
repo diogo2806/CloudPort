@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #393.
+Status: atualizado em 2026-07-18 após a configuração do backend e as implementações de ERR10 e ERR30.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -75,6 +75,8 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 10. `/api/public/v1/**` é protegido por cliente ou aplicação com `X-CloudPort-Client-Id` e `X-CloudPort-Client-Secret`.
 11. Clientes externos recebem a role `INTEGRACAO_EXTERNA` após validação segura do segredo.
 12. APIs operacionais do runtime exigem JWT e autorização por perfil.
+13. O administrador inicial é criado somente com `ADMIN_EMAIL` e `ADMIN_PASSWORD` informados pela implantação.
+14. A credencial padrão insegura `gitpod/gitpod` foi removida por migração Flyway.
 
 ## Contratos compartilhados e API
 
@@ -250,6 +252,11 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 20. Operação de embarque de contêiner direto do gate para o navio, sem passagem pelo pátio.
 21. Fechamento do gate somente após confirmação do módulo Navio.
 22. Idempotência e auditoria do embarque direto.
+23. Rejeições operacionais do trigger de abertura de truck visits usam SQLStates de domínio identificáveis.
+24. Capacidade esgotada e conflitos operacionais retornam `409 Conflict`; dados inválidos ou referências indisponíveis retornam `422 Unprocessable Entity`.
+25. Mensagens SQL, nomes de constraints e detalhes internos não são expostos ao cliente.
+26. A rejeição da abertura reverte integralmente visita, transações, eventos, consumo do agendamento e capacidade da janela.
+27. Falhas técnicas não reconhecidas continuam retornando erro interno neutro, sem serem mascaradas como conflito funcional.
 
 ## Controle de entrada e saída de pessoas
 
@@ -260,6 +267,11 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 5. APIs de entrada, saída, presentes, resumo e histórico.
 6. Tela `Gate > Controle de Pessoas`.
 7. Autorização para perfis administrativos e operacionais definidos.
+8. Entrada e saída são serializadas por documento normalizado com lock pessimista sem espera.
+9. O caso de uso executa `flush` dentro da transação para capturar colisões antes do commit.
+10. Constraint única, optimistic locking e disputa de lock são convertidos em `409 Conflict` estável.
+11. A operação perdedora sofre rollback integral e não persiste movimentação duplicada.
+12. O contrato `409` está documentado no OpenAPI e coberto por testes de concorrência.
 
 ## Ferrovia
 
@@ -399,6 +411,10 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 10. Health check do backend em `/actuator/health/readiness`.
 11. Workflow valida a imagem pelo contexto da raiz e pelo contexto usado no EasyPanel.
 12. Configuração documentada para frontend na porta 80 e backend na porta 8080.
+13. Banco configurável por `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` e `DB_SCHEMA`.
+14. JWT configurável por `SECURITY_JWT_SECRET` e `SECURITY_JWT_EXPIRATION_MS`.
+15. Bootstrap administrativo configurável por `ADMIN_EMAIL` e `ADMIN_PASSWORD`.
+16. Arquivo de exemplo de ambiente e Docker Compose foram alinhados às variáveis canônicas.
 
 ## Contratos de API de referência
 
@@ -467,7 +483,7 @@ GET   /rail/ferrovia/visitas/{id}/locomotiva
 19. Pátio gráfico, reefers, rotas e allocations.
 20. Inventário canônico completo.
 21. Gate operacional e Gate visual.
-22. Controle de entrada e saída de pessoas.
+22. Controle de entrada e saída de pessoas com tratamento concorrente e `409 Conflict`.
 23. Ferrovia operacional, visual e transferência de locomotiva.
 24. Carga geral e break-bulk.
 25. Billing e portal CAP.
@@ -475,3 +491,5 @@ GET   /rail/ferrovia/visitas/{id}/locomotiva
 27. Grade operacional, exportação Excel e ajuda contextual.
 28. Line-up interno, ferroviário e público.
 29. Dockerfiles e parâmetros do EasyPanel.
+30. Configuração canônica do backend por `DB_*`, `SECURITY_*` e `ADMIN_*`.
+31. Tradução das rejeições transacionais de truck visits para `409` e `422` com rollback integral.

@@ -35,8 +35,8 @@ public class GateTruckHoppingCompatibilityController {
     private final GateResourceOccupationService occupationService;
 
     public GateTruckHoppingCompatibilityController(GatePassRepository gatePassRepository,
-                                                    GateResourceOccupationRepository occupationRepository,
-                                                    GateResourceOccupationService occupationService) {
+                                                     GateResourceOccupationRepository occupationRepository,
+                                                     GateResourceOccupationService occupationService) {
         this.gatePassRepository = gatePassRepository;
         this.occupationRepository = occupationRepository;
         this.occupationService = occupationService;
@@ -66,7 +66,7 @@ public class GateTruckHoppingCompatibilityController {
 
     @PostMapping("/{cpf}/close")
     public ResponseEntity<Map<String, Object>> encerrar(@PathVariable String cpf,
-                                                         @Valid @RequestBody CloseCompatibilityRequest request) {
+                                                          @Valid @RequestBody CloseCompatibilityRequest request) {
         GateResourceOccupation motorista = occupationRepository
                 .findFirstByTipoRecursoAndChaveRecursoAndAtivoTrue(
                         GateResourceType.MOTORISTA, normalizar(cpf))
@@ -94,7 +94,7 @@ public class GateTruckHoppingCompatibilityController {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", motorista.getId());
         dto.put("cpfMotorista", motorista.getChaveRecurso());
-        dto.put("numeroCnh", gatePass.getAgendamento().getMotorista().getNumeroCnh());
+        dto.put("numeroCnh", gatePass.getAgendamento().getMotorista().getDocumento());
         dto.put("cavaloAtual", cavalo);
         dto.put("status", motorista.isAtivo() ? "ABERTA" : "ENCERRADA");
         dto.put("gateInId", gatePass.getId());

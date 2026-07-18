@@ -28,10 +28,13 @@ class StuffUnstuffDomainTest {
 
         item.registrarExecucao(decimal("6"), decimal("12"), decimal("600"), "AMASSADO", "Embalagem avariada", null);
         operacao.atualizarStatusExecucao();
+
+        assertEquals(StatusOperacaoStuffUnstuff.EM_EXECUCAO, operacao.getStatus());
+        assertTrue(item.estaCompleto());
+
         operacao.concluir("LACRE-002", "Conferência encerrada", "operador", "corr-1");
 
         assertEquals(StatusOperacaoStuffUnstuff.CONCLUIDA, operacao.getStatus());
-        assertTrue(item.estaCompleto());
         assertEquals("AMASSADO", item.getCodigoAvaria());
         assertEquals("LACRE-002", operacao.getLacreFinal());
         assertEquals(TipoEventoStuffUnstuff.CONCLUIDA,

@@ -32,19 +32,19 @@ public class DivergenciaPosicaoPatioServico {
     private final InstrucaoTrabalhoServico instrucaoServico;
 
     public DivergenciaPosicaoPatioServico(DivergenciaPosicaoPatioRepositorio divergenciaRepositorio,
-                                          UnidadeInventarioRepositorio unidadeRepositorio,
-                                          InstrucaoTrabalhoServico instrucaoServico) {
+                                           UnidadeInventarioRepositorio unidadeRepositorio,
+                                           InstrucaoTrabalhoServico instrucaoServico) {
         this.divergenciaRepositorio = divergenciaRepositorio;
         this.unidadeRepositorio = unidadeRepositorio;
         this.instrucaoServico = instrucaoServico;
     }
 
     public DivergenciaPosicaoPatio abrir(String identificacao,
-                                         String posicaoEsperada,
-                                         String posicaoEncontrada,
-                                         String evidencia,
-                                         String abertaPor) {
-        UnidadeInventario unidade = unidadeRepositorio.findByIdentificacaoIgnoreCase(
+                                          String posicaoEsperada,
+                                          String posicaoEncontrada,
+                                          String evidencia,
+                                          String abertaPor) {
+        UnidadeInventario unidade = unidadeRepositorio.findComBloqueioByIdentificacaoIgnoreCase(
                         obrigatorio(identificacao, "Identificação da unidade"))
                 .orElseThrow(() -> new NoSuchElementException("Unidade não encontrada no inventário canônico"));
         String esperada = obrigatorio(posicaoEsperada, "Posição esperada");
@@ -59,6 +59,7 @@ public class DivergenciaPosicaoPatioServico {
 
         DivergenciaPosicaoPatio caso = new DivergenciaPosicaoPatio();
         caso.setUnidade(unidade);
+        caso.setCondicaoAnterior(unidade.getCondicao());
         caso.setIdentificacaoUnidade(unidade.getIdentificacao().toUpperCase(Locale.ROOT));
         caso.setPosicaoEsperada(esperada);
         caso.setPosicaoEncontrada(encontrada);
@@ -82,9 +83,9 @@ public class DivergenciaPosicaoPatioServico {
     }
 
     public DivergenciaPosicaoPatio criarInstrucaoCorretiva(Long id,
-                                                            String equipamento,
-                                                            String equipe,
-                                                            String operador) {
+                                                             String equipamento,
+                                                             String equipe,
+                                                             String operador) {
         DivergenciaPosicaoPatio caso = obter(id);
         if (caso.getStatus() != StatusDivergenciaPosicao.EM_INVESTIGACAO) {
             throw new IllegalStateException("A investigação deve estar iniciada antes da correção");
@@ -110,6 +111,7 @@ public class DivergenciaPosicaoPatioServico {
 
     public DivergenciaPosicaoPatio resolver(Long id, String decisao) {
         DivergenciaPosicaoPatio caso = obter(id);
+        String decisaoResolucao = obrigatorio(decisao, "Decisão da investigação");
         if (caso.getStatus() != StatusDivergenciaPosicao.CORRECAO_PENDENTE
                 || caso.getInstrucaoCorretiva() == null) {
             throw new IllegalStateException("A divergência não possui correção pendente");
@@ -120,11 +122,10 @@ public class DivergenciaPosicaoPatioServico {
         }
         UnidadeInventario unidade = caso.getUnidade();
         unidade.setPosicaoAtual(caso.getPosicaoEsperada());
-        unidade.setCondicao(UnidadeInventario.CondicaoEquipamento.OPERACIONAL);
-        unidadeRepositorio.save(unidade);
+        restaurarCondicaoAnterior(caso);
         caso.setBloqueada(false);
         caso.setStatus(StatusDivergenciaPosicao.RESOLVIDA);
-        caso.setDecisao(obrigatorio(decisao, "Decisão da investigação"));
+        caso.setDecisao(decisaoResolucao);
         caso.setResolvidaEm(LocalDateTime.now());
         return divergenciaRepositorio.save(caso);
     }
@@ -132,11 +133,12 @@ public class DivergenciaPosicaoPatioServico {
     public DivergenciaPosicaoPatio cancelar(Long id, String decisao) {
         DivergenciaPosicaoPatio caso = obter(id);
         exigirAtivo(caso);
-        caso.getUnidade().setCondicao(UnidadeInventario.CondicaoEquipamento.OPERACIONAL);
-        unidadeRepositorio.save(caso.getUnidade());
+        String decisaoCancelamento = obrigatorio(decisao, "Decisão do cancelamento");
+        cancelarInstrucaoCorretiva(caso);
+        restaurarCondicaoAnterior(caso);
         caso.setBloqueada(false);
         caso.setStatus(StatusDivergenciaPosicao.CANCELADA);
-        caso.setDecisao(obrigatorio(decisao, "Decisão do cancelamento"));
+        caso.setDecisao(decisaoCancelamento);
         caso.setCanceladaEm(LocalDateTime.now());
         return divergenciaRepositorio.save(caso);
     }
@@ -150,6 +152,31 @@ public class DivergenciaPosicaoPatioServico {
     @Transactional(readOnly = true)
     public List<DivergenciaPosicaoPatio> listar() {
         return divergenciaRepositorio.findAllByOrderByAbertaEmDesc();
+    }
+
+    private void cancelarInstrucaoCorretiva(DivergenciaPosicaoPatio caso) {
+        if (caso.getInstrucaoCorretiva() == null) {
+            return;
+        }
+        InstrucaoTrabalho instrucao = instrucaoServico.obter(caso.getInstrucaoCorretiva().getId());
+        if (instrucao.getStatus() == StatusInstrucao.CONCLUIDA) {
+            throw new IllegalStateException(
+                    "A instrução corretiva já foi concluída; a divergência deve ser resolvida");
+        }
+        if (instrucao.getStatus() != StatusInstrucao.CANCELADA) {
+            instrucaoServico.cancelar(
+                    instrucao.getId(),
+                    "Cancelamento da divergência de posição #" + caso.getId());
+        }
+    }
+
+    private void restaurarCondicaoAnterior(DivergenciaPosicaoPatio caso) {
+        UnidadeInventario unidade = caso.getUnidade();
+        if (unidade.getCondicao() == UnidadeInventario.CondicaoEquipamento.EM_INSPECAO
+                && caso.getCondicaoAnterior() != null) {
+            unidade.setCondicao(caso.getCondicaoAnterior());
+        }
+        unidadeRepositorio.save(unidade);
     }
 
     private void exigirAtivo(DivergenciaPosicaoPatio caso) {

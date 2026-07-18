@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1050, BUS1090, BUS1160, BUS1170 e DATA1180 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1010, BUS1050, BUS1080, BUS1090, BUS1100, BUS1160, BUS1170 e DATA1180 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -9,13 +9,11 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
 | BUS10 | Completar o fluxo de stuff e unstuff com contêiner canônico e apontamentos idempotentes. | A operação valida e bloqueia o contêiner no inventário, rejeita repetição do mesmo apontamento e mantém saldo, movimentação, eventos e compensação consistentes. | 🟡 Em andamento |
-| BUS1010 | Versionar e liberar planos de stuff e unstuff antes da execução física. | O plano é versionado, aprovado, validado por capacidade e conciliado por item sem alterar estoque antes da confirmação operacional. | ⬜ Pendente |
 | BUS1020 | Implementar transload entre unidades com rastreabilidade e atualização atômica. | Origem, destino, lotes, quantidades, lacres, divergências e avarias são persistidos sem saldo negativo ou atualização parcial. | ⬜ Pendente |
 | BUS1030 | Integrar Gate à carga geral para retirada e entrega parcial. | O Gate reserva quantidade por BL, delivery order e cargo lot e só confirma o estoque após o estágio físico correspondente. | ⬜ Pendente |
 | BUS1040 | Implementar planejamento de pátio e armazém para cargo lots. | Allocation, capacidade, restrições, origem, destino, recurso e saldo por posição são persistidos e confirmados pela execução. | ⬜ Pendente |
 | BUS1060 | Implementar plano de carga e descarga de cargo lots por visita ferroviária. | Lotes são planejados e executados por vagão e posição, com capacidade, incompatibilidades, sequência e custódia persistida. | ⬜ Pendente |
 | BUS1070 | Implementar ciclo completo de avaria da carga. | Avarias possuem quantidade afetada, evidências, responsável, bloqueio, inspeção, reparo ou baixa e saldo segregado. | ⬜ Pendente |
-| BUS1080 | Implementar identificação e inventário físico reconciliável de cargo lots. | Código de barras ou QR identifica lote e embalagem; contagens e divergências geram ajuste motivado sem sobrescrever diretamente o saldo lógico. | ⬜ Pendente |
 
 ### BUS10 — arquivos e métodos
 
@@ -24,13 +22,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/StuffUnstuffServico.java` | `criarOperacaoStuffUnstuff()` | Cria a operação, bloqueia cargo lots e valida saldo ou capacidade, mas recebe `conteinerId` como texto sem validar nem bloquear a unidade canônica. | Integrar porta local do inventário para validar existência, disponibilidade e vínculo operacional do contêiner. |
 | `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/StuffUnstuffServico.java` | `registrarExecucao()` | Atualiza item, lote, movimentação e eventos na mesma transação, mas não possui chave idempotente para retries. | Adicionar `commandId` ou `eventId` único e devolver o resultado já aplicado em repetições equivalentes. |
 | `frontend/cloudport/src/pages/StuffUnstuffPage.jsx` | criação da operação | A tela alcança o backend, mas usa identificador textual do contêiner. | Selecionar unidade elegível do inventário canônico. |
-
-### BUS1010 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/StuffUnstuffServico.java` | `criarOperacaoStuffUnstuff()` e `registrarExecucao()` | Há planejamento inicial e execução parcial, mas não há versão nem liberação explícita; o primeiro apontamento inicia a operação. | Criar versão imutável, comando `liberarPlano()` e conciliação por item. |
-| `frontend/cloudport/src/pages/StuffUnstuffPage.jsx` | planejamento | Não existe histórico de versões, aprovação ou comparação. | Exibir versões e estado de liberação antes da execução. |
 
 ### BUS1020 — arquivos e métodos
 
@@ -67,29 +58,14 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/CargaGeralServico.java` | `registrarAvaria()` | Sobrescreve um único código e descrição e muda todo o lote para avariado. | Criar agregado de avaria com quantidade afetada, anexos, responsável, estado, bloqueio e reparo. |
 | `frontend/cloudport/src/pages/GeneralCargoPage.jsx` | `registerDamage()` | Envia somente código e descrição. | Criar inspector de avarias com evidências e segregação de saldo. |
 
-### BUS1080 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/CargaGeralServico.java` | `AJUSTE_INVENTARIO` | Altera diretamente o saldo sem sessão de contagem e aprovação. | Criar novos métodos sugeridos: `abrirInventarioFisico()`, `registrarContagem()` e `confirmarDivergencia()`. |
-| `frontend/cloudport/src/pages/GeneralCargoPage.jsx` | seleção de lote | A identificação é manual. | Criar leitura por código de barras ou QR e inventário por posição. |
-
 ## 2. Gate, pátio e controle de equipamentos
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| BUS1100 | Implementar chamada operacional de caminhões com fila persistida. | Posição, prioridade, gate ou pista, chamada, aceite, expiração, rechamada e cancelamento são persistidos. | ⬜ Pendente |
 | BUS1110 | Impedir truck hopping por visita ativa. | Motorista, cavalo, chassis e unidades não participam simultaneamente de visitas conflitantes e são liberados atomicamente. | ⬜ Pendente |
 | BUS1120 | Implementar tratamento de unidades fora de posição. | A divergência gera caso, bloqueio, investigação e instrução corretiva com origem e destino confirmados. | ⬜ Pendente |
 | BUS1130 | Implementar Lost & Found e unidades TBD. | Unidade sem registro ou sem localização entra em caso persistido com investigação, associação, baixa e encerramento. | ⬜ Pendente |
 | INT1140 | Integrar VMT à confirmação de work instructions. | Aceite, início e conclusão atualizam a instrução uma única vez e rejeitam evento duplicado ou fora de sequência. | ⬜ Pendente |
-
-### BUS1100 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/gestor/GateFlowService.java` | `confirmarChegadaAntecipada()` e `registrarEntrada()` | Muda estados de agendamento e gate pass, mas não existe entidade de chamada com posição, aceite ou expiração. | Criar novo agregado sugerido: `ChamadaCaminhao`. |
-| `frontend/cloudport/src/pages/gate/GateVisualOperationsPage.jsx` | filas e pistas | Não consome contrato persistido de chamada. | Exibir histórico, estado e confirmação da chamada. |
 
 ### BUS1110 — arquivos e métodos
 

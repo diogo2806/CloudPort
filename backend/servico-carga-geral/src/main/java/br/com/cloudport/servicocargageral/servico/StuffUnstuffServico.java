@@ -4,6 +4,7 @@ import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusOperacao
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoEventoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoMovimentacaoCarga;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoOperacaoStuffUnstuff;
+import br.com.cloudport.servicocargageral.dominio.ComandoExecucaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.EventoOperacaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.ItemOperacaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.LoteCarga;
@@ -17,10 +18,18 @@ import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.EventoOperacaoRes
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.ItemOperacaoResposta;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.OperacaoResposta;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.RegistrarExecucaoRequest;
+import br.com.cloudport.servicocargageral.integracao.inventario.InventarioConteinerCliente;
+import br.com.cloudport.servicocargageral.integracao.inventario.InventarioConteinerCliente.ConteinerInventarioResposta;
+import br.com.cloudport.servicocargageral.repositorio.ComandoExecucaoStuffUnstuffRepositorio;
 import br.com.cloudport.servicocargageral.repositorio.LoteCargaRepositorio;
 import br.com.cloudport.servicocargageral.repositorio.OperacaoStuffUnstuffRepositorio;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -35,12 +44,18 @@ public class StuffUnstuffServico {
 
     private final OperacaoStuffUnstuffRepositorio operacaoRepositorio;
     private final LoteCargaRepositorio loteRepositorio;
+    private final ComandoExecucaoStuffUnstuffRepositorio comandoRepositorio;
+    private final InventarioConteinerCliente inventarioConteinerCliente;
 
     public StuffUnstuffServico(
             OperacaoStuffUnstuffRepositorio operacaoRepositorio,
-            LoteCargaRepositorio loteRepositorio) {
+            LoteCargaRepositorio loteRepositorio,
+            ComandoExecucaoStuffUnstuffRepositorio comandoRepositorio,
+            InventarioConteinerCliente inventarioConteinerCliente) {
         this.operacaoRepositorio = operacaoRepositorio;
         this.loteRepositorio = loteRepositorio;
+        this.comandoRepositorio = comandoRepositorio;
+        this.inventarioConteinerCliente = inventarioConteinerCliente;
     }
 
     @Transactional(readOnly = true)
@@ -81,9 +96,18 @@ public class StuffUnstuffServico {
             operacao.adicionarItem(item);
         }
 
-        operacao.registrarEvento(TipoEventoStuffUnstuff.CRIADA, request.usuario(), request.correlationId(),
-                "Operação planejada para o contêiner " + request.conteinerId() + ".");
-        return mapear(operacaoRepositorio.save(operacao));
+        OperacaoStuffUnstuff operacaoPersistida = operacaoRepositorio.saveAndFlush(operacao);
+        ConteinerInventarioResposta conteiner = inventarioConteinerCliente.reservar(
+                operacaoPersistida.getConteinerId(),
+                operacaoPersistida.getId(),
+                request.usuario());
+        operacaoPersistida.registrarEvento(
+                TipoEventoStuffUnstuff.CRIADA,
+                request.usuario(),
+                request.correlationId(),
+                "Operação planejada e contêiner canônico " + conteiner.identificacao()
+                        + " reservado no inventário (unidade " + conteiner.unidadeId() + ").");
+        return mapear(operacaoRepositorio.save(operacaoPersistida));
     }
 
     @Transactional
@@ -97,6 +121,17 @@ public class StuffUnstuffServico {
     @Transactional
     public OperacaoResposta registrarExecucao(UUID id, RegistrarExecucaoRequest request) {
         OperacaoStuffUnstuff operacao = buscarOperacaoComBloqueio(id);
+        String payloadHash = calcularPayloadHash(request);
+        ComandoExecucaoStuffUnstuff comandoExistente = comandoRepositorio
+                .findByOperacao_IdAndCommandId(id, request.commandId())
+                .orElse(null);
+        if (comandoExistente != null) {
+            if (!comandoExistente.possuiPayload(payloadHash)) {
+                throw conflito("O commandId já foi utilizado com um conteúdo diferente.");
+            }
+            return mapear(operacao);
+        }
+
         if (operacao.getStatus() == StatusOperacaoStuffUnstuff.PLANEJADA) {
             executarComEstadoValido(operacao::iniciar);
             operacao.registrarEvento(TipoEventoStuffUnstuff.INICIADA, request.usuario(), request.correlationId(),
@@ -120,7 +155,8 @@ public class StuffUnstuffServico {
         registrarMovimentacao(operacao, lote, request);
         operacao.atualizarStatusExecucao();
         operacao.registrarEvento(TipoEventoStuffUnstuff.EXECUCAO_REGISTRADA, request.usuario(),
-                request.correlationId(), "Execução parcial registrada para o lote " + lote.getCodigo() + ".");
+                request.correlationId(), "Execução parcial registrada para o lote " + lote.getCodigo()
+                        + " com commandId " + request.commandId() + ".");
         if (request.divergencia() != null && !request.divergencia().isBlank()) {
             operacao.registrarEvento(TipoEventoStuffUnstuff.DIVERGENCIA_REGISTRADA, request.usuario(),
                     request.correlationId(), request.divergencia());
@@ -131,7 +167,9 @@ public class StuffUnstuffServico {
                     request.correlationId(), request.codigoAvaria() + descricaoAvaria);
         }
         loteRepositorio.save(lote);
-        return mapear(operacaoRepositorio.save(operacao));
+        operacaoRepositorio.save(operacao);
+        registrarComandoAplicado(operacao, request.commandId(), payloadHash);
+        return mapear(operacao);
     }
 
     @Transactional
@@ -139,6 +177,11 @@ public class StuffUnstuffServico {
         OperacaoStuffUnstuff operacao = buscarOperacaoComBloqueio(id);
         executarComEstadoValido(() -> operacao.concluir(
                 request.lacreFinal(), request.observacao(), request.usuario(), request.correlationId()));
+        inventarioConteinerCliente.liberar(
+                id,
+                request.usuario(),
+                request.observacao(),
+                "CONCLUIDA");
         return mapear(operacaoRepositorio.save(operacao));
     }
 
@@ -159,6 +202,11 @@ public class StuffUnstuffServico {
             loteRepositorio.save(lote);
         }
         executarComEstadoValido(() -> operacao.cancelar(request.motivo(), request.usuario(), request.correlationId()));
+        inventarioConteinerCliente.liberar(
+                id,
+                request.usuario(),
+                request.motivo(),
+                "CANCELADA");
         return mapear(operacaoRepositorio.save(operacao));
     }
 
@@ -295,6 +343,43 @@ public class StuffUnstuffServico {
         movimentacao.setObservacao((compensacao ? "Compensação do cancelamento da operação " : "Operação ")
                 + operacao.getId() + " - " + operacao.getTipo());
         return movimentacao;
+    }
+
+    private void registrarComandoAplicado(
+            OperacaoStuffUnstuff operacao,
+            UUID commandId,
+            String payloadHash) {
+        ComandoExecucaoStuffUnstuff comando = new ComandoExecucaoStuffUnstuff();
+        comando.setOperacao(operacao);
+        comando.setCommandId(commandId);
+        comando.setPayloadHash(payloadHash);
+        comandoRepositorio.save(comando);
+    }
+
+    private String calcularPayloadHash(RegistrarExecucaoRequest request) {
+        String payload = String.join("|",
+                request.itemId().toString(),
+                normalizarDecimal(request.quantidade()),
+                normalizarDecimal(request.volumeM3()),
+                normalizarDecimal(request.pesoKg()),
+                codificarTexto(request.codigoAvaria()),
+                codificarTexto(request.descricaoAvaria()),
+                codificarTexto(request.divergencia()));
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(payload.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 não está disponível no runtime.", exception);
+        }
+    }
+
+    private String normalizarDecimal(BigDecimal valor) {
+        return valor.stripTrailingZeros().toPlainString();
+    }
+
+    private String codificarTexto(String valor) {
+        String texto = valor == null ? "" : valor;
+        return Base64.getEncoder().encodeToString(texto.getBytes(StandardCharsets.UTF_8));
     }
 
     private OperacaoStuffUnstuff buscarOperacaoComBloqueio(UUID id) {

@@ -21,6 +21,7 @@ import {
 import { dominantLegendForSlots, findSynchronizedSlot, selectionCoordinates } from '../vessel-planner-phase1.js';
 import '../vessel-planner-phase1.css';
 import { CraneExecutionTimeline } from './CraneExecutionTimeline.jsx';
+import { HatchCoverOperationPanel } from './HatchCoverOperationPanel.jsx';
 
 const DRAG_TYPE = 'application/x-cloudport-vessel-container';
 
@@ -84,7 +85,7 @@ function SlotGlyph({ slot, selected, context, canEdit, onSelect, onMove }) {
     <strong>{occupied ? slot.codigoContainer : slot.restrito ? 'Restrito' : 'Livre'}</strong>
     <small>{occupied ? `${legendValue} · ${displayWeight(slot.pesoVgmKg ?? slot.pesoKg)}` : slot.tipoSlot || 'NORMAL'}</small>
     <span className="slot-badges" aria-hidden="true">
-      {slot.reefer && <i>RF</i>}{slot.perigoso && <i>IMO</i>}{restow && <i>R</i>}{crane && <i>Q{crane.guindasteId}</i>}{warnings.length > 0 && <i className="warning-badge">!{warnings.length}</i>}
+      {slot.reefer && <i>RF</i>}{slot.perigoso && <i>IMO</i>}{restow && <i>R</i>}{crane && <i>Q{crane.guindasteId}</i>}{slot.codigoHatchCover && <i>HC</i>}{warnings.length > 0 && <i className="warning-badge">!{warnings.length}</i>}
     </span>
   </button>;
 }
@@ -223,7 +224,7 @@ function Inspector({ slot, context, onClear }) {
   const metadata = context.containerIndex[String(slot.codigoContainer ?? '').toUpperCase()] ?? {};
   return <aside className="vessel-slot-inspector"><div className="inspector-heading"><div><span className="view-kicker">Slot selecionado</span><h3>{formatSlotPosition(slot)}</h3></div><button type="button" className="icon-button" onClick={onClear}>×</button></div>
     <div className="inspector-status-row"><span className={slot.codigoContainer ? 'status-pill occupied' : 'status-pill empty'}>{slot.codigoContainer ? 'Ocupado' : 'Livre'}</span>{slot.restrito && <span className="status-pill danger">Restrito</span>}</div>
-    <dl className="slot-inspector-grid"><div><dt>Contêiner</dt><dd>{slot.codigoContainer || '—'}</dd></div><div><dt>POD</dt><dd>{slot.portoDescarga || metadata.portoDescarga || '—'}</dd></div><div><dt>Peso</dt><dd>{displayWeight(slot.pesoVgmKg ?? slot.pesoKg ?? metadata.pesoVgmKg ?? metadata.pesoKg)}</dd></div><div><dt>IMO</dt><dd>{slot.perigoso || metadata.perigoso ? slot.classeImo || metadata.classeImo || 'N/I' : 'Não perigoso'}</dd></div><div><dt>Reefer</dt><dd>{slot.reefer || metadata.reefer ? 'Sim' : 'Não'}</dd></div><div><dt>Operador</dt><dd>{legendValueForSlot(slot, 'OPERATOR', context.containerIndex)}</dd></div></dl>
+    <dl className="slot-inspector-grid"><div><dt>Contêiner</dt><dd>{slot.codigoContainer || '—'}</dd></div><div><dt>POD</dt><dd>{slot.portoDescarga || metadata.portoDescarga || '—'}</dd></div><div><dt>Peso</dt><dd>{displayWeight(slot.pesoVgmKg ?? slot.pesoKg ?? metadata.pesoVgmKg ?? metadata.pesoKg)}</dd></div><div><dt>IMO</dt><dd>{slot.perigoso || metadata.perigoso ? slot.classeImo || metadata.classeImo || 'N/I' : 'Não perigoso'}</dd></div><div><dt>Reefer</dt><dd>{slot.reefer || metadata.reefer ? 'Sim' : 'Não'}</dd></div><div><dt>Tampa</dt><dd>{slot.codigoHatchCover || 'Não aplicável'}</dd></div><div><dt>Operador</dt><dd>{legendValueForSlot(slot, 'OPERATOR', context.containerIndex)}</dd></div></dl>
   </aside>;
 }
 
@@ -252,6 +253,7 @@ export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, seque
   const [viewMode, setViewMode] = useState('MULTI');
   const [legendMode, setLegendMode] = useState('POD');
   const [coordinates, setCoordinates] = useState(() => selectionCoordinates(slots[0]));
+  const [hatchRefreshKey, setHatchRefreshKey] = useState(0);
   const allocated = useMemo(() => new Set(slots.map((slot) => slot.codigoContainer).filter(Boolean)), [slots]);
   const unallocated = useMemo(() => (Array.isArray(bayPlan?.containers) ? bayPlan.containers : []).filter((container) => !allocated.has(container.codigoContainer)), [allocated, bayPlan]);
   const legend = useMemo(() => buildLegend(slots, legendMode, containerIndex), [slots, legendMode, containerIndex]);
@@ -302,7 +304,8 @@ export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, seque
     <LegendPanel mode={legendMode} setMode={setLegendMode} legend={legend} />
     <div className="vessel-workspace-layout"><main className="vessel-main-canvas">{viewMode === 'MULTI' ? <div className="multi-view-grid"><div>{renderView('PROFILE')}</div><div>{renderView('TOP')}</div><div>{renderView('SECTION')}</div><div>{renderView('TIER')}</div></div> : renderView(viewMode)}</main><Inspector slot={selectedSlot} context={context} onClear={() => onSelectSlot(null)} /></div>
     <UnallocatedTray containers={unallocated} canEdit={canEdit && !busy} />
-    <CraneExecutionTimeline plan={plan} sequencing={sequencing} disabled={busy} />
+    <HatchCoverOperationPanel plan={plan} canEdit={canEdit} disabled={busy} onChanged={() => setHatchRefreshKey((current) => current + 1)} />
+    <CraneExecutionTimeline plan={plan} sequencing={sequencing} disabled={busy} refreshKey={hatchRefreshKey} />
     <TechnicalSummary stability={stability} restow={restow} sequencing={sequencing} onSelect={selectSlot} slots={slots} />
   </div>;
 }

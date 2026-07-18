@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import br.com.cloudport.servicorail.comum.sanitizacao.SanitizadorEntrada;
-import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.CadastroTransferenciaLocomotivaDto;
+import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.ConfiguracaoLocomotivaVisitaDto;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.ConfirmacaoEmbarqueLocomotivaDto;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.EntregaCustodiaLocomotivaDto;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.LiberacaoEmbarqueLocomotivaDto;
@@ -15,6 +15,9 @@ import br.com.cloudport.servicorail.ferrovia.locomotiva.modelo.ModalidadeEmbarqu
 import br.com.cloudport.servicorail.ferrovia.locomotiva.modelo.StatusTransferenciaLocomotiva;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.modelo.TransferenciaLocomotiva;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.repositorio.TransferenciaLocomotivaRepositorio;
+import br.com.cloudport.servicorail.ferrovia.modelo.StatusVisitaTrem;
+import br.com.cloudport.servicorail.ferrovia.modelo.TipoVisitaTrem;
+import br.com.cloudport.servicorail.ferrovia.modelo.VagaoVisita;
 import br.com.cloudport.servicorail.ferrovia.modelo.VisitaTrem;
 import br.com.cloudport.servicorail.ferrovia.repositorio.VisitaTremRepositorio;
 import java.math.BigDecimal;
@@ -47,29 +50,22 @@ class TransferenciaLocomotivaServicoTest {
     }
 
     @Test
-    void deveCadastrarLocomotivaVinculadaAVisitaFerroviaria() {
-        VisitaTrem visita = visitaTrem();
-        when(visitaTremRepositorio.findById(1L)).thenReturn(Optional.of(visita));
-        when(transferenciaRepositorio
-                .existsByVisitaTremIdAndIdentificadorLocomotivaIgnoreCase(1L, "LOCO-9001"))
-                .thenReturn(false);
+    void deveConfigurarAPropriaVisitaComoLocomotiva() {
+        VisitaTrem visita = visitaTrem(1L);
+        when(visitaTremRepositorio.buscarPorIdComListas(1L)).thenReturn(Optional.of(visita));
+        when(transferenciaRepositorio.findById(1L)).thenReturn(Optional.empty());
         salvarRetornandoEntidade();
 
-        CadastroTransferenciaLocomotivaDto dto = new CadastroTransferenciaLocomotivaDto();
-        dto.setVisitaTremId(1L);
-        dto.setIdentificadorLocomotiva("loco-9001");
-        dto.setOperadoraFerroviaria("Ferrovia Teste");
-        dto.setPesoToneladas(new BigDecimal("128.500"));
-        dto.setComprimentoMetros(new BigDecimal("20.300"));
-        dto.setLarguraMetros(new BigDecimal("3.100"));
-        dto.setAlturaMetros(new BigDecimal("4.600"));
+        ConfiguracaoLocomotivaVisitaDto dto = configuracaoLocomotiva();
 
         assertEquals(StatusTransferenciaLocomotiva.AGUARDANDO_ENTREGA,
-                servico.cadastrar(dto).getStatus());
+                servico.configurarVisitaComoLocomotiva(1L, dto).getStatus());
+        assertEquals(TipoVisitaTrem.LOCOMOTIVA_ISOLADA, visita.getTipoVisita());
+        assertEquals("LOCO-9001", servico.configurarVisitaComoLocomotiva(1L, dto).getIdentificadorTrem());
     }
 
     @Test
-    void deveExecutarCustodiaPlanejamentoLiberacaoEEmbarque() {
+    void deveExecutarCustodiaPlanejamentoLiberacaoEEmbarquePelaVisita() {
         TransferenciaLocomotiva transferencia = transferencia();
         when(transferenciaRepositorio.findById(10L)).thenReturn(Optional.of(transferencia));
         salvarRetornandoEntidade();
@@ -98,6 +94,17 @@ class TransferenciaLocomotivaServicoTest {
         confirmacao.setPosicaoReal("DECK 3 / LINHA 02 / POSIÇÃO 04");
         servico.confirmarEmbarque(10L, confirmacao);
         assertEquals(StatusTransferenciaLocomotiva.EMBARCADA, transferencia.getStatus());
+        assertEquals(StatusVisitaTrem.CONCLUIDO, transferencia.getVisitaTrem().getStatusVisita());
+    }
+
+    @Test
+    void deveBloquearVisitaComVagaoPorqueALocomotivaEhOProprioTrem() {
+        VisitaTrem visita = visitaTrem(1L);
+        visita.getListaVagoes().add(new VagaoVisita(1, "VAG-001", "PLATAFORMA"));
+        when(visitaTremRepositorio.buscarPorIdComListas(1L)).thenReturn(Optional.of(visita));
+
+        assertThrows(ResponseStatusException.class,
+                () -> servico.configurarVisitaComoLocomotiva(1L, configuracaoLocomotiva()));
     }
 
     @Test
@@ -111,6 +118,15 @@ class TransferenciaLocomotivaServicoTest {
 
         assertThrows(ResponseStatusException.class,
                 () -> servico.liberarEmbarque(10L, liberacao));
+    }
+
+    private ConfiguracaoLocomotivaVisitaDto configuracaoLocomotiva() {
+        ConfiguracaoLocomotivaVisitaDto dto = new ConfiguracaoLocomotivaVisitaDto();
+        dto.setPesoToneladas(new BigDecimal("128.500"));
+        dto.setComprimentoMetros(new BigDecimal("20.300"));
+        dto.setLarguraMetros(new BigDecimal("3.100"));
+        dto.setAlturaMetros(new BigDecimal("4.600"));
+        return dto;
     }
 
     private void salvarRetornandoEntidade() {
@@ -131,9 +147,7 @@ class TransferenciaLocomotivaServicoTest {
     private TransferenciaLocomotiva transferencia() {
         TransferenciaLocomotiva transferencia = new TransferenciaLocomotiva();
         transferencia.setId(10L);
-        transferencia.setVisitaTrem(visitaTrem());
-        transferencia.setIdentificadorLocomotiva("LOCO-9001");
-        transferencia.setOperadoraFerroviaria("Ferrovia Teste");
+        transferencia.setVisitaTrem(visitaTrem(10L));
         transferencia.setPesoToneladas(new BigDecimal("128.500"));
         transferencia.setComprimentoMetros(new BigDecimal("20.300"));
         transferencia.setLarguraMetros(new BigDecimal("3.100"));
@@ -142,11 +156,13 @@ class TransferenciaLocomotivaServicoTest {
         return transferencia;
     }
 
-    private VisitaTrem visitaTrem() {
+    private VisitaTrem visitaTrem(Long id) {
         VisitaTrem visita = new VisitaTrem();
-        visita.setId(1L);
-        visita.setIdentificadorTrem("TREM-001");
+        visita.setId(id);
+        visita.setIdentificadorTrem("LOCO-9001");
         visita.setOperadoraFerroviaria("Ferrovia Teste");
+        visita.setTipoVisita(TipoVisitaTrem.COMPOSICAO_FERROVIARIA);
+        visita.setStatusVisita(StatusVisitaTrem.CHEGOU);
         return visita;
     }
 }

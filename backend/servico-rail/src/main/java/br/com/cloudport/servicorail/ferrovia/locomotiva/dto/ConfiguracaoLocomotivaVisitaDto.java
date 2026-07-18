@@ -2,24 +2,10 @@ package br.com.cloudport.servicorail.ferrovia.locomotiva.dto;
 
 import java.math.BigDecimal;
 import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
-public class CadastroTransferenciaLocomotivaDto {
-
-    @NotNull
-    @Positive
-    private Long visitaTremId;
-
-    @NotBlank
-    @Size(max = 60)
-    private String identificadorLocomotiva;
-
-    @NotBlank
-    @Size(max = 80)
-    private String operadoraFerroviaria;
+public class ConfiguracaoLocomotivaVisitaDto {
 
     @Size(max = 80)
     private String fabricante;
@@ -49,12 +35,6 @@ public class CadastroTransferenciaLocomotivaDto {
     @Size(max = 1000)
     private String observacoes;
 
-    public Long getVisitaTremId() { return visitaTremId; }
-    public void setVisitaTremId(Long visitaTremId) { this.visitaTremId = visitaTremId; }
-    public String getIdentificadorLocomotiva() { return identificadorLocomotiva; }
-    public void setIdentificadorLocomotiva(String identificadorLocomotiva) { this.identificadorLocomotiva = identificadorLocomotiva; }
-    public String getOperadoraFerroviaria() { return operadoraFerroviaria; }
-    public void setOperadoraFerroviaria(String operadoraFerroviaria) { this.operadoraFerroviaria = operadoraFerroviaria; }
     public String getFabricante() { return fabricante; }
     public void setFabricante(String fabricante) { this.fabricante = fabricante; }
     public String getModelo() { return modelo; }

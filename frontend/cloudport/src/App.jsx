@@ -52,12 +52,12 @@ const FALLBACK_NAVIGATION = [
     { label: 'Usuários', path: '/home/lista-de-usuarios', roles: ['ADMIN_PORTO'] }
   ] },
   { group: 'Gate', items: [
+    { label: 'Gate visual', path: '/home/gate/dashboard', roles: [] },
     { label: 'Agendamentos', path: '/home/gate/agendamentos', roles: [] },
     { label: 'Janelas', path: '/home/gate/janelas', roles: [] },
-    { label: 'Central de ação', path: '/home/gate/dashboard', roles: [] },
     { label: 'Controle de pessoas', path: '/home/gate/pessoas', roles: ['ADMIN_PORTO', 'OPERADOR_GATE', 'PLANEJADOR'] },
     { label: 'Embarque direto', path: '/home/gate/embarque-direto', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
-    { label: 'Saída direta do navio', path: '/home/gate/operador/console', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
+    { label: 'Saída direta do navio', path: '/home/gate/saida-direta-navio', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
     { label: 'Relatórios', path: '/home/gate/relatorios', roles: [] }
   ] },
   { group: 'Faturamento', items: [
@@ -103,11 +103,7 @@ function normalizeBackendTabs(tabs) {
     if (!path) return;
     const group = sanitizeText(tab?.grupo) || 'Outros';
     if (!groups.has(group)) groups.set(group, []);
-    groups.get(group).push({
-      label: sanitizeText(tab?.rotulo) || identifier,
-      path,
-      roles: Array.isArray(tab?.rolesPermitidos) ? tab.rolesPermitidos : []
-    });
+    groups.get(group).push({ label: sanitizeText(tab?.rotulo) || identifier, path, roles: Array.isArray(tab?.rolesPermitidos) ? tab.rolesPermitidos : [] });
   });
   return Array.from(groups, ([group, items]) => ({ group, items }));
 }
@@ -138,17 +134,7 @@ function LoginPage({ onAuthenticated, navigate, returnPath }) {
     } finally { setBusy(false); }
   }
 
-  return <main className="login-shell">
-    <section className="login-visual" aria-hidden="true"><div><span className="brand-mark">CP</span><h1>Operação portuária em uma única visão.</h1><p>Gate, ferrovia, pátio, navio e embarque conectados pelo CloudPort.</p></div></section>
-    <section className="login-panel"><form className="login-card" onSubmit={submit}>
-      <div className="login-brand"><span className="brand-mark small">CP</span><div><strong>CloudPort</strong><small>Portal operacional React</small></div></div>
-      <div><span className="eyebrow">Acesso seguro</span><h2>Entrar</h2><p>Use uma conta autorizada para acessar os módulos.</p></div>
-      <label className="field"><span>Login</span><input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" maxLength={120} required autoFocus /></label>
-      <label className="field"><span>Senha</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>
-      <Message type="error">{error}</Message>
-      <button className="large" type="submit" disabled={busy || !login || !password}>{busy ? 'Autenticando...' : 'Entrar no CloudPort'}</button>
-    </form></section>
-  </main>;
+  return <main className="login-shell"><section className="login-visual" aria-hidden="true"><div><span className="brand-mark">CP</span><h1>Operação portuária em uma única visão.</h1><p>Gate, ferrovia, pátio, navio e embarque conectados pelo CloudPort.</p></div></section><section className="login-panel"><form className="login-card" onSubmit={submit}><div className="login-brand"><span className="brand-mark small">CP</span><div><strong>CloudPort</strong><small>Portal operacional React</small></div></div><div><span className="eyebrow">Acesso seguro</span><h2>Entrar</h2><p>Use uma conta autorizada para acessar os módulos.</p></div><label className="field"><span>Login</span><input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" maxLength={120} required autoFocus /></label><label className="field"><span>Senha</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label><Message type="error">{error}</Message><button className="large" type="submit" disabled={busy || !login || !password}>{busy ? 'Autenticando...' : 'Entrar no CloudPort'}</button></form></section></main>;
 }
 
 function NotFoundPage({ navigate }) {
@@ -168,10 +154,10 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/cap') return <CapPage />;
   if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
   if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
-  if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;
+  if (path === '/home/gate' || path === '/home/gate/dashboard' || path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDashboardPage />;
   if (path === '/home/gate/pessoas') return <GatePeopleAccessPage />;
   if (path === '/home/gate/embarque-direto') return <GateDirectVesselPage session={session} />;
-  if (path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDirectVesselReleasePage />;
+  if (path === '/home/gate/saida-direta-navio') return <GateDirectVesselReleasePage />;
   if (path === '/home/gate/relatorios') return <GateReportsPage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
   if (path === '/home/ferrovia/line-up') return <RailLineUpPage />;
@@ -189,9 +175,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/patio/automacao' || path === '/home/patio/simulador') return <YardAutomationPage navigate={navigate} session={session} />;
   if (path === '/home/embarque' || path === '/home/embarque/planejamento') return <ContainerVesselPlannerPage session={session} />;
   if (path === '/home/embarque/steel-coils') return <SteelCoilPlannerPage />;
-
-  const definition = DATASET_ROUTES[path]
-    ?? Object.entries(DATASET_ROUTES).find(([route]) => path.startsWith(`${route}/`))?.[1];
+  const definition = DATASET_ROUTES[path] ?? Object.entries(DATASET_ROUTES).find(([route]) => path.startsWith(`${route}/`))?.[1];
   if (definition) return <GenericDatasetPage {...definition} />;
   return <NotFoundPage navigate={navigate} />;
 }
@@ -199,77 +183,29 @@ function RouteContent({ path, navigate, session }) {
 function PortalShell({ path, navigate, session, onLogout }) {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [dynamicNavigation, setDynamicNavigation] = useState([]);
-
   useEffect(() => {
     let active = true;
-    api.listarAbas().then((tabs) => {
-      if (active) setDynamicNavigation(normalizeBackendTabs(tabs));
-    }).catch(() => {
-      if (active) setDynamicNavigation([]);
-    });
+    api.listarAbas().then((tabs) => { if (active) setDynamicNavigation(normalizeBackendTabs(tabs)); }).catch(() => { if (active) setDynamicNavigation([]); });
     return () => { active = false; };
   }, []);
-
   const navigation = dynamicNavigation.length ? dynamicNavigation : FALLBACK_NAVIGATION;
-  const visibleNavigation = useMemo(() => navigation.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => !item.roles?.length || hasAnyRole(session, ...item.roles))
-  })).filter((group) => group.items.length), [navigation, session]);
-
-  function open(pathToOpen) {
-    navigate(pathToOpen);
-    setMobileMenu(false);
-  }
-
-  function logout() {
-    clearSession();
-    onLogout();
-    navigate('/login', { replace: true });
-  }
-
-  return <div className="portal-shell">
-    <aside className={`sidebar ${mobileMenu ? 'open' : ''}`}>
-      <button className="sidebar-brand" onClick={() => open('/home/dashboard')}><span className="brand-mark small">CP</span><span><strong>CloudPort</strong><small>Portal operacional</small></span></button>
-      <nav aria-label="Navegação principal">{visibleNavigation.map((group) => <section className="nav-group" key={group.group}><h2>{group.group}</h2>{group.items.map((item) => <button key={item.path} className={path === item.path || path.startsWith(`${item.path}/`) ? 'active' : ''} onClick={() => open(item.path)}>{item.label}</button>)}</section>)}</nav>
-      <footer className="sidebar-footer"><span>React 19 · Vite 8</span></footer>
-    </aside>
-    {mobileMenu && <button className="sidebar-backdrop" aria-label="Fechar menu" onClick={() => setMobileMenu(false)} />}
-    <div className="portal-main">
-      <header className="topbar">
-        <button className="menu-button" onClick={() => setMobileMenu((value) => !value)} aria-label="Abrir menu">☰</button>
-        <div className="topbar-context"><strong>CloudPort</strong><span>{path.replace('/home/', '').replaceAll('/', ' / ') || 'Painel'}</span></div>
-        <div className="topbar-actions">
-          <GlobalAlertCenter navigate={navigate} session={session} />
-          <div className="user-menu"><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div>
-        </div>
-      </header>
-      <main className="content"><RouteContent path={path} navigate={navigate} session={session} /></main>
-    </div>
-  </div>;
+  const visibleNavigation = useMemo(() => navigation.map((group) => ({ ...group, items: group.items.filter((item) => !item.roles?.length || hasAnyRole(session, ...item.roles)) })).filter((group) => group.items.length), [navigation, session]);
+  function open(pathToOpen) { navigate(pathToOpen); setMobileMenu(false); }
+  function logout() { clearSession(); onLogout(); navigate('/login', { replace: true }); }
+  return <div className="portal-shell"><aside className={`sidebar ${mobileMenu ? 'open' : ''}`}><button className="sidebar-brand" onClick={() => open('/home/dashboard')}><span className="brand-mark small">CP</span><span><strong>CloudPort</strong><small>Portal operacional</small></span></button><nav aria-label="Navegação principal">{visibleNavigation.map((group) => <section className="nav-group" key={group.group}><h2>{group.group}</h2>{group.items.map((item) => <button key={item.path} className={path === item.path || path.startsWith(`${item.path}/`) ? 'active' : ''} onClick={() => open(item.path)}>{item.label}</button>)}</section>)}</nav><footer className="sidebar-footer"><span>React 19 · Vite 8</span></footer></aside>{mobileMenu && <button className="sidebar-backdrop" aria-label="Fechar menu" onClick={() => setMobileMenu(false)} />}<div className="portal-main"><header className="topbar"><button className="menu-button" onClick={() => setMobileMenu((value) => !value)} aria-label="Abrir menu">☰</button><div className="topbar-context"><strong>CloudPort</strong><span>{path.replace('/home/', '').replaceAll('/', ' / ') || 'Painel'}</span></div><div className="topbar-actions"><GlobalAlertCenter navigate={navigate} session={session} /><div className="user-menu"><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div></div></header><main className="content"><RouteContent path={path} navigate={navigate} session={session} /></main></div></div>;
 }
 
 export default function App() {
   const { path, navigate } = usePortalRouter();
   const [session, setSession] = useState(() => readSession());
   const [requestedPath, setRequestedPath] = useState('/home/dashboard');
-
-  useEffect(() => subscribeSessionExpired(() => {
-    setRequestedPath(safeReturnPath(path));
-    setSession(null);
-    navigate('/login', { replace: true });
-  }), [path, navigate]);
-
+  useEffect(() => subscribeSessionExpired(() => { setRequestedPath(safeReturnPath(path)); setSession(null); navigate('/login', { replace: true }); }), [path, navigate]);
   useEffect(() => {
-    if (!session && path !== '/login') {
-      setRequestedPath(safeReturnPath(path));
-      navigate('/login', { replace: true });
-    }
+    if (!session && path !== '/login') { setRequestedPath(safeReturnPath(path)); navigate('/login', { replace: true }); }
     if (session && path === '/login') navigate('/home/dashboard', { replace: true });
   }, [session, path, navigate]);
-
   const authenticate = useCallback((newSession) => setSession(newSession), []);
   const logout = useCallback(() => setSession(null), []);
-
   if (!session) return <LoginPage onAuthenticated={authenticate} navigate={navigate} returnPath={requestedPath} />;
   return <PortalShell path={path} navigate={navigate} session={session} onLogout={logout} />;
 }

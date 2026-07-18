@@ -2,6 +2,7 @@ package br.com.cloudport.servicoyard.configuracao;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +22,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 class InterceptadorAutorizacaoWebSocketTest {
 
     private final InterceptadorAutorizacaoWebSocket interceptador = new InterceptadorAutorizacaoWebSocket();
-    private final MessageChannel canalMensagens = message -> true;
+    private final MessageChannel canalMensagens = mock(MessageChannel.class);
 
     @Test
     void deveRejeitarConnectAnonimo() {

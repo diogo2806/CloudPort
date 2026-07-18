@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão do DATA1180 e a reconciliação auditável entre BAPLIE, plano, inventário e execução.
+Status: atualizado em 2026-07-18 com a conclusão integral da seção Navio e ferrovia, incluindo BUS1150, BUS1160, BUS1170 e DATA1180.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -71,16 +71,18 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 13. Aprovações versionadas e invalidadas quando o plano muda.
 14. BAPLIE com posição, operação, VGM, reefer, perigosos e OOG.
 
-## Reconciliação BAPLIE, plano e execução — DATA1180
+## Execução operacional do Vessel Planner — BUS1150, BUS1160 e DATA1180
 
-1. Cada execução da reconciliação gera um agregado persistido, versionado e vinculado ao plano de estiva, Bay Plan e visita de navio.
-2. A comparação considera unidades e atributos provenientes do BAPLIE, slots do plano, inventário canônico, ordens executadas e posição física registrada no navio.
-3. Divergências de unidade, slot, peso, porto de descarga, perigoso, reefer, execução e posição física são armazenadas com os valores e as fontes confrontadas.
-4. Peso utiliza tolerância operacional; unidade, slot, porto, perigoso, reefer e posição física incompatíveis são classificados como críticos.
-5. A validação e aprovação do plano exigem reconciliação da versão atual e ausência de divergências críticas abertas.
-6. Endpoints específicos permitem executar, consultar e resolver divergências, além de validar publicação e conclusão.
-7. A resolução registra decisão, motivo, responsável e instante, sem alterar silenciosamente BAPLIE, plano, inventário ou execução.
-8. O Vessel Planner apresenta a fila consolidada, totais, bloqueios e formulário de resolução auditável.
+1. A execução da sequência de guindastes é persistida por movimento, com guindaste, ordem, janela, início, conclusão, falha, replanejamento, reconciliação e quantidade realizada.
+2. A linha do tempo operacional apresenta progresso, exceções e resultado real sem substituir o plano aprovado.
+3. Tampas de porão possuem entidades de tampa, posição, tarefa e dependência com operações de abrir, remover, posicionar e fechar.
+4. Dependências incompletas e estados incompatíveis impedem o início de movimentos de guindaste relacionados.
+5. A reconciliação BAPLIE gera agregado persistido e versionado vinculado ao plano, Bay Plan e visita de navio.
+6. A comparação considera BAPLIE, slots planejados, inventário canônico, execução e posição física.
+7. Divergências registram tipo, severidade, campo, fontes, valores confrontados e estado de resolução.
+8. Divergências críticas abertas bloqueiam a validação e aprovação da versão atual do plano.
+9. A resolução registra decisão, motivo, responsável e instante sem sobrescrever silenciosamente os dados de origem.
+10. O Vessel Planner apresenta fila consolidada de divergências e comandos auditáveis de execução, consulta e resolução.
 
 ## Operações administrativas de Navio
 
@@ -168,8 +170,15 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 3. Composição gráfica, ocupação de linhas, progresso e conflitos.
 4. Line-up ferroviário vertical.
 5. Locomotiva isolada tratada como visita e embarcada após custódia e checklist.
-
-A persistência do replanejamento visual por vagão permanece no backlog.
+6. Replanejamento visual persistido de contêineres entre vagões com confirmação motivada no frontend.
+7. Manifesto, posição do vagão e ordem ferroviária são atualizados na mesma transação com bloqueio pessimista e controle otimista de versão.
+8. Capacidade, compatibilidade, estado da operação e concorrência são revalidados antes da confirmação.
+9. Cada replanejamento registra origem, destino, posições, ordem do manifesto, usuário, motivo e versões anterior e atual.
+10. Movimentos internos persistem visita, origem, destino, janela planejada e estados `PLANEJADO`, `AUTORIZADO`, `EM_EXECUCAO`, `CONCLUIDO` e `CANCELADO`.
+11. Rotas, linhas, trechos e switches são reservados na autorização e liberados atomicamente na conclusão ou no cancelamento.
+12. Sobreposições de visita ou recurso retornam conflito funcional e são protegidas por restrições de exclusão no PostgreSQL.
+13. A conclusão atualiza a posição ferroviária corrente da visita.
+14. A API permite planejar, autorizar, iniciar, concluir, cancelar, consultar e listar o histórico por visita.
 
 ## Carga Geral e carga siderúrgica
 
@@ -209,9 +218,3 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 4. Navegação por teclado e atributos de acessibilidade.
 5. Ajuda contextual, central global de alertas e navegação dinâmica.
 6. Sessão JWT invalidada de forma consistente em respostas `401`.
-
-## Pendências não marcadas como implementadas
-
-Os itens técnicos ainda pendentes permanecem registrados em `docs/requisitos/requisito-tecnico.md`.
-
-Também permanecem no backlog funcional a persistência do planejamento ferroviário visual, a comprovação do corte operacional e as evoluções registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.

@@ -1,179 +1,116 @@
 # CloudPort
 
-O CloudPort é uma plataforma para operações portuárias com módulos de Navio, contêineres, carga geral e break-bulk, carga siderúrgica, Yard, Gate, Rail, Autenticação, Billing, CAP, Control Room e Visibilidade.
+CloudPort é uma plataforma portuária para operação de contêineres, carga geral, break-bulk, carga siderúrgica, Gate, ferrovia, pátio, navios, faturamento e visibilidade operacional.
 
-## Escopo funcional
+O backend oficial é o monólito modular `backend/cloudport-runtime`. Os módulos mantêm ownership próprio de dados, migrações e regras de negócio, mas executam em um único processo Spring Boot. TOS, OCR, EDI, RabbitMQ, Redis, storage e demais sistemas permanecem integrações de borda.
 
-Contêineres fazem parte do fluxo principal do CloudPort, com planejamento de recebimento no pátio, inventário, movimentações, gate, ferrovia, Bay Plan/BAPLIE e planejamento de estiva no navio.
+## Capacidades implementadas
 
-Carga geral, carga de projeto e break-bulk possuem domínio próprio para Bill of Lading, itens do conhecimento, cargo lots, commodities, embalagens, produtos, armazenagem, manuseio, mercadorias perigosas, temperatura, avarias, estoque físico, carga e descarga parcial, consolidação, desconsolidação e vínculos com veículo, navio, armazém e cliente.
+| Domínio | Capacidades atuais |
+| --- | --- |
+| Autenticação | Login JWT, usuários, papéis, permissões, configuração dinâmica da navegação, administrador inicial configurável e encerramento seguro da sessão no portal. |
+| Gate | Facilities, múltiplos Gates e pistas, estágios, business tasks, appointments, truck visits, bookings, Bill of Lading, EDO, ERO, IDO, pré-avisos, inspeções, trouble transactions, documentos, imagens, tickets, EIR, regras de acesso, transferências e controle de pessoas. |
+| Gate visual | Quadro de pistas e filas, calendário de capacidade, jornada do veículo, OCR, balança, inspeção, liberação, SLA e transações problemáticas. |
+| Pátio | Google Maps, blocos e pilhas, vistas de bloco, seção, scan e microvisão, workspaces, movimentação gráfica, restrições, notas, heatmaps, rotas, CHEs, work queues, work instructions, allocations e reshuffling. |
+| Otimização | Agrupamento de recebimento e atribuição global de posições por custo mínimo, considerando restrições físicas, reefer, perigosos, reservas, distância e risco de rehandle. |
+| Inventário | Unidades e equipamentos, contêineres, chassis, carretas, acessórios, tipos, prefixos, lacres, documentos, avarias, manutenção, holds, ownership, vínculos, reefer, inventário físico e divergências. |
+| Ferrovia | Visitas, manifestos, vagões, ordens, lista de trabalho, conclusão e partida, line-up vertical, composição gráfica, ocupação de linhas e transferência de locomotiva para navio. |
+| Navio | Cadastro canônico, visitas, line-up interno e público, modelos geométricos versionados, BAPLIE, Vessel Planner, estabilidade, força estrutural, segregação, restow e sequência de guindastes. |
+| Vessel Planner visual | Profile, top, section e tier sincronizados, drag-and-drop, inspector de slot, legendas, tampas de porão, peso por stack, restrições, IMDG e overlays técnicos. |
+| Carga siderúrgica | Planejamento de bobinas, tank top, empilhamento, dunnage, calçamento, securing, estabilidade e aprovação baseada em evidências versionadas. |
+| Carga geral e break-bulk | Bill of Lading, itens, cargo lots, commodities, embalagens, produtos, armazenagem, manuseio, perigosos, temperatura, avarias, movimentação parcial, consolidação e desconsolidação. |
+| Control Room | Equipamentos, telemetria, conectividade, VMT, work instruction atual, alarmes, indisponibilidades, comandos remotos e dispositivos. |
+| Visibilidade | Dashboards, rastreamento, histórico, alertas, central global, reconhecimento e resolução, correlação e eventos versionados. |
+| Billing e CAP | Tarifas, cobranças, faturas, itens, pagamentos, isolamento por transportadora e portal de acompanhamento. |
+| Interface compartilhada | `OperationalDataGrid`, filtros, ordenação, paginação, colunas configuráveis, seleção múltipla, inspector, CSV, Excel, visões salvas e ajuda contextual. |
 
-Bobinas de aço são atendidas por um módulo especializado de carga siderúrgica. Esse módulo complementa o planejamento de contêineres e de carga geral e não limita o escopo do sistema a bobinas.
+## Fluxos especiais
 
-## Funcionalidades operacionais disponíveis
+- saída direta de carga autopropelida descarregada do navio pelo Gate;
+- embarque de contêiner diretamente do Gate para o navio, sem permanência no pátio;
+- locomotiva isolada tratada como a própria visita ferroviária e embarcada após custódia, planejamento e checklist;
+- line-up público de navios em `/line-up`;
+- planejamento de recebimento de contêineres antes da reserva de posições.
 
-### Navio e Vessel Planner
+## Arquitetura
 
-- visitas, itens operacionais, plano de estiva, eventos e integração com o pátio;
-- line-up interno com simulação temporal, conflitos de berço e visão vertical;
-- line-up público para clientes em `/line-up`;
-- Vessel Planner com profile, top, section e tier views sincronizadas;
-- drag-and-drop de contêineres, restow, sequência de guindastes, IMDG, reefer, OOG e pesos por stack;
-- Quay Monitor, crane plan e produtividade planejada versus realizada;
-- estabilidade e força estrutural calculadas a partir de dados persistidos e versionados.
+O runtime incorpora oito módulos de negócio:
 
-### Yard e inventário
+1. Autenticação;
+2. Carga Geral;
+3. Gate;
+4. Rail;
+5. Visibilidade;
+6. Yard;
+7. Navio;
+8. Navio Siderúrgico.
 
-- mapa georreferenciado com blocos, pilhas, posições e camadas operacionais;
-- vistas de bloco, seção, scan e microvisão;
-- heatmaps de ocupação e dwell time;
-- workspaces salvos, notas, bloqueios, interdições e permissões de pilha;
-- movimentação simulada e confirmada com validação do destino no backend;
-- telemetria de reefers, alarmes, rotas e editor gráfico de allocations;
-- inventário canônico de contêineres, chassis, carretas e acessórios;
-- lacres, documentos, avarias, manutenção, holds, ownership, montagem, histórico, reefer e inventário físico.
+`backend/cloudport-contracts` concentra contratos compartilhados. O PostgreSQL usa uma conexão e oito schemas:
 
-### Gate
+- `cloudport_autenticacao`;
+- `cloudport_carga_geral`;
+- `cloudport_gate`;
+- `cloudport_rail`;
+- `cloudport_visibilidade`;
+- `cloudport_yard`;
+- `cloudport_navio`;
+- `cloudport_siderurgico`.
 
-- facilities, múltiplos gates, pistas, estágios, filas e business tasks;
-- bookings, Bill of Lading, EDO, ERO, IDO, pré-avisos e appointments;
-- truck visits com múltiplas transações, inspeções e trouble transactions;
-- imagens, documentos, tickets, impressão e reimpressão de EIR;
-- quadro visual das pistas, calendário, ocupação por janela, jornada do veículo e SLA;
-- regras de acesso para motorista, transportadora e veículo;
-- controle de entrada, presença e saída de pessoas;
-- embarque direto de contêiner do gate para o navio sem passagem pelo pátio.
+Cada módulo mantém histórico Flyway independente.
 
-### Ferrovia
-
-- visitas, manifestos, vagões, contêineres e ordens de trabalho;
-- lista de trabalho e ciclo de chegada, processamento, conclusão e partida;
-- composição gráfica de locomotiva e vagões;
-- linhas ferroviárias, ocupação, conflitos e progresso por vagão;
-- line-up ferroviário vertical;
-- fluxo de locomotiva isolada recebida pela ferrovia e embarcada no navio.
-
-### Carga geral, Billing e CAP
-
-- Bill of Lading, itens, cargo lots e estoque de carga geral, projeto e break-bulk;
-- recebimento, transferência, carga e descarga parcial, consolidação e desconsolidação;
-- referências de commodities, embalagens, produtos, perigosos, temperatura, avarias e manuseio;
-- tarifas, cobranças, faturas e pagamentos;
-- portal CAP isolado pelos dados da transportadora autenticada.
-
-### Control Room e Visibilidade
-
-- work queues, job lists, dispatch e transições de work instruction;
-- equipamentos, telemetria, dispositivos, comandos remotos e indisponibilidades;
-- atualizações por SSE com reconexão e fallback;
-- central global de alertas com reconhecimento, resolução e navegação ao módulo de origem;
-- rastreamento e histórico de contêineres;
-- grade operacional com busca, filtros, ordenação, paginação, seleção múltipla, inspector e layouts salvos;
-- exportação CSV e Excel protegida contra injeção de fórmulas;
-- ajuda contextual integrada às páginas do portal.
-
-## Ponto de entrada canônico
-
-O backend oficial é o monólito modular executado por `backend/cloudport-runtime`.
-
-O diretório `backend/cloudport-monolito-navio` representa o primeiro corte do monólito e permanece disponível exclusivamente para rollback. Ele não deve ser usado em novos comandos de build, execução ou implantação principal.
-
-A arquitetura vigente possui:
-
-- um processo Spring Boot e uma origem de API;
-- limites de domínio preservados por módulos, pacotes, portas e eventos;
-- chamadas locais entre módulos incorporados;
-- segurança, CORS, Jackson, erros, logs, métricas, tracing e agendamento centralizados;
-- PostgreSQL compartilhado, com schema e histórico Flyway próprios por módulo;
-- HTTP e mensageria restritos a integrações externas ou ao período de rollback.
-
-Não devem ser criados novos microsserviços para funcionalidades internas sem decisão arquitetural explícita.
-
-## Estado da migração
-
-| Componente | Estado no código | Estado operacional |
-| --- | --- | --- |
-| Autenticação | Incorporada ao `cloudport-runtime` | runtime canônico |
-| Carga Geral | Incorporada ao `cloudport-runtime` | runtime canônico |
-| Gate | Incorporado ao `cloudport-runtime` | runtime canônico |
-| Rail | Incorporado ao `cloudport-runtime` | runtime canônico |
-| Visibilidade | Incorporada ao `cloudport-runtime` | runtime canônico |
-| Yard | Incorporado ao `cloudport-runtime` | runtime canônico |
-| Navio | Incorporado ao `cloudport-runtime` | runtime canônico |
-| Navio Siderúrgico | Incorporado ao `cloudport-runtime` | runtime canônico |
-| Portal principal | React | consome uma origem de API configurável |
-| Control Room | React incorporado | servido pelo runtime consolidado |
-| `cloudport-monolito-navio` | preservado | rollback intermediário somente |
-
-Os diretórios `backend/servico-*` representam módulos. Eles continuam compiláveis isoladamente durante a janela de retorno, mas não definem a arquitetura alvo.
-
-## Visão do runtime
-
-```mermaid
-flowchart LR
-    FE[Portal e Control Room] --> API[cloudport-runtime :8080]
-
-    subgraph API[Monólito modular]
-        AUTH[Autenticação]
-        CGO[Carga Geral]
-        GATE[Gate]
-        RAIL[Rail]
-        YARD[Yard]
-        NAVIO[Navio]
-        SID[Navio Siderúrgico]
-        VIS[Visibilidade]
-
-        SID -->|porta local| NAVIO
-        SID -->|portas locais| YARD
-        GATE -->|porta local| YARD
-        GATE -->|porta local| AUTH
-    end
-
-    API --> PG[(PostgreSQL: schemas por módulo)]
-    API --> MQ[(RabbitMQ)]
-    API --> REDIS[(Redis)]
-    API --> EXT[EDI, TOS, OCR, storage e sistemas externos]
-```
-
-## Estrutura relevante
+## Estrutura principal
 
 ```text
 backend/
-├── cloudport-modules/             # parent e reator Maven canônico
-├── cloudport-contracts/           # contratos compartilhados
-├── cloudport-runtime/             # ponto de entrada Spring Boot canônico
-├── cloudport-monolito-navio/      # runtime anterior, somente rollback
+├── cloudport-contracts/
+├── cloudport-modules/
+├── cloudport-runtime/
+├── cloudport-monolito-navio/
+├── servico-autenticacao/
 ├── servico-carga-geral/
-├── servico-navio/
-├── servico-navio-siderurgico/
-├── servico-yard/
 ├── servico-gate/
 ├── servico-rail/
-├── servico-autenticacao/
-└── servico-visibilidade/
-
+├── servico-visibilidade/
+├── servico-yard/
+├── servico-navio/
+└── servico-navio-siderurgico/
 frontend/
-├── cloudport/                     # portal principal React
-└── servico-navio-siderurgico/     # Control Room React
+├── cloudport/
+├── Dockerfile
+└── nginx.conf
+deploy/
+├── cloudport-runtime/
+└── navio-monolito/
 ```
 
-## Compilar e testar
+## Build do backend
 
 Pré-requisitos: JDK 17, Maven 3.9+ e Docker.
 
 ```bash
 cd backend/cloudport-modules
+mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install
 mvn -B -Dspring-boot.repackage.skip=true \
   -pl :cloudport-runtime -am \
   -DskipTests install
 mvn -B -pl :cloudport-runtime test package
 ```
 
-O build inclui contratos, os oito módulos de domínio e o runtime. A validação cobre PostgreSQL/Testcontainers, históricos Flyway, segurança única, portas locais, regras ArchUnit e empacotamento Docker.
+Execução direta:
 
-## Executar
+```bash
+java -jar backend/cloudport-runtime/target/cloudport-runtime-*.jar
+```
 
-Variáveis obrigatórias do backend:
+## Build do frontend
+
+```bash
+cd frontend/cloudport
+npm install
+npm run build
+```
+
+## Variáveis obrigatórias do backend
 
 ```bash
 export DB_HOST='localhost'
@@ -188,15 +125,17 @@ export ADMIN_EMAIL='admin@cloudport.local'
 export ADMIN_PASSWORD='substitua-por-uma-senha-segura'
 ```
 
-Após compilar:
+Regras:
 
-```bash
-java -jar backend/cloudport-runtime/target/cloudport-runtime-*.jar
-```
+- `SECURITY_JWT_SECRET` deve possuir pelo menos 32 bytes;
+- `ADMIN_EMAIL` e `ADMIN_PASSWORD` devem ser fornecidos explicitamente para criar o administrador inicial;
+- o sistema não mantém administrador funcional padrão inseguro;
+- `DB_SCHEMA` deve conter os oito schemas do runtime;
+- não versionar valores reais de senha ou segredo.
 
 ## Docker Compose
 
-Além das variáveis obrigatórias acima, configure as dependências externas:
+Além das variáveis obrigatórias, configure as dependências externas:
 
 ```bash
 export RABBITMQ_PASSWORD='substitua-a-senha-do-rabbitmq'
@@ -209,46 +148,53 @@ docker compose \
   up -d --build
 ```
 
-A origem padrão da API é `http://localhost:8080`.
+A API é publicada por padrão na porta `8080`.
 
-## Implantação no EasyPanel
-
-### Frontend
-
-| Campo | Valor |
-| --- | --- |
-| Caminho de Build | `/frontend` |
-| Construção | `Dockerfile` |
-| Arquivo | `Dockerfile` |
-| Porta | `80` |
-| Health check | `/health` |
-
-O Dockerfile compila `frontend/cloudport` com Node 22 e publica o conteúdo por Nginx com fallback para SPA.
+## EasyPanel
 
 ### Backend
 
 | Campo | Valor |
 | --- | --- |
-| Caminho de Build | `/backend` |
-| Construção | `Dockerfile` |
-| Arquivo | `Dockerfile` |
+| Caminho de build | `/backend` |
+| Dockerfile | `Dockerfile` |
 | Porta | `8080` |
 | Health check | `/actuator/health/readiness` |
 
-O Dockerfile do backend instala o parent Maven, empacota contratos, Carga Geral e os demais módulos, prepara o diretório persistente de documentos e inicia o runtime canônico.
+O arquivo correto para esse contexto é `backend/Dockerfile`. `backend/cloudport-runtime/Dockerfile` é usado quando o build parte da raiz.
 
-## Rollback
+### Frontend
 
-O runtime anterior exige ativação explícita de rollback e possui implementações locais para todas as portas obrigatórias do Yard. A execução direta permanece desativada por padrão.
+| Campo | Valor |
+| --- | --- |
+| Caminho de build | `/frontend` |
+| Dockerfile | `Dockerfile` |
+| Porta | `80` |
+| Health check | `/health` |
 
-Use o runbook antes de iniciar `backend/cloudport-monolito-navio` ou o Compose em `deploy/navio-monolito`.
+A imagem usa Node.js no build e Nginx para servir a SPA com fallback para `index.html`.
+
+## Segurança do corte
+
+Durante a operação consolidada, somente uma instância pode aceitar escritas, executar jobs e consumir cada fila. Deployments anteriores devem permanecer parados ou com estas capacidades desativadas:
+
+```text
+CLOUDPORT_WRITES_ENABLED=false
+CLOUDPORT_JOBS_ENABLED=false
+CLOUDPORT_CONSUMERS_ENABLED=false
+```
+
+O rollback troca o binário e o roteamento, sem downgrade do banco. O procedimento completo está em `docs/operacao-corte-rollback-navio.md`.
 
 ## Documentação
 
-- Arquitetura: [`docs/arquitetura-monolito-modular.md`](docs/arquitetura-monolito-modular.md)
-- Corte e rollback: [`docs/operacao-corte-rollback-navio.md`](docs/operacao-corte-rollback-navio.md)
-- Runtime canônico: [`backend/cloudport-runtime/README.md`](backend/cloudport-runtime/README.md)
-- Runtime anterior de rollback: [`backend/cloudport-monolito-navio/README.md`](backend/cloudport-monolito-navio/README.md)
-- Backlog funcional e de integração: [`docs/requisitos/modulo-navios-back-front-gaps.md`](docs/requisitos/modulo-navios-back-front-gaps.md)
-- Pendências técnicas comprovadas: [`docs/requisitos/requisito-tecnico.md`](docs/requisitos/requisito-tecnico.md)
-- Entregas implementadas: [`docs/implementados/requisitos-implementados.md`](docs/implementados/requisitos-implementados.md)
+- [Arquitetura do monólito modular](docs/arquitetura-monolito-modular.md)
+- [Operação de corte e rollback](docs/operacao-corte-rollback-navio.md)
+- [Requisitos implementados](docs/implementados/requisitos-implementados.md)
+- [Backlog funcional e de integração](docs/requisitos/modulo-navios-back-front-gaps.md)
+- [Pendências técnicas comprovadas](docs/requisitos/requisito-tecnico.md)
+- [Runtime canônico](backend/cloudport-runtime/README.md)
+
+## Observações
+
+O replanejamento visual de vagões ainda precisa ser persistido por um contrato operacional. O overlay visual de lashing auxilia a análise, mas não substitui cálculo certificado.

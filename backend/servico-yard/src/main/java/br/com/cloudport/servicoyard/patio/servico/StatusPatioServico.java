@@ -6,6 +6,7 @@ import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.MovimentoPatioRepositorio;
 import java.time.LocalDateTime;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,13 +16,16 @@ public class StatusPatioServico {
     private final ConteinerPatioRepositorio conteinerPatioRepositorio;
     private final MovimentoPatioRepositorio movimentoPatioRepositorio;
     private final RabbitTemplate rabbitTemplate;
+    private final boolean rabbitEnabled;
 
     public StatusPatioServico(ConteinerPatioRepositorio conteinerPatioRepositorio,
                               MovimentoPatioRepositorio movimentoPatioRepositorio,
-                              RabbitTemplate rabbitTemplate) {
+                              RabbitTemplate rabbitTemplate,
+                              @Value("${cloudport.messaging.rabbit.enabled:false}") boolean rabbitEnabled) {
         this.conteinerPatioRepositorio = conteinerPatioRepositorio;
         this.movimentoPatioRepositorio = movimentoPatioRepositorio;
         this.rabbitTemplate = rabbitTemplate;
+        this.rabbitEnabled = rabbitEnabled;
     }
 
     @Transactional(readOnly = true)
@@ -30,10 +34,14 @@ public class StatusPatioServico {
         try {
             conteinerPatioRepositorio.count();
             movimentoPatioRepositorio.count();
-            rabbitTemplate.execute(channel -> Boolean.TRUE);
+            if (rabbitEnabled) {
+                rabbitTemplate.execute(channel -> Boolean.TRUE);
+            }
             return new StatusPatioDto(
                     StatusServicoPatioEnum.DISPONIVEL,
-                    "Serviço de pátio operacional.",
+                    rabbitEnabled
+                            ? "Serviço de pátio operacional."
+                            : "Serviço de pátio operacional com mensageria desabilitada.",
                     verificadoEm
             );
         } catch (Exception ex) {

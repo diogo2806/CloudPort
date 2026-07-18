@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após implementação do requisito ERR20.
+Status: atualizado em 2026-07-18 após implementação dos requisitos ERR10, ERR20 e ERR30.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -8,16 +8,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| ERR30 | Traduzir rejeições transacionais do banco na abertura de truck visits para respostas operacionais estáveis. | Capacidade esgotada, bloqueio por regra de acesso ou referência indisponível rejeitam integralmente a abertura e retornam `409 Conflict` ou `422 Unprocessable Entity`, sem `500`, visita parcial, consumo residual de capacidade ou mensagem SQL exposta. | ⬜ Pendente |
 | ERR40 | Tratar disputas concorrentes nos cadastros únicos de carga geral sem expor violações de constraint como erro interno. | Criações simultâneas do mesmo Bill of Lading, sequência de item, cargo lot ou referência de domínio persistem somente um registro; a operação perdedora recebe `409 Conflict` estável, sem `500`, mensagem SQL ou transação parcialmente confirmada. | ⬜ Pendente |
-
-### ERR30 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalService.java` | `criarVisita()` | O método insere `truck_visit` diretamente por `NamedParameterJdbcTemplate`. O `BEFORE INSERT` pode rejeitar a operação por capacidade da janela ou regras de acesso usando exceção PostgreSQL `P0001`; o serviço não captura nem traduz essas rejeições para exceção funcional. | Capturar somente as violações operacionais conhecidas, preservar o rollback da visita, transações e eventos e convertê-las em `BusinessException` específica ou exceção HTTP mapeada para `409`/`422`. Não converter indiscriminadamente falhas técnicas de banco em sucesso ou erro funcional. |
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalController.java` | `POST /gate/operacional/visitas` | O endpoint retorna `201 Created` quando o serviço conclui, mas não declara nem garante contrato estável para rejeições produzidas pelos triggers de capacidade e acesso. Sem tradução no caso de uso ou handler, a exceção JDBC pode resultar em `500` e mensagem técnica. | Documentar e retornar resposta operacional estável para capacidade esgotada, bloqueio de motorista, transportadora ou veículo e referências indisponíveis. |
-| `backend/servico-gate/src/main/resources/db/migration/` | função `gate_validar_truck_visit()` e trigger `trg_gate_validar_truck_visit` | A função incrementa `janela_atendimento.capacidade_utilizada` de forma atômica e rejeita a inserção quando não existe capacidade, além de aplicar regras de acesso. As rejeições usam `RAISE EXCEPTION ... ERRCODE = 'P0001'`, sem código de domínio distinguível pelo contrato HTTP. | Manter a validação atômica no banco, mas adotar códigos, constraints ou mensagens de domínio identificáveis e mapeá-los no backend sem expor SQL. Garantir que qualquer rejeição reverta o incremento de capacidade e todos os registros da abertura. |
 
 ### ERR40 — arquivos e métodos
 

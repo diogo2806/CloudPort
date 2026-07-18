@@ -1,0 +1,208 @@
+.gate-lane-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.gate-lane-card {
+  display: grid;
+  gap: 0.85rem;
+  min-height: 230px;
+  padding: 1rem;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.gate-lane-card.status-fechada,
+.gate-lane-card.status-manutencao {
+  opacity: 0.72;
+}
+
+.gate-lane-card header,
+.gate-visit-summary,
+.gate-document-actions,
+.gate-transaction-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.gate-lane-card h3,
+.gate-visit-summary h3 {
+  margin: 0.2rem 0 0;
+}
+
+.gate-lane-capacity {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.gate-lane-capacity strong {
+  font-size: 1.65rem;
+}
+
+.gate-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-muted, #eef2f6);
+}
+
+.gate-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+}
+
+.gate-lane-vehicles,
+.gate-task-list,
+.gate-transaction-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.gate-lane-vehicles span {
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: var(--surface-muted, #f4f6f8);
+  font-size: 0.86rem;
+}
+
+.gate-stage-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.gate-stage {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+
+.gate-stage.selected {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.gate-stage-index {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--surface-muted, #eef2f6);
+  font-weight: 700;
+}
+
+.gate-stage strong,
+.gate-stage small,
+.gate-task-list strong,
+.gate-task-list small,
+.gate-transaction-list strong,
+.gate-transaction-list small {
+  display: block;
+}
+
+.gate-operations-layout,
+.gate-reference-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.gate-reference-layout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gate-visit-inspector {
+  display: grid;
+  gap: 1rem;
+}
+
+.gate-visit-summary p {
+  margin: 0.25rem 0 0;
+}
+
+.gate-inspector-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.gate-inspector-grid div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: var(--surface-muted, #f4f6f8);
+}
+
+.gate-inspector-grid span {
+  font-size: 0.78rem;
+  opacity: 0.72;
+}
+
+.gate-task-list label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.gate-task-list input {
+  margin-top: 0.2rem;
+}
+
+.gate-transaction-list article {
+  padding: 0.75rem;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 10px;
+}
+
+.gate-document-actions {
+  align-items: end;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border, #d7dde5);
+}
+
+.gate-document-actions label {
+  display: grid;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+@media (max-width: 1100px) {
+  .gate-operations-layout,
+  .gate-reference-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .gate-inspector-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gate-lane-card header,
+  .gate-visit-summary,
+  .gate-document-actions,
+  .gate-transaction-list article {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

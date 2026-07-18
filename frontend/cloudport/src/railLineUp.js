@@ -11,6 +11,7 @@ export const LINHAS_FERROVIARIAS = [
 ];
 
 export const LINHAS_OPERACIONAIS = ['Linha 01', 'Linha 02', 'Linha 03'];
+export const LINHAS_PLANEJAMENTO = [...LINHAS_OPERACIONAIS, 'Linha de apoio'];
 
 export function converterDataFerroviaria(valor) {
   if (!valor) return null;
@@ -20,6 +21,19 @@ export function converterDataFerroviaria(valor) {
 
 function normalizarLista(valor) {
   return Array.isArray(valor) ? valor : [];
+}
+
+function normalizarQuantidade(valor, fallback) {
+  const quantidade = Number(valor);
+  return Number.isFinite(quantidade) && quantidade >= 0 ? quantidade : fallback;
+}
+
+function normalizarIdentificadorVagao(vagao, indice) {
+  return String(vagao?.identificadorVagao ?? vagao?.codigo ?? `VAGAO-${indice + 1}`).trim();
+}
+
+function statusOperacaoConcluido(status) {
+  return ['CONCLUIDO', 'CONCLUIDA'].includes(String(status ?? '').toUpperCase());
 }
 
 export function normalizarVisitasFerrovia(payload) {
@@ -43,11 +57,82 @@ export function normalizarVisitasFerrovia(payload) {
       tipoVisita: visita?.tipoVisita || 'COMPOSICAO_FERROVIARIA',
       chegada,
       partida,
-      quantidadeVagoes: listaVagoes.length,
-      quantidadeCarga: listaCarga.length,
-      quantidadeDescarga: listaDescarga.length
+      quantidadeVagoes: normalizarQuantidade(visita?.quantidadeVagoes, listaVagoes.length),
+      quantidadeCarga: normalizarQuantidade(visita?.quantidadeCarga, listaCarga.length),
+      quantidadeDescarga: normalizarQuantidade(visita?.quantidadeDescarga, listaDescarga.length)
     };
   }).filter(Boolean).sort((a, b) => a.chegada.getTime() - b.chegada.getTime());
+}
+
+export function construirComposicaoFerroviaria(visita) {
+  if (!visita) {
+    return { locomotiva: null, vagoes: [], operacoesSemVagao: [] };
+  }
+
+  const vagoesOriginais = normalizarLista(visita.listaVagoes);
+  const operacoes = [
+    ...normalizarLista(visita.listaDescarga).map((operacao) => ({ ...operacao, tipoOperacao: 'DESCARGA' })),
+    ...normalizarLista(visita.listaCarga).map((operacao) => ({ ...operacao, tipoOperacao: 'CARGA' }))
+  ];
+  const identificadores = new Set(vagoesOriginais.map(normalizarIdentificadorVagao));
+  const operacoesSemVagao = operacoes.filter((operacao) => {
+    const identificador = String(operacao?.identificadorVagao ?? '').trim();
+    return !identificador || !identificadores.has(identificador);
+  });
+
+  const vagoes = vagoesOriginais.map((vagao, indice) => {
+    const identificadorVagao = normalizarIdentificadorVagao(vagao, indice);
+    const operacoesVagao = operacoes.filter((operacao) => String(operacao?.identificadorVagao ?? '').trim() === identificadorVagao);
+    const concluidas = operacoesVagao.filter((operacao) => statusOperacaoConcluido(operacao.statusOperacao)).length;
+    const total = operacoesVagao.length;
+    const tipoVagao = String(vagao?.tipoVagao ?? '').trim();
+    const tipoNormalizado = tipoVagao.toUpperCase();
+    const bloqueadoOrigem = /BLOQUE|INOPERANTE|DANIFICAD/.test(tipoNormalizado);
+    return {
+      ...vagao,
+      identificadorVagao,
+      posicaoNoTrem: Number.isFinite(Number(vagao?.posicaoNoTrem)) ? Number(vagao.posicaoNoTrem) : indice + 1,
+      tipoVagao: tipoVagao || 'Tipo não informado',
+      operacoes: operacoesVagao,
+      quantidadeCarga: operacoesVagao.filter((operacao) => operacao.tipoOperacao === 'CARGA').length,
+      quantidadeDescarga: operacoesVagao.filter((operacao) => operacao.tipoOperacao === 'DESCARGA').length,
+      operacoesConcluidas: concluidas,
+      progresso: total ? Math.round((concluidas / total) * 100) : 0,
+      bloqueadoOrigem,
+      incompativel: !tipoVagao,
+      motivoIncompatibilidade: !tipoVagao ? 'Tipo de vagão não informado' : ''
+    };
+  }).sort((a, b) => a.posicaoNoTrem - b.posicaoNoTrem);
+
+  return {
+    locomotiva: {
+      identificador: visita.identificadorTrem || 'Locomotiva',
+      operadora: visita.operadoraFerroviaria || 'Operadora não informada',
+      isolada: visita.tipoVisita === 'LOCOMOTIVA_ISOLADA'
+    },
+    vagoes,
+    operacoesSemVagao
+  };
+}
+
+export function criarPlanejamentoVagoes(visita, linhaPadrao = LINHAS_OPERACIONAIS[0]) {
+  const linhaInicial = LINHAS_PLANEJAMENTO.includes(linhaPadrao) ? linhaPadrao : LINHAS_OPERACIONAIS[0];
+  const composicao = construirComposicaoFerroviaria(visita);
+  return Object.fromEntries(composicao.vagoes.map((vagao) => [vagao.identificadorVagao, linhaInicial]));
+}
+
+export function moverVagaoNoPlanejamento(planejamento, identificadorVagao, linhaDestino, bloqueios = {}) {
+  if (!LINHAS_PLANEJAMENTO.includes(linhaDestino) || bloqueios?.[identificadorVagao]) {
+    return planejamento;
+  }
+  return { ...planejamento, [identificadorVagao]: linhaDestino };
+}
+
+export function construirOcupacaoLinhasComposicao(composicao, planejamento) {
+  return LINHAS_PLANEJAMENTO.map((linha) => ({
+    linha,
+    vagoes: composicao.vagoes.filter((vagao) => planejamento?.[vagao.identificadorVagao] === linha)
+  }));
 }
 
 function limitarDuracaoEtapa(duracaoTotal) {

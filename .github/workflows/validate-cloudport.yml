@@ -147,17 +147,38 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
+      - name: Preparar diretório de evidências
+        run: mkdir -p /tmp/cloudport-cutover-evidence
       - name: Validar contratos de TOS, OCR e EDI
+        id: preflight
+        continue-on-error: true
         shell: bash
         run: |
-          mvn -B -f backend/cloudport-contracts/pom.xml -DskipTests install
-          mvn -B -f backend/servico-gate/pom.xml \
+          set +e
+          LOG=/tmp/cloudport-cutover-evidence/preflight.log
+          STATUS=/tmp/cloudport-cutover-evidence/preflight-status.txt
+          : > "$LOG"
+          status=0
+          executar() {
+            echo "===== $1 =====" | tee -a "$LOG"
+            shift
+            "$@" 2>&1 | tee -a "$LOG"
+            comando_status=${PIPESTATUS[0]}
+            if [[ $comando_status -ne 0 ]]; then
+              status=$comando_status
+            fi
+          }
+          executar contracts mvn -B -f backend/cloudport-contracts/pom.xml -DskipTests install
+          executar gate mvn -B -f backend/servico-gate/pom.xml \
             -Dtest=TosIntegrationServiceTest,TosConsumerContractTest,ProcessamentoOcrRecuperacaoJobTest,ProcessamentoOcrRecuperacaoJobCondicaoTest \
             test
-          mvn -B -f backend/servico-yard/pom.xml \
+          executar yard mvn -B -f backend/servico-yard/pom.xml \
             -Dtest=EdiMensagemListenerServicoTest,ConsumidoresMigracaoConfiguracaoTest \
             test
+          printf '%s\n' "$status" > "$STATUS"
+          exit "$status"
       - name: Executar prova do runtime canônico e retorno para rollback
+        if: always()
         env:
           CLOUDPORT_RUNTIME_REVISAO: ${{ github.sha }}
         run: bash deploy/cloudport-runtime/provar-corte.sh
@@ -168,6 +189,15 @@ jobs:
           name: evidencia-corte-operacional
           path: /tmp/cloudport-cutover-evidence
           if-no-files-found: error
+      - name: Confirmar preflight do corte
+        if: always()
+        shell: bash
+        run: |
+          status="$(cat /tmp/cloudport-cutover-evidence/preflight-status.txt 2>/dev/null || echo 1)"
+          if [[ "$status" != "0" ]]; then
+            echo "O preflight de TOS, OCR ou EDI falhou. Consulte preflight.log no artefato." >&2
+            exit "$status"
+          fi
 
   frontend:
     name: Frontend ${{ matrix.name }}

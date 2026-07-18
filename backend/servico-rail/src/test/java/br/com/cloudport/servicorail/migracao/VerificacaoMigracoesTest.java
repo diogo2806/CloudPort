@@ -40,23 +40,26 @@ public class VerificacaoMigracoesTest {
 
             assertDoesNotThrow(() -> {
                 flyway.migrate();
-                verificarEstruturaReplanejamento(postgres);
+                verificarEstruturaFerroviaria(postgres);
             });
         }
     }
 
-    private void verificarEstruturaReplanejamento(PostgreSQLContainer<?> postgres) throws SQLException {
+    private void verificarEstruturaFerroviaria(PostgreSQLContainer<?> postgres) throws SQLException {
         try (Connection conexao = DriverManager.getConnection(
                 postgres.getJdbcUrl(),
                 postgres.getUsername(),
                 postgres.getPassword())) {
             assertTrue(colunaExiste(conexao, "visita_trem", "versao"));
+            assertTrue(colunaExiste(conexao, "visita_trem", "posicao_ferroviaria_atual"));
             assertTrue(colunaExiste(conexao, "visita_trem_vagao", "capacidade_conteineres"));
             assertTrue(colunaExiste(conexao, "visita_trem_descarga", "identificador_vagao"));
             assertTrue(colunaExiste(conexao, "visita_trem_carga", "identificador_vagao"));
             assertTrue(colunaExiste(conexao, "ordem_movimentacao", "identificador_vagao"));
             assertTrue(colunaExiste(conexao, "ordem_movimentacao", "posicao_vagao_no_trem"));
             assertTrue(tabelaExiste(conexao, "replanejamento_conteiner_ferroviario"));
+            assertTrue(tabelaExiste(conexao, "movimento_ferroviario_interno"));
+            assertTrue(tabelaExiste(conexao, "reserva_recurso_ferroviario"));
         }
     }
 

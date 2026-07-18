@@ -2,24 +2,24 @@ package br.com.cloudport.servicogate.app.transparencia;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
+import br.com.cloudport.servicogate.app.cidadao.AgendamentoRepository;
 import br.com.cloudport.servicogate.app.transparencia.dto.DashboardFiltroDTO;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.JanelaAtendimento;
 import br.com.cloudport.servicogate.model.enums.StatusAgendamento;
-import br.com.cloudport.servicogate.app.cidadao.AgendamentoRepository;
-import br.com.cloudport.servicogate.app.transparencia.DashboardMetricsProjection;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(MockitoExtension.class)
 class DashboardServiceTest {
@@ -42,7 +42,7 @@ class DashboardServiceTest {
         when(projection.getPontuais()).thenReturn(2L);
         when(projection.getNoShow()).thenReturn(0L);
         when(projection.getOcupacaoSlots()).thenReturn(0.5D);
-        when(agendamentoRepository.calcularMetricasDashboard(any(), any(), any(), any(), any()))
+        when(agendamentoRepository.calcularMetricasDashboard(any(), any(), any(), any(), anyInt()))
                 .thenReturn(projection);
 
         JanelaAtendimento janela = new JanelaAtendimento();
@@ -71,4 +71,3 @@ class DashboardServiceTest {
         assertThat(resumo.getPercentualPontualidade()).isEqualTo(100.0d);
     }
 }
-

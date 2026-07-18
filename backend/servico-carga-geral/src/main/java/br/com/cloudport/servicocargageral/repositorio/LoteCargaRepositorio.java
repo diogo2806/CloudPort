@@ -15,6 +15,9 @@ public interface LoteCargaRepositorio extends JpaRepository<LoteCarga, UUID> {
 
     boolean existsByCodigoIgnoreCase(String codigo);
 
+    @EntityGraph(attributePaths = {"item", "item.conhecimento"})
+    Optional<LoteCarga> findByCodigoIgnoreCase(String codigo);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {"item", "item.conhecimento", "movimentacoes"})
     Optional<LoteCarga> findComBloqueioById(UUID id);

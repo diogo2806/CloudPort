@@ -2,6 +2,7 @@ package br.com.cloudport.servicogate.app.gestor.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import javax.validation.constraints.Size;
 
 public class GateFlowRequest {
@@ -17,6 +18,10 @@ public class GateFlowRequest {
 
     @Size(max = 80)
     private String operador;
+
+    private UUID reservaCargaGeralId;
+
+    private UUID commandIdCargaGeral;
 
     public String getPlaca() {
         return placa;
@@ -48,5 +53,21 @@ public class GateFlowRequest {
 
     public void setOperador(String operador) {
         this.operador = operador;
+    }
+
+    public UUID getReservaCargaGeralId() {
+        return reservaCargaGeralId;
+    }
+
+    public void setReservaCargaGeralId(UUID reservaCargaGeralId) {
+        this.reservaCargaGeralId = reservaCargaGeralId;
+    }
+
+    public UUID getCommandIdCargaGeral() {
+        return commandIdCargaGeral;
+    }
+
+    public void setCommandIdCargaGeral(UUID commandIdCargaGeral) {
+        this.commandIdCargaGeral = commandIdCargaGeral;
     }
 }

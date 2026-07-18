@@ -3,12 +3,14 @@ package br.com.cloudport.servicocargageral.dto;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusOperacaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoEventoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoOperacaoStuffUnstuff;
+import br.com.cloudport.servicocargageral.dominio.PlanoStuffUnstuffVersao.StatusPlano;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import javax.validation.Valid;
 import javax.validation.constraints.DecimalMin;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
@@ -38,7 +40,22 @@ public final class StuffUnstuffDTOs {
             @NotNull @DecimalMin("0.000") BigDecimal pesoPlanejadoKg) {
     }
 
+    public record CriarVersaoPlanoRequest(
+            @NotBlank @Size(max = 120) String usuario,
+            @Size(max = 120) String correlationId,
+            @NotBlank @Size(max = 1000) String motivo,
+            @Valid @NotEmpty List<CriarItemOperacaoRequest> itens) {
+    }
+
+    public record LiberarPlanoRequest(
+            @Min(1) int versao,
+            @NotBlank @Size(max = 120) String usuario,
+            @Size(max = 120) String correlationId,
+            @NotBlank @Size(max = 1000) String motivo) {
+    }
+
     public record RegistrarExecucaoRequest(
+            @NotNull UUID commandId,
             @NotNull UUID itemId,
             @NotNull @DecimalMin("0.001") BigDecimal quantidade,
             @NotNull @DecimalMin("0.000") BigDecimal volumeM3,
@@ -80,6 +97,26 @@ public final class StuffUnstuffDTOs {
             OffsetDateTime canceladoEm,
             List<ItemOperacaoResposta> itens,
             List<EventoOperacaoResposta> historico) {
+    }
+
+    public record PlanoVersaoResposta(
+            UUID id,
+            int versao,
+            StatusPlano status,
+            String criadoPor,
+            OffsetDateTime criadoEm,
+            String liberadoPor,
+            OffsetDateTime liberadoEm,
+            String motivo,
+            List<ItemPlanoResposta> itens) {
+    }
+
+    public record ItemPlanoResposta(
+            UUID loteId,
+            String loteCodigo,
+            BigDecimal quantidadePlanejada,
+            BigDecimal volumePlanejadoM3,
+            BigDecimal pesoPlanejadoKg) {
     }
 
     public record ItemOperacaoResposta(

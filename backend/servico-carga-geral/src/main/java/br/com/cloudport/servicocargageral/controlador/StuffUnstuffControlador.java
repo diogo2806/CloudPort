@@ -1,10 +1,16 @@
 package br.com.cloudport.servicocargageral.controlador;
 
+import br.com.cloudport.servicocargageral.dominio.OperacaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.CancelarOperacaoRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.ConcluirOperacaoRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.CriarOperacaoRequest;
+import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.CriarVersaoPlanoRequest;
+import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.LiberarPlanoRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.OperacaoResposta;
+import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.PlanoVersaoResposta;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.RegistrarExecucaoRequest;
+import br.com.cloudport.servicocargageral.repositorio.OperacaoStuffUnstuffRepositorio;
+import br.com.cloudport.servicocargageral.servico.PlanoStuffUnstuffServico;
 import br.com.cloudport.servicocargageral.servico.StuffUnstuffServico;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -16,6 +22,7 @@ import java.util.UUID;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -26,17 +33,25 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/carga-geral/operacoes-stuff-unstuff")
 @Validated
-@Tag(name = "Stuff e unstuff", description = "Planejamento, execução parcial e encerramento de estufagem e desova")
+@Tag(name = "Stuff e unstuff", description = "Planejamento versionado, execução parcial e encerramento de estufagem e desova")
 public class StuffUnstuffControlador {
 
     private final StuffUnstuffServico servico;
+    private final PlanoStuffUnstuffServico planoServico;
+    private final OperacaoStuffUnstuffRepositorio operacaoRepositorio;
 
-    public StuffUnstuffControlador(StuffUnstuffServico servico) {
+    public StuffUnstuffControlador(
+            StuffUnstuffServico servico,
+            PlanoStuffUnstuffServico planoServico,
+            OperacaoStuffUnstuffRepositorio operacaoRepositorio) {
         this.servico = servico;
+        this.planoServico = planoServico;
+        this.operacaoRepositorio = operacaoRepositorio;
     }
 
     @GetMapping
@@ -53,6 +68,13 @@ public class StuffUnstuffControlador {
         return servico.obter(id);
     }
 
+    @GetMapping("/{id}/planos")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE')")
+    @Operation(summary = "Listar versões imutáveis do plano")
+    public List<PlanoVersaoResposta> listarPlanos(@PathVariable UUID id) {
+        return planoServico.listar(id);
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR')")
     @Operation(summary = "Criar ordem planejada de stuff ou unstuff")
@@ -62,25 +84,48 @@ public class StuffUnstuffControlador {
     })
     public ResponseEntity<OperacaoResposta> criar(@Valid @RequestBody CriarOperacaoRequest request) {
         OperacaoResposta criada = servico.criarOperacaoStuffUnstuff(request);
+        OperacaoStuffUnstuff operacao = operacaoRepositorio.findDetalhadaById(criada.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Operação criada não encontrada."));
+        planoServico.criarVersaoInicial(operacao, request.usuario());
         return ResponseEntity.created(URI.create("/api/carga-geral/operacoes-stuff-unstuff/" + criada.id())).body(criada);
+    }
+
+    @PostMapping("/{id}/planos")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR')")
+    @Operation(summary = "Criar nova versão do plano antes da execução")
+    public PlanoVersaoResposta criarVersao(
+            @PathVariable UUID id,
+            @Valid @RequestBody CriarVersaoPlanoRequest request) {
+        return planoServico.criarNovaVersao(id, request);
+    }
+
+    @PostMapping("/{id}/planos/liberar")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR')")
+    @Operation(summary = "Liberar a versão mais recente para execução física")
+    public PlanoVersaoResposta liberarPlano(
+            @PathVariable UUID id,
+            @Valid @RequestBody LiberarPlanoRequest request) {
+        return planoServico.liberar(id, request);
     }
 
     @PostMapping("/{id}/iniciar")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'OPERADOR_GATE')")
-    @Operation(summary = "Iniciar operação planejada")
+    @Operation(summary = "Iniciar operação com plano liberado")
     public OperacaoResposta iniciar(
             @PathVariable UUID id,
             @RequestParam @NotBlank @Size(max = 120) String usuario,
             @RequestParam(required = false) @Size(max = 120) String correlationId) {
+        planoServico.exigirPlanoLiberado(id);
         return servico.iniciar(id, usuario, correlationId);
     }
 
     @PostMapping("/{id}/execucoes")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'OPERADOR_GATE')")
-    @Operation(summary = "Registrar execução parcial, divergência e avaria")
+    @Operation(summary = "Registrar execução parcial idempotente")
     public OperacaoResposta registrarExecucao(
             @PathVariable UUID id,
             @Valid @RequestBody RegistrarExecucaoRequest request) {
+        planoServico.exigirPlanoLiberado(id);
         return servico.registrarExecucao(id, request);
     }
 

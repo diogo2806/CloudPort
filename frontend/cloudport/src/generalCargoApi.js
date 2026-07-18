@@ -2,6 +2,7 @@ import { request } from './api.js';
 
 const BASE = '/api/carga-geral';
 const STUFF_UNSTUFF = `${BASE}/operacoes-stuff-unstuff`;
+const INVENTORY_RESERVATIONS = '/yard/inventario/canonico/reservas-carga-geral';
 
 export const generalCargoApi = {
   dashboard: () => request(`${BASE}/dashboard`),
@@ -17,6 +18,7 @@ export const generalCargoApi = {
   listarReferencias: (categoria) => request(`${BASE}/referencias`, { query: categoria ? { categoria } : undefined }),
   criarReferencia: (body) => request(`${BASE}/referencias`, { method: 'POST', body }),
   atualizarReferencia: (id, ativo) => request(`${BASE}/referencias/${encodeURIComponent(id)}/status`, { method: 'PATCH', query: { ativo } }),
+  listarConteineresElegiveis: () => request(`${INVENTORY_RESERVATIONS}/elegiveis`),
   listarOperacoesStuffUnstuff: () => request(STUFF_UNSTUFF),
   obterOperacaoStuffUnstuff: (id) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}`),
   criarOperacaoStuffUnstuff: (body) => request(STUFF_UNSTUFF, { method: 'POST', body }),

@@ -62,99 +62,33 @@ public class GatePass extends AbstractAuditableEntity {
     @OneToMany(mappedBy = "gatePass", fetch = FetchType.LAZY)
     private List<GateEvent> eventos = new ArrayList<>();
 
-    public Long getId() {
-        return id;
-    }
+    @OneToMany(mappedBy = "gatePass", fetch = FetchType.LAZY)
+    private List<GateResourceOccupation> ocupacoesRecursos = new ArrayList<>();
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getCodigo() {
-        return codigo;
-    }
-
-    public void setCodigo(String codigo) {
-        this.codigo = codigo;
-    }
-
-    public StatusGate getStatus() {
-        return status;
-    }
-
-    public void setStatus(StatusGate status) {
-        this.status = status;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public LocalDateTime getDataEntrada() {
-        return dataEntrada;
-    }
-
-    public void setDataEntrada(LocalDateTime dataEntrada) {
-        this.dataEntrada = dataEntrada;
-    }
-
-    public LocalDateTime getDataSaida() {
-        return dataSaida;
-    }
-
-    public void setDataSaida(LocalDateTime dataSaida) {
-        this.dataSaida = dataSaida;
-    }
-
-    public Agendamento getAgendamento() {
-        return agendamento;
-    }
-
-    public void setAgendamento(Agendamento agendamento) {
-        this.agendamento = agendamento;
-    }
-
-    public List<GateEvent> getEventos() {
-        return eventos;
-    }
-
-    public void setEventos(List<GateEvent> eventos) {
-        this.eventos = eventos;
-    }
-
-    public String getCodigoBarcode() {
-        return codigoBarcode;
-    }
-
-    public void setCodigoBarcode(String codigoBarcode) {
-        this.codigoBarcode = codigoBarcode;
-    }
-
-    public LocalDateTime getDataConfirmacaoBarcode() {
-        return dataConfirmacaoBarcode;
-    }
-
-    public void setDataConfirmacaoBarcode(LocalDateTime dataConfirmacaoBarcode) {
-        this.dataConfirmacaoBarcode = dataConfirmacaoBarcode;
-    }
-
-    public StatusConfirmacaoBarcode getStatusConfirmacaoBarcode() {
-        return statusConfirmacaoBarcode;
-    }
-
-    public void setStatusConfirmacaoBarcode(StatusConfirmacaoBarcode statusConfirmacaoBarcode) {
-        this.statusConfirmacaoBarcode = statusConfirmacaoBarcode;
-    }
-
-    public String getMotivoRejeicaoBarcode() {
-        return motivoRejeicaoBarcode;
-    }
-
-    public void setMotivoRejeicaoBarcode(String motivoRejeicaoBarcode) {
-        this.motivoRejeicaoBarcode = motivoRejeicaoBarcode;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getCodigo() { return codigo; }
+    public void setCodigo(String codigo) { this.codigo = codigo; }
+    public StatusGate getStatus() { return status; }
+    public void setStatus(StatusGate status) { this.status = status; }
+    public String getToken() { return token; }
+    public void setToken(String token) { this.token = token; }
+    public LocalDateTime getDataEntrada() { return dataEntrada; }
+    public void setDataEntrada(LocalDateTime dataEntrada) { this.dataEntrada = dataEntrada; }
+    public LocalDateTime getDataSaida() { return dataSaida; }
+    public void setDataSaida(LocalDateTime dataSaida) { this.dataSaida = dataSaida; }
+    public Agendamento getAgendamento() { return agendamento; }
+    public void setAgendamento(Agendamento agendamento) { this.agendamento = agendamento; }
+    public List<GateEvent> getEventos() { return eventos; }
+    public void setEventos(List<GateEvent> eventos) { this.eventos = eventos; }
+    public List<GateResourceOccupation> getOcupacoesRecursos() { return ocupacoesRecursos; }
+    public void setOcupacoesRecursos(List<GateResourceOccupation> ocupacoesRecursos) { this.ocupacoesRecursos = ocupacoesRecursos; }
+    public String getCodigoBarcode() { return codigoBarcode; }
+    public void setCodigoBarcode(String codigoBarcode) { this.codigoBarcode = codigoBarcode; }
+    public LocalDateTime getDataConfirmacaoBarcode() { return dataConfirmacaoBarcode; }
+    public void setDataConfirmacaoBarcode(LocalDateTime dataConfirmacaoBarcode) { this.dataConfirmacaoBarcode = dataConfirmacaoBarcode; }
+    public StatusConfirmacaoBarcode getStatusConfirmacaoBarcode() { return statusConfirmacaoBarcode; }
+    public void setStatusConfirmacaoBarcode(StatusConfirmacaoBarcode statusConfirmacaoBarcode) { this.statusConfirmacaoBarcode = statusConfirmacaoBarcode; }
+    public String getMotivoRejeicaoBarcode() { return motivoRejeicaoBarcode; }
+    public void setMotivoRejeicaoBarcode(String motivoRejeicaoBarcode) { this.motivoRejeicaoBarcode = motivoRejeicaoBarcode; }
 }

@@ -18,6 +18,7 @@ import br.com.cloudport.servicoyard.estivagembulk.servico.EstabilidadeEstrutural
 import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkServico;
 import br.com.cloudport.servicoyard.estivagembulk.servico.TacktopServico;
 import br.com.cloudport.servicoyard.estivagembulk.servico.TanktopCalculadorServico;
+import br.com.cloudport.servicoyard.integracao.navio.IdentidadePlanejamentoNavioServico;
 import br.com.cloudport.servicoyard.vesselplanner.dto.AlocacaoSlotRequisicaoDto;
 import br.com.cloudport.servicoyard.vesselplanner.mensagem.VesselPlannerEventoPublicador;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.EstivagemPlan;
@@ -26,6 +27,7 @@ import br.com.cloudport.servicoyard.vesselplanner.repositorio.EstivagemPlanRepos
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.SlotNavioRepositorio;
 import br.com.cloudport.servicoyard.vesselplanner.servico.AutoStowageServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.EstabilidadeNavioServico;
+import br.com.cloudport.servicoyard.vesselplanner.servico.GeometriaNavioServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.RestowCalculadorServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.SequenciamentoGuindasteServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.VesselPlannerServico;
@@ -60,7 +62,13 @@ class PlanoEstivaImutabilidadeServicoTest {
     private AutoStowageServico autoStowageServico;
 
     @Mock
+    private GeometriaNavioServico geometriaNavioServico;
+
+    @Mock
     private VesselPlannerEventoPublicador vesselPlannerEventoPublicador;
+
+    @Mock
+    private IdentidadePlanejamentoNavioServico identidadePlanejamentoNavioServico;
 
     @Mock
     private NavioGranelRepositorio navioGranelRepositorio;
@@ -93,7 +101,9 @@ class PlanoEstivaImutabilidadeServicoTest {
                 restowCalculadorServico,
                 sequenciamentoGuindasteServico,
                 autoStowageServico,
-                vesselPlannerEventoPublicador);
+                geometriaNavioServico,
+                vesselPlannerEventoPublicador,
+                identidadePlanejamentoNavioServico);
 
         assertThatThrownBy(() -> servico.alocarContainer(1L, new AlocacaoSlotRequisicaoDto()))
                 .isInstanceOf(IllegalStateException.class)

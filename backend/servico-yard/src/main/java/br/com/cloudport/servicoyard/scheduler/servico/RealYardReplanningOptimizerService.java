@@ -82,6 +82,7 @@ public class RealYardReplanningOptimizerService {
         double pontuacaoTotal = 0.0;
 
         for (SchedulerContainerDto item : itens) {
+            int custoOriginalItem = custoOriginal(item);
             Avaliacao melhor = candidatos.stream()
                     .filter(candidato -> !posicoesUtilizadas.contains(chave(candidato)))
                     .filter(candidato -> compativel(item, candidato))
@@ -103,7 +104,7 @@ public class RealYardReplanningOptimizerService {
             item.setColuna(melhor.posicao().getColuna());
             item.setCamadaAtual(melhor.posicao().getCamada());
 
-            distanciaOriginal += custoOriginal(item);
+            distanciaOriginal += custoOriginalItem;
             distanciaOtimizada += melhor.distanciaMovimento() + melhor.distanciaBerco();
             rehandlesEstimados += melhor.rehandles();
             pontuacaoTotal += melhor.score();
@@ -238,6 +239,10 @@ public class RealYardReplanningOptimizerService {
     private boolean compativel(SchedulerContainerDto item, SchedulerPositionCandidateDto posicao) {
         if (posicao.isBloqueada() || posicao.isInterditada() || !posicao.isAreaPermitida()
                 || posicao.isReservadaPorOutro() || !posicao.isAllocationCompativel()) {
+            return false;
+        }
+        if (StringUtils.hasText(item.getCamadaAtual())
+                && !normalizar(item.getCamadaAtual()).equals(normalizar(posicao.getCamada()))) {
             return false;
         }
         if (posicao.isOcupada()

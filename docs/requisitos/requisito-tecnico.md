@@ -1,10 +1,24 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após implementação dos requisitos ERR10, ERR20, ERR30 e ERR40.
+Status: atualizado em 2026-07-18 após implementação dos requisitos ERR10, ERR20 e ERR30.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
-## 1. Segurança e proteção de dados
+## 1. Erros, concorrência e consistência operacional
+
+| ID | Tarefa técnica | Critério de conclusão | Status |
+|---|---|---|---|
+| ERR40 | Tratar disputas concorrentes nos cadastros únicos de carga geral sem expor violações de constraint como erro interno. | Criações simultâneas do mesmo Bill of Lading, sequência de item, cargo lot ou referência de domínio persistem somente um registro; a operação perdedora recebe `409 Conflict` estável, sem `500`, mensagem SQL ou transação parcialmente confirmada. | ⬜ Pendente |
+
+### ERR40 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/CargaGeralServico.java` | `criarConhecimento()`, `adicionarItem()`, `adicionarLote()` e `criarReferencia()` | Os métodos verificam duplicidade com `existsBy...` ou pela coleção carregada e depois persistem. Duas transações simultâneas podem validar ausência ao mesmo tempo; a segunda só é rejeitada durante o flush pelas constraints únicas de número, sequência, código do lote ou categoria/código. Não existe captura específica de `DataIntegrityViolationException` nem conversão da disputa para conflito funcional. | Manter as constraints como garantia final, forçar a persistência dentro do escopo tratável quando necessário e converter somente as constraints conhecidas em `409 Conflict` com mensagem estável. Não usar a consulta prévia como garantia de exclusão mútua nem transformar outras falhas de integridade em conflito genérico. |
+| `backend/servico-carga-geral/src/main/resources/db/migration/V1__create_carga_geral.sql` | `conhecimento_carga.numero`, `uk_item_conhecimento_sequencia`, `lote_carga.codigo` e `uk_referencia_carga_categoria_codigo` | O banco possui as garantias corretas de unicidade, mas elas atuam apenas no momento da gravação e produzem exceção técnica quando a disputa ocorre após a validação prévia. | Preservar as constraints e usar seus nomes ou SQLState para identificar de forma determinística a colisão de domínio, mantendo rollback integral da operação perdedora. |
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/controlador/CargaGeralControlador.java` | `POST /api/carga-geral/conhecimentos`, `/conhecimentos/{id}/itens`, `/itens/{id}/lotes` e `/referencias` | Os endpoints retornam `201 Created` no fluxo normal, mas não possuem contrato nem handler específico para violações concorrentes das chaves únicas. | Garantir `409 Conflict` para duplicidade concorrente com resposta operacional padronizada, sem mensagem SQL, nome de constraint ou stack trace. |
+
+## 2. Segurança e proteção de dados
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|

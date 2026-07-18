@@ -8,6 +8,7 @@ import br.com.cloudport.servicoyard.vesselplanner.dto.EstabilidadeDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.EstivagemPlanDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.RestowAnaliseDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.SequenciamentoGuindasteDto;
+import br.com.cloudport.servicoyard.vesselplanner.reconciliacao.servico.ReconciliacaoBaplieExecucaoServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.VesselPlannerServico;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -26,9 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class VesselPlannerControlador {
 
     private final VesselPlannerServico servico;
+    private final ReconciliacaoBaplieExecucaoServico reconciliacaoServico;
 
-    public VesselPlannerControlador(VesselPlannerServico servico) {
+    public VesselPlannerControlador(
+            VesselPlannerServico servico,
+            ReconciliacaoBaplieExecucaoServico reconciliacaoServico) {
         this.servico = servico;
+        this.reconciliacaoServico = reconciliacaoServico;
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
@@ -88,6 +93,7 @@ public class VesselPlannerControlador {
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos/{id}/validar")
     public ResponseEntity<EstivagemPlanDto> validarEAprovar(@PathVariable Long id) {
+        reconciliacaoServico.exigirSemDivergenciasCriticas(id);
         return ResponseEntity.ok(servico.validarEAprovar(id));
     }
 }

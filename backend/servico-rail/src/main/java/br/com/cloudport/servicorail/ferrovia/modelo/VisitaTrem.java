@@ -18,6 +18,7 @@ import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import javax.persistence.Version;
 
 @Entity
 @Table(name = "visita_trem")
@@ -26,6 +27,10 @@ public class VisitaTrem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    @Column(name = "versao", nullable = false)
+    private Long versao;
 
     @Column(name = "identificador_trem", nullable = false, length = 40)
     private String identificadorTrem;
@@ -90,6 +95,10 @@ public class VisitaTrem {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getVersao() {
+        return versao;
     }
 
     public String getIdentificadorTrem() {

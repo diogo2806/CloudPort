@@ -21,6 +21,7 @@
         <java.version>17</java.version>
         <cloudport.modules.version>0.0.1-SNAPSHOT</cloudport.modules.version>
         <archunit.version>1.4.2</archunit.version>
+        <flyway.version>10.20.1</flyway.version>
         <jackson.version>2.21.4</jackson.version>
         <spring-framework.version>5.3.39</spring-framework.version>
         <spring-security.version>5.8.16</spring-security.version>
@@ -191,6 +192,11 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <version>${flyway.version}</version>
         </dependency>
 
         <dependency>

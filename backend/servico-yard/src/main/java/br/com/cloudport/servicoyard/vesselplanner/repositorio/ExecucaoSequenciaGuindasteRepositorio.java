@@ -13,11 +13,9 @@ public interface ExecucaoSequenciaGuindasteRepositorio extends JpaRepository<Exe
     Optional<ExecucaoSequenciaGuindaste> findByEstivagemId(Long estivagemId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @EntityGraph(attributePaths = "movimentos")
     Optional<ExecucaoSequenciaGuindaste> findLockedByEstivagemId(Long estivagemId);
 
     @Override
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @EntityGraph(attributePaths = "movimentos")
     Optional<ExecucaoSequenciaGuindaste> findById(Long id);
 }

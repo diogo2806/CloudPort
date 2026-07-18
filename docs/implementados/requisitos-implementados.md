@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão do ASYNC90 e a proteção fail-closed dos jobs persistentes do Gate.
+Status: atualizado em 2026-07-18 com a conclusão do ASYNC90, a proteção fail-closed dos jobs persistentes do Gate e a integração do motor de otimização ao replanejamento operacional real.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -88,6 +88,23 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 13. Motivo, usuário, origem e `correlationId` acompanham os comandos administrativos.
 14. Os adaptadores locais executam comandos de Yard no mesmo processo nos runtimes consolidados.
 15. O frontend bloqueia edição e comandos incompatíveis com estados terminais.
+
+## Replanejamento operacional com otimização real
+
+1. O endpoint `POST /visitas-navio/{id}/integracao-patio/replanejar` suporta simulação e aplicação pelo mesmo contrato autenticado e motivado.
+2. O motor recebe ETA, ETB/ATB, ETD/ATD, cutoff e sequência operacional da visita.
+3. O mapa real do Yard fornece bloco, linha, coluna, camada, ocupação, bloqueio, interdição, área permitida, capacidade, peso, altura e tipos de carga aceitos.
+4. Reservas concorrentes de outras visitas são retiradas do conjunto de posições elegíveis.
+5. A carga considera movimento, tipo, peso, altura, operador, destino, dwell time e indicadores IMO, reefer e OOG.
+6. Work queues fornecem CHE, disponibilidade, produtividade estimada, prioridade, carga atual e conflitos de recurso.
+7. O motor combina alocação de posição, dual-cycling e otimização de rotas de equipamentos.
+8. A pontuação considera distância, ocupação, rehandles, destino, equipamento, sequência, dwell time e urgência do cutoff.
+9. A proposta é determinística e recebe assinatura SHA-256 reproduzível.
+10. O resultado expõe posição atual e proposta, CHE, sequência, score, rehandles, memória de cálculo e justificativas.
+11. O Control Room permite simular sem persistir e somente depois confirmar a aplicação.
+12. A aplicação reutiliza o fluxo idempotente existente e revalida transacionalmente ocupação, reservas, restrições, peso, altura, ordem e posição antes de persistir.
+13. Conflitos encontrados na confirmação impedem alteração parcial e retornam erro funcional.
+14. A interface recarrega reservas, ordens, filas e plano após uma aplicação confirmada.
 
 ## Yard, inventário e dispatch
 
@@ -186,4 +203,4 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 
 Não há pendências no backlog técnico `docs/requisitos/requisito-tecnico.md`.
 
-Permanecem no backlog funcional o replanejamento com otimização real, a persistência do planejamento ferroviário visual, a comprovação do corte operacional e as evoluções registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.
+Permanecem no backlog funcional a persistência do planejamento ferroviário visual, a comprovação do corte operacional e as evoluções registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.

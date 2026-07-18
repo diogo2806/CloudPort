@@ -7,6 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ContagemInventarioFisicoRepositorio extends JpaRepository<ContagemInventarioFisico, Long> {
 
+    List<ContagemInventarioFisico> findByStatusNotOrderByRegistradoEmDesc(
+            ContagemInventarioFisico.StatusContagem status);
+
     List<ContagemInventarioFisico> findByStatusInOrderByRegistradoEmDesc(
             Collection<ContagemInventarioFisico.StatusContagem> status);
 

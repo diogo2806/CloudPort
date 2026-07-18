@@ -10,22 +10,17 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.context.annotation.Primary;
 
 @SpringBootTest(classes = TosConsumerContractTest.TestConfig.class)
 @AutoConfigureWireMock(port = 0, stubs = "classpath:/contracts/tos")
 class TosConsumerContractTest {
-
-    @DynamicPropertySource
-    static void overrideBaseUrl(DynamicPropertyRegistry registry) {
-        registry.add("cloudport.tos.api.base-url", () -> "http://localhost:" + Integer.getInteger("wiremock.server.port", 0));
-    }
 
     @Autowired
     private TosIntegrationService integrationService;
@@ -46,14 +41,15 @@ class TosConsumerContractTest {
     static class TestConfig {
 
         @Bean
-        TosProperties tosProperties() {
+        TosProperties tosProperties(@Value("${wiremock.server.port}") int wireMockPort) {
             TosProperties properties = new TosProperties();
-            properties.getApi().setBaseUrl("http://localhost:" + Integer.getInteger("wiremock.server.port", 0));
+            properties.getApi().setBaseUrl("http://localhost:" + wireMockPort);
             return properties;
         }
 
         @Bean
-        IntegracaoDegradacaoHandler integracaoDegradacaoHandler() {
+        @Primary
+        IntegracaoDegradacaoHandler integracaoDegradacaoHandlerTeste() {
             return new IntegracaoDegradacaoHandler(new GateMetrics(new SimpleMeterRegistry()));
         }
 
@@ -89,4 +85,3 @@ class TosConsumerContractTest {
         }
     }
 }
-

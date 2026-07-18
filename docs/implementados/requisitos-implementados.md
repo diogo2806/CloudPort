@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão dos BUS1090 e BUS1170 e a persistência das operações ferroviárias.
+Status: atualizado em 2026-07-18 com a conclusão integral da seção Navio e ferrovia: BUS1150, BUS1160, BUS1170 e DATA1180.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -70,6 +70,19 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 12. Peso, centros de gravidade, GM, calado, trim, banda, força cortante e momento fletor.
 13. Aprovações versionadas e invalidadas quando o plano muda.
 14. BAPLIE com posição, operação, VGM, reefer, perigosos e OOG.
+
+## Execução operacional do Vessel Planner — BUS1150, BUS1160 e DATA1180
+
+1. A sequência de guindastes possui execução persistida por movimento, com guindaste, ordem, janela, início, conclusão, falha, replanejamento, reconciliação e quantidade realizada.
+2. A linha do tempo operacional apresenta progresso, exceções e resultado real sem substituir o plano aprovado.
+3. Tampas de porão possuem entidades de tampa, posição, tarefa e dependência com operações de abrir, remover, posicionar e fechar.
+4. Dependências incompletas e estados incompatíveis impedem movimentos de guindaste relacionados.
+5. A reconciliação compara BAPLIE, plano aprovado, inventário e execução física, incluindo posição e peso confirmados pelo COARRI.
+6. Divergências são persistidas por contêiner e fonte, mantendo separados os valores de BAPLIE, plano, inventário e execução.
+7. Divergências críticas abertas bloqueiam aprovação, publicação e conclusão do plano.
+8. A resolução registra decisão, justificativa, usuário e instante sem sobrescrever silenciosamente os dados de origem.
+9. Divergências são reabertas quando as fontes mudam e resolvidas automaticamente quando voltam a ficar consistentes.
+10. O Vessel Planner disponibiliza fila visual e endpoints autenticados para consulta, reconciliação e resolução.
 
 ## Operações administrativas de Navio
 

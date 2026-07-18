@@ -50,7 +50,9 @@ public class GlobalExceptionHandler {
         Map<String, String> campos = new LinkedHashMap<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
             String campo = "senha".equals(error.getField()) ? "password" : error.getField();
-            campos.putIfAbsent(campo, error.getDefaultMessage());
+            if (!campos.containsKey(campo) || erroObrigatorio(error)) {
+                campos.put(campo, error.getDefaultMessage());
+            }
         }
         return resposta(HttpStatus.BAD_REQUEST, "DADOS_INVALIDOS", "Erro de validação dos dados enviados.", campos, request, ex);
     }
@@ -64,6 +66,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> inesperado(Exception ex, HttpServletRequest request) {
         LOGGER.error("Erro interno no servico de autenticacao", ex);
         return resposta(HttpStatus.INTERNAL_SERVER_ERROR, "ERRO_INTERNO", "Nao foi possivel concluir a operacao.", null, request, ex);
+    }
+
+    private static boolean erroObrigatorio(FieldError error) {
+        String codigo = error.getCode();
+        return "NotBlank".equals(codigo) || "NotEmpty".equals(codigo) || "NotNull".equals(codigo);
     }
 
     private ResponseEntity<Map<String, Object>> resposta(HttpStatus status, String codigo, String mensagem,

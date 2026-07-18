@@ -13,11 +13,19 @@ import org.springframework.stereotype.Service;
 @Service
 public class SequenciamentoGuindasteServico {
 
+    private final OperacaoTampaPoraoServico operacaoTampaPoraoServico;
+
+    public SequenciamentoGuindasteServico(OperacaoTampaPoraoServico operacaoTampaPoraoServico) {
+        this.operacaoTampaPoraoServico = operacaoTampaPoraoServico;
+    }
+
     public SequenciamentoGuindasteDto sequenciar(EstivagemPlan plan, int numGuindastes) {
-        if (numGuindastes < 1) numGuindastes = 1;
+        if (numGuindastes < 1) {
+            numGuindastes = 1;
+        }
 
         List<SlotNavio> ocupados = plan.getSlots().stream()
-                .filter(s -> s.getCodigoContainer() != null)
+                .filter(slot -> slot.getCodigoContainer() != null)
                 .sorted(Comparator
                         .comparingInt(SlotNavio::getBay)
                         .thenComparingInt(SlotNavio::getRowBay)
@@ -28,16 +36,21 @@ public class SequenciamentoGuindasteServico {
         int ordem = 1;
         int guindasteAtual = 1;
 
-        for (SlotNavio s : ocupados) {
-            GuindasteOperacaoDto op = new GuindasteOperacaoDto();
-            op.setOrdem(ordem++);
-            op.setCodigoContainer(s.getCodigoContainer());
-            op.setBay(s.getBay());
-            op.setRowBay(s.getRowBay());
-            op.setTier(s.getTier());
-            op.setTipoOperacao("DESCARGA");
-            op.setGuindasteId(guindasteAtual);
-            sequencia.add(op);
+        for (SlotNavio slot : ocupados) {
+            String motivoBloqueio = operacaoTampaPoraoServico.motivoBloqueio(plan, slot);
+            GuindasteOperacaoDto operacao = new GuindasteOperacaoDto();
+            operacao.setOrdem(ordem++);
+            operacao.setSlotId(slot.getId());
+            operacao.setCodigoContainer(slot.getCodigoContainer());
+            operacao.setBay(slot.getBay());
+            operacao.setRowBay(slot.getRowBay());
+            operacao.setTier(slot.getTier());
+            operacao.setTipoOperacao("DESCARGA");
+            operacao.setGuindasteId(guindasteAtual);
+            operacao.setCodigoHatchCover(slot.getCodigoHatchCover());
+            operacao.setBloqueadaPorTampa(motivoBloqueio != null);
+            operacao.setMotivoBloqueio(motivoBloqueio);
+            sequencia.add(operacao);
 
             guindasteAtual = (guindasteAtual % numGuindastes) + 1;
         }

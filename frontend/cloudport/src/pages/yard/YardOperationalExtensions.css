@@ -1,0 +1,136 @@
+.yard-reefer-panel,
+.yard-allocation-editor {
+  display: grid;
+  gap: 14px;
+}
+
+.yard-reefer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+  gap: 12px;
+}
+
+.yard-reefer-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #dce5ed;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.yard-reefer-card > header,
+.yard-allocation-blocks section > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.yard-reefer-card > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f5f8fb;
+}
+
+.yard-reefer-card > div strong {
+  font-size: 22px;
+}
+
+.yard-reefer-card.critico {
+  border-color: #e4a09b;
+  background: #fff2f1;
+}
+
+.yard-reefer-card.atencao {
+  border-color: #e8c37f;
+  background: #fff8e9;
+}
+
+.yard-reefer-card.normal {
+  border-color: #91cbaa;
+  background: #f0faf4;
+}
+
+.yard-allocation-selector {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(220px, auto);
+  gap: 12px;
+  align-items: end;
+}
+
+.yard-allocation-selector label {
+  display: grid;
+  gap: 5px;
+  color: #60748a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.yard-allocation-current {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid #dce5ed;
+  border-radius: 9px;
+  background: #f8fbfd;
+}
+
+.yard-allocation-blocks {
+  display: grid;
+  gap: 12px;
+}
+
+.yard-allocation-blocks section {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #dce5ed;
+  border-radius: 10px;
+  background: #f8fbfd;
+}
+
+.yard-allocation-blocks section > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: 7px;
+}
+
+.yard-allocation-blocks button.selected {
+  background: #1261a0;
+  color: #fff;
+}
+
+.yard-route-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.yard-route-summary span {
+  padding: 6px 9px;
+  border: 1px solid #dce5ed;
+  border-radius: 999px;
+  background: #fff;
+  color: #536a82;
+  font-size: 11px;
+}
+
+.yard-google-map-legend i.route {
+  width: 24px;
+  height: 4px;
+  border-radius: 4px;
+  background: #0f4c81;
+}
+
+@media (max-width: 760px) {
+  .yard-allocation-selector {
+    grid-template-columns: 1fr;
+  }
+}

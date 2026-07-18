@@ -17,6 +17,10 @@ function sameStack(left, right) {
     && String(left.coluna) === String(right.coluna);
 }
 
+function routePositionKey(position) {
+  return `${position?.linha ?? ''}:${position?.coluna ?? ''}`;
+}
+
 function createInfoContent(entry) {
   const root = document.createElement('div');
   root.className = 'yard-google-info';
@@ -62,7 +66,7 @@ function createLabelOverlay(maps, map, entry, selected, onActivate) {
   return overlay;
 }
 
-export function GoogleYardMap({ blocks, selectedStack, onSelectStack }) {
+export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [] }) {
   const mapElementRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const fittedLayoutRef = useRef('');
@@ -127,6 +131,7 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack }) {
     const infoWindow = new maps.InfoWindow();
     const overlays = [];
     const listeners = [];
+    const centers = new Map(layout.map((entry) => [routePositionKey(entry.stack), entry.center]));
 
     layout.forEach((entry) => {
       const selected = sameStack(entry.stack, selectedStack);
@@ -154,6 +159,25 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack }) {
       overlays.push(polygon, createLabelOverlay(maps, map, entry, selected, activate));
     });
 
+    routes.forEach((route) => {
+      const origin = centers.get(routePositionKey(route.origem));
+      const destination = centers.get(routePositionKey(route.destino));
+      if (!origin || !destination || origin === destination) return;
+      const polyline = new maps.Polyline({
+        map,
+        path: [origin, destination],
+        strokeColor: '#0f4c81',
+        strokeOpacity: 0.9,
+        strokeWeight: 4,
+        zIndex: 40,
+        icons: [{
+          icon: { path: maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3 },
+          offset: '100%'
+        }]
+      });
+      overlays.push(polyline);
+    });
+
     const layoutSignature = layout.map((entry) => entry.key).join('|');
     if (fittedLayoutRef.current !== layoutSignature) {
       fittedLayoutRef.current = layoutSignature;
@@ -168,7 +192,7 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack }) {
       listeners.forEach((listener) => maps.event.removeListener(listener));
       overlays.forEach((overlay) => overlay.setMap(null));
     };
-  }, [mapContext, layout, selectedStack, onSelectStack, config]);
+  }, [mapContext, layout, selectedStack, onSelectStack, config, routes]);
 
   if (configError) return <Message type="error">{configError}</Message>;
   if (!config) return <Loading label="Carregando configuração geográfica do pátio..." />;
@@ -186,6 +210,7 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack }) {
     {!mapContext && !mapError && <div className="yard-google-map-loading"><Loading label="Carregando Google Maps..." /></div>}
     <div className="yard-google-map-legend" aria-label="Legenda do mapa">
       {Object.entries(YARD_MAP_STATE_LABELS).map(([state, label]) => <span key={state}><i className={state} />{label}</span>)}
+      {!!routes.length && <span><i className="route" />Rotas planejadas</span>}
     </div>
   </div>;
 }

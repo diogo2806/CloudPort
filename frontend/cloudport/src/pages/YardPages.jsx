@@ -1,4 +1,5 @@
 import './yard/OperationalYardViews.css';
+import './yard/YardOperationalExtensions.css';
 
 export { YardMapPage, YardPositionsPage } from './yard/YardMapPages.jsx';
 export { YardReceivingPlanPage } from './yard/YardReceivingPlanPage.jsx';

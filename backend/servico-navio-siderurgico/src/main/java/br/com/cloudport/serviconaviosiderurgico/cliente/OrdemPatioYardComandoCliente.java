@@ -60,6 +60,15 @@ public class OrdemPatioYardComandoCliente {
         );
     }
 
+    public OrdemPatioYardRespostaDTO cancelar(Long ordemId, ComandoMotivado comando) {
+        return restTemplate.patchForObject(
+                baseUrl + "/yard/patio/ordens/{ordemId}/cancelar",
+                comando,
+                OrdemPatioYardRespostaDTO.class,
+                ordemId
+        );
+    }
+
     private String removerBarraFinal(String valor) {
         if (!StringUtils.hasText(valor)) {
             return "http://localhost:8081";

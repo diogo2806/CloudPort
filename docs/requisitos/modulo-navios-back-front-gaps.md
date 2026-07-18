@@ -1,6 +1,6 @@
 # Requisitos pendentes - CloudPort
 
-Status: atualizado em 2026-07-18 após as implementações de ERR10, ERR20, ERR30 e ERR40 incorporadas à `main`.
+Status: atualizado em 2026-07-18 após a entrega das operações administrativas de visita, item, plano de estiva e ordem de pátio.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -39,19 +39,12 @@ A lista detalhada está em `docs/implementados/requisitos-implementados.md`. Nã
 15. Central global de alertas e line-ups internos e públicos.
 16. Processamento EDI assíncrono e idempotente, eventos internos seletivos e contratos versionados.
 17. Dockerfiles e parâmetros de implantação do frontend e backend no EasyPanel.
+18. Edição de visita e item, conclusão/publicação, invalidação, cancelamento e nova versão de plano, cancelamentos administrativos de visita, item e ordem, compensações e histórico auditável no portal.
+19. Sanitização de logs do TOS, segurança standalone da carga geral e autorização dos WebSockets operacionais do Yard.
 
 ## P0 - Pendências obrigatórias
 
-### 1. Conclusão, edição e cancelamento de operações de navio
-
-1. Expor no frontend a conclusão/publicação do plano por `POST /visitas-navio/{id}/plano-estiva/{planoId}/concluir`.
-2. Completar a edição de visita e item pelos contratos `PUT /visitas-navio/{id}` e `PUT /visitas-navio/{id}/itens/{itemId}`.
-3. Criar cancelamento administrativo diferenciado para visita, item, plano e ordem, preservando motivo, usuário, impacto em reservas e eventos de compensação.
-4. Exibir no inspector do Vessel Planner o histórico completo de publicação, invalidação e nova aprovação do plano.
-
-Critério de aceite: o operador consegue alterar, concluir, invalidar e cancelar pelo portal sem usar chamadas manuais, e todas as transições são auditadas e idempotentes.
-
-### 2. Replanejamento com otimização real
+### 1. Replanejamento com otimização real
 
 O replanejamento visual e a troca transacional de posições reais já existem. Falta integrar o motor de otimização ao contrato operacional.
 
@@ -66,7 +59,7 @@ O motor deve considerar, no mínimo:
 
 Critério de aceite: a proposta é reproduzível, explica os fatores utilizados, nunca confirma uma posição sem revalidação transacional e permite simular antes de aplicar.
 
-### 3. Persistência do planejamento ferroviário visual
+### 2. Persistência do planejamento ferroviário visual
 
 A composição gráfica e o drag-and-drop de vagões foram entregues como simulação no frontend. Falta:
 
@@ -79,17 +72,7 @@ A composição gráfica e o drag-and-drop de vagões foram entregues como simula
 
 Critério de aceite: ao recarregar a página, o planejamento confirmado permanece no backend e não produz divergência entre manifesto, vagão e ordem de trabalho.
 
-### 4. Segurança e consistência operacional pendentes
-
-As pendências técnicas comprovadas não devem ser duplicadas aqui. Implementar e encerrar os itens mantidos em `docs/requisitos/requisito-tecnico.md`:
-
-1. `SEC70`: sanitização dos logs e exceções do TOS;
-2. `SEC80`: segurança da execução standalone de carga geral;
-3. `SEC90`: autenticação e autorização dos WebSockets operacionais do Yard.
-
-Critério de aceite: cada item deve sair do backlog técnico somente após alteração verificável no código e no contrato HTTP ou WebSocket correspondente.
-
-### 5. Corte operacional do monólito modular
+### 3. Corte operacional do monólito modular
 
 O código e as imagens do runtime canônico estão prontos, mas ainda falta comprovar o corte de ambiente:
 

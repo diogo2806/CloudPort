@@ -128,7 +128,7 @@ function targetHasGapBelow(target, slots, source) {
     .sort((left, right) => asNumber(right.tier) - asNumber(left.tier));
   if (!lower.length) return false;
   const immediate = lower[0];
-  if (String(immediate.id) === String(source?.sourceSlotId)) return false;
+  if (String(immediate.id) === String(source?.sourceSlotId)) return true;
   return !immediate.codigoContainer;
 }
 
@@ -157,7 +157,7 @@ export function validateDropTarget({ payload, target, slots = [], stackSummaries
   if (target.restrito) add(DROP_VALIDATION_STATUS.BLOCKED, 'RESTRICTED', normalizedText(target.motivoRestricao) || 'Slot marcado como restrito.');
   if (source?.sourceSlotId && String(source.sourceSlotId) === String(target.id)) add(DROP_VALIDATION_STATUS.BLOCKED, 'SAME_SLOT', 'Origem e destino são o mesmo slot.');
   if (sourceHasLoadAbove(source, slots)) add(DROP_VALIDATION_STATUS.BLOCKED, 'LOAD_ABOVE', 'O contêiner de origem possui carga acima na mesma pilha.');
-  if (source && targetHasGapBelow(target, slots, source)) add(DROP_VALIDATION_STATUS.BLOCKED, 'UNSUPPORTED', 'Existe um slot livre abaixo do destino.');
+  if (source && targetHasGapBelow(target, slots, source)) add(DROP_VALIDATION_STATUS.BLOCKED, 'UNSUPPORTED', 'A movimentação deixaria um vão livre abaixo do destino.');
 
   const weightKg = containerWeightKg(payload);
   const slotLimit = asNumber(target.maxPesoKg ?? target.limitePesoKg);

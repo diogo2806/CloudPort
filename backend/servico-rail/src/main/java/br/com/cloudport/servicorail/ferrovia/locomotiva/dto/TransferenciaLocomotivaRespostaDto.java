@@ -9,9 +9,7 @@ import java.time.LocalDateTime;
 public class TransferenciaLocomotivaRespostaDto {
 
     private Long id;
-    private Long visitaTremId;
     private String identificadorTrem;
-    private String identificadorLocomotiva;
     private String operadoraFerroviaria;
     private String fabricante;
     private String modelo;
@@ -45,11 +43,9 @@ public class TransferenciaLocomotivaRespostaDto {
 
     public static TransferenciaLocomotivaRespostaDto deEntidade(TransferenciaLocomotiva entidade) {
         TransferenciaLocomotivaRespostaDto dto = new TransferenciaLocomotivaRespostaDto();
-        dto.id = entidade.getId();
-        dto.visitaTremId = entidade.getVisitaTrem().getId();
+        dto.id = entidade.getVisitaTrem().getId();
         dto.identificadorTrem = entidade.getVisitaTrem().getIdentificadorTrem();
-        dto.identificadorLocomotiva = entidade.getIdentificadorLocomotiva();
-        dto.operadoraFerroviaria = entidade.getOperadoraFerroviaria();
+        dto.operadoraFerroviaria = entidade.getVisitaTrem().getOperadoraFerroviaria();
         dto.fabricante = entidade.getFabricante();
         dto.modelo = entidade.getModelo();
         dto.numeroSerie = entidade.getNumeroSerie();
@@ -83,9 +79,7 @@ public class TransferenciaLocomotivaRespostaDto {
     }
 
     public Long getId() { return id; }
-    public Long getVisitaTremId() { return visitaTremId; }
     public String getIdentificadorTrem() { return identificadorTrem; }
-    public String getIdentificadorLocomotiva() { return identificadorLocomotiva; }
     public String getOperadoraFerroviaria() { return operadoraFerroviaria; }
     public String getFabricante() { return fabricante; }
     public String getModelo() { return modelo; }

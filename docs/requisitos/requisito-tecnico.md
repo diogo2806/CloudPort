@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após implementação do requisito SEC80.
+Status: atualizado em 2026-07-18 após implementação dos requisitos ERR10, ERR30 e SEC80.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -9,7 +9,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
 | ERR20 | Serializar a geração de faturas e o registro de pagamentos para impedir faturamento duplicado, cobrança repetida ou pagamento acima do saldo. | Cobranças pendentes são reivindicadas por somente uma fatura; pagamentos concorrentes respeitam atomicamente o saldo disponível; disputas retornam conflito funcional, sem `500`, fatura órfã, item duplicado ou valor pago superior ao total. | ⬜ Pendente |
-| ERR30 | Traduzir rejeições transacionais do banco na abertura de truck visits para respostas operacionais estáveis. | Capacidade esgotada, bloqueio por regra de acesso ou referência indisponível rejeitam integralmente a abertura e retornam `409 Conflict` ou `422 Unprocessable Entity`, sem `500`, visita parcial, consumo residual de capacidade ou mensagem SQL exposta. | ⬜ Pendente |
 | ERR40 | Tratar disputas concorrentes nos cadastros únicos de carga geral sem expor violações de constraint como erro interno. | Criações simultâneas do mesmo Bill of Lading, sequência de item, cargo lot ou referência de domínio persistem somente um registro; a operação perdedora recebe `409 Conflict` estável, sem `500`, mensagem SQL ou transação parcialmente confirmada. | ⬜ Pendente |
 
 ### ERR20 — arquivos e métodos
@@ -20,14 +19,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/billing/BillingCapService.java` | `registrarPagamento()` | O fluxo lê `status`, total e soma já paga sem lock, valida o saldo e insere o pagamento. Pagamentos concorrentes podem observar o mesmo saldo e ambos serem aceitos, fazendo a soma ultrapassar o total; a atualização posterior da fatura não impede o excesso. | Bloquear a fatura durante o cálculo e a inserção ou executar uma atualização condicional atômica baseada no saldo. Recalcular o total pago dentro da seção serializada, rejeitar excesso com `409 Conflict` e atualizar `PAGA` somente após a persistência válida. |
 | `backend/servico-gate/src/main/resources/db/migration/V200__create_billing_cap.sql` | `billing_fatura_item.cobranca_id`, `billing_pagamento` | A unicidade do item impede que uma cobrança pertença a duas faturas, mas funciona apenas como última defesa. A tabela de pagamentos não possui restrição capaz de garantir que a soma por fatura não exceda `billing_fatura.total`. | Preservar a unicidade existente e adicionar, se necessário, mecanismo persistente compatível com a transição atômica escolhida. Não depender de violação de constraint para controlar o fluxo normal. |
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/billing/BillingCapController.java` | endpoints de geração de fatura e registro de pagamento | As disputas de banco produzidas pelos fluxos concorrentes não são traduzidas para um contrato operacional específico. | Retornar `409 Conflict` com mensagem estável quando cobranças já tiverem sido faturadas ou o saldo tiver sido consumido por outra operação, preservando rollback integral. |
-
-### ERR30 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalService.java` | `criarVisita()` | O método insere `truck_visit` diretamente por `NamedParameterJdbcTemplate`. O `BEFORE INSERT` pode rejeitar a operação por capacidade da janela ou regras de acesso usando exceção PostgreSQL `P0001`; o serviço não captura nem traduz essas rejeições para exceção funcional. | Capturar somente as violações operacionais conhecidas, preservar o rollback da visita, transações e eventos e convertê-las em `BusinessException` específica ou exceção HTTP mapeada para `409`/`422`. Não converter indiscriminadamente falhas técnicas de banco em sucesso ou erro funcional. |
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalController.java` | `POST /gate/operacional/visitas` | O endpoint retorna `201 Created` quando o serviço conclui, mas não declara nem garante contrato estável para rejeições produzidas pelos triggers de capacidade e acesso. Sem tradução no caso de uso ou handler, a exceção JDBC pode resultar em `500` e mensagem técnica. | Documentar e retornar resposta operacional estável para capacidade esgotada, bloqueio de motorista, transportadora ou veículo e referências indisponíveis. |
-| `backend/servico-gate/src/main/resources/db/migration/` | função `gate_validar_truck_visit()` e trigger `trg_gate_validar_truck_visit` | A função incrementa `janela_atendimento.capacidade_utilizada` de forma atômica e rejeita a inserção quando não existe capacidade, além de aplicar regras de acesso. As rejeições usam `RAISE EXCEPTION ... ERRCODE = 'P0001'`, sem código de domínio distinguível pelo contrato HTTP. | Manter a validação atômica no banco, mas adotar códigos, constraints ou mensagens de domínio identificáveis e mapeá-los no backend sem expor SQL. Garantir que qualquer rejeição reverta o incremento de capacidade e todos os registros da abertura. |
 
 ### ERR40 — arquivos e métodos
 

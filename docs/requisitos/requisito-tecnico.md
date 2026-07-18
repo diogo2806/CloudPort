@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1090 e BUS1170 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1030, BUS1090 e BUS1170 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -11,7 +11,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | BUS10 | Completar o fluxo de stuff e unstuff com contêiner canônico e apontamentos idempotentes. | A operação valida e bloqueia o contêiner no inventário, rejeita repetição do mesmo apontamento e mantém saldo, movimentação, eventos e compensação consistentes. | 🟡 Em andamento |
 | BUS1010 | Versionar e liberar planos de stuff e unstuff antes da execução física. | O plano é versionado, aprovado, validado por capacidade e conciliado por item sem alterar estoque antes da confirmação operacional. | ⬜ Pendente |
 | BUS1020 | Implementar transload entre unidades com rastreabilidade e atualização atômica. | Origem, destino, lotes, quantidades, lacres, divergências e avarias são persistidos sem saldo negativo ou atualização parcial. | ⬜ Pendente |
-| BUS1030 | Integrar Gate à carga geral para retirada e entrega parcial. | O Gate reserva quantidade por BL, delivery order e cargo lot e só confirma o estoque após o estágio físico correspondente. | ⬜ Pendente |
 | BUS1040 | Implementar planejamento de pátio e armazém para cargo lots. | Allocation, capacidade, restrições, origem, destino, recurso e saldo por posição são persistidos e confirmados pela execução. | ⬜ Pendente |
 | BUS1050 | Implementar plano de carga e descarga de cargo lots por visita de navio. | BL, lote, porão ou área, sequência, equipamento e quantidades planejadas e realizadas são conciliados transacionalmente. | ⬜ Pendente |
 | BUS1060 | Implementar plano de carga e descarga de cargo lots por visita ferroviária. | Lotes são planejados e executados por vagão e posição, com capacidade, incompatibilidades, sequência e custódia persistida. | ⬜ Pendente |
@@ -39,13 +38,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/CargaGeralServico.java` | `transferirEntreLotes()` | Consolidação e desconsolidação não registram unidades de transporte de origem e destino nem operação recuperável. | Criar novo método sugerido: `executarTransload()` com bloqueio dos lotes e unidades. |
 | `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/dto/CargaGeralDTOs.java` | `RegistrarMovimentacaoRequest` | O contrato não representa múltiplos lotes, unidades, lacres, conferência e divergências. | Criar DTO específico de transload. |
-
-### BUS1030 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/gestor/GateFlowService.java` | `registrarEntrada()` e `registrarSaida()` | Valida agendamento e TOS, mas não reserva nem consome quantidade de cargo lot. | Criar porta local para reservar, confirmar e compensar quantidade. |
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/controlador/CargaGeralControlador.java` | comandos internos | Não há comandos idempotentes ligados à transação de Gate. | Criar comandos de reserva, confirmação e compensação por BL, ordem e lote. |
 
 ### BUS1040 — arquivos e métodos
 

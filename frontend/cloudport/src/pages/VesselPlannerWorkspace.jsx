@@ -20,6 +20,7 @@ import {
 } from '../vessel-planner-model.js';
 import { dominantLegendForSlots, findSynchronizedSlot, selectionCoordinates } from '../vessel-planner-phase1.js';
 import '../vessel-planner-phase1.css';
+import { CraneExecutionTimeline } from './CraneExecutionTimeline.jsx';
 
 const DRAG_TYPE = 'application/x-cloudport-vessel-container';
 
@@ -301,6 +302,7 @@ export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, seque
     <LegendPanel mode={legendMode} setMode={setLegendMode} legend={legend} />
     <div className="vessel-workspace-layout"><main className="vessel-main-canvas">{viewMode === 'MULTI' ? <div className="multi-view-grid"><div>{renderView('PROFILE')}</div><div>{renderView('TOP')}</div><div>{renderView('SECTION')}</div><div>{renderView('TIER')}</div></div> : renderView(viewMode)}</main><Inspector slot={selectedSlot} context={context} onClear={() => onSelectSlot(null)} /></div>
     <UnallocatedTray containers={unallocated} canEdit={canEdit && !busy} />
+    <CraneExecutionTimeline plan={plan} sequencing={sequencing} disabled={busy} />
     <TechnicalSummary stability={stability} restow={restow} sequencing={sequencing} onSelect={selectSlot} slots={slots} />
   </div>;
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatError } from '../api.js';
 import { DataTable, EmptyState, Loading, Message, MetricCard, PageHeader, Section, StatusBadge } from '../components.jsx';
 import { gateOperationsApi } from '../gateOperationsApi.js';
+import '../gateOperations.css';
 
 function dateTime(value) {
   if (!value) return '—';
@@ -117,6 +118,7 @@ function VisitInspector({ visit, stages, busy, onAdvance, onTrouble, onInspect, 
 export function GateOperationsPage({ session }) {
   const [facilityId, setFacilityId] = useState('');
   const [dashboard, setDashboard] = useState(null);
+  const [complements, setComplements] = useState({ billsOfLading: [], regrasAcesso: [] });
   const [selectedVisitId, setSelectedVisitId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -127,12 +129,16 @@ export function GateOperationsPage({ session }) {
     setLoading(true); setError('');
     try {
       const payload = await gateOperationsApi.obterPainel(targetFacility || undefined);
+      const selectedFacilityId = payload.facilitySelecionadaId;
+      const complementaryPayload = await gateOperationsApi.listarComplementos(selectedFacilityId);
       setDashboard(payload);
-      setFacilityId(String(payload.facilitySelecionadaId ?? ''));
+      setComplements(complementaryPayload ?? { billsOfLading: [], regrasAcesso: [] });
+      setFacilityId(String(selectedFacilityId ?? ''));
       setSelectedVisitId((current) => payload.visitasAtivas?.some((visit) => visit.id === current) ? current : payload.visitasAtivas?.[0]?.id ?? null);
     } catch (reason) {
       setError(formatError(reason));
       setDashboard(null);
+      setComplements({ billsOfLading: [], regrasAcesso: [] });
     } finally {
       setLoading(false);
     }
@@ -145,6 +151,8 @@ export function GateOperationsPage({ session }) {
   const selectedVisit = visits.find((visit) => visit.id === selectedVisitId) ?? null;
   const references = dashboard?.referencias ?? {};
   const capacity = dashboard?.capacidadeAgendamentos ?? {};
+  const billsOfLading = complements.billsOfLading ?? [];
+  const accessRules = complements.regrasAcesso ?? [];
   const operator = session?.nome || 'operador';
 
   async function execute(action, successMessage) {
@@ -214,7 +222,7 @@ export function GateOperationsPage({ session }) {
         <MetricCard label="Visitas ativas" value={visits.length} />
         <MetricCard label="Troubles abertos" value={dashboard.troublesAbertos?.length ?? 0} />
         <MetricCard label="Capacidade disponível" value={capacity.disponivel ?? 0} detail={`${capacity.ocupacaoPercentual ?? 0}% ocupada`} />
-        <MetricCard label="Referências ativas" value={(references.bookings?.length ?? 0) + (references.ordens?.length ?? 0) + (references.preAvisos?.length ?? 0)} detail={`${references.bookings?.length ?? 0} bookings · ${references.ordens?.length ?? 0} ordens · ${references.preAvisos?.length ?? 0} pré-avisos`} />
+        <MetricCard label="Referências ativas" value={(references.bookings?.length ?? 0) + billsOfLading.length + (references.ordens?.length ?? 0) + (references.preAvisos?.length ?? 0)} detail={`${references.bookings?.length ?? 0} bookings · ${billsOfLading.length} BLs · ${references.ordens?.length ?? 0} ordens`} />
       </div>
       <Section title="Lane monitor"><LaneMonitor lanes={dashboard.lanes ?? []} visits={visits} /></Section>
       <Section title="Fluxo configurado"><StageBoard stages={stages} visits={visits} selectedStageId={selectedVisit?.stageAtualId} /></Section>
@@ -232,6 +240,24 @@ export function GateOperationsPage({ session }) {
           { key: 'acao', label: 'Ação', render: (row) => <button disabled={busy} onClick={() => resolveTrouble(row)}>Resolver</button> }
         ]} rowKey={(row) => row.id} gridId="gate-troubles" exportFileName="troubles-gate" /> : <EmptyState title="Nenhum trouble aberto" />}
       </Section>
+      <div className="gate-reference-layout">
+        <Section title="Bills of Lading"><DataTable rows={billsOfLading} columns={[
+          { key: 'numero', label: 'BL' },
+          { key: 'armador', label: 'Armador' },
+          { key: 'viagem', label: 'Viagem' },
+          { key: 'consignatario', label: 'Consignatário' },
+          { key: 'quantidade', label: 'Liberado', render: (row) => `${row.quantidadeLiberada}/${row.quantidadeTotal}` },
+          { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> }
+        ]} rowKey={(row) => row.id} emptyTitle="Nenhum Bill of Lading cadastrado" gridId="gate-bills-of-lading" exportFileName="bills-of-lading" /></Section>
+        <Section title="Regras de acesso"><DataTable rows={accessRules} columns={[
+          { key: 'gateId', label: 'Gate' },
+          { key: 'escopo', label: 'Escopo' },
+          { key: 'referenciaId', label: 'Referência' },
+          { key: 'tipo', label: 'Regra', render: (row) => <StatusBadge value={row.tipo} /> },
+          { key: 'motivo', label: 'Motivo' },
+          { key: 'ativo', label: 'Ativa', render: (row) => row.ativo ? 'Sim' : 'Não' }
+        ]} rowKey={(row) => row.id} emptyTitle="Nenhuma regra de acesso configurada" gridId="gate-access-rules" exportFileName="regras-acesso-gate" /></Section>
+      </div>
     </>}
   </>;
 }

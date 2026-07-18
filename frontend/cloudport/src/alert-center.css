@@ -1,3 +1,4 @@
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
 .global-alert-center { position: relative; }
 .alert-center-trigger { position: relative; display: inline-flex; min-height: 40px; align-items: center; gap: 7px; padding: 8px 12px; background: #e8eef5; color: #26364a; box-shadow: none; }
 .alert-center-trigger:hover:not(:disabled) { background: #d9e4ef; box-shadow: none; }
@@ -51,6 +52,7 @@
 }
 
 @media (max-width: 650px) {
+  .topbar-actions { gap: 6px; }
   .alert-center-trigger { padding: 8px; }
   .alert-center-drawer { width: 100vw; }
   .alert-center-summary { grid-template-columns: auto 1fr auto 1fr; }

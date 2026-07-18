@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão do BUS1090 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão do BUS1090 e do DATA1180 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -142,7 +142,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | BUS1150 | Registrar execução da sequência de guindastes. | Cada movimento possui guindaste, ordem, janela, início, conclusão, exceção e quantidade realizada. | ⬜ Pendente |
 | BUS1160 | Implementar operação persistida de tampas de porão. | Tarefas de abrir, remover, posicionar e fechar controlam dependências e bloqueiam movimentos incompatíveis. | ⬜ Pendente |
 | BUS1170 | Implementar movimentos ferroviários internos. | Rotas, linhas, switches e trechos são reservados e liberados transacionalmente com detecção de conflito. | ⬜ Pendente |
-| DATA1180 | Reconciliar BAPLIE, plano, inventário e execução física. | Divergências são persistidas, classificadas, resolvidas e bloqueiam publicação ou conclusão quando críticas. | ⬜ Pendente |
 
 ### BUS1150 — arquivos e métodos
 
@@ -164,11 +163,3 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/modelo/VisitaTrem.java` | posição e estado | Não representa autorização com rota e ocupação temporal de trechos e switches. | Criar novo agregado sugerido: `MovimentoFerroviarioInterno`. |
 | `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/servico/VisitaTremServico.java` | atualização da visita | Alterar posição não reserva nem libera todos os recursos ferroviários. | Criar comandos de planejar, autorizar, iniciar, concluir e cancelar. |
-
-### DATA1180 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/parser/BaplieParser.java` | importação BAPLIE | Produz dados de plano, mas não reconcilia persistentemente inventário e execução. | Criar novo serviço sugerido: `ReconciliacaoBaplieExecucaoServico.reconciliar()`. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/modelo/SlotNavio.java` | ocupação planejada | Não mantém divergência por fonte nem decisão de resolução. | Persistir severidade, valores por origem, decisão e usuário. |
-| `frontend/cloudport/src/pages/VesselPlannerWorkspace.jsx` | plano visual | Não possui fila consolidada de divergências. | Exibir divergências e bloquear publicação ou conclusão conforme severidade. |

@@ -3,6 +3,8 @@ package br.com.cloudport.servicogate.app.gestor.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import javax.validation.constraints.Size;
 
 public class GateFlowRequest {
@@ -19,16 +21,13 @@ public class GateFlowRequest {
     @Size(max = 80)
     private String operador;
 
-    @Schema(description = "Indica que o fluxo pertence a uma sessão de troca de cavalo")
-    private Boolean trocaCavalo = Boolean.FALSE;
-
-    @Size(max = 14)
-    @Schema(example = "123.456.789-00")
-    private String cpfMotorista;
+    @Size(max = 40)
+    @Schema(description = "Identificação do chassis vinculado à visita", example = "CHASSIS-001")
+    private String chassis;
 
     @Size(max = 20)
-    @Schema(example = "01234567890")
-    private String numeroCnh;
+    @Schema(description = "Unidades transportadas que devem ficar exclusivas durante a visita")
+    private List<String> unidades = new ArrayList<>();
 
     public String getPlaca() { return placa; }
     public void setPlaca(String placa) { this.placa = placa; }
@@ -38,10 +37,8 @@ public class GateFlowRequest {
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
     public String getOperador() { return operador; }
     public void setOperador(String operador) { this.operador = operador; }
-    public Boolean getTrocaCavalo() { return trocaCavalo; }
-    public void setTrocaCavalo(Boolean trocaCavalo) { this.trocaCavalo = trocaCavalo; }
-    public String getCpfMotorista() { return cpfMotorista; }
-    public void setCpfMotorista(String cpfMotorista) { this.cpfMotorista = cpfMotorista; }
-    public String getNumeroCnh() { return numeroCnh; }
-    public void setNumeroCnh(String numeroCnh) { this.numeroCnh = numeroCnh; }
+    public String getChassis() { return chassis; }
+    public void setChassis(String chassis) { this.chassis = chassis; }
+    public List<String> getUnidades() { return unidades; }
+    public void setUnidades(List<String> unidades) { this.unidades = unidades != null ? unidades : new ArrayList<>(); }
 }

@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão dos BUS1090 e BUS1170 e a persistência das operações ferroviárias.
+Status: atualizado em 2026-07-18 com a prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -19,6 +19,13 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 7. `backend/cloudport-monolito-navio` permanece somente como runtime anterior de rollback.
 8. Escritas, jobs e consumidores podem ser desabilitados separadamente durante o corte.
 9. O runtime anterior exige `CLOUDPORT_ROLLBACK_ENABLED=true` e permanece fail-closed por padrão.
+10. O runtime canônico também inicia fail-closed: escrita, jobs e consumidores somente são habilitados por propriedades explícitas.
+11. Instâncias sem permissão de escrita rejeitam `POST`, `PUT`, `PATCH` e `DELETE` com `503` e código `RUNTIME_SOMENTE_LEITURA`.
+12. `GET /operacao/corte` expõe, de forma autenticada, identidade da instância, revisão, papel, controles de escrita, jobs e consumidores, adaptadores internos e schemas incorporados.
+13. `deploy/cloudport-runtime/provar-corte.sh` executa uma prova reproduzível com instância canônica, observador somente leitura, oito schemas, Flyway, Redis, RabbitMQ, TOS, OpenAPI, persistência após reinício, documentos e rollback sobre o mesmo banco.
+14. A prova interrompe escritor, jobs e consumidores canônicos antes de iniciar o runtime anterior, valida leitura sem downgrade e bloqueia escrita durante o ensaio de rollback.
+15. Após o ensaio, o runtime canônico é restaurado e o dado criado antes do rollback é novamente consultado.
+16. O workflow `Validar CloudPort` publica `evidencia-corte-operacional.json`, relatório Markdown, estados das instâncias, contagens Flyway e diagnósticos do ambiente.
 
 ## Maven, banco e configuração
 

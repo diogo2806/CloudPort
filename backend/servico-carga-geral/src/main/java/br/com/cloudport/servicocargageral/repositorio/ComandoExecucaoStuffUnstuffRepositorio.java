@@ -8,5 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ComandoExecucaoStuffUnstuffRepositorio
         extends JpaRepository<ComandoExecucaoStuffUnstuff, UUID> {
 
-    Optional<ComandoExecucaoStuffUnstuff> findByOperacaoIdAndCommandId(UUID operacaoId, UUID commandId);
+    Optional<ComandoExecucaoStuffUnstuff> findByOperacao_IdAndCommandId(UUID operacaoId, UUID commandId);
 }

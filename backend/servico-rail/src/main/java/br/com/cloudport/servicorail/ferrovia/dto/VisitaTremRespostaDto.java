@@ -19,6 +19,7 @@ public class VisitaTremRespostaDto {
     private final LocalDateTime horaChegadaPrevista;
     private final LocalDateTime horaPartidaPrevista;
     private final StatusVisitaTrem statusVisita;
+    private final String posicaoFerroviariaAtual;
     private final List<OperacaoConteinerVisitaRespostaDto> listaDescarga;
     private final List<OperacaoConteinerVisitaRespostaDto> listaCarga;
     private final List<VagaoVisitaRespostaDto> listaVagoes;
@@ -31,6 +32,7 @@ public class VisitaTremRespostaDto {
                                   LocalDateTime horaChegadaPrevista,
                                   LocalDateTime horaPartidaPrevista,
                                   StatusVisitaTrem statusVisita,
+                                  String posicaoFerroviariaAtual,
                                   List<OperacaoConteinerVisitaRespostaDto> listaDescarga,
                                   List<OperacaoConteinerVisitaRespostaDto> listaCarga,
                                   List<VagaoVisitaRespostaDto> listaVagoes) {
@@ -42,6 +44,7 @@ public class VisitaTremRespostaDto {
         this.horaChegadaPrevista = horaChegadaPrevista;
         this.horaPartidaPrevista = horaPartidaPrevista;
         this.statusVisita = statusVisita;
+        this.posicaoFerroviariaAtual = posicaoFerroviariaAtual;
         this.listaDescarga = listaDescarga;
         this.listaCarga = listaCarga;
         this.listaVagoes = listaVagoes;
@@ -57,6 +60,7 @@ public class VisitaTremRespostaDto {
                 entidade.getHoraChegadaPrevista(),
                 entidade.getHoraPartidaPrevista(),
                 entidade.getStatusVisita(),
+                escapar(entidade.getPosicaoFerroviariaAtual()),
                 entidade.getListaDescarga()
                         .stream()
                         .map(OperacaoConteinerVisitaRespostaDto::deEmbeddable)
@@ -82,10 +86,15 @@ public class VisitaTremRespostaDto {
                 entidade.getHoraChegadaPrevista(),
                 entidade.getHoraPartidaPrevista(),
                 entidade.getStatusVisita(),
+                escapar(entidade.getPosicaoFerroviariaAtual()),
                 Collections.emptyList(),
                 Collections.emptyList(),
                 Collections.emptyList()
         );
+    }
+
+    private static String escapar(String valor) {
+        return valor == null ? null : HtmlUtils.htmlEscape(valor);
     }
 
     public Long getId() {
@@ -118,6 +127,10 @@ public class VisitaTremRespostaDto {
 
     public StatusVisitaTrem getStatusVisita() {
         return statusVisita;
+    }
+
+    public String getPosicaoFerroviariaAtual() {
+        return posicaoFerroviariaAtual;
     }
 
     public List<OperacaoConteinerVisitaRespostaDto> getListaDescarga() {

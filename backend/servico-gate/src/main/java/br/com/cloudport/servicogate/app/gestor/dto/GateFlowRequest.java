@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import javax.validation.Valid;
 import javax.validation.constraints.Size;
 
 public class GateFlowRequest {
@@ -22,9 +23,15 @@ public class GateFlowRequest {
     @Size(max = 80)
     private String operador;
 
+    @Schema(description = "Identificador de reserva previamente criada; mantido para compatibilidade")
     private UUID reservaCargaGeralId;
 
+    @Schema(description = "Comando idempotente da confirmação legada de carga geral")
     private UUID commandIdCargaGeral;
+
+    @Valid
+    @Schema(description = "Dados para o Gate criar e controlar uma reserva parcial de carga geral")
+    private GateCargaGeralRequest cargaGeral;
 
     @Size(max = 40)
     @Schema(description = "Identificação do chassis vinculado à visita", example = "CHASSIS-001")
@@ -80,6 +87,14 @@ public class GateFlowRequest {
 
     public void setCommandIdCargaGeral(UUID commandIdCargaGeral) {
         this.commandIdCargaGeral = commandIdCargaGeral;
+    }
+
+    public GateCargaGeralRequest getCargaGeral() {
+        return cargaGeral;
+    }
+
+    public void setCargaGeral(GateCargaGeralRequest cargaGeral) {
+        this.cargaGeral = cargaGeral;
     }
 
     public String getChassis() {

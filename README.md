@@ -1,12 +1,14 @@
 # CloudPort
 
-O CloudPort é uma plataforma para operações portuárias com módulos de Navio, contêineres, carga siderúrgica, Yard, Gate, Rail, Autenticação e Visibilidade.
+O CloudPort é uma plataforma para operações portuárias com módulos de Navio, contêineres, carga geral e break-bulk, carga siderúrgica, Yard, Gate, Rail, Autenticação e Visibilidade.
 
 ## Escopo funcional
 
 Contêineres fazem parte do fluxo principal do CloudPort, com planejamento de recebimento no pátio, inventário, movimentações, gate, ferrovia, Bay Plan/BAPLIE e planejamento de estiva no navio.
 
-Bobinas de aço são atendidas por um módulo especializado de carga siderúrgica. Esse módulo complementa o planejamento de contêineres e não limita o escopo do sistema a bobinas.
+Carga geral, carga de projeto e break-bulk possuem domínio próprio para Bill of Lading, itens do conhecimento, cargo lots, commodities, embalagens, produtos, armazenagem, manuseio, mercadorias perigosas, temperatura, avarias, estoque físico, carga e descarga parcial, consolidação, desconsolidação e vínculos com veículo, navio, armazém e cliente.
+
+Bobinas de aço são atendidas por um módulo especializado de carga siderúrgica. Esse módulo complementa o planejamento de contêineres e de carga geral e não limita o escopo do sistema a bobinas.
 
 ## Ponto de entrada canônico
 
@@ -30,6 +32,7 @@ Não devem ser criados novos microsserviços para funcionalidades internas sem d
 | Componente | Estado no código | Estado operacional |
 | --- | --- | --- |
 | Autenticação | Incorporada ao `cloudport-runtime` | runtime canônico |
+| Carga Geral | Incorporada ao `cloudport-runtime` | runtime canônico |
 | Gate | Incorporado ao `cloudport-runtime` | runtime canônico |
 | Rail | Incorporado ao `cloudport-runtime` | runtime canônico |
 | Visibilidade | Incorporada ao `cloudport-runtime` | runtime canônico |
@@ -50,6 +53,7 @@ flowchart LR
 
     subgraph API[Monólito modular]
         AUTH[Autenticação]
+        CGO[Carga Geral]
         GATE[Gate]
         RAIL[Rail]
         YARD[Yard]
@@ -63,7 +67,7 @@ flowchart LR
         GATE -->|porta local| AUTH
     end
 
-    API --> PG[(PostgreSQL: 7 schemas)]
+    API --> PG[(PostgreSQL: 8 schemas)]
     API --> MQ[(RabbitMQ)]
     API --> REDIS[(Redis)]
     API --> EXT[EDI, TOS, OCR, storage e sistemas externos]
@@ -76,6 +80,7 @@ backend/
 ├── cloudport-modules/             # parent e reator Maven canônico
 ├── cloudport-runtime/             # ponto de entrada Spring Boot canônico
 ├── cloudport-monolito-navio/      # runtime anterior, somente rollback
+├── servico-carga-geral/
 ├── servico-navio/
 ├── servico-navio-siderurgico/
 ├── servico-yard/
@@ -101,7 +106,7 @@ mvn -B -Dspring-boot.repackage.skip=true \
 mvn -B -pl :cloudport-runtime test package
 ```
 
-O build inclui os sete módulos e valida PostgreSQL/Testcontainers, históricos Flyway, segurança única, portas locais e regras ArchUnit.
+O build inclui os oito módulos e valida PostgreSQL/Testcontainers, históricos Flyway, segurança única, portas locais e regras ArchUnit.
 
 ## Executar
 

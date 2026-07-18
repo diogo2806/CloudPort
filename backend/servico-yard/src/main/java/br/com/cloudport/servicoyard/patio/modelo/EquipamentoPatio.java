@@ -1,6 +1,5 @@
 package br.com.cloudport.servicoyard.patio.modelo;
 
-import java.time.LocalDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -8,8 +7,6 @@ import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.PrePersist;
-import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 
 @Entity
@@ -37,9 +34,6 @@ public class EquipamentoPatio {
     @Column(name = "status_operacional", nullable = false, length = 30)
     private StatusEquipamento statusOperacional;
 
-    @Column(name = "atualizado_em", nullable = false)
-    private LocalDateTime atualizadoEm;
-
     public EquipamentoPatio() {
     }
 
@@ -51,12 +45,6 @@ public class EquipamentoPatio {
         this.linha = linha;
         this.coluna = coluna;
         this.statusOperacional = statusOperacional;
-    }
-
-    @PrePersist
-    @PreUpdate
-    public void atualizarTimestamp() {
-        atualizadoEm = LocalDateTime.now();
     }
 
     public Long getId() { return id; }
@@ -71,6 +59,4 @@ public class EquipamentoPatio {
     public void setColuna(Integer coluna) { this.coluna = coluna; }
     public StatusEquipamento getStatusOperacional() { return statusOperacional; }
     public void setStatusOperacional(StatusEquipamento statusOperacional) { this.statusOperacional = statusOperacional; }
-    public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
-    public void setAtualizadoEm(LocalDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
 }

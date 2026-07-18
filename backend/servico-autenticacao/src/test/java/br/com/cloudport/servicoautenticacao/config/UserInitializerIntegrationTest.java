@@ -17,7 +17,7 @@ class UserInitializerIntegrationTest {
 
     @Test
     void usuarioAdministradorInicialPossuiPapeisPersistidos() {
-        Usuario administrador = usuarioRepositorio.findByLogin("gitpod").orElse(null);
+        Usuario administrador = usuarioRepositorio.findByLogin("admin@cloudport.test").orElse(null);
         assertNotNull(administrador, "Usuário administrador inicial não foi criado");
 
         assertNotNull(administrador.getPapeis(), "Coleção de papéis não deve ser nula");

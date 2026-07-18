@@ -173,16 +173,19 @@ O build inclui contratos, os oito módulos de domínio e o runtime. A validaçã
 
 ## Executar
 
-Variáveis mínimas:
+Variáveis obrigatórias do backend:
 
 ```bash
-export SPRING_DATASOURCE_URL='jdbc:postgresql://localhost:5432/cloudport'
-export SPRING_DATASOURCE_USERNAME='cloudport'
-export SPRING_DATASOURCE_PASSWORD='cloudport'
-export CLOUDPORT_SECURITY_JWT_SECRET='substitua-por-segredo-com-pelo-menos-32-bytes'
-export API_SECURITY_TOKEN_SECRET="$CLOUDPORT_SECURITY_JWT_SECRET"
-export RABBITMQ_HOST='localhost'
-export REDIS_HOST='localhost'
+export DB_HOST='localhost'
+export DB_PORT='5432'
+export DB_NAME='cloudport'
+export DB_USER='cloudport'
+export DB_PASS='substitua-a-senha-do-postgres'
+export DB_SCHEMA='cloudport_autenticacao,cloudport_carga_geral,cloudport_gate,cloudport_rail,cloudport_visibilidade,cloudport_yard,cloudport_navio,cloudport_siderurgico'
+export SECURITY_JWT_SECRET='substitua-por-segredo-com-pelo-menos-32-bytes'
+export SECURITY_JWT_EXPIRATION_MS='7200000'
+export ADMIN_EMAIL='admin@cloudport.local'
+export ADMIN_PASSWORD='substitua-por-uma-senha-segura'
 ```
 
 Após compilar:
@@ -193,10 +196,10 @@ java -jar backend/cloudport-runtime/target/cloudport-runtime-*.jar
 
 ## Docker Compose
 
+Além das variáveis obrigatórias acima, configure as dependências externas:
+
 ```bash
-export POSTGRES_PASSWORD='substitua-a-senha-do-postgres'
 export RABBITMQ_PASSWORD='substitua-a-senha-do-rabbitmq'
-export JWT_SECRET='substitua-por-segredo-com-pelo-menos-32-bytes'
 export CLOUDPORT_INTERNAL_SERVICE_KEY='substitua-a-chave-interna'
 export SECURITY_CORS_ALLOWED_ORIGINS='http://localhost:4200,http://localhost:8080'
 export TOS_API_BASE_URL='http://localhost:8090'

@@ -48,15 +48,28 @@ mvn -B -pl :cloudport-runtime test package
 java -jar backend/cloudport-runtime/target/cloudport-runtime-*.jar
 ```
 
-O ambiente deve fornecer, no mínimo:
+O ambiente deve fornecer:
 
-- `SPRING_DATASOURCE_URL`;
-- `SPRING_DATASOURCE_USERNAME`;
-- `SPRING_DATASOURCE_PASSWORD`;
-- `CLOUDPORT_SECURITY_JWT_SECRET`, compartilhado pelo emissor e pelo decoder e com pelo menos 32 bytes;
-- `CLOUDPORT_SECURITY_JWT_EXPIRATION`, em formato ISO-8601, por exemplo `PT2H`;
-- `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_USERNAME` e `SPRING_RABBITMQ_PASSWORD`;
-- `SPRING_REDIS_HOST` e `SPRING_REDIS_PORT`.
+- `DB_HOST`: host do PostgreSQL;
+- `DB_PORT`: porta do PostgreSQL;
+- `DB_NAME`: banco do CloudPort;
+- `DB_USER`: usuário do banco;
+- `DB_PASS`: senha do banco;
+- `DB_SCHEMA`: search path dos schemas do runtime, separado por vírgulas;
+- `SECURITY_JWT_SECRET`: segredo compartilhado pelo emissor e decoder, com pelo menos 32 bytes;
+- `SECURITY_JWT_EXPIRATION_MS`: duração do token em milissegundos;
+- `ADMIN_EMAIL`: login do administrador inicial;
+- `ADMIN_PASSWORD`: senha do administrador inicial, entre 6 e 255 caracteres.
+
+Valor recomendado para `DB_SCHEMA`:
+
+```text
+cloudport_autenticacao,cloudport_carga_geral,cloudport_gate,cloudport_rail,cloudport_visibilidade,cloudport_yard,cloudport_navio,cloudport_siderurgico
+```
+
+O administrador configurado é criado somente quando ainda não existe. A migração remove apenas a antiga credencial insegura `gitpod/gitpod`; contas que já tiveram a senha alterada não são excluídas.
+
+As integrações continuam usando suas variáveis específicas, incluindo RabbitMQ, Redis, TOS, alertas e armazenamento.
 
 Para entrega de alertas de reconciliação de barcode, configure `GATE_ALERTAS_WEBHOOK_URL` e, quando exigido pelo provedor, `GATE_ALERTAS_BEARER_TOKEN`. Sem URL configurada, a ocorrência permanece pendente e registra a falha de entrega para nova tentativa.
 

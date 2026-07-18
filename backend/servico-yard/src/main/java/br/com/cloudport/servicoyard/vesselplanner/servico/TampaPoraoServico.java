@@ -22,8 +22,6 @@ import br.com.cloudport.servicoyard.vesselplanner.repositorio.PosicaoTampaPoraoR
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.TampaPoraoRepositorio;
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.TarefaTampaPoraoRepositorio;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -96,6 +94,11 @@ public class TampaPoraoServico {
                                      CriarTarefaRequest request,
                                      String usuario) {
         TampaPorao tampa = buscarTampa(planId, tampaId);
+        Optional<TarefaTampaPorao> tarefaAnterior = tarefaRepositorio
+                .findFirstByTampaIdAndStatusNotOrderByCriadoEmDesc(
+                        tampaId,
+                        StatusTarefaTampaPorao.CANCELADA);
+
         TarefaTampaPorao tarefa = new TarefaTampaPorao();
         tarefa.setTampa(tampa);
         tarefa.setTipo(request.getTipo());
@@ -104,19 +107,16 @@ public class TampaPoraoServico {
         tarefa.setMotivo(request.getMotivo());
         tarefa.setPosicaoDestinoTipo(request.getPosicaoDestinoTipo());
         tarefa.setPosicaoDestinoReferencia(request.getPosicaoDestinoReferencia());
-        tarefa = tarefaRepositorio.save(tarefa);
+        tarefaRepositorio.save(tarefa);
 
-        List<Long> dependenciasIds = request.getDependenciasIds().stream()
+        List<Long> dependenciasIds = Optional.ofNullable(request.getDependenciasIds())
+                .orElseGet(ArrayList::new)
+                .stream()
                 .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toCollection(ArrayList::new));
         if (dependenciasIds.isEmpty()) {
-            tarefaRepositorio.findFirstByTampaIdAndStatusNotOrderByCriadoEmDesc(
-                            tampaId,
-                            StatusTarefaTampaPorao.CANCELADA)
-                    .map(TarefaTampaPorao::getId)
-                    .filter(id -> !id.equals(tarefa.getId()))
-                    .ifPresent(dependenciasIds::add);
+            tarefaAnterior.map(TarefaTampaPorao::getId).ifPresent(dependenciasIds::add);
         }
         for (Long dependenciaId : dependenciasIds) {
             TarefaTampaPorao dependencia = tarefaRepositorio.findById(dependenciaId)

@@ -13,6 +13,7 @@ import { GateOperationsPage } from './pages/GateOperationsPage.jsx';
 import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
 import { GeneralCargoPage } from './pages/GeneralCargoPage.jsx';
 import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
+import { LostFoundPage } from './pages/LostFoundPage.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
@@ -85,6 +86,7 @@ const FALLBACK_NAVIGATION = [
   { group: 'Pátio', items: [
     { label: 'Mapa', path: '/home/patio/mapa', roles: [] },
     { label: 'Inventário', path: '/home/patio/inventario', roles: [] },
+    { label: 'Lost & Found / TBD', path: '/home/patio/lost-found', roles: ['ADMIN_PORTO', 'OPERADOR_PATIO', 'PLANEJADOR'] },
     { label: 'Planejamento de recebimento', path: '/home/patio/planejamento-recebimento', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Lista de trabalho', path: '/home/patio/lista-trabalho', roles: [] },
     { label: 'Instruções de trabalho', path: '/home/patio/instrucoes', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
@@ -179,6 +181,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/ferrovia/locomotivas') return <RailLocomotiveTransfersPage />;
   if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage navigate={navigate} />;
   if (path === '/home/patio/inventario') return <YardInventoryPage />;
+  if (path === '/home/patio/lost-found') return <LostFoundPage />;
   if (path === '/home/patio/planejamento-recebimento') return <YardReceivingPlanPage navigate={navigate} />;
   if (path === '/home/patio/posicoes') return <YardPositionsPage navigate={navigate} />;
   if (path === '/home/patio/lista-trabalho') return <YardWorkListPage navigate={navigate} session={session} />;

@@ -21,6 +21,21 @@ test('combina ajuda do módulo com conteúdo específico da página', () => {
   assert.deepEqual(help.currentRoles, ['ROLE_PLANEJADOR']);
 });
 
+test('fornece manual operacional completo para Lost and Found', () => {
+  const help = resolveContextHelp('/home/patio/lost-found', { perfil: 'ROLE_OPERADOR_PATIO' });
+  assert.equal(help.module, 'Pátio');
+  assert.equal(help.title, 'Lost & Found / TBD');
+  assert.match(help.purpose, /unidades sem registro/i);
+  assert.ok(help.flow.some((item) => item.includes('Associe')));
+  assert.ok(help.fields.some((item) => item.includes('Tipo do caso')));
+  assert.ok(help.permissions.some((item) => item.includes('OPERADOR_PATIO')));
+  assert.ok(help.states.some((item) => item.startsWith('ENCERRADO')));
+  assert.ok(help.blockers.some((item) => item.includes('Regularização sem unidade associada')));
+  assert.match(help.example, /SEM_REGISTRO/);
+  assert.equal(help.processPath, '/home/patio/inventario');
+  assert.deepEqual(help.currentRoles, ['ROLE_OPERADOR_PATIO']);
+});
+
 test('fornece ajuda padrão para uma rota dinâmica desconhecida', () => {
   const help = resolveContextHelp('/home/patio/processo/123');
   assert.equal(help.module, 'Pátio');

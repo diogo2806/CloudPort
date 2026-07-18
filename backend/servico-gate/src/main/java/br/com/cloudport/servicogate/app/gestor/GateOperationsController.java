@@ -9,6 +9,8 @@ import br.com.cloudport.servicogate.model.enums.GateQueuePriority;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,6 +137,10 @@ public class GateOperationsController {
     }
 
     private Map<String, Object> mapearChamado(GateCall chamado) {
+        LocalDateTime fim = chamado.getFinalizadoEm() != null
+                ? chamado.getFinalizadoEm()
+                : chamado.getCanceladoEm() != null ? chamado.getCanceladoEm() : LocalDateTime.now();
+        LocalDateTime inicioAtendimento = chamado.getAtendimentoIniciadoEm();
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", chamado.getId());
         dto.put("gatePassId", chamado.getGatePass().getId());
@@ -142,12 +148,23 @@ public class GateOperationsController {
         dto.put("status", chamado.getStatus());
         dto.put("prioridade", chamado.getPrioridade());
         dto.put("chamadoEm", chamado.getChamadoEm());
-        dto.put("atendimentoIniciadoEm", chamado.getAtendimentoIniciadoEm());
+        dto.put("atendimentoIniciadoEm", inicioAtendimento);
         dto.put("finalizadoEm", chamado.getFinalizadoEm());
         dto.put("canceladoEm", chamado.getCanceladoEm());
+        dto.put("duracaoEsperaSegundos", segundos(chamado.getChamadoEm(),
+                inicioAtendimento != null ? inicioAtendimento : fim));
+        dto.put("duracaoAtendimentoSegundos", inicioAtendimento != null ? segundos(inicioAtendimento, fim) : 0L);
+        dto.put("duracaoTotalSegundos", segundos(chamado.getChamadoEm(), fim));
         dto.put("justificativaCancelamento", chamado.getJustificativaCancelamento());
         dto.put("operador", chamado.getOperador());
         return dto;
+    }
+
+    private long segundos(LocalDateTime inicio, LocalDateTime fim) {
+        if (inicio == null || fim == null || fim.isBefore(inicio)) {
+            return 0L;
+        }
+        return Duration.between(inicio, fim).getSeconds();
     }
 
     private Map<String, Object> mapearFila(GateQueueEntry entrada) {

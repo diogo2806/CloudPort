@@ -75,6 +75,27 @@ class PublicApiClientAuthenticationFilterTest {
     }
 
     @Test
+    void deveInicializarSemClientesConfiguradosEManterRotaPublicaBloqueada() throws Exception {
+        PublicApiClientAuthenticationFilter filterSemClientes = new PublicApiClientAuthenticationFilter(
+                " ",
+                new ObjectMapper().findAndRegisterModules()
+        );
+        MockHttpServletRequest request = requisicaoPublica();
+        request.addHeader(PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID, CLIENT_ID);
+        request.addHeader(PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET, CLIENT_SECRET);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean chainExecutada = new AtomicBoolean(false);
+
+        filterSemClientes.doFilter(request, response,
+                (servletRequest, servletResponse) -> chainExecutada.set(true));
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getContentAsString()).contains("CLIENTE_PUBLICO_INVALIDO");
+        assertThat(chainExecutada).isFalse();
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
     void deveIsolarRequisicoesSequenciais() throws Exception {
         MockHttpServletRequest primeiraRequisicao = requisicaoPublica();
         primeiraRequisicao.addHeader(PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID, CLIENT_ID);

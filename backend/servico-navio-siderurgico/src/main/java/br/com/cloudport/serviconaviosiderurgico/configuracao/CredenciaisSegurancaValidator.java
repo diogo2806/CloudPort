@@ -32,9 +32,7 @@ public final class CredenciaisSegurancaValidator {
 
     public static Map<String, String> carregarClientesPublicos(String configuracao) {
         if (!StringUtils.hasText(configuracao)) {
-            throw new IllegalStateException(
-                    "cloudport.security.public-api.clients deve ser configurado externamente."
-            );
+            return Map.of();
         }
 
         Map<String, String> resultado = new LinkedHashMap<>();

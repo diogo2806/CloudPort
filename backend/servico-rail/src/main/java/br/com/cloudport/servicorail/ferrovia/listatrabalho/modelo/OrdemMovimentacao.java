@@ -42,6 +42,12 @@ public class OrdemMovimentacao {
     @Column(name = "status_movimentacao", nullable = false, length = 20)
     private StatusOrdemMovimentacao statusMovimentacao = StatusOrdemMovimentacao.PENDENTE;
 
+    @Column(name = "identificador_vagao", length = 35)
+    private String identificadorVagao;
+
+    @Column(name = "posicao_vagao_no_trem")
+    private Integer posicaoVagaoNoTrem;
+
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
 
@@ -52,9 +58,9 @@ public class OrdemMovimentacao {
     }
 
     public OrdemMovimentacao(VisitaTrem visitaTrem,
-                             String codigoConteiner,
-                             TipoMovimentacaoOrdem tipoMovimentacao,
-                             StatusOrdemMovimentacao statusMovimentacao) {
+                              String codigoConteiner,
+                              TipoMovimentacaoOrdem tipoMovimentacao,
+                              StatusOrdemMovimentacao statusMovimentacao) {
         this.visitaTrem = visitaTrem;
         definirCodigoConteiner(codigoConteiner);
         this.tipoMovimentacao = tipoMovimentacao;
@@ -107,6 +113,24 @@ public class OrdemMovimentacao {
 
     public void setStatusMovimentacao(StatusOrdemMovimentacao statusMovimentacao) {
         this.statusMovimentacao = statusMovimentacao;
+    }
+
+    public String getIdentificadorVagao() {
+        return identificadorVagao;
+    }
+
+    public void setIdentificadorVagao(String identificadorVagao) {
+        this.identificadorVagao = identificadorVagao != null
+                ? identificadorVagao.trim().toUpperCase()
+                : null;
+    }
+
+    public Integer getPosicaoVagaoNoTrem() {
+        return posicaoVagaoNoTrem;
+    }
+
+    public void setPosicaoVagaoNoTrem(Integer posicaoVagaoNoTrem) {
+        this.posicaoVagaoNoTrem = posicaoVagaoNoTrem;
     }
 
     public LocalDateTime getCriadoEm() {

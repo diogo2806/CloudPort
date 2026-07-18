@@ -72,6 +72,97 @@ public final class CargaGeralTipos {
         CANCELADA
     }
 
+    public enum TipoPlanoIntermodalCarga {
+        STUFF,
+        UNSTUFF,
+        TRANSLOAD,
+        RETIRADA_GATE,
+        ENTREGA_GATE,
+        MOVIMENTACAO_PATIO,
+        CARGA_NAVIO,
+        DESCARGA_NAVIO,
+        CARGA_FERROVIARIA,
+        DESCARGA_FERROVIARIA,
+        INSPECAO_AVARIA,
+        INVENTARIO
+    }
+
+    public enum StatusPlanoIntermodalCarga {
+        PLANEJADA,
+        LIBERADA,
+        EM_EXECUCAO,
+        CONCLUIDA,
+        CANCELADA
+    }
+
+    public enum PrioridadePlanoIntermodalCarga {
+        BAIXA,
+        NORMAL,
+        ALTA,
+        URGENTE
+    }
+
+    public enum TipoEventoPlanoIntermodalCarga {
+        CRIADA,
+        NOVA_VERSAO,
+        LIBERADA,
+        RECURSO_ATRIBUIDO,
+        INICIADA,
+        EXECUCAO_REGISTRADA,
+        DIVERGENCIA_REGISTRADA,
+        AVARIA_REGISTRADA,
+        RECONCILIADA,
+        CONCLUIDA,
+        CANCELADA,
+        COMPENSADA
+    }
+
+    public enum TipoReservaGateCarga {
+        RETIRADA,
+        ENTREGA
+    }
+
+    public enum StatusReservaGateCarga {
+        RESERVADA,
+        CONFIRMADA,
+        LIBERADA,
+        CANCELADA
+    }
+
+    public enum StatusAvariaCarga {
+        ABERTA,
+        SEGREGADA,
+        EM_INSPECAO,
+        EM_REPARO,
+        REPARADA,
+        BAIXADA,
+        ENCERRADA
+    }
+
+    public enum ResultadoTratamentoAvaria {
+        REINTEGRAR,
+        BAIXAR,
+        MANTER_BLOQUEADA
+    }
+
+    public enum TipoEventoAvariaCarga {
+        REGISTRADA,
+        SEGREGADA,
+        INSPECAO_INICIADA,
+        INSPECAO_REGISTRADA,
+        REINTEGRADA,
+        BAIXADA,
+        MANTIDA_BLOQUEADA
+    }
+
+    public enum StatusInventarioFisicoCarga {
+        ABERTO,
+        EM_CONTAGEM,
+        AGUARDANDO_APROVACAO,
+        CONCLUIDO,
+        CANCELADO
+    }
+
     public enum CategoriaReferenciaCarga {
         COMMODITY,
         TIPO_EMBALAGEM,

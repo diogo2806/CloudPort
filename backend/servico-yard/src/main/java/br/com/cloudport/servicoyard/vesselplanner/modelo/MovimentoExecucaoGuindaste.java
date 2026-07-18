@@ -54,6 +54,12 @@ public class MovimentoExecucaoGuindaste {
     @Column(name = "tipo_operacao", nullable = false, length = 30)
     private String tipoOperacao;
 
+    @Column(name = "codigo_hatch_cover", length = 40)
+    private String codigoHatchCover;
+
+    @Column(name = "sobre_hatch_cover", nullable = false)
+    private boolean sobreHatchCover;
+
     @Column(name = "janela_inicio_planejada", nullable = false)
     private LocalDateTime janelaInicioPlanejada;
 

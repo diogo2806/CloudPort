@@ -20,6 +20,7 @@ public final class StuffUnstuffDTOs {
     }
 
     public record CriarOperacaoRequest(
+            @NotNull UUID planoIntermodalId,
             @NotNull TipoOperacaoStuffUnstuff tipo,
             @NotBlank @Size(max = 80) String conteinerId,
             @Size(max = 80) String armazemId,
@@ -39,6 +40,7 @@ public final class StuffUnstuffDTOs {
     }
 
     public record RegistrarExecucaoRequest(
+            @NotBlank @Size(max = 120) String commandId,
             @NotNull UUID itemId,
             @NotNull @DecimalMin("0.001") BigDecimal quantidade,
             @NotNull @DecimalMin("0.000") BigDecimal volumeM3,
@@ -65,6 +67,7 @@ public final class StuffUnstuffDTOs {
 
     public record OperacaoResposta(
             UUID id,
+            UUID planoIntermodalId,
             TipoOperacaoStuffUnstuff tipo,
             StatusOperacaoStuffUnstuff status,
             String conteinerId,

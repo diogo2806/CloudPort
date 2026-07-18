@@ -9,6 +9,9 @@ public class GuindasteOperacaoDto {
     private int tier;
     private String tipoOperacao;
     private int guindasteId;
+    private String codigoHatchCover;
+    private boolean bloqueadoPorTampa;
+    private String motivoBloqueioTampa;
 
     public GuindasteOperacaoDto() {
     }
@@ -67,5 +70,29 @@ public class GuindasteOperacaoDto {
 
     public void setGuindasteId(int guindasteId) {
         this.guindasteId = guindasteId;
+    }
+
+    public String getCodigoHatchCover() {
+        return codigoHatchCover;
+    }
+
+    public void setCodigoHatchCover(String codigoHatchCover) {
+        this.codigoHatchCover = codigoHatchCover;
+    }
+
+    public boolean isBloqueadoPorTampa() {
+        return bloqueadoPorTampa;
+    }
+
+    public void setBloqueadoPorTampa(boolean bloqueadoPorTampa) {
+        this.bloqueadoPorTampa = bloqueadoPorTampa;
+    }
+
+    public String getMotivoBloqueioTampa() {
+        return motivoBloqueioTampa;
+    }
+
+    public void setMotivoBloqueioTampa(String motivoBloqueioTampa) {
+        this.motivoBloqueioTampa = motivoBloqueioTampa;
     }
 }

@@ -1,0 +1,174 @@
+.hatch-cover-panel {
+  border: 1px solid var(--border-color, #d9e1e8);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.hatch-cover-panel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.hatch-cover-panel h3,
+.hatch-cover-panel p {
+  margin: 0;
+}
+
+.hatch-cover-panel header p {
+  margin-top: 4px;
+  color: var(--muted-text, #5d6b78);
+}
+
+.hatch-cover-controls {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+.hatch-cover-controls label {
+  display: grid;
+  gap: 4px;
+  min-width: 190px;
+  font-size: 0.8rem;
+  color: var(--muted-text, #5d6b78);
+}
+
+.hatch-cover-controls input {
+  min-height: 38px;
+}
+
+.hatch-cover-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.hatch-cover-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-color, #d9e1e8);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.82rem;
+}
+
+.hatch-cover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.hatch-cover-card {
+  border: 1px solid var(--border-color, #d9e1e8);
+  border-left-width: 5px;
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--surface-subtle, #f8fafc);
+}
+
+.hatch-cover-card.state-fechada {
+  border-left-color: #64748b;
+}
+
+.hatch-cover-card.state-aberta {
+  border-left-color: #0f766e;
+}
+
+.hatch-cover-card.state-removida {
+  border-left-color: #b45309;
+}
+
+.hatch-cover-card.state-posicionada {
+  border-left-color: #2563eb;
+}
+
+.hatch-cover-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.hatch-cover-heading div {
+  display: grid;
+  gap: 2px;
+}
+
+.hatch-cover-heading span {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(15, 23, 42, 0.08);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.hatch-cover-card > p {
+  min-height: 38px;
+  margin: 10px 0;
+  color: var(--muted-text, #5d6b78);
+  font-size: 0.82rem;
+}
+
+.hatch-cover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hatch-cover-actions button {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
+.hatch-cover-card details {
+  margin-top: 10px;
+  font-size: 0.8rem;
+}
+
+.hatch-cover-card ol {
+  display: grid;
+  gap: 5px;
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.hatch-cover-card li span {
+  display: block;
+  color: var(--muted-text, #5d6b78);
+}
+
+.hatch-cover-message {
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  font-size: 0.84rem;
+}
+
+.hatch-cover-message.error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.hatch-cover-message.success {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+@media (max-width: 760px) {
+  .hatch-cover-panel > header,
+  .hatch-cover-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hatch-cover-controls label {
+    min-width: 0;
+  }
+}

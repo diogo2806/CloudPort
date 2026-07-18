@@ -4,6 +4,7 @@ import br.com.cloudport.servicoyard.patio.dto.ConteinerPatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.modelo.EquipamentoPatio;
 import br.com.cloudport.servicoyard.patio.modelo.InstrucaoTrabalho;
+import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
 import br.com.cloudport.servicoyard.patio.modelo.PrioridadeInstrucao;
 import br.com.cloudport.servicoyard.patio.modelo.StatusEquipamento;
 import br.com.cloudport.servicoyard.patio.modelo.StatusInstrucao;
@@ -11,6 +12,7 @@ import br.com.cloudport.servicoyard.patio.modelo.TipoOperacaoInstrucao;
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.EquipamentoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.InstrucaoTrabalhoRepositorio;
+import br.com.cloudport.servicoyard.patio.repositorio.PosicaoPatioRepositorio;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -30,20 +32,23 @@ public class InstrucaoTrabalhoServico {
 
     private static final EnumSet<StatusInstrucao> STATUS_ATIVOS =
             EnumSet.of(StatusInstrucao.PENDENTE, StatusInstrucao.EM_EXECUCAO);
-    private static final Pattern POSICAO_PATTERN = Pattern.compile("(\\d+)\\D+(\\d+)");
+    private static final Pattern POSICAO_PATTERN = Pattern.compile("(\\d+)\\D+(\\d+)(?:\\D+(\\d+))?");
 
     private final InstrucaoTrabalhoRepositorio instrucaoRepositorio;
     private final ConteinerPatioRepositorio conteinerRepositorio;
     private final EquipamentoPatioRepositorio equipamentoRepositorio;
+    private final PosicaoPatioRepositorio posicaoRepositorio;
     private final ValidadorYardPlacementService validadorPlacement;
 
     public InstrucaoTrabalhoServico(InstrucaoTrabalhoRepositorio instrucaoRepositorio,
                                     ConteinerPatioRepositorio conteinerRepositorio,
                                     EquipamentoPatioRepositorio equipamentoRepositorio,
+                                    PosicaoPatioRepositorio posicaoRepositorio,
                                     ValidadorYardPlacementService validadorPlacement) {
         this.instrucaoRepositorio = instrucaoRepositorio;
         this.conteinerRepositorio = conteinerRepositorio;
         this.equipamentoRepositorio = equipamentoRepositorio;
+        this.posicaoRepositorio = posicaoRepositorio;
         this.validadorPlacement = validadorPlacement;
     }
 
@@ -136,14 +141,24 @@ public class InstrucaoTrabalhoServico {
 
         ConteinerPatio conteiner = conteinerRepositorio.findByCodigoIgnoreCase(codigoConteiner)
                 .orElseThrow(() -> new NoSuchElementException("Contêiner não encontrado no pátio"));
+        DestinoPatio destinoPatio = extrairDestino(destinoNormalizado);
+        PosicaoPatio posicaoDestino = buscarPosicaoDestino(destinoPatio);
+        if (posicaoDestino != null) {
+            validarDisponibilidade(posicaoDestino);
+        }
+
         ConteinerPatioRequisicaoDto requisicao = new ConteinerPatioRequisicaoDto();
         requisicao.setCodigo(conteiner.getCodigo());
-        requisicao.setLinha(conteiner.getPosicao() != null ? conteiner.getPosicao().getLinha() : 0);
-        requisicao.setColuna(conteiner.getPosicao() != null ? conteiner.getPosicao().getColuna() : 0);
+        requisicao.setLinha(destinoPatio != null
+                ? destinoPatio.linha
+                : conteiner.getPosicao() != null ? conteiner.getPosicao().getLinha() : 0);
+        requisicao.setColuna(destinoPatio != null
+                ? destinoPatio.coluna
+                : conteiner.getPosicao() != null ? conteiner.getPosicao().getColuna() : 0);
         requisicao.setStatus(conteiner.getStatus());
         requisicao.setTipoCarga(conteiner.getTipoCarga() != null ? conteiner.getTipoCarga().name() : null);
         requisicao.setDestino(destinoNormalizado);
-        requisicao.setCamadaOperacional("1");
+        requisicao.setCamadaOperacional(destinoPatio != null ? destinoPatio.camada : "1");
         validadorPlacement.validarAlocacao(requisicao);
     }
 
@@ -151,6 +166,12 @@ public class InstrucaoTrabalhoServico {
         if (instrucao.getTipoOperacao() == TipoOperacaoInstrucao.MOVIMENTACAO) {
             ConteinerPatio conteiner = conteinerRepositorio.findByCodigoIgnoreCase(instrucao.getCodigoConteiner())
                     .orElseThrow(() -> new NoSuchElementException("Contêiner não encontrado no pátio"));
+            DestinoPatio destinoPatio = extrairDestino(instrucao.getDestino());
+            PosicaoPatio posicaoDestino = buscarPosicaoDestino(destinoPatio);
+            if (posicaoDestino != null) {
+                validarDisponibilidade(posicaoDestino);
+                conteiner.setPosicao(posicaoDestino);
+            }
             conteiner.setDestino(instrucao.getDestino());
             conteinerRepositorio.save(conteiner);
         }
@@ -163,14 +184,39 @@ public class InstrucaoTrabalhoServico {
         }
     }
 
-    private void atualizarPosicaoEquipamento(EquipamentoPatio equipamento, String destino) {
+    private PosicaoPatio buscarPosicaoDestino(DestinoPatio destino) {
+        if (destino == null) {
+            return null;
+        }
+        return posicaoRepositorio.findByLinhaAndColunaAndCamadaOperacional(
+                        destino.linha, destino.coluna, destino.camada)
+                .orElseThrow(() -> new NoSuchElementException(
+                        String.format("Posição de destino %d/%d/%s não encontrada", destino.linha, destino.coluna, destino.camada)));
+    }
+
+    private void validarDisponibilidade(PosicaoPatio posicao) {
+        if (posicao.isBloqueada() || posicao.isInterditada() || !posicao.isAreaPermitida()) {
+            throw new IllegalStateException("A posição de destino está bloqueada, interditada ou fora da área permitida");
+        }
+    }
+
+    private DestinoPatio extrairDestino(String destino) {
         if (!StringUtils.hasText(destino)) {
-            return;
+            return null;
         }
         Matcher matcher = POSICAO_PATTERN.matcher(destino);
-        if (matcher.find()) {
-            equipamento.setLinha(Integer.valueOf(matcher.group(1)));
-            equipamento.setColuna(Integer.valueOf(matcher.group(2)));
+        if (!matcher.find()) {
+            return null;
+        }
+        String camada = matcher.group(3) != null ? matcher.group(3) : "1";
+        return new DestinoPatio(Integer.valueOf(matcher.group(1)), Integer.valueOf(matcher.group(2)), camada);
+    }
+
+    private void atualizarPosicaoEquipamento(EquipamentoPatio equipamento, String destino) {
+        DestinoPatio destinoPatio = extrairDestino(destino);
+        if (destinoPatio != null) {
+            equipamento.setLinha(destinoPatio.linha);
+            equipamento.setColuna(destinoPatio.coluna);
         }
     }
 
@@ -199,5 +245,17 @@ public class InstrucaoTrabalhoServico {
 
     private String normalizar(String valor) {
         return StringUtils.hasText(valor) ? valor.trim() : null;
+    }
+
+    private static final class DestinoPatio {
+        private final Integer linha;
+        private final Integer coluna;
+        private final String camada;
+
+        private DestinoPatio(Integer linha, Integer coluna, String camada) {
+            this.linha = linha;
+            this.coluna = coluna;
+            this.camada = camada;
+        }
     }
 }

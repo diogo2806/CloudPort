@@ -2,7 +2,7 @@ package br.com.cloudport.servicorail.ferrovia.locomotiva.servico;
 
 import br.com.cloudport.servicorail.comum.sanitizacao.SanitizadorEntrada;
 import br.com.cloudport.servicorail.comum.validacao.ValidacaoEntradaUtil;
-import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.CadastroTransferenciaLocomotivaDto;
+import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.ConfiguracaoLocomotivaVisitaDto;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.ConfirmacaoEmbarqueLocomotivaDto;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.EntregaCustodiaLocomotivaDto;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.dto.LiberacaoEmbarqueLocomotivaDto;
@@ -12,6 +12,8 @@ import br.com.cloudport.servicorail.ferrovia.locomotiva.modelo.StatusTransferenc
 import br.com.cloudport.servicorail.ferrovia.locomotiva.modelo.TransferenciaLocomotiva;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.porta.ConsultaVisitaNavioPorta;
 import br.com.cloudport.servicorail.ferrovia.locomotiva.repositorio.TransferenciaLocomotivaRepositorio;
+import br.com.cloudport.servicorail.ferrovia.modelo.StatusVisitaTrem;
+import br.com.cloudport.servicorail.ferrovia.modelo.TipoVisitaTrem;
 import br.com.cloudport.servicorail.ferrovia.modelo.VisitaTrem;
 import br.com.cloudport.servicorail.ferrovia.repositorio.VisitaTremRepositorio;
 import java.math.BigDecimal;
@@ -36,9 +38,9 @@ public class TransferenciaLocomotivaServico {
     private final Optional<ConsultaVisitaNavioPorta> consultaVisitaNavioPorta;
 
     public TransferenciaLocomotivaServico(TransferenciaLocomotivaRepositorio transferenciaRepositorio,
-                                          VisitaTremRepositorio visitaTremRepositorio,
-                                          SanitizadorEntrada sanitizadorEntrada,
-                                          Optional<ConsultaVisitaNavioPorta> consultaVisitaNavioPorta) {
+                                           VisitaTremRepositorio visitaTremRepositorio,
+                                           SanitizadorEntrada sanitizadorEntrada,
+                                           Optional<ConsultaVisitaNavioPorta> consultaVisitaNavioPorta) {
         this.transferenciaRepositorio = transferenciaRepositorio;
         this.visitaTremRepositorio = visitaTremRepositorio;
         this.sanitizadorEntrada = sanitizadorEntrada;
@@ -46,24 +48,24 @@ public class TransferenciaLocomotivaServico {
     }
 
     @Transactional
-    public TransferenciaLocomotivaRespostaDto cadastrar(CadastroTransferenciaLocomotivaDto dto) {
-        Long visitaTremId = Optional.ofNullable(dto.getVisitaTremId())
-                .orElseThrow(() -> erro(HttpStatus.BAD_REQUEST, "A visita de trem deve ser informada."));
-        VisitaTrem visitaTrem = visitaTremRepositorio.findById(visitaTremId)
-                .orElseThrow(() -> erro(HttpStatus.NOT_FOUND, "Visita de trem não encontrada."));
-        String identificador = textoObrigatorio(dto.getIdentificadorLocomotiva(),
-                "identificador da locomotiva", 60).toUpperCase(Locale.ROOT);
-        if (transferenciaRepositorio.existsByVisitaTremIdAndIdentificadorLocomotivaIgnoreCase(
-                visitaTremId, identificador)) {
+    public TransferenciaLocomotivaRespostaDto configurarVisitaComoLocomotiva(
+            Long visitaTremId,
+            ConfiguracaoLocomotivaVisitaDto dto) {
+        VisitaTrem visitaTrem = buscarVisita(visitaTremId);
+        validarVisitaComoLocomotivaIsolada(visitaTrem);
+
+        TransferenciaLocomotiva transferencia = transferenciaRepositorio.findById(visitaTremId)
+                .orElseGet(TransferenciaLocomotiva::new);
+        if (transferencia.getStatus() != null
+                && transferencia.getStatus() != StatusTransferenciaLocomotiva.AGUARDANDO_ENTREGA) {
             throw erro(HttpStatus.CONFLICT,
-                    "A locomotiva já está vinculada a esta visita de trem.");
+                    "Os dados físicos da locomotiva não podem ser alterados após a entrega de custódia.");
         }
 
-        TransferenciaLocomotiva transferencia = new TransferenciaLocomotiva();
+        visitaTrem.setTipoVisita(TipoVisitaTrem.LOCOMOTIVA_ISOLADA);
+        visitaTremRepositorio.save(visitaTrem);
+
         transferencia.setVisitaTrem(visitaTrem);
-        transferencia.setIdentificadorLocomotiva(identificador);
-        transferencia.setOperadoraFerroviaria(textoObrigatorio(dto.getOperadoraFerroviaria(),
-                "operadora ferroviária", 80));
         transferencia.setFabricante(textoOpcional(dto.getFabricante(), "fabricante", 80));
         transferencia.setModelo(textoOpcional(dto.getModelo(), "modelo", 80));
         transferencia.setNumeroSerie(textoOpcional(dto.getNumeroSerie(), "número de série", 80));
@@ -85,14 +87,14 @@ public class TransferenciaLocomotivaServico {
     }
 
     @Transactional(readOnly = true)
-    public TransferenciaLocomotivaRespostaDto consultar(Long id) {
-        return resposta(buscar(id));
+    public TransferenciaLocomotivaRespostaDto consultar(Long visitaTremId) {
+        return resposta(buscar(visitaTremId));
     }
 
     @Transactional
-    public TransferenciaLocomotivaRespostaDto registrarEntregaCustodia(Long id,
-                                                                        EntregaCustodiaLocomotivaDto dto) {
-        TransferenciaLocomotiva transferencia = buscar(id);
+    public TransferenciaLocomotivaRespostaDto registrarEntregaCustodia(Long visitaTremId,
+                                                                         EntregaCustodiaLocomotivaDto dto) {
+        TransferenciaLocomotiva transferencia = buscar(visitaTremId);
         exigirStatus(transferencia, StatusTransferenciaLocomotiva.AGUARDANDO_ENTREGA);
         transferencia.setNomeMaquinista(textoObrigatorio(dto.getNomeMaquinista(), "nome do maquinista", 120));
         transferencia.setDocumentoEntrega(textoObrigatorio(dto.getDocumentoEntrega(), "documento de entrega", 80));
@@ -105,9 +107,9 @@ public class TransferenciaLocomotivaServico {
     }
 
     @Transactional
-    public TransferenciaLocomotivaRespostaDto planejarEmbarque(Long id,
-                                                               PlanejamentoEmbarqueLocomotivaDto dto) {
-        TransferenciaLocomotiva transferencia = buscar(id);
+    public TransferenciaLocomotivaRespostaDto planejarEmbarque(Long visitaTremId,
+                                                                PlanejamentoEmbarqueLocomotivaDto dto) {
+        TransferenciaLocomotiva transferencia = buscar(visitaTremId);
         exigirStatus(transferencia, StatusTransferenciaLocomotiva.SOB_CUSTODIA_TERMINAL);
         Long visitaNavioId = Optional.ofNullable(dto.getVisitaNavioId())
                 .filter(valor -> valor > 0)
@@ -132,9 +134,9 @@ public class TransferenciaLocomotivaServico {
     }
 
     @Transactional
-    public TransferenciaLocomotivaRespostaDto liberarEmbarque(Long id,
-                                                              LiberacaoEmbarqueLocomotivaDto dto) {
-        TransferenciaLocomotiva transferencia = buscar(id);
+    public TransferenciaLocomotivaRespostaDto liberarEmbarque(Long visitaTremId,
+                                                               LiberacaoEmbarqueLocomotivaDto dto) {
+        TransferenciaLocomotiva transferencia = buscar(visitaTremId);
         exigirStatus(transferencia, StatusTransferenciaLocomotiva.PLANEJADA_PARA_EMBARQUE);
         if (!dto.isFreioEstacionamentoAplicado()
                 || !dto.isBateriasIsoladas()
@@ -155,9 +157,9 @@ public class TransferenciaLocomotivaServico {
     }
 
     @Transactional
-    public TransferenciaLocomotivaRespostaDto confirmarEmbarque(Long id,
-                                                                ConfirmacaoEmbarqueLocomotivaDto dto) {
-        TransferenciaLocomotiva transferencia = buscar(id);
+    public TransferenciaLocomotivaRespostaDto confirmarEmbarque(Long visitaTremId,
+                                                                 ConfirmacaoEmbarqueLocomotivaDto dto) {
+        TransferenciaLocomotiva transferencia = buscar(visitaTremId);
         exigirStatus(transferencia, StatusTransferenciaLocomotiva.PRONTA_PARA_EMBARQUE);
         LocalDateTime embarcadaEm = dataOuAgora(dto.getEmbarcadaEm());
         if (transferencia.getLiberadaEm() != null && embarcadaEm.isBefore(transferencia.getLiberadaEm())) {
@@ -168,23 +170,49 @@ public class TransferenciaLocomotivaServico {
         transferencia.setPosicaoReal(textoObrigatorio(dto.getPosicaoReal(), "posição real a bordo", 120));
         atualizarObservacoes(transferencia, dto.getObservacoes());
         transferencia.setStatus(StatusTransferenciaLocomotiva.EMBARCADA);
+
+        VisitaTrem visitaTrem = transferencia.getVisitaTrem();
+        visitaTrem.setStatusVisita(StatusVisitaTrem.CONCLUIDO);
+        visitaTremRepositorio.save(visitaTrem);
         return resposta(transferenciaRepositorio.save(transferencia));
     }
 
-    private TransferenciaLocomotiva buscar(Long id) {
-        if (id == null || id <= 0) {
-            throw erro(HttpStatus.BAD_REQUEST, "O identificador da transferência é inválido.");
+    private VisitaTrem buscarVisita(Long visitaTremId) {
+        if (visitaTremId == null || visitaTremId <= 0) {
+            throw erro(HttpStatus.BAD_REQUEST, "O identificador da visita ferroviária é inválido.");
         }
-        return transferenciaRepositorio.findById(id)
-                .orElseThrow(() -> erro(HttpStatus.NOT_FOUND, "Transferência de locomotiva não encontrada."));
+        return visitaTremRepositorio.buscarPorIdComListas(visitaTremId)
+                .orElseThrow(() -> erro(HttpStatus.NOT_FOUND, "Visita de trem não encontrada."));
+    }
+
+    private void validarVisitaComoLocomotivaIsolada(VisitaTrem visitaTrem) {
+        if (visitaTrem.getStatusVisita() == StatusVisitaTrem.PARTIU) {
+            throw erro(HttpStatus.CONFLICT,
+                    "Uma visita ferroviária já encerrada por partida não pode ser embarcada no navio.");
+        }
+        if (!visitaTrem.getListaVagoes().isEmpty()
+                || !visitaTrem.getListaCarga().isEmpty()
+                || !visitaTrem.getListaDescarga().isEmpty()) {
+            throw erro(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "A visita da locomotiva representa o próprio trem e não pode possuir vagões ou contêineres.");
+        }
+    }
+
+    private TransferenciaLocomotiva buscar(Long visitaTremId) {
+        if (visitaTremId == null || visitaTremId <= 0) {
+            throw erro(HttpStatus.BAD_REQUEST, "O identificador da visita ferroviária é inválido.");
+        }
+        return transferenciaRepositorio.findById(visitaTremId)
+                .orElseThrow(() -> erro(HttpStatus.NOT_FOUND,
+                        "A visita ferroviária não está configurada como locomotiva isolada."));
     }
 
     private void exigirStatus(TransferenciaLocomotiva transferencia,
-                              StatusTransferenciaLocomotiva esperado) {
+                               StatusTransferenciaLocomotiva esperado) {
         if (transferencia.getStatus() != esperado) {
             throw erro(HttpStatus.CONFLICT,
                     String.format(Locale.ROOT,
-                            "A operação exige o status %s, mas a transferência está em %s.",
+                            "A operação exige o status %s, mas a visita da locomotiva está em %s.",
                             esperado, transferencia.getStatus()));
         }
     }

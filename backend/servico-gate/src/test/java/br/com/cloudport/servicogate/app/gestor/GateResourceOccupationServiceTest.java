@@ -32,7 +32,7 @@ class GateResourceOccupationServiceTest {
         GatePass gatePass = criarGatePass(1L, "GP-001");
         Agendamento agendamento = criarAgendamento(gatePass);
         List<GateResourceOccupation> ocupacoes = List.of(
-                criarOcupacao(gatePass, GateResourceType.MOTORISTA, "12345678900"),
+                criarOcupacao(gatePass, GateResourceType.MOTORISTA, "123.456.789-00"),
                 criarOcupacao(gatePass, GateResourceType.CAVALO, "ABC1D23"),
                 criarOcupacao(gatePass, GateResourceType.CHASSIS, "CHASSIS01"),
                 criarOcupacao(gatePass, GateResourceType.UNIDADE, "CONT001"),
@@ -56,7 +56,7 @@ class GateResourceOccupationServiceTest {
         GatePass gatePass = criarGatePass(1L, "GP-001");
         Agendamento agendamento = criarAgendamento(gatePass);
         List<GateResourceOccupation> ocupacoes = List.of(
-                criarOcupacao(gatePass, GateResourceType.MOTORISTA, "12345678900"),
+                criarOcupacao(gatePass, GateResourceType.MOTORISTA, "123.456.789-00"),
                 criarOcupacao(gatePass, GateResourceType.CAVALO, "ABC1D23"),
                 criarOcupacao(gatePass, GateResourceType.CHASSIS, "CHASSIS01"));
         when(repository.findByGatePassIdAndAtivoTrue(1L)).thenReturn(ocupacoes);
@@ -80,7 +80,7 @@ class GateResourceOccupationServiceTest {
         GateResourceOccupation ocupacaoConflitante = criarOcupacao(
                 gatePassConflitante,
                 GateResourceType.MOTORISTA,
-                "12345678900");
+                "123.456.789-00");
 
         when(repository.findByGatePassIdAndAtivoTrue(1L)).thenReturn(List.of());
         when(repository.findByTipoRecursoAndChaveRecursoInAndAtivoTrue(
@@ -108,7 +108,7 @@ class GateResourceOccupationServiceTest {
         GateResourceOccupation motorista = criarOcupacao(
                 gatePass,
                 GateResourceType.MOTORISTA,
-                "12345678900");
+                "123.456.789-00");
         GateResourceOccupation cavalo = criarOcupacao(
                 gatePass,
                 GateResourceType.CAVALO,

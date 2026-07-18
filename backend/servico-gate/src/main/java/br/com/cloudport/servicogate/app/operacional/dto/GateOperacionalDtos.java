@@ -108,6 +108,11 @@ public final class GateOperacionalDtos {
             @Size(max = 30) String unidadeReferencia,
             LocalDateTime validadeInicio,
             LocalDateTime validadeFim) {
+
+        public OrderRequest(String tipo, String codigo, Long bookingId, Long transportadoraId,
+                            String unidadeReferencia, LocalDateTime validadeInicio, LocalDateTime validadeFim) {
+            this(tipo, codigo, bookingId, null, transportadoraId, unidadeReferencia, validadeInicio, validadeFim);
+        }
     }
 
     public record PreadviceRequest(
@@ -127,6 +132,11 @@ public final class GateOperacionalDtos {
             Long billOfLadingId,
             Long orderId,
             Long preadviceId) {
+
+        public TransactionRequest(String tipoOperacao, String unidadeReferencia, Long bookingId,
+                                  Long orderId, Long preadviceId) {
+            this(tipoOperacao, unidadeReferencia, bookingId, null, orderId, preadviceId);
+        }
     }
 
     public record TruckVisitRequest(
@@ -293,6 +303,13 @@ public final class GateOperacionalDtos {
             String status,
             LocalDateTime validadeInicio,
             LocalDateTime validadeFim) {
+
+        public OrderDTO(Long id, String tipo, String codigo, Long bookingId, Long transportadoraId,
+                        String unidadeReferencia, String status, LocalDateTime validadeInicio,
+                        LocalDateTime validadeFim) {
+            this(id, tipo, codigo, bookingId, null, transportadoraId, unidadeReferencia, status,
+                    validadeInicio, validadeFim);
+        }
     }
 
     public record PreadviceDTO(
@@ -320,6 +337,13 @@ public final class GateOperacionalDtos {
             Long preadviceId,
             Long stageAtualId,
             boolean troubleAtivo) {
+
+        public TransactionDTO(Long id, Long truckVisitId, int sequencia, String tipoOperacao,
+                              String status, String unidadeReferencia, Long bookingId, Long orderId,
+                              Long preadviceId, Long stageAtualId, boolean troubleAtivo) {
+            this(id, truckVisitId, sequencia, tipoOperacao, status, unidadeReferencia, bookingId,
+                    null, orderId, preadviceId, stageAtualId, troubleAtivo);
+        }
     }
 
     public record TruckVisitDTO(
@@ -421,6 +445,11 @@ public final class GateOperacionalDtos {
             List<BillOfLadingDTO> billsOfLading,
             List<OrderDTO> ordens,
             List<PreadviceDTO> preAvisos) {
+
+        public ReferenceCatalogDTO(List<BookingDTO> bookings, List<OrderDTO> ordens,
+                                   List<PreadviceDTO> preAvisos) {
+            this(bookings, List.of(), ordens, preAvisos);
+        }
     }
 
     public record GateOperationalDashboardDTO(
@@ -435,5 +464,14 @@ public final class GateOperacionalDtos {
             CapacityDTO capacidadeAgendamentos,
             ReferenceCatalogDTO referencias,
             LocalDateTime atualizadoEm) {
+
+        public GateOperationalDashboardDTO(Long facilitySelecionadaId, List<FacilityDTO> facilities,
+                                           List<GateDTO> gates, List<LaneDTO> lanes, List<StageDTO> stages,
+                                           List<TruckVisitDTO> visitasAtivas, List<TroubleDTO> troublesAbertos,
+                                           CapacityDTO capacidadeAgendamentos, ReferenceCatalogDTO referencias,
+                                           LocalDateTime atualizadoEm) {
+            this(facilitySelecionadaId, facilities, gates, lanes, stages, List.of(), visitasAtivas,
+                    troublesAbertos, capacidadeAgendamentos, referencias, atualizadoEm);
+        }
     }
 }

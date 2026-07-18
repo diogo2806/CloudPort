@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, formatError } from './api.js';
+import { navioAdministrativeApi } from './operacoesAdministrativasNavioApi.js';
 import { craneApi } from './ui20-crane-api.js';
 import Ui10VisitPlanSection from './Ui10VisitPlanSection.jsx';
 import Ui20Plan from './Ui20Plan.jsx';
@@ -79,6 +80,15 @@ export default function Ui20ControlRoom({ session, onLogout }) {
     await action(`priority-${order.id}`, () => api.atualizarPrioridadesWorkInstructionPatio(order.id, { prioridadeOperacional, prioridadeBusca }, 'Prioridades ajustadas no Control Room'), 'Prioridades atualizadas.');
     setDetail(await api.obterDrillDownWorkInstructionPatio(order.id));
   }
+  async function cancelYardOrder(order) {
+    const confirmed = typeof window === 'undefined' || typeof window.confirm !== 'function' || window.confirm(`Cancelar a ordem de pátio ${order.id}?`);
+    if (!confirmed) return;
+    const reason = typeof window === 'undefined' || typeof window.prompt !== 'function'
+      ? 'Cancelamento administrativo pelo Control Room'
+      : String(window.prompt('Informe o motivo do cancelamento da ordem de pátio:', '') ?? '').trim();
+    if (!reason) { setError('O motivo do cancelamento da ordem de pátio é obrigatório.'); return; }
+    await action(`order-cancel-${order.id}`, () => navioAdministrativeApi.cancelarOrdem(visitId, order.id, reason), 'Ordem de pátio cancelada e auditada.');
+  }
 
   const filteredQueues = queues.filter((queue) => (!statusFilter || queue.status === statusFilter) && (!zoneFilter || normalized(`${queue.identificador} ${queue.berco} ${queue.blocoZona} ${queue.pow}`).includes(normalized(zoneFilter))));
   const filteredOrders = orders.filter((order) => (!statusFilter || order.statusOrdem === statusFilter) && (!zoneFilter || normalized(`${orderOrigin(order)} ${orderDestination(order)}`).includes(normalized(zoneFilter))));
@@ -93,7 +103,7 @@ export default function Ui20ControlRoom({ session, onLogout }) {
     <Ui20Plan visitId={visitId} monitor={monitor} plan={plan} draft={draft} queues={queues} equipment={jobLists} dirty={dirty} busy={busyKey === 'plan'} onChange={setDraft} onSave={savePlan} onReload={() => load(visitId, false, true)} />
     <EquipmentPanel jobLists={jobLists} telemetry={telemetry} onDetails={openDetail} />
     <WorkQueues queues={filteredQueues} plan={plan} jobLists={jobLists} matrix={matrix} edits={edits} expanded={expanded} busyKey={busyKey} onEdit={(id, edit) => setEdits((current) => ({ ...current, [id]: edit }))} onSave={saveResources} onQueueAction={queueAction} onInstructionAction={instructionAction} onToggle={(key) => setExpanded((current) => ({ ...current, [key]: !current[key] }))} onDetails={openDetail} onTransition={transition} />
-    <section className="panel"><div className="section-head"><h2>Ordens de pátio</h2><span>{filteredOrders.length}</span></div>{!filteredOrders.length ? <p className="empty">Nenhuma ordem.</p> : <div className="table-wrap"><table><thead><tr><th>Unidade</th><th>Status</th><th>Origem</th><th>Destino</th><th>Detalhes</th></tr></thead><tbody>{filteredOrders.map((order) => <tr key={order.id}><td>{orderCode(order)}</td><td><span className={statusClass(order.statusOrdem)}>{order.statusOrdem}</span></td><td>{orderOrigin(order)}</td><td>{orderDestination(order)}</td><td><button className="small secondary" onClick={() => openDetail(order)}>Drill-down</button></td></tr>)}</tbody></table></div>}</section>
+    <section className="panel"><div className="section-head"><h2>Ordens de pátio</h2><span>{filteredOrders.length}</span></div>{!filteredOrders.length ? <p className="empty">Nenhuma ordem.</p> : <div className="table-wrap"><table><thead><tr><th>Unidade</th><th>Status</th><th>Origem</th><th>Destino</th><th>Ações</th></tr></thead><tbody>{filteredOrders.map((order) => <tr key={order.id}><td>{orderCode(order)}</td><td><span className={statusClass(order.statusOrdem)}>{order.statusOrdem}</span></td><td>{orderOrigin(order)}</td><td>{orderDestination(order)}</td><td><div className="actions"><button className="small secondary" onClick={() => openDetail(order)}>Drill-down</button><button className="small danger" disabled={['CONCLUIDA', 'CANCELADA'].includes(order.statusOrdem) || busyKey === `order-cancel-${order.id}`} onClick={() => cancelYardOrder(order)}>{busyKey === `order-cancel-${order.id}` ? 'Cancelando...' : 'Cancelar'}</button></div></td></tr>)}</tbody></table></div>}</section>
     <div className="columns"><section className="panel"><div className="section-head"><h2>Alertas</h2><span>{filteredAlerts.length}</span></div><div className="list">{filteredAlerts.map((alert, index) => <article key={`${alert.tipo}-${index}`}><div><strong>{alert.tipo}</strong><span className={statusClass(alert.severidade)}>{alert.severidade}</span></div><p>{alert.mensagem}</p></article>)}</div></section><section className="panel"><div className="section-head"><h2>Eventos recentes</h2><span>{events.length}</span></div><div className="list scroll">{events.slice(0, 30).map((event) => <article key={event.id}><div><strong>{event.tipoEvento}</strong><time>{dateTime(event.criadoEm)}</time></div><p>{event.descricao}</p><small>{event.usuario}</small></article>)}</div></section></div>
     <div className="columns"><section className="panel"><div className="section-head"><h2>Sem cobertura</h2><span>{uncovered.length}</span></div><div className="list">{uncovered.map((order) => <article key={order.id}><div><strong>{orderCode(order)}</strong><button className="small secondary" onClick={() => openDetail(order)}>Drill-down</button></div><p>{orderOrigin(order)} → {orderDestination(order)}</p></article>)}</div></section><section className="panel"><div className="section-head"><h2>Reservas</h2><span>{reservations.length}</span></div><div className="list scroll">{reservations.map((reservation) => <article key={reservation.id || `${reservation.itemOperacaoNavioId}-${reservation.posicaoPatioId}`}><div><strong>{reservation.posicaoPatioId}</strong><span className={statusClass(reservation.status)}>{reservation.status}</span></div><p>Item {reservation.itemOperacaoNavioId} · {reservation.bloco || 'sem bloco'}</p></article>)}</div></section></div>
     {busy && <div className="loading">Carregando...</div>}

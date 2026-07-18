@@ -11,7 +11,6 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabal
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.EstivagemPlan;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.SlotNavio;
-import br.com.cloudport.servicoyard.vesselplanner.modelo.StatusEstivagemPlan;
 import br.com.cloudport.servicoyard.vesselplanner.reconciliacao.dto.ReconciliacaoBaplieExecucaoDTO.DivergenciaResposta;
 import br.com.cloudport.servicoyard.vesselplanner.reconciliacao.dto.ReconciliacaoBaplieExecucaoDTO.ReconciliacaoResposta;
 import br.com.cloudport.servicoyard.vesselplanner.reconciliacao.modelo.DivergenciaReconciliacao;
@@ -73,17 +72,16 @@ public class ReconciliacaoBaplieExecucaoServico {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "BayPlan não encontrado: " + plano.getBayPlanId()));
 
-        Map<String, BayPlanContainer> bapliePorUnidade = indexarBaplie(bayPlan.getContainers());
-        Map<String, SlotNavio> planoPorUnidade = indexarPlano(plano.getSlots());
-        Map<String, UnidadeInventario> inventarioPorUnidade = indexarInventario(
+        Map<String, BayPlanContainer> baplie = indexarBaplie(bayPlan.getContainers());
+        Map<String, SlotNavio> slots = indexarPlano(plano.getSlots());
+        Map<String, UnidadeInventario> inventario = indexarInventario(
                 inventarioRepositorio.findAllByOrderByIdentificacaoAsc());
-        Map<String, OrdemTrabalhoPatio> execucaoPorUnidade = indexarExecucao(plano.getVisitaNavioId());
+        Map<String, OrdemTrabalhoPatio> execucao = indexarExecucao(plano.getVisitaNavioId());
 
-        Set<String> unidades = new TreeSet<>();
-        unidades.addAll(bapliePorUnidade.keySet());
-        unidades.addAll(planoPorUnidade.keySet());
-        unidades.addAll(inventarioPorUnidade.keySet());
-        unidades.addAll(execucaoPorUnidade.keySet());
+        Set<String> unidadesRelacionadas = new TreeSet<>();
+        unidadesRelacionadas.addAll(baplie.keySet());
+        unidadesRelacionadas.addAll(slots.keySet());
+        unidadesRelacionadas.addAll(execucao.keySet());
 
         ReconciliacaoBaplieExecucao reconciliacao = new ReconciliacaoBaplieExecucao();
         reconciliacao.setPlano(plano);
@@ -91,29 +89,29 @@ public class ReconciliacaoBaplieExecucaoServico {
         reconciliacao.setVisitaNavioId(plano.getVisitaNavioId());
         reconciliacao.setVersaoPlano(plano.getVersao());
         reconciliacao.setSolicitante(normalizarUsuario(usuario));
-        reconciliacao.setTotalUnidades(unidades.size());
+        reconciliacao.setTotalUnidades(unidadesRelacionadas.size());
 
-        for (String codigo : unidades) {
-            BayPlanContainer baplie = bapliePorUnidade.get(codigo);
-            SlotNavio slot = planoPorUnidade.get(codigo);
-            UnidadeInventario inventario = inventarioPorUnidade.get(codigo);
-            OrdemTrabalhoPatio execucao = execucaoPorUnidade.get(codigo);
-            reconciliarUnidade(reconciliacao, plano, codigo, baplie, slot, inventario, execucao);
+        for (String codigo : unidadesRelacionadas) {
+            reconciliarUnidade(
+                    reconciliacao,
+                    codigo,
+                    baplie.get(codigo),
+                    slots.get(codigo),
+                    inventario.get(codigo),
+                    execucao.get(codigo));
         }
 
         reconciliacao.recalcularTotais();
-        ReconciliacaoBaplieExecucao salva = reconciliacaoRepositorio.save(reconciliacao);
-        return mapear(salva);
+        return mapear(reconciliacaoRepositorio.save(reconciliacao));
     }
 
     @Transactional(readOnly = true)
     public ReconciliacaoResposta buscarAtual(Long planoId) {
         buscarPlano(planoId);
-        ReconciliacaoBaplieExecucao reconciliacao = reconciliacaoRepositorio
-                .findTopByPlanoIdOrderByExecutadaEmDesc(planoId)
+        return reconciliacaoRepositorio.findTopByPlanoIdOrderByExecutadaEmDesc(planoId)
+                .map(this::mapear)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Nenhuma reconciliação encontrada para o plano " + planoId));
-        return mapear(reconciliacao);
     }
 
     @Transactional
@@ -130,13 +128,14 @@ public class ReconciliacaoBaplieExecucaoServico {
         if (!Objects.equals(reconciliacao.getPlano().getId(), planoId)) {
             throw new IllegalArgumentException("A reconciliação não pertence ao plano informado");
         }
+
         DivergenciaReconciliacao divergencia = divergenciaRepositorio
                 .findByIdAndReconciliacaoId(divergenciaId, reconciliacaoId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Divergência não encontrada: " + divergenciaId));
-
         divergencia.resolver(decisao, limitar(motivo, 1000), normalizarUsuario(usuario));
         divergenciaRepositorio.save(divergencia);
+
         reconciliacao.recalcularTotais();
         reconciliacaoRepositorio.save(reconciliacao);
         return mapear(reconciliacao);
@@ -149,6 +148,7 @@ public class ReconciliacaoBaplieExecucaoServico {
                 .findTopByPlanoIdOrderByExecutadaEmDesc(planoId)
                 .orElseThrow(() -> new IllegalStateException(
                         "Execute a reconciliação BAPLIE antes de publicar ou concluir o plano"));
+
         if (!Objects.equals(atual.getVersaoPlano(), plano.getVersao())) {
             throw new IllegalStateException(
                     "A reconciliação está desatualizada porque o plano foi alterado");
@@ -163,29 +163,35 @@ public class ReconciliacaoBaplieExecucaoServico {
 
     private void reconciliarUnidade(
             ReconciliacaoBaplieExecucao reconciliacao,
-            EstivagemPlan plano,
             String codigo,
             BayPlanContainer baplie,
             SlotNavio slot,
             UnidadeInventario inventario,
             OrdemTrabalhoPatio execucao) {
-        if (baplie == null) {
-            adicionar(reconciliacao, slot, codigo, TipoDivergencia.UNIDADE,
-                    SeveridadeDivergencia.CRITICA, "unidade",
-                    FonteDado.PLANO_APROVADO, codigo,
-                    FonteDado.BAPLIE, null);
-        }
-        if (slot == null) {
+        if (baplie != null && slot == null) {
             adicionar(reconciliacao, null, codigo, TipoDivergencia.UNIDADE,
                     SeveridadeDivergencia.CRITICA, "unidade",
                     FonteDado.BAPLIE, codigo,
                     FonteDado.PLANO_APROVADO, null);
-        }
-        if (inventario == null && (baplie != null || slot != null)) {
+        } else if (baplie == null && slot != null) {
             adicionar(reconciliacao, slot, codigo, TipoDivergencia.UNIDADE,
-                    planoJaAprovado(plano) ? SeveridadeDivergencia.CRITICA : SeveridadeDivergencia.ALERTA,
-                    "unidadeInventario", FonteDado.PLANO_APROVADO, codigo,
-                    FonteDado.INVENTARIO, null);
+                    SeveridadeDivergencia.CRITICA, "unidade",
+                    FonteDado.PLANO_APROVADO, codigo,
+                    FonteDado.BAPLIE, null);
+        } else if (baplie == null && slot == null && execucao != null) {
+            adicionar(reconciliacao, null, codigo, TipoDivergencia.EXECUCAO,
+                    SeveridadeDivergencia.CRITICA, "unidadeExecutada",
+                    FonteDado.EXECUCAO, execucao.getStatusOrdem().name(),
+                    FonteDado.PLANO_APROVADO, null);
+        }
+
+        if (inventario == null) {
+            adicionar(reconciliacao, slot, codigo, TipoDivergencia.UNIDADE,
+                    SeveridadeDivergencia.CRITICA, "unidadeInventario",
+                    slot != null ? FonteDado.PLANO_APROVADO : FonteDado.BAPLIE,
+                    codigo,
+                    FonteDado.INVENTARIO,
+                    null);
         }
 
         if (baplie != null && slot != null) {
@@ -229,13 +235,6 @@ public class ReconciliacaoBaplieExecucaoServico {
             return;
         }
         String posicaoFisica = normalizarPosicaoNavio(inventario.getPosicaoAtual());
-        if (posicaoFisica == null) {
-            adicionar(reconciliacao, slot, codigo, TipoDivergencia.POSICAO_FISICA,
-                    SeveridadeDivergencia.CRITICA, "posicaoFisica",
-                    FonteDado.PLANO_APROVADO, posicaoSlot(slot),
-                    FonteDado.POSICAO_FISICA, inventario.getPosicaoAtual());
-            return;
-        }
         compararTexto(reconciliacao, slot, codigo, TipoDivergencia.POSICAO_FISICA,
                 SeveridadeDivergencia.CRITICA, "posicaoFisica",
                 FonteDado.PLANO_APROVADO, posicaoSlot(slot),
@@ -254,14 +253,7 @@ public class ReconciliacaoBaplieExecucaoServico {
                     FonteDado.PLANO_APROVADO, "OPERACIONAL",
                     FonteDado.EXECUCAO, execucao.getStatusOrdem().name());
         }
-        if (slot == null) {
-            adicionar(reconciliacao, null, codigo, TipoDivergencia.EXECUCAO,
-                    SeveridadeDivergencia.CRITICA, "unidadeExecutada",
-                    FonteDado.EXECUCAO, execucao.getStatusOrdem().name(),
-                    FonteDado.PLANO_APROVADO, null);
-            return;
-        }
-        if (execucao.getStatusOrdem() != StatusOrdemTrabalhoPatio.CONCLUIDA) {
+        if (slot == null || execucao.getStatusOrdem() != StatusOrdemTrabalhoPatio.CONCLUIDA) {
             return;
         }
         String destinoExecutado = normalizarPosicaoNavio(execucao.getDestino());
@@ -285,12 +277,14 @@ public class ReconciliacaoBaplieExecucaoServico {
             return;
         }
         double diferenca = Math.abs(referencia - divergente);
-        double tolerancia = Math.max(TOLERANCIA_PESO_MINIMA_KG,
+        double tolerancia = Math.max(
+                TOLERANCIA_PESO_MINIMA_KG,
                 Math.abs(referencia) * TOLERANCIA_PESO_PERCENTUAL);
         if (diferenca <= tolerancia) {
             return;
         }
-        double limiteCritico = Math.max(LIMITE_CRITICO_PESO_MINIMO_KG,
+        double limiteCritico = Math.max(
+                LIMITE_CRITICO_PESO_MINIMO_KG,
                 Math.abs(referencia) * LIMITE_CRITICO_PESO_PERCENTUAL);
         SeveridadeDivergencia severidade = diferenca > limiteCritico
                 ? SeveridadeDivergencia.CRITICA
@@ -311,9 +305,7 @@ public class ReconciliacaoBaplieExecucaoServico {
             String referencia,
             FonteDado fonteDivergente,
             String divergente) {
-        String valorReferencia = normalizarTexto(referencia);
-        String valorDivergente = normalizarTexto(divergente);
-        if (Objects.equals(valorReferencia, valorDivergente)) {
+        if (Objects.equals(normalizarTexto(referencia), normalizarTexto(divergente))) {
             return;
         }
         adicionar(reconciliacao, slot, codigo, tipo, severidade, campo,
@@ -364,12 +356,11 @@ public class ReconciliacaoBaplieExecucaoServico {
 
     private Map<String, BayPlanContainer> indexarBaplie(List<BayPlanContainer> containers) {
         Map<String, BayPlanContainer> resultado = new LinkedHashMap<>();
-        if (containers == null) {
-            return resultado;
-        }
-        for (BayPlanContainer container : containers) {
-            if (container != null && container.getCodigoContainer() != null) {
-                resultado.put(chave(container.getCodigoContainer()), container);
+        if (containers != null) {
+            for (BayPlanContainer container : containers) {
+                if (container != null && container.getCodigoContainer() != null) {
+                    resultado.put(chave(container.getCodigoContainer()), container);
+                }
             }
         }
         return resultado;
@@ -377,12 +368,11 @@ public class ReconciliacaoBaplieExecucaoServico {
 
     private Map<String, SlotNavio> indexarPlano(List<SlotNavio> slots) {
         Map<String, SlotNavio> resultado = new LinkedHashMap<>();
-        if (slots == null) {
-            return resultado;
-        }
-        for (SlotNavio slot : slots) {
-            if (slot != null && slot.getCodigoContainer() != null) {
-                resultado.put(chave(slot.getCodigoContainer()), slot);
+        if (slots != null) {
+            for (SlotNavio slot : slots) {
+                if (slot != null && slot.getCodigoContainer() != null) {
+                    resultado.put(chave(slot.getCodigoContainer()), slot);
+                }
             }
         }
         return resultado;
@@ -390,12 +380,11 @@ public class ReconciliacaoBaplieExecucaoServico {
 
     private Map<String, UnidadeInventario> indexarInventario(List<UnidadeInventario> unidades) {
         Map<String, UnidadeInventario> resultado = new LinkedHashMap<>();
-        if (unidades == null) {
-            return resultado;
-        }
-        for (UnidadeInventario unidade : unidades) {
-            if (unidade != null && unidade.getIdentificacao() != null) {
-                resultado.put(chave(unidade.getIdentificacao()), unidade);
+        if (unidades != null) {
+            for (UnidadeInventario unidade : unidades) {
+                if (unidade != null && unidade.getIdentificacao() != null) {
+                    resultado.put(chave(unidade.getIdentificacao()), unidade);
+                }
             }
         }
         return resultado;
@@ -418,12 +407,19 @@ public class ReconciliacaoBaplieExecucaoServico {
 
     private String posicaoBaplie(BayPlanContainer container) {
         PosicaoBay posicao = container.getPosicaoBay();
-        return posicao == null ? null : posicao.toCodigoEdifact();
+        return posicao == null ? null : formatarPosicao(
+                posicao.getBay(), posicao.getRow(), posicao.getTier());
     }
 
     private String posicaoSlot(SlotNavio slot) {
-        return String.format(Locale.ROOT, "%02d%02d%02d",
-                slot.getBay(), slot.getRowBay(), slot.getTier());
+        return formatarPosicao(slot.getBay(), slot.getRowBay(), slot.getTier());
+    }
+
+    private String formatarPosicao(Integer bay, Integer row, Integer tier) {
+        if (bay == null || row == null || tier == null) {
+            return null;
+        }
+        return String.format(Locale.ROOT, "%02d%02d%02d", bay, row, tier);
     }
 
     private String normalizarPosicaoNavio(String valor) {
@@ -431,8 +427,9 @@ public class ReconciliacaoBaplieExecucaoServico {
             return null;
         }
         String normalizado = valor.trim().toUpperCase(Locale.ROOT);
-        if (!normalizado.matches(".*(NAVIO|BAY|SLOT).*|")
-                && !normalizado.matches("\\d{6,7}")) {
+        boolean contextoNavio = normalizado.matches(".*(NAVIO|BAY|SLOT).*");
+        boolean somenteCodigo = normalizado.matches("\\d{6,7}");
+        if (!contextoNavio && !somenteCodigo) {
             return null;
         }
         String digitos = normalizado.replaceAll("\\D", "");
@@ -440,7 +437,7 @@ public class ReconciliacaoBaplieExecucaoServico {
             return digitos;
         }
         if (digitos.length() == 7) {
-            return String.format(Locale.ROOT, "%02d%02d%02d",
+            return formatarPosicao(
                     Integer.parseInt(digitos.substring(0, 3)),
                     Integer.parseInt(digitos.substring(3, 5)),
                     Integer.parseInt(digitos.substring(5, 7)));
@@ -455,11 +452,6 @@ public class ReconciliacaoBaplieExecucaoServico {
     private Double pesoInventario(UnidadeInventario unidade) {
         BigDecimal peso = unidade.getPesoBrutoKg();
         return peso == null ? null : peso.doubleValue();
-    }
-
-    private boolean planoJaAprovado(EstivagemPlan plano) {
-        return plano.getStatus() == StatusEstivagemPlan.APROVADO
-                || plano.getStatus() == StatusEstivagemPlan.TRANSMITIDO;
     }
 
     private EstivagemPlan buscarPlano(Long planoId) {
@@ -492,7 +484,9 @@ public class ReconciliacaoBaplieExecucaoServico {
             return null;
         }
         String normalizado = valor.trim();
-        return normalizado.length() <= limite ? normalizado : normalizado.substring(0, limite);
+        return normalizado.length() <= limite
+                ? normalizado
+                : normalizado.substring(0, limite);
     }
 
     private ReconciliacaoResposta mapear(ReconciliacaoBaplieExecucao reconciliacao) {

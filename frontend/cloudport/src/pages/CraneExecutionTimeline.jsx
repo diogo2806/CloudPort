@@ -22,7 +22,7 @@ function localDateTimeValue(value) {
   return String(value ?? '').replace(/Z$/, '').slice(0, 19);
 }
 
-export function CraneExecutionTimeline({ plan, sequencing, disabled }) {
+export function CraneExecutionTimeline({ plan, sequencing, disabled, refreshKey = 0 }) {
   const [execution, setExecution] = useState(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState('');
@@ -54,7 +54,7 @@ export function CraneExecutionTimeline({ plan, sequencing, disabled }) {
 
   useEffect(() => {
     loadExecution();
-  }, [loadExecution]);
+  }, [loadExecution, refreshKey]);
 
   const movements = useMemo(() => Array.isArray(execution?.movimentos)
     ? [...execution.movimentos].sort((left, right) => Number(left.ordemPlanejada) - Number(right.ordemPlanejada))
@@ -90,6 +90,7 @@ export function CraneExecutionTimeline({ plan, sequencing, disabled }) {
   }
 
   async function startMovement(movement) {
+    if (movement.bloqueadoPorTampa) return;
     await command(
       `start-${movement.id}`,
       `/api/vessel-planner/execucoes-guindastes/${execution.id}/movimentos/${movement.id}/iniciar`,
@@ -201,20 +202,22 @@ export function CraneExecutionTimeline({ plan, sequencing, disabled }) {
           {movements.map((movement) => {
             const planned = movement.status === 'PLANEJADO' || movement.status === 'REPLANEJADO';
             const running = movement.status === 'EM_EXECUCAO';
-            return <article key={movement.id} className={`crane-execution-movement status-${String(movement.status).toLowerCase()}`}>
+            return <article key={movement.id} className={`crane-execution-movement status-${String(movement.status).toLowerCase()}${movement.bloqueadoPorTampa ? ' hatch-blocked' : ''}`}>
               <div className="crane-movement-order"><span>Q{movement.guindasteId}</span><strong>#{movement.ordemPlanejada}</strong></div>
               <div className="crane-movement-content">
                 <div className="crane-movement-title"><strong>{movement.codigoContainer}</strong><span>{statusLabel(movement.status)}{movement.atrasado ? ' · ATRASADO' : ''}</span></div>
                 <p>B{movement.bay} · R{movement.rowBay} · T{movement.tier} · {movement.tipoOperacao}</p>
+                {movement.codigoHatchCover && <small>Tampa: {movement.codigoHatchCover} · {movement.sobreHatchCover ? 'sobre a escotilha' : 'acesso ao porão'}</small>}
                 <small>Janela: {displayDateTime(movement.janelaInicioPlanejada)} até {displayDateTime(movement.janelaFimPlanejada)}</small>
                 <small>Realizado: {displayQuantity(movement.quantidadeRealizada)} de {displayQuantity(movement.quantidadePlanejada)}</small>
+                {movement.motivoBloqueio && <p className="hatch-block-reason">{movement.motivoBloqueio}</p>}
                 {movement.iniciadoEm && <small>Início: {displayDateTime(movement.iniciadoEm)} · {movement.iniciadoPor || 'SISTEMA'}</small>}
                 {movement.concluidoEm && <small>Fim: {displayDateTime(movement.concluidoEm)} · {movement.concluidoPor || 'SISTEMA'}</small>}
                 {movement.motivoReplanejamento && <p className="crane-movement-note">Replanejamento: {movement.motivoReplanejamento}</p>}
                 {movement.excecao && <p className="crane-movement-exception">Exceção: {movement.excecao}</p>}
               </div>
               <div className="crane-movement-actions">
-                {planned && <button type="button" onClick={() => startMovement(movement)} disabled={Boolean(busy) || disabled}>Iniciar</button>}
+                {planned && <button type="button" onClick={() => startMovement(movement)} disabled={Boolean(busy) || disabled || movement.bloqueadoPorTampa}>{movement.bloqueadoPorTampa ? 'Bloqueado' : 'Iniciar'}</button>}
                 {planned && <button type="button" className="secondary" onClick={() => replanMovement(movement)} disabled={Boolean(busy) || disabled}>Replanejar</button>}
                 {running && <button type="button" onClick={() => completeMovement(movement)} disabled={Boolean(busy) || disabled}>Concluir</button>}
                 {running && <button type="button" className="warning" onClick={() => failMovement(movement)} disabled={Boolean(busy) || disabled}>Falha</button>}

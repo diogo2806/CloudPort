@@ -66,7 +66,7 @@ public class KpiPatioServico {
             return 0.0;
         }
 
-        int totalRehandles = 0;
+        long totalRehandles = 0;
         for (ConteinerPatio conteiner : conteineres) {
             long conteineresCimaDoAtual = conteineres.stream()
                 .filter(c -> c.getPosicao().getColuna().equals(conteiner.getPosicao().getColuna()))

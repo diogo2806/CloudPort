@@ -18,6 +18,7 @@ import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import javax.persistence.Version;
 
 @Entity
 @Table(name = "visita_trem")
@@ -26,6 +27,10 @@ public class VisitaTrem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    @Column(name = "versao", nullable = false)
+    private Long versao;
 
     @Column(name = "identificador_trem", nullable = false, length = 40)
     private String identificadorTrem;
@@ -46,6 +51,9 @@ public class VisitaTrem {
     @Enumerated(EnumType.STRING)
     @Column(name = "status_visita", nullable = false, length = 20)
     private StatusVisitaTrem statusVisita;
+
+    @Column(name = "posicao_ferroviaria_atual", length = 120)
+    private String posicaoFerroviariaAtual;
 
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
@@ -90,6 +98,10 @@ public class VisitaTrem {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getVersao() {
+        return versao;
     }
 
     public String getIdentificadorTrem() {
@@ -138,6 +150,14 @@ public class VisitaTrem {
 
     public void setStatusVisita(StatusVisitaTrem statusVisita) {
         this.statusVisita = statusVisita;
+    }
+
+    public String getPosicaoFerroviariaAtual() {
+        return posicaoFerroviariaAtual;
+    }
+
+    public void setPosicaoFerroviariaAtual(String posicaoFerroviariaAtual) {
+        this.posicaoFerroviariaAtual = posicaoFerroviariaAtual;
     }
 
     public LocalDateTime getCriadoEm() {

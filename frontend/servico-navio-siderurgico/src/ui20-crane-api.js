@@ -26,7 +26,7 @@ export function setCraneBaseUrlForTests(value) {
   baseApiUrlPromise = Promise.resolve(normalize(value));
 }
 
-async function request(visitaId, method, body) {
+async function request(path, method, body, includeLegacyUser = false) {
   const session = readSession();
   const correlation = correlationId();
   const trace = traceId();
@@ -40,9 +40,11 @@ async function request(visitaId, method, body) {
   let payload = body;
   if (body !== undefined) {
     headers.set('Content-Type', 'application/json');
-    payload = JSON.stringify({ ...body, usuario: body.usuario ?? session?.nome ?? 'operador' });
+    payload = JSON.stringify(includeLegacyUser
+      ? { ...body, usuario: body.usuario ?? session?.nome ?? 'operador' }
+      : body);
   }
-  const response = await fetch(`${await baseApiUrl()}/visitas-navio/${visitaId}/crane-plan`, { method, headers, body: payload });
+  const response = await fetch(`${await baseApiUrl()}${path}`, { method, headers, body: payload });
   const result = await response.json().catch(() => null);
   if (!response.ok) {
     const error = new Error(result?.mensagem ?? result?.message ?? `Falha HTTP ${response.status}`);
@@ -53,7 +55,33 @@ async function request(visitaId, method, body) {
   return result;
 }
 
+function movementId(allocation) {
+  return `crane-plan-${allocation.id}`;
+}
+
+function operatorId() {
+  return readSession()?.nome ?? 'operador';
+}
+
 export const craneApi = {
-  obterPlanoGuindaste: (visitaId) => request(visitaId, 'GET'),
-  salvarPlanoGuindaste: (visitaId, plano) => request(visitaId, 'POST', plano)
+  obterPlanoGuindaste: (visitaId) => request(`/visitas-navio/${visitaId}/crane-plan`, 'GET'),
+  salvarPlanoGuindaste: (visitaId, plano) => request(`/visitas-navio/${visitaId}/crane-plan`, 'POST', plano, true),
+  listarSequencias: (visitaId) => request(`/api/crane-sequences?vesselVisitId=${encodeURIComponent(visitaId)}`, 'GET'),
+  criarSequencia: (visitaId, allocation) => request('/api/crane-sequences', 'POST', {
+    movementId: movementId(allocation),
+    vesselVisitId: String(visitaId),
+    craneId: allocation.codigoGuindaste,
+    loadUnitId: String(allocation.workQueueId),
+    plannedStart: allocation.inicioPlanejado,
+    notes: allocation.observacao || null
+  }),
+  transicionarSequencia: (allocation, action, reason = null) => request(
+    `/api/crane-sequences/${encodeURIComponent(movementId(allocation))}/${action}`,
+    'POST',
+    { operatorId: operatorId(), reason }
+  ),
+  listarHistoricoSequencia: (allocation) => request(
+    `/api/crane-sequences/${encodeURIComponent(movementId(allocation))}/history`,
+    'GET'
+  )
 };

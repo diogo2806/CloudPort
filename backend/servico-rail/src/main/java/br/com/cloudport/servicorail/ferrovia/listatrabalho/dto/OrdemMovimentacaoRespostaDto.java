@@ -13,21 +13,27 @@ public class OrdemMovimentacaoRespostaDto {
     private final String codigoConteiner;
     private final TipoMovimentacaoOrdem tipoMovimentacao;
     private final StatusOrdemMovimentacao statusMovimentacao;
+    private final String identificadorVagao;
+    private final Integer posicaoVagaoNoTrem;
     private final LocalDateTime criadoEm;
     private final LocalDateTime atualizadoEm;
 
     public OrdemMovimentacaoRespostaDto(Long id,
-                                        Long idVisitaTrem,
-                                        String codigoConteiner,
-                                        TipoMovimentacaoOrdem tipoMovimentacao,
-                                        StatusOrdemMovimentacao statusMovimentacao,
-                                        LocalDateTime criadoEm,
-                                        LocalDateTime atualizadoEm) {
+                                         Long idVisitaTrem,
+                                         String codigoConteiner,
+                                         TipoMovimentacaoOrdem tipoMovimentacao,
+                                         StatusOrdemMovimentacao statusMovimentacao,
+                                         String identificadorVagao,
+                                         Integer posicaoVagaoNoTrem,
+                                         LocalDateTime criadoEm,
+                                         LocalDateTime atualizadoEm) {
         this.id = id;
         this.idVisitaTrem = idVisitaTrem;
         this.codigoConteiner = codigoConteiner;
         this.tipoMovimentacao = tipoMovimentacao;
         this.statusMovimentacao = statusMovimentacao;
+        this.identificadorVagao = identificadorVagao;
+        this.posicaoVagaoNoTrem = posicaoVagaoNoTrem;
         this.criadoEm = criadoEm;
         this.atualizadoEm = atualizadoEm;
     }
@@ -39,6 +45,8 @@ public class OrdemMovimentacaoRespostaDto {
                 HtmlUtils.htmlEscape(entidade.getCodigoConteiner()),
                 entidade.getTipoMovimentacao(),
                 entidade.getStatusMovimentacao(),
+                HtmlUtils.htmlEscape(entidade.getIdentificadorVagao()),
+                entidade.getPosicaoVagaoNoTrem(),
                 entidade.getCriadoEm(),
                 entidade.getAtualizadoEm()
         );
@@ -62,6 +70,14 @@ public class OrdemMovimentacaoRespostaDto {
 
     public StatusOrdemMovimentacao getStatusMovimentacao() {
         return statusMovimentacao;
+    }
+
+    public String getIdentificadorVagao() {
+        return identificadorVagao;
+    }
+
+    public Integer getPosicaoVagaoNoTrem() {
+        return posicaoVagaoNoTrem;
     }
 
     public LocalDateTime getCriadoEm() {

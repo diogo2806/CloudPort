@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #401.
+Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #406.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -199,7 +199,7 @@ O requisito `ERR10` foi concluído no PR #396.
 7. A transação reverte visita, transações, eventos e consumo de capacidade quando a abertura é rejeitada.
 8. Controller e testes documentam os contratos de erro.
 
-O requisito `ERR30` foi concluído antes do PR documental #401.
+O requisito `ERR30` foi concluído no PR #398.
 
 ## Ferrovia
 
@@ -230,19 +230,31 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 11. Materiais, pontos de amarração, capacidades e regras persistidas.
 12. Valores sintéticos não aprovam o plano siderúrgico.
 
-## Billing, CAP, EDI e eventos
+## Billing e portal CAP — ERR20 concluído
 
 1. Tarifas, cobranças, faturas, itens e pagamentos.
 2. Cobrança idempotente para atendimentos concluídos.
 3. Consolidação de cobranças pendentes e quitação automática.
 4. Isolamento por transportadora com dados do JWT.
 5. Portal CAP com agendamentos, cobranças e faturas.
-6. BAPLIE, COPRAR, COARRI e VERMAS.
-7. Auditoria persistente e reprocessamento motivado.
-8. Recepção EDI assíncrona e idempotente.
-9. Worker com reivindicação transacional, retentativa e quarentena.
-10. Eventos internos publicados após persistência.
-11. Reconciliação periódica mantida como reparo.
+6. A geração de fatura bloqueia a transportadora e as cobranças elegíveis com `SELECT ... FOR UPDATE`.
+7. O registro de pagamento bloqueia a linha da fatura antes de recalcular o saldo disponível.
+8. Fatura, itens, status das cobranças e pagamentos permanecem na mesma transação.
+9. Cobrança indisponível, saldo consumido por operação concorrente e falha de lock retornam `409 Conflict`.
+10. A tradução de violação de integridade é restrita à constraint conhecida que impede uma cobrança em duas faturas.
+11. O handler de domínio tem precedência para impedir que conflitos operacionais sejam convertidos em `500`.
+12. Testes unitários cobrem aquisição dos locks e tradução funcional das disputas.
+
+O requisito `ERR20` foi concluído no PR #406.
+
+## EDI e eventos
+
+1. BAPLIE, COPRAR, COARRI e VERMAS.
+2. Auditoria persistente e reprocessamento motivado.
+3. Recepção EDI assíncrona e idempotente.
+4. Worker com reivindicação transacional, retentativa e quarentena.
+5. Eventos internos publicados após persistência.
+6. Reconciliação periódica mantida como reparo.
 
 ## Frontend compartilhado
 
@@ -271,9 +283,11 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 
 | PR | Entrega |
 | --- | --- |
+| #406 | Serialização de faturamento e pagamentos; conclusão de ERR20 |
+| #404 | Consolidação do estado atual do CloudPort |
 | #401 | Documentação após ERR10 e ERR30 |
-| #400 | Respostas operacionais para rejeições de truck visits; conclusão de ERR30 |
 | #399 | Arquitetura e runbook alinhados ao runtime atual |
+| #398 | Respostas operacionais para rejeições de truck visits; conclusão de ERR30 |
 | #396 | Concorrência no controle de pessoas; conclusão de ERR10 |
 | #395 | Variáveis de ambiente e remoção do administrador padrão inseguro |
 | #394 | Consolidação da documentação funcional |
@@ -295,6 +309,6 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 
 ## Pendências não marcadas como implementadas
 
-Permanecem no backlog técnico `ERR20`, `ERR40`, `SEC70`, `SEC80` e `SEC90`, conforme `docs/requisitos/requisito-tecnico.md`.
+Permanecem no backlog técnico `ERR40`, `SEC70`, `SEC80` e `SEC90`, conforme `docs/requisitos/requisito-tecnico.md`.
 
 Permanecem no backlog funcional a persistência do replanejamento ferroviário, a conclusão e edição integral das operações de navio, o corte operacional e as evoluções registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.

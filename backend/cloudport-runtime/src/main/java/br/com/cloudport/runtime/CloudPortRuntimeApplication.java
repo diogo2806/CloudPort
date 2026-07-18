@@ -71,7 +71,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
                 @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = VisibilidadeApplication.class),
                 @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfigurations.class),
                 @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityFilter.class),
-                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "br\\.com\\.cloudport\\.(servicogate\\.config\\.SecurityConfig|servicorail\\.configuracao\\.ConfiguracaoSeguranca|servicoyard\\.configuracao\\.ConfiguracaoSeguranca|serviconavio\\.configuracao\\.ConfiguracaoSeguranca|serviconaviosiderurgico\\.configuracao\\.ConfiguracaoSeguranca|visibilidade\\.config\\.SecurityConfig)")
+                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "br\\.com\\.cloudport\\.(servicocargageral\\.configuracao\\.ConfiguracaoSeguranca|servicogate\\.config\\.SecurityConfig|servicorail\\.configuracao\\.ConfiguracaoSeguranca|servicoyard\\.configuracao\\.ConfiguracaoSeguranca|serviconavio\\.configuracao\\.ConfiguracaoSeguranca|serviconaviosiderurgico\\.configuracao\\.ConfiguracaoSeguranca|visibilidade\\.config\\.SecurityConfig)")
         })
 public class CloudPortRuntimeApplication {
 

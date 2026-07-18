@@ -1,6 +1,6 @@
 # Requisitos pendentes - CloudPort
 
-Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #393.
+Status: atualizado em 2026-07-18 após as entregas de configuração do backend, ERR10 e ERR30.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -35,6 +35,9 @@ A lista detalhada está em `docs/implementados/requisitos-implementados.md`. Nã
 11. Central global de alertas e line-ups internos e públicos.
 12. Processamento EDI assíncrono e idempotente, eventos internos seletivos e contratos versionados.
 13. Dockerfiles e parâmetros de implantação do frontend e backend no EasyPanel.
+14. Configuração do backend por `DB_*`, `SECURITY_*` e `ADMIN_*`, com bootstrap seguro do administrador e remoção da credencial padrão insegura.
+15. Tratamento concorrente da entrada e saída de pessoas com `409 Conflict` e rollback integral da operação perdedora.
+16. Tradução das rejeições transacionais da abertura de truck visits para `409` ou `422`, sem exposição de SQL e com rollback integral.
 
 ## P0 - Pendências obrigatórias
 
@@ -79,13 +82,11 @@ Critério de aceite: ao recarregar a página, o planejamento confirmado permanec
 
 As pendências técnicas comprovadas não devem ser duplicadas aqui. Implementar e encerrar os itens mantidos em `docs/requisitos/requisito-tecnico.md`:
 
-1. `ERR10`: concorrência no controle de entrada e saída de pessoas;
-2. `ERR20`: concorrência na geração de faturas e pagamentos;
-3. `ERR30`: tradução das rejeições transacionais de truck visits;
-4. `ERR40`: concorrência nos cadastros únicos de carga geral;
-5. `SEC70`: sanitização dos logs e exceções do TOS;
-6. `SEC80`: segurança da execução standalone de carga geral;
-7. `SEC90`: autenticação e autorização dos WebSockets operacionais do Yard.
+1. `ERR20`: concorrência na geração de faturas e pagamentos;
+2. `ERR40`: concorrência nos cadastros únicos de carga geral;
+3. `SEC70`: sanitização dos logs e exceções do TOS;
+4. `SEC80`: segurança da execução standalone de carga geral;
+5. `SEC90`: autenticação e autorização dos WebSockets operacionais do Yard.
 
 Critério de aceite: cada item deve sair do backlog técnico somente após alteração verificável no código e no contrato HTTP ou WebSocket correspondente.
 

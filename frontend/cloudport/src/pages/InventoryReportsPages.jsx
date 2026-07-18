@@ -178,7 +178,7 @@ export function GateReportsPage() {
       <form className="planner-selection-grid" onSubmit={submit}>
         <label className="field"><span>Início</span><input type="date" value={draftFilters.inicio} onChange={(event) => setDraftFilters((current) => ({ ...current, inicio: event.target.value }))} /></label>
         <label className="field"><span>Fim</span><input type="date" value={draftFilters.fim} min={draftFilters.inicio || undefined} onChange={(event) => setDraftFilters((current) => ({ ...current, fim: event.target.value }))} /></label>
-        <label className="field"><span>Operação</span><select value={draftFilters.tipoOperacao} onChange={(event) => setDraftFilters((current) => ({ ...current, tipoOperacao: event.target.value }))}><option value="">Todas</option><option value="RECEBIMENTO">Recebimento</option><option value="EXPEDICAO">Expedição</option><option value="RETIRADA_VAZIO">Retirada de vazio</option><option value="DEVOLUCAO_VAZIO">Devolução de vazio</option></select></label>
+        <label className="field"><span>Operação</span><select value={draftFilters.tipoOperacao} onChange={(event) => setDraftFilters((current) => ({ ...current, tipoOperacao: event.target.value }))}><option value="">Todas</option><option value="ENTRADA">Entrada</option><option value="SAIDA">Saída</option><option value="DEVOLUCAO">Devolução</option><option value="TRANSFERENCIA">Transferência</option></select></label>
         <label className="field"><span>Transportadora ID</span><input type="number" min="1" value={draftFilters.transportadoraId} onChange={(event) => setDraftFilters((current) => ({ ...current, transportadoraId: event.target.value }))} placeholder="Todas" /></label>
         <div className="field"><span>Ações</span><div className="actions"><button type="submit">Gerar relatório</button><button type="button" className="secondary" onClick={clear}>Restaurar período</button></div></div>
       </form>
@@ -207,13 +207,13 @@ export function GateReportsPage() {
       </Section>
 
       {occupancyRows.length > 0 && <Section title="Ocupação por hora"><DataTable rows={occupancyRows} columns={[
-        { key: 'hora', label: 'Hora' },
-        { key: 'ocupacao', label: 'Agendados' },
-        { key: 'capacidade', label: 'Capacidade' }
+        { key: 'horaInicio', label: 'Hora' },
+        { key: 'totalAgendamentos', label: 'Agendados' },
+        { key: 'capacidadeSlot', label: 'Capacidade' }
       ]} /></Section>}
 
       {turnaroundRows.length > 0 && <Section title="Turnaround por dia"><DataTable rows={turnaroundRows} columns={[
-        { key: 'data', label: 'Data', render: (row) => displayValue(row.data) },
+        { key: 'dia', label: 'Data', render: (row) => displayValue(row.dia) },
         { key: 'tempoMedioMinutos', label: 'Tempo médio', render: (row) => `${displayValue(row.tempoMedioMinutos)} min` }
       ]} /></Section>}
     </>}

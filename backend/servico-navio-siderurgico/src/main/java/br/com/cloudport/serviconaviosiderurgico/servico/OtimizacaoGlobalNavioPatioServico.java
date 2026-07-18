@@ -45,6 +45,7 @@ public class OtimizacaoGlobalNavioPatioServico {
     private final PosicaoPatioYardCliente posicaoPatioYardCliente;
     private final OtimizacaoYardCliente otimizacaoYardCliente;
     private final EventoOperacionalStreamingServico streamingServico;
+    private final ThreadLocal<PlanoPreparado> planoPreparado = new ThreadLocal<>();
 
     public OtimizacaoGlobalNavioPatioServico(
             VisitaNavioServico visitaServico,
@@ -67,12 +68,35 @@ public class OtimizacaoGlobalNavioPatioServico {
     }
 
     @Transactional(readOnly = true)
+    public OtimizacaoGlobalNavioPatioDTO prepararPlano(
+            Long visitaId,
+            ComandoReplanejamentoPatioNavioDTO comando) {
+        OtimizacaoGlobalNavioPatioDTO resultado = otimizarInterno(visitaId, comando);
+        planoPreparado.set(new PlanoPreparado(visitaId, resultado));
+        return resultado;
+    }
+
+    public void limparPlanoPreparado() {
+        planoPreparado.remove();
+    }
+
+    @Transactional(readOnly = true)
     public OtimizacaoGlobalNavioPatioDTO otimizar(Long visitaId) {
-        return otimizar(visitaId, null);
+        PlanoPreparado preparado = planoPreparado.get();
+        if (preparado != null && Objects.equals(preparado.visitaId(), visitaId)) {
+            return preparado.resultado();
+        }
+        return otimizarInterno(visitaId, null);
     }
 
     @Transactional(readOnly = true)
     public OtimizacaoGlobalNavioPatioDTO otimizar(
+            Long visitaId,
+            ComandoReplanejamentoPatioNavioDTO comando) {
+        return otimizarInterno(visitaId, comando);
+    }
+
+    private OtimizacaoGlobalNavioPatioDTO otimizarInterno(
             Long visitaId,
             ComandoReplanejamentoPatioNavioDTO comando) {
         VisitaNavio visita = visitaServico.buscarEntidade(visitaId);
@@ -92,6 +116,7 @@ public class OtimizacaoGlobalNavioPatioServico {
         List<Map<String, Object>> importacao = new ArrayList<>();
         List<Map<String, Object>> exportacao = new ArrayList<>();
         List<String> alertas = new ArrayList<>();
+        Set<Long> itensConsiderados = new LinkedHashSet<>();
         int semPosicao = 0;
         for (ItemOperacaoNavio item : itens) {
             ReservaPatioNavioDTO reserva = reservaPorItem.get(item.getId());
@@ -102,8 +127,10 @@ public class OtimizacaoGlobalNavioPatioServico {
             Map<String, Object> carga = montarCarga(item, visita, reserva, prioridadePorOrdem);
             if (item.getTipoMovimento() == TipoMovimentoNavio.DESCARGA) {
                 importacao.add(carga);
+                itensConsiderados.add(item.getId());
             } else if (item.getTipoMovimento() == TipoMovimentoNavio.EMBARQUE) {
                 exportacao.add(carga);
+                itensConsiderados.add(item.getId());
             } else {
                 alertas.add("O item " + item.getCodigoLote()
                         + " e RESTOW e permanece fora do dual-cycle do Yard.");
@@ -136,13 +163,13 @@ public class OtimizacaoGlobalNavioPatioServico {
         navio.put("observacoes", "Plano integrado gerado pelo modulo Navio Siderurgico.");
 
         List<PosicaoPatioYardDTO> posicoes = posicaoPatioYardCliente.listarPosicoes();
-        Set<String> reservasExternas = reservasAtivasDeOutrasVisitas(visitaId);
+        Set<String> reservasProtegidas = reservasProtegidas(visitaId, itensConsiderados);
         List<Map<String, Object>> candidatos = posicoes.stream()
                 .filter(Objects::nonNull)
                 .filter(posicao -> posicao.getLinha() != null
                         && posicao.getColuna() != null
                         && StringUtils.hasText(posicao.getCamadaOperacional()))
-                .map(posicao -> montarCandidato(posicao, reservasExternas))
+                .map(posicao -> montarCandidato(posicao, reservasProtegidas))
                 .toList();
         if (candidatos.isEmpty()) {
             throw new IllegalArgumentException("O mapa real do Yard nao retornou posicoes candidatas validas.");
@@ -225,7 +252,7 @@ public class OtimizacaoGlobalNavioPatioServico {
 
     private Map<String, Object> montarCandidato(
             PosicaoPatioYardDTO posicao,
-            Set<String> reservasExternas) {
+            Set<String> reservasProtegidas) {
         Map<String, Object> candidato = new LinkedHashMap<>();
         candidato.put("id", posicao.getId());
         candidato.put("linha", posicao.getLinha());
@@ -237,8 +264,8 @@ public class OtimizacaoGlobalNavioPatioServico {
         candidato.put("bloqueada", posicao.isBloqueada());
         candidato.put("interditada", posicao.isInterditada());
         candidato.put("areaPermitida", posicao.isAreaPermitida());
-        candidato.put("reservadaPorOutro", reservasExternas.contains(chave(posicao))
-                || reservasExternas.contains(String.valueOf(posicao.getId())));
+        candidato.put("reservadaPorOutro", reservasProtegidas.contains(chave(posicao))
+                || reservasProtegidas.contains(String.valueOf(posicao.getId())));
         candidato.put("allocationCompativel", true);
         candidato.put("reeferPermitida", true);
         candidato.put("imoPermitida", true);
@@ -295,13 +322,14 @@ public class OtimizacaoGlobalNavioPatioServico {
         return resultado;
     }
 
-    private Set<String> reservasAtivasDeOutrasVisitas(Long visitaId) {
+    private Set<String> reservasProtegidas(Long visitaId, Set<Long> itensConsiderados) {
         LocalDateTime agora = LocalDateTime.now();
         Set<String> resultado = new LinkedHashSet<>();
         reservaRepositorio.findAll().stream()
-                .filter(reserva -> !Objects.equals(visitaId, reserva.getVisitaNavioId()))
                 .filter(reserva -> reserva.getStatus() == StatusReservaPatioNavio.ATIVA)
                 .filter(reserva -> reserva.getExpiraEm() == null || reserva.getExpiraEm().isAfter(agora))
+                .filter(reserva -> !Objects.equals(visitaId, reserva.getVisitaNavioId())
+                        || !itensConsiderados.contains(reserva.getItemOperacaoNavioId()))
                 .forEach(reserva -> {
                     if (StringUtils.hasText(reserva.getPosicaoPatioId())) {
                         resultado.add(reserva.getPosicaoPatioId().trim().toUpperCase(Locale.ROOT));
@@ -368,5 +396,10 @@ public class OtimizacaoGlobalNavioPatioServico {
 
     private String normalizar(String valor) {
         return StringUtils.hasText(valor) ? valor.trim().toUpperCase(Locale.ROOT) : "";
+    }
+
+    private record PlanoPreparado(
+            Long visitaId,
+            OtimizacaoGlobalNavioPatioDTO resultado) {
     }
 }

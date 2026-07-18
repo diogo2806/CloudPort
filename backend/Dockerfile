@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.7
 
-# Execute a partir da raiz do repositorio:
-# docker build -f backend/cloudport-runtime/Dockerfile -t cloudport-runtime .
+# Este Dockerfile usa /backend como contexto de build.
+# EasyPanel: Caminho de Build = /backend; Arquivo = Dockerfile.
 FROM maven:3.9.9-eclipse-temurin-17 AS build
 
 WORKDIR /workspace
-COPY backend/ .
+COPY . .
 
 WORKDIR /workspace/cloudport-modules
 RUN mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install \

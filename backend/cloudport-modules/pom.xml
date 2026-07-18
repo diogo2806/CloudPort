@@ -12,6 +12,7 @@
     <description>Reator Maven do monólito modular geral do CloudPort</description>
 
     <modules>
+        <module>../cloudport-contracts</module>
         <module>../servico-autenticacao</module>
         <module>../servico-gate</module>
         <module>../servico-rail</module>

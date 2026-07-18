@@ -54,7 +54,7 @@ function useAlertCenter({ status = 'ativo', severity = '', session, polling = fa
     try {
       const [page, backendSummary] = await Promise.all([
         alertCenterApi.listar({ status, severidade: severity ? [severity] : [], size: 100 }),
-        status === 'ativo' ? alertCenterApi.resumo().catch(() => null) : Promise.resolve(null)
+        alertCenterApi.resumo().catch(() => null)
       ]);
       const normalized = normalizeAlertPage(page);
       setAlerts(normalized.alerts);
@@ -69,10 +69,10 @@ function useAlertCenter({ status = 'ativo', severity = '', session, polling = fa
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    if (!polling || status !== 'ativo') return undefined;
+    if (!polling) return undefined;
     const timer = window.setInterval(() => load({ silent: true }), 30000);
     return () => window.clearInterval(timer);
-  }, [polling, status, load]);
+  }, [polling, load]);
 
   const act = useCallback(async (alert, operation) => {
     setBusyId(alert.id);
@@ -94,7 +94,10 @@ function useAlertCenter({ status = 'ativo', severity = '', session, polling = fa
     }
   }, [load, session?.nome, status]);
 
-  return { alerts, summary, loading, error, busyId, updatedAt, load, acknowledge: (alert) => act(alert, 'acknowledge'), resolve: (alert) => act(alert, 'resolve') };
+  const acknowledge = useCallback((alert) => act(alert, 'acknowledge'), [act]);
+  const resolve = useCallback((alert) => act(alert, 'resolve'), [act]);
+
+  return { alerts, summary, loading, error, busyId, updatedAt, load, acknowledge, resolve };
 }
 
 export function GlobalAlertCenter({ navigate, session }) {

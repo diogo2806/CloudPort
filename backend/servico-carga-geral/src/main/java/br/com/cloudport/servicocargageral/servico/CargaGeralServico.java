@@ -1,5 +1,6 @@
 package br.com.cloudport.servicocargageral.servico;
 
+import br.com.cloudport.servicocargageral.comum.erro.TradutorConflitoCadastroCarga;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.CategoriaReferenciaCarga;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.NaturezaCarga;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusConhecimentoCarga;
@@ -34,6 +35,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,7 +89,11 @@ public class CargaGeralServico {
         conhecimento.setPortoOrigem(request.portoOrigem());
         conhecimento.setPortoDestino(request.portoDestino());
         conhecimento.setObservacoes(request.observacoes());
-        return mapearConhecimentoDetalhe(conhecimentoRepositorio.save(conhecimento));
+        try {
+            return mapearConhecimentoDetalhe(conhecimentoRepositorio.saveAndFlush(conhecimento));
+        } catch (DataIntegrityViolationException exception) {
+            throw TradutorConflitoCadastroCarga.traduzir(exception);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -123,8 +129,12 @@ public class CargaGeralServico {
         item.setTemperaturaMinima(request.temperaturaMinima());
         item.setTemperaturaMaxima(request.temperaturaMaxima());
         conhecimento.adicionarItem(item);
-        conhecimentoRepositorio.save(conhecimento);
-        return mapearItem(item);
+        try {
+            conhecimentoRepositorio.saveAndFlush(conhecimento);
+            return mapearItem(item);
+        } catch (DataIntegrityViolationException exception) {
+            throw TradutorConflitoCadastroCarga.traduzir(exception);
+        }
     }
 
     @Transactional
@@ -152,8 +162,12 @@ public class CargaGeralServico {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lote pai não encontrado.")));
         }
         item.adicionarLote(lote);
-        itemRepositorio.save(item);
-        return mapearLote(lote);
+        try {
+            itemRepositorio.saveAndFlush(item);
+            return mapearLote(lote);
+        } catch (DataIntegrityViolationException exception) {
+            throw TradutorConflitoCadastroCarga.traduzir(exception);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -236,7 +250,11 @@ public class CargaGeralServico {
         referencia.setDescricao(request.descricao().trim());
         referencia.setAtributosJson(request.atributosJson());
         referencia.setAtivo(request.ativo());
-        return mapearReferencia(referenciaRepositorio.save(referencia));
+        try {
+            return mapearReferencia(referenciaRepositorio.saveAndFlush(referencia));
+        } catch (DataIntegrityViolationException exception) {
+            throw TradutorConflitoCadastroCarga.traduzir(exception);
+        }
     }
 
     @Transactional

@@ -3,6 +3,7 @@ package br.com.cloudport.servicoyard.vesselplanner.servico;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -242,12 +243,16 @@ class AutoStowageServicoTest {
     }
 
     @Test
-    @DisplayName("Sem slots disponíveis retorna zero alocações")
-    void semSlotsNaoAloca() {
+    @DisplayName("Deve bloquear autoestivagem sem slots do perfil geométrico")
+    void semSlotsBloqueiaAutoestivagem() {
         EstivagemPlan plan = criarPlano();
         BayPlanContainer container = criarContainer("CONT001", "22G1", 10_000.0, "DEHAM");
 
-        assertEquals(0, servico.sugerirEstivagem(plan, List.of(container)));
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> servico.sugerirEstivagem(plan, List.of(container)));
+
+        assertEquals("Plano sem slots provenientes do perfil geométrico", exception.getMessage());
     }
 
     private EstivagemPlan criarPlano() {

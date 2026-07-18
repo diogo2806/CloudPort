@@ -40,8 +40,10 @@ public class TratadorExcecoes {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> inesperado(Exception ex, HttpServletRequest request) {
-        String correlationId = resolverCorrelationId(request);
         TosIntegrationException tosException = localizarFalhaTos(ex);
+        String correlationId = tosException == null
+                ? resolverCorrelationId(null, request)
+                : resolverCorrelationId(tosException.getCorrelationId(), request);
         if (tosException != null) {
             LOGGER.error("event=tos.integration.unhandled resource={} identifier={} status={} errorCode={} correlationId={}",
                     valorSeguro(tosException.getRecurso()),
@@ -61,7 +63,7 @@ public class TratadorExcecoes {
                                                           String mensagem,
                                                           Object campos,
                                                           HttpServletRequest request) {
-        return resposta(status, codigo, mensagem, campos, request, resolverCorrelationId(request));
+        return resposta(status, codigo, mensagem, campos, request, resolverCorrelationId(null, request));
     }
 
     private ResponseEntity<Map<String, Object>> resposta(HttpStatus status,
@@ -86,8 +88,11 @@ public class TratadorExcecoes {
         return new ResponseEntity<>(corpo, headers, status);
     }
 
-    private String resolverCorrelationId(HttpServletRequest request) {
-        String correlationId = request.getHeader(HEADER);
+    private String resolverCorrelationId(String correlationIdExcecao, HttpServletRequest request) {
+        String correlationId = correlationIdExcecao;
+        if (correlationId == null || correlationId.trim().isEmpty()) {
+            correlationId = request.getHeader(HEADER);
+        }
         if (correlationId == null || correlationId.trim().isEmpty()) {
             return UUID.randomUUID().toString();
         }

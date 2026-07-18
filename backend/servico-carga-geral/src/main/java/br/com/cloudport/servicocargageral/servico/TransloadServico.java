@@ -45,22 +45,11 @@ public class TransloadServico {
             return mapear(operacao);
         }
 
-        boolean origemReservada = false;
-        boolean destinoReservada = false;
+        reservarUnidades(operacao);
         try {
-            inventarioConteinerCliente.reservar(
-                    operacao.getUnidadeOrigem(),
-                    operacao.getReservaOrigemId(),
-                    operacao.getUsuario());
-            origemReservada = true;
-            inventarioConteinerCliente.reservar(
-                    operacao.getUnidadeDestino(),
-                    operacao.getReservaDestinoId(),
-                    operacao.getUsuario());
-            destinoReservada = true;
             operacao = transacaoServico.aplicar(operacao.getId(), request);
         } catch (RuntimeException exception) {
-            compensarFalha(operacao, origemReservada, destinoReservada, exception);
+            compensarFalhaDeAplicacao(operacao, exception);
             throw exception;
         }
 
@@ -80,8 +69,21 @@ public class TransloadServico {
         }
     }
 
+    private void reservarUnidades(OperacaoTransload operacao) {
+        inventarioConteinerCliente.reservar(
+                operacao.getUnidadeOrigem(),
+                operacao.getReservaOrigemId(),
+                operacao.getUsuario());
+        inventarioConteinerCliente.reservar(
+                operacao.getUnidadeDestino(),
+                operacao.getReservaDestinoId(),
+                operacao.getUsuario());
+    }
+
     private void validarComando(ExecutarTransloadRequest request) {
-        if (normalizarCodigo(request.unidadeOrigem()).equals(normalizarCodigo(request.unidadeDestino()))) {
+        if (Objects.equals(
+                normalizarCodigo(request.unidadeOrigem()),
+                normalizarCodigo(request.unidadeDestino()))) {
             throw conflito("Unidades de origem e destino do transload devem ser diferentes.");
         }
         boolean possuiCodigoAvaria = possuiTexto(request.codigoAvaria());
@@ -94,21 +96,32 @@ public class TransloadServico {
     private void validarReexecucaoEquivalente(
             OperacaoTransload operacao,
             ExecutarTransloadRequest request) {
-        boolean equivalente = normalizarCodigo(operacao.getUnidadeOrigem())
-                        .equals(normalizarCodigo(request.unidadeOrigem()))
-                && normalizarCodigo(operacao.getUnidadeDestino())
-                        .equals(normalizarCodigo(request.unidadeDestino()))
+        boolean equivalente = Objects.equals(
+                        normalizarCodigo(operacao.getUnidadeOrigem()),
+                        normalizarCodigo(request.unidadeOrigem()))
+                && Objects.equals(
+                        normalizarCodigo(operacao.getUnidadeDestino()),
+                        normalizarCodigo(request.unidadeDestino()))
                 && Objects.equals(normalizarCodigo(operacao.getLacreOrigem()), normalizarCodigo(request.lacreOrigem()))
                 && Objects.equals(normalizarCodigo(operacao.getLacreDestino()), normalizarCodigo(request.lacreDestino()))
                 && Objects.equals(limpar(operacao.getDivergencia()), limpar(request.divergencia()))
                 && Objects.equals(normalizarCodigo(operacao.getCodigoAvaria()), normalizarCodigo(request.codigoAvaria()))
                 && Objects.equals(limpar(operacao.getDescricaoAvaria()), limpar(request.descricaoAvaria()))
                 && Objects.equals(limpar(operacao.getUsuario()), limpar(request.usuario()))
-                && Objects.equals(operacao.getCorrelationId(), correlationId(request))
+                && correlationIdEquivalente(operacao, request)
                 && itensEquivalentes(operacao.getItens(), request.itens());
         if (!equivalente) {
             throw conflito("O commandId já foi utilizado com dados diferentes de transload.");
         }
+    }
+
+    private boolean correlationIdEquivalente(
+            OperacaoTransload operacao,
+            ExecutarTransloadRequest request) {
+        if (!possuiTexto(operacao.getCorrelationId())) {
+            return !possuiTexto(request.correlationId());
+        }
+        return Objects.equals(operacao.getCorrelationId(), correlationId(request));
     }
 
     private boolean itensEquivalentes(
@@ -131,28 +144,22 @@ public class TransloadServico {
         return true;
     }
 
-    private void compensarFalha(
+    private void compensarFalhaDeAplicacao(
             OperacaoTransload operacao,
-            boolean origemReservada,
-            boolean destinoReservada,
             RuntimeException falhaOriginal) {
         List<RuntimeException> falhasCompensacao = new ArrayList<>();
-        if (destinoReservada) {
-            liberarComCaptura(
-                    operacao.getReservaDestinoId(),
-                    operacao.getUsuario(),
-                    "Transload cancelado antes da atualização atômica",
-                    "CANCELADA",
-                    falhasCompensacao);
-        }
-        if (origemReservada) {
-            liberarComCaptura(
-                    operacao.getReservaOrigemId(),
-                    operacao.getUsuario(),
-                    "Transload cancelado antes da atualização atômica",
-                    "CANCELADA",
-                    falhasCompensacao);
-        }
+        liberarComCaptura(
+                operacao.getReservaDestinoId(),
+                operacao.getUsuario(),
+                "Transload cancelado antes da atualização atômica",
+                "CANCELADA",
+                falhasCompensacao);
+        liberarComCaptura(
+                operacao.getReservaOrigemId(),
+                operacao.getUsuario(),
+                "Transload cancelado antes da atualização atômica",
+                "CANCELADA",
+                falhasCompensacao);
         try {
             transacaoServico.cancelar(operacao.getId(), mensagem(falhaOriginal));
         } catch (RuntimeException exception) {

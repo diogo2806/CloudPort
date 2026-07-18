@@ -49,6 +49,19 @@ public final class CargaGeralTipos {
         AJUSTE_INVENTARIO
     }
 
+    public enum TipoOperacaoStuffUnstuff {
+        STUFF,
+        UNSTUFF
+    }
+
+    public enum StatusOperacaoStuffUnstuff {
+        PLANEJADA,
+        EM_EXECUCAO,
+        PARCIAL,
+        CONCLUIDA,
+        CANCELADA
+    }
+
     public enum CategoriaReferenciaCarga {
         COMMODITY,
         TIPO_EMBALAGEM,

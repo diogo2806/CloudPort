@@ -48,12 +48,12 @@ const FALLBACK_NAVIGATION = [
     { label: 'Usuários', path: '/home/lista-de-usuarios', roles: ['ADMIN_PORTO'] }
   ] },
   { group: 'Gate', items: [
+    { label: 'Gate visual', path: '/home/gate/dashboard', roles: [] },
     { label: 'Agendamentos', path: '/home/gate/agendamentos', roles: [] },
     { label: 'Janelas', path: '/home/gate/janelas', roles: [] },
-    { label: 'Central de ação', path: '/home/gate/dashboard', roles: [] },
     { label: 'Controle de pessoas', path: '/home/gate/pessoas', roles: ['ADMIN_PORTO', 'OPERADOR_GATE', 'PLANEJADOR'] },
     { label: 'Embarque direto', path: '/home/gate/embarque-direto', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
-    { label: 'Saída direta do navio', path: '/home/gate/operador/console', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
+    { label: 'Saída direta do navio', path: '/home/gate/saida-direta-navio', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
     { label: 'Relatórios', path: '/home/gate/relatorios', roles: [] }
   ] },
   { group: 'Faturamento', items: [
@@ -163,10 +163,10 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/cap') return <CapPage />;
   if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
   if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
-  if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;
+  if (path === '/home/gate' || path === '/home/gate/dashboard' || path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDashboardPage />;
   if (path === '/home/gate/pessoas') return <GatePeopleAccessPage />;
   if (path === '/home/gate/embarque-direto') return <GateDirectVesselPage session={session} />;
-  if (path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDirectVesselReleasePage />;
+  if (path === '/home/gate/saida-direta-navio') return <GateDirectVesselReleasePage />;
   if (path === '/home/gate/relatorios') return <GateReportsPage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
   if (path === '/home/ferrovia/line-up') return <RailLineUpPage />;

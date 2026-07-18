@@ -80,7 +80,9 @@ export function GateOperationsTabs() {
   function closeTroca(item) {
     const cavaloAtual = window.prompt('Informe a placa do cavalo na saída:', item.cavaloAtual);
     if (!cavaloAtual) return;
-    execute(() => gateOperationsApi.encerrarTroca(item.cpfMotorista, { cavaloAtual, gatePassId: item.gateInId }), 'Sessão encerrada.');
+    const gatePassId = Number(window.prompt('Informe o GatePass da saída:'));
+    if (!Number.isInteger(gatePassId) || gatePassId < 1) return;
+    execute(() => gateOperationsApi.encerrarTroca(item.cpfMotorista, { cavaloAtual, gatePassId }), 'Sessão encerrada.');
   }
 
   function submitCall(event) {
@@ -104,12 +106,13 @@ export function GateOperationsTabs() {
   }
 
   function prioritize(item) {
-    const prioridade = window.prompt('Prioridade: NORMAL, ALTA ou EMERGENCIAL', item.prioridade);
-    if (!prioridade) return;
+    const input = window.prompt('Prioridade: NORMAL, ALTA ou EMERGENCIAL', item.prioridade);
+    if (!input) return;
+    const prioridade = input.toUpperCase();
     const justificativa = prioridade === 'NORMAL' ? '' : window.prompt('Justificativa da prioridade:');
     if (prioridade !== 'NORMAL' && !justificativa) return;
     execute(() => gateOperationsApi.alterarPrioridadeFila(item.id, {
-      prioridade: prioridade.toUpperCase(), justificativa, operador: readSession()?.nome
+      prioridade, justificativa, operador: readSession()?.nome
     }), 'Prioridade atualizada.');
   }
 

@@ -8,7 +8,7 @@ O backend oficial é o monólito modular `backend/cloudport-runtime`. Os módulo
 
 | Domínio | Capacidades atuais |
 | --- | --- |
-| Autenticação | Login JWT, usuários, papéis, permissões, configuração dinâmica da navegação, administrador inicial configurável e encerramento seguro da sessão no portal. |
+| Autenticação | Login JWT, usuários, papéis, permissões, configuração dinâmica da navegação, usuário root configurável por ambiente e encerramento seguro da sessão no portal. |
 | Gate | Facilities, múltiplos Gates e pistas, estágios, business tasks, appointments, truck visits, bookings, Bill of Lading, EDO, ERO, IDO, pré-avisos, inspeções, trouble transactions, documentos, imagens, tickets, EIR, regras de acesso, transferências e controle de pessoas. |
 | Gate visual | Quadro de pistas e filas, calendário de capacidade, jornada do veículo, OCR, balança, inspeção, liberação, SLA e transações problemáticas. |
 | Pátio | Google Maps, blocos e pilhas, vistas de bloco, seção, scan e microvisão, workspaces, movimentação gráfica, restrições, notas, heatmaps, rotas, CHEs, work queues, work instructions, allocations e reshuffling. |
@@ -124,15 +124,17 @@ export DB_PASS='substitua-a-senha-do-postgres'
 export DB_SCHEMA='cloudport_autenticacao,cloudport_carga_geral,cloudport_gate,cloudport_rail,cloudport_visibilidade,cloudport_yard,cloudport_navio,cloudport_siderurgico'
 export SECURITY_JWT_SECRET='substitua-por-segredo-com-pelo-menos-32-bytes'
 export SECURITY_JWT_EXPIRATION_MS='7200000'
-export ADMIN_EMAIL='admin@cloudport.local'
+export ADMIN_EMAIL='root@cloudport.local'
 export ADMIN_PASSWORD='substitua-por-uma-senha-segura'
 ```
 
 Regras:
 
 - `SECURITY_JWT_SECRET` deve possuir pelo menos 32 bytes;
-- `ADMIN_EMAIL` e `ADMIN_PASSWORD` devem ser fornecidos explicitamente para criar o administrador inicial;
-- o sistema não mantém administrador funcional padrão inseguro;
+- `ADMIN_EMAIL` e `ADMIN_PASSWORD` definem as credenciais do usuário root;
+- o root recebe `ROLE_ROOT` e todos os papéis cadastrados, inclusive papéis adicionados posteriormente;
+- a senha do root é sincronizada com `ADMIN_PASSWORD` em cada inicialização;
+- o sistema não mantém credenciais root funcionais padrão inseguras;
 - `DB_SCHEMA` deve conter os oito schemas do runtime;
 - não versionar valores reais de senha ou segredo.
 

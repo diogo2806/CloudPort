@@ -1,45 +1,59 @@
-CREATE TABLE truck_hopping_session (
+CREATE TABLE gate_resource_occupation (
     id BIGSERIAL PRIMARY KEY,
-    cpf_motorista VARCHAR(14) NOT NULL,
-    numero_cnh VARCHAR(20) NOT NULL,
-    cavalo_atual VARCHAR(10) NOT NULL,
-    status VARCHAR(20) NOT NULL,
-    gate_in_id BIGINT REFERENCES gate_pass (id),
-    gate_out_id BIGINT REFERENCES gate_pass (id),
-    encerrada_em TIMESTAMP WITHOUT TIME ZONE,
+    gate_pass_id BIGINT NOT NULL REFERENCES gate_pass (id) ON DELETE CASCADE,
+    tipo_recurso VARCHAR(20) NOT NULL,
+    chave_recurso VARCHAR(120) NOT NULL,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    ocupado_em TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    liberado_em TIMESTAMP WITHOUT TIME ZONE,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-    CONSTRAINT ck_truck_hopping_status CHECK (status IN ('ABERTA', 'ENCERRADA'))
+    CONSTRAINT ck_gate_resource_type CHECK (tipo_recurso IN ('MOTORISTA', 'CAVALO', 'CHASSIS', 'UNIDADE')),
+    CONSTRAINT ck_gate_resource_release CHECK (
+        (ativo = TRUE AND liberado_em IS NULL) OR (ativo = FALSE AND liberado_em IS NOT NULL)
+    )
 );
 
-CREATE UNIQUE INDEX uk_truck_hopping_cpf_aberta
-    ON truck_hopping_session (cpf_motorista)
-    WHERE status = 'ABERTA';
-CREATE INDEX idx_truck_hopping_status ON truck_hopping_session (status);
-CREATE INDEX idx_truck_hopping_gate_in ON truck_hopping_session (gate_in_id);
+CREATE UNIQUE INDEX uk_gate_resource_occupation_active
+    ON gate_resource_occupation (tipo_recurso, chave_recurso)
+    WHERE ativo = TRUE;
+CREATE INDEX idx_gate_resource_occupation_pass
+    ON gate_resource_occupation (gate_pass_id, ativo);
 
 CREATE TABLE gate_call (
     id BIGSERIAL PRIMARY KEY,
     gate_pass_id BIGINT NOT NULL REFERENCES gate_pass (id) ON DELETE CASCADE,
     status VARCHAR(30) NOT NULL,
     prioridade VARCHAR(20) NOT NULL,
+    posicao_fila INTEGER NOT NULL,
+    gate_pista VARCHAR(80) NOT NULL,
     chamado_em TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    aceito_em TIMESTAMP WITHOUT TIME ZONE,
+    expira_em TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    expirado_em TIMESTAMP WITHOUT TIME ZONE,
     atendimento_iniciado_em TIMESTAMP WITHOUT TIME ZONE,
     finalizado_em TIMESTAMP WITHOUT TIME ZONE,
     cancelado_em TIMESTAMP WITHOUT TIME ZONE,
+    quantidade_rechamadas INTEGER NOT NULL DEFAULT 0,
+    ultima_rechamada_em TIMESTAMP WITHOUT TIME ZONE,
     justificativa_cancelamento VARCHAR(500),
     operador VARCHAR(80),
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-    CONSTRAINT ck_gate_call_status CHECK (status IN ('CHAMADO', 'EM_ATENDIMENTO', 'FINALIZADO', 'CANCELADO')),
-    CONSTRAINT ck_gate_call_prioridade CHECK (prioridade IN ('NORMAL', 'ALTA', 'EMERGENCIAL'))
+    CONSTRAINT ck_gate_call_status CHECK (
+        status IN ('CHAMADO', 'ACEITO', 'EM_ATENDIMENTO', 'FINALIZADO', 'EXPIRADO', 'CANCELADO')
+    ),
+    CONSTRAINT ck_gate_call_prioridade CHECK (prioridade IN ('NORMAL', 'ALTA', 'EMERGENCIAL')),
+    CONSTRAINT ck_gate_call_position CHECK (posicao_fila > 0),
+    CONSTRAINT ck_gate_call_recall CHECK (quantidade_rechamadas >= 0)
 );
 
 CREATE UNIQUE INDEX uk_gate_call_ativo
     ON gate_call (gate_pass_id)
-    WHERE status IN ('CHAMADO', 'EM_ATENDIMENTO');
+    WHERE status IN ('CHAMADO', 'ACEITO', 'EM_ATENDIMENTO');
 CREATE INDEX idx_gate_call_status ON gate_call (status);
-CREATE INDEX idx_gate_call_prioridade ON gate_call (prioridade, chamado_em);
+CREATE INDEX idx_gate_call_prioridade ON gate_call (prioridade, posicao_fila, chamado_em);
+CREATE INDEX idx_gate_call_expiration ON gate_call (expira_em) WHERE status = 'CHAMADO';
 
 CREATE TABLE gate_queue_entry (
     id BIGSERIAL PRIMARY KEY,

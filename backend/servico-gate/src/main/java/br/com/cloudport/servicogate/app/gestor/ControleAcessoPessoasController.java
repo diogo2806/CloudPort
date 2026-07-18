@@ -6,6 +6,8 @@ import br.com.cloudport.servicogate.app.gestor.dto.PessoaPresenteDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.ResumoAcessoPessoasDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.SaidaPessoaRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import javax.validation.Valid;
@@ -33,6 +35,10 @@ public class ControleAcessoPessoasController {
     @PostMapping("/entradas")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Registrar a entrada de uma pessoa")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Entrada registrada"),
+            @ApiResponse(responseCode = "409", description = "A entrada já foi consumida por outra requisição")
+    })
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
     public MovimentacaoPessoaDTO registrarEntrada(@Valid @RequestBody EntradaPessoaRequest request) {
         return controleAcessoPessoasService.registrarEntrada(request);
@@ -41,6 +47,10 @@ public class ControleAcessoPessoasController {
     @PostMapping("/saidas")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Registrar a saída de uma pessoa")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Saída registrada"),
+            @ApiResponse(responseCode = "409", description = "A saída já foi consumida por outra requisição")
+    })
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
     public MovimentacaoPessoaDTO registrarSaida(@Valid @RequestBody SaidaPessoaRequest request) {
         return controleAcessoPessoasService.registrarSaida(request);

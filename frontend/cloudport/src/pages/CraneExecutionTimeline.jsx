@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatError, request, sanitizeText } from '../api.js';
+import { VesselPlannerPhase3Dashboard } from './VesselPlannerPhase3Dashboard.jsx';
 import { VesselReconciliationPanel } from './VesselReconciliationPanel.jsx';
 
 function displayDateTime(value) {
@@ -175,6 +176,7 @@ export function CraneExecutionTimeline({ plan, sequencing, disabled }) {
   if (!plan?.id) return null;
 
   return <>
+    <VesselPlannerPhase3Dashboard plan={plan} sequencing={sequencing} disabled={disabled} />
     <section className="crane-execution-panel" aria-label="Execução persistida dos guindastes">
       <header className="crane-execution-heading">
         <div><span className="view-kicker">Planejado × realizado</span><h3>Execução dos guindastes</h3></div>

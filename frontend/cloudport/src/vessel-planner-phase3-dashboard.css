@@ -1,0 +1,123 @@
+.vessel-phase3-dashboard {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color, #d9e2ec);
+}
+
+.phase3-dashboard-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.phase3-dashboard-heading h2 {
+  margin: 3px 0 6px;
+}
+
+.phase3-dashboard-heading p {
+  margin: 0;
+  color: var(--text-muted, #64748b);
+}
+
+.phase3-dashboard-message {
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.phase3-dashboard-message.error {
+  border: 1px solid #ef4444;
+  background: color-mix(in srgb, #ef4444 8%, var(--surface, #fff));
+  color: #991b1b;
+}
+
+.phase3-visual-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  gap: 16px;
+}
+
+.phase3-map-scroll,
+.phase3-section-scroll {
+  overflow: auto;
+  margin-top: 14px;
+  padding-bottom: 4px;
+}
+
+.phase3-map-grid,
+.phase3-section-grid {
+  display: grid;
+  gap: 6px;
+  min-width: max-content;
+}
+
+.phase3-map-row,
+.phase3-section-row {
+  display: contents;
+}
+
+.phase3-map-axis,
+.phase3-map-corner {
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--surface-muted, #f1f5f9);
+  font-size: .76rem;
+  font-weight: 700;
+}
+
+.phase3-map-cell,
+.phase3-section-cell {
+  position: relative;
+  min-height: 92px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 11px;
+  background: var(--surface, #fff);
+  padding: 10px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  text-align: left;
+}
+
+.phase3-map-cell strong,
+.phase3-section-cell strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phase3-map-cell span,
+.phase3-section-cell span,
+.phase3-map-cell small,
+.phase3-section-cell small {
+  font-size: .7rem;
+  color: var(--text-muted, #64748b);
+}
+
+.phase3-map-cell.selected,
+.phase3-section-cell.selected {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #1d4ed8) 28%, transparent);
+}
+
+.phase3-map-cell.absent,
+.phase3-section-cell.absent {
+  place-items: center;
+  color: var(--text-muted, #94a3b8);
+  background: color-mix(in srgb, var(--surface-muted, #f1f5f9) 65%, transparent);
+}
+
+@media (max-width: 1100px) {
+  .phase3-visual-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .phase3-dashboard-heading {
+    flex-direction: column;
+  }
+}

@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-18 com a conclusão da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -25,7 +25,7 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 13. `deploy/cloudport-runtime/provar-corte.sh` executa uma prova reproduzível com instância canônica, observador somente leitura, oito schemas, Flyway, Redis, RabbitMQ, TOS, OpenAPI, persistência após reinício, documentos e rollback sobre o mesmo banco.
 14. A prova interrompe escritor, jobs e consumidores canônicos antes de iniciar o runtime anterior, valida leitura sem downgrade e bloqueia escrita durante o ensaio de rollback.
 15. Após o ensaio, o runtime canônico é restaurado e o dado criado antes do rollback é novamente consultado.
-16. O workflow `Validar CloudPort` publica `evidencia-corte-operacional.json`, relatório Markdown, estados das instâncias, contagens Flyway e diagnósticos do ambiente.
+16. O workflow `Validar CloudPort` publica o relatório, os estados das instâncias, as contagens Flyway e os diagnósticos da prova como artefato.
 
 ## Maven, banco e configuração
 
@@ -77,6 +77,19 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 12. Peso, centros de gravidade, GM, calado, trim, banda, força cortante e momento fletor.
 13. Aprovações versionadas e invalidadas quando o plano muda.
 14. BAPLIE com posição, operação, VGM, reefer, perigosos e OOG.
+
+## Execução operacional do Vessel Planner — BUS1150, BUS1160 e DATA1180
+
+1. A sequência de guindastes possui execução persistida por movimento, com guindaste, ordem, janela, início, conclusão, falha, replanejamento, reconciliação e quantidade realizada.
+2. A linha do tempo operacional apresenta progresso, exceções e resultado real sem substituir o plano aprovado.
+3. Tampas de porão possuem entidades de tampa, posição, tarefa e dependência com operações de abrir, remover, posicionar e fechar.
+4. Dependências incompletas e estados incompatíveis impedem movimentos de guindaste relacionados.
+5. A reconciliação compara BAPLIE, plano aprovado, inventário e execução física, incluindo posição e peso confirmados pelo COARRI.
+6. Divergências são persistidas por contêiner e fonte, mantendo separados os valores de BAPLIE, plano, inventário e execução.
+7. Divergências críticas abertas bloqueiam aprovação, publicação e conclusão do plano.
+8. A resolução registra decisão, justificativa, usuário e instante sem sobrescrever silenciosamente os dados de origem.
+9. Divergências são reabertas quando as fontes mudam e resolvidas automaticamente quando voltam a ficar consistentes.
+10. O Vessel Planner disponibiliza fila visual e endpoints autenticados para consulta, reconciliação e resolução.
 
 ## Operações administrativas de Navio
 

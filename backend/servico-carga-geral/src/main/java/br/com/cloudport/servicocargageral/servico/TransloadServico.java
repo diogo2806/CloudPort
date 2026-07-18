@@ -37,6 +37,7 @@ public class TransloadServico {
         validarReexecucaoEquivalente(operacao, request);
 
         if (operacao.getStatus() == StatusTransload.CANCELADO) {
+            liberarReservasCanceladas(operacao);
             throw conflito("O commandId informado pertence a um transload cancelado: "
                     + operacao.getMotivoCancelamento());
         }
@@ -147,19 +148,10 @@ public class TransloadServico {
     private void compensarFalhaDeAplicacao(
             OperacaoTransload operacao,
             RuntimeException falhaOriginal) {
-        List<RuntimeException> falhasCompensacao = new ArrayList<>();
-        liberarComCaptura(
-                operacao.getReservaDestinoId(),
-                operacao.getUsuario(),
+        List<RuntimeException> falhasCompensacao = liberarReservas(
+                operacao,
                 "Transload cancelado antes da atualização atômica",
-                "CANCELADA",
-                falhasCompensacao);
-        liberarComCaptura(
-                operacao.getReservaOrigemId(),
-                operacao.getUsuario(),
-                "Transload cancelado antes da atualização atômica",
-                "CANCELADA",
-                falhasCompensacao);
+                "CANCELADA");
         try {
             transacaoServico.cancelar(operacao.getId(), mensagem(falhaOriginal));
         } catch (RuntimeException exception) {
@@ -169,23 +161,48 @@ public class TransloadServico {
     }
 
     private void liberarReservasConcluidas(OperacaoTransload operacao) {
-        List<RuntimeException> falhas = new ArrayList<>();
-        liberarComCaptura(
-                operacao.getReservaOrigemId(),
-                operacao.getUsuario(),
+        List<RuntimeException> falhas = liberarReservas(
+                operacao,
                 "Transload concluído",
-                "CONCLUIDA",
-                falhas);
+                "CONCLUIDA");
+        validarLiberacao(falhas, "Transload concluído, mas a liberação de uma unidade está pendente. "
+                + "Reenvie o mesmo commandId.");
+    }
+
+    private void liberarReservasCanceladas(OperacaoTransload operacao) {
+        List<RuntimeException> falhas = liberarReservas(
+                operacao,
+                "Compensação de transload cancelado",
+                "CANCELADA");
+        validarLiberacao(falhas, "Transload cancelado, mas a compensação de uma unidade está pendente. "
+                + "Reenvie o mesmo commandId.");
+    }
+
+    private List<RuntimeException> liberarReservas(
+            OperacaoTransload operacao,
+            String motivo,
+            String resultado) {
+        List<RuntimeException> falhas = new ArrayList<>();
         liberarComCaptura(
                 operacao.getReservaDestinoId(),
                 operacao.getUsuario(),
-                "Transload concluído",
-                "CONCLUIDA",
+                motivo,
+                resultado,
                 falhas);
+        liberarComCaptura(
+                operacao.getReservaOrigemId(),
+                operacao.getUsuario(),
+                motivo,
+                resultado,
+                falhas);
+        return falhas;
+    }
+
+    private void validarLiberacao(List<RuntimeException> falhas, String mensagem) {
         if (!falhas.isEmpty()) {
             ResponseStatusException exception = new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    "Transload concluído, mas a liberação de uma unidade está pendente. Reenvie o mesmo commandId.",
+                    mensagem,
                     falhas.get(0));
             falhas.stream().skip(1).forEach(exception::addSuppressed);
             throw exception;

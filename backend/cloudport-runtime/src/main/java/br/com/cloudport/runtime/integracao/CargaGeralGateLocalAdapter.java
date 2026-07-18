@@ -1,7 +1,7 @@
 package br.com.cloudport.runtime.integracao;
 
 import br.com.cloudport.servicocargageral.dominio.OperacoesIntermodaisTipos.EstagioGateCarga;
-import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.ConfirmarGateCargaRequest;
+import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs;
 import br.com.cloudport.servicocargageral.servico.OperacoesIntermodaisServico;
 import br.com.cloudport.servicogate.integration.cargageral.CargaGeralGateCliente;
 import java.util.UUID;
@@ -27,6 +27,9 @@ public class CargaGeralGateLocalAdapter extends CargaGeralGateCliente {
         }
         servico.confirmarGate(
                 reservaId,
-                new ConfirmarGateCargaRequest(commandId, EstagioGateCarga.valueOf(estagio), usuario));
+                new OperacoesIntermodaisDTOs.ConfirmarGateCargaRequest(
+                        commandId,
+                        EstagioGateCarga.valueOf(estagio),
+                        usuario));
     }
 }

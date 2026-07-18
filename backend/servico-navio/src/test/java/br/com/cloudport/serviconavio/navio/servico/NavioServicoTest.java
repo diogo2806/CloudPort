@@ -74,7 +74,7 @@ class NavioServicoTest {
         assertThat(salvo.getLoaMetros()).isEqualByComparingTo("294.00");
         assertThat(salvo.getCaladoMaximoMetros()).isEqualByComparingTo("14.50");
         assertThat(salvo.getCallSign()).isEqualTo("PWXY");
-        verify(eventPublisher).publishEvent(any());
+        verify(eventPublisher).publishEvent(any(Object.class));
     }
 
     @Test
@@ -85,7 +85,7 @@ class NavioServicoTest {
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(navioRepositorio, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
     @Test

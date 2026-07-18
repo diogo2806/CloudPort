@@ -13,6 +13,10 @@
   min-width: 170px;
 }
 
+.multi-view-scan {
+  grid-column: 1 / -1;
+}
+
 .vessel-scan-view {
   min-height: 420px;
 }
@@ -118,6 +122,21 @@
   letter-spacing: .04em;
   background: rgba(15, 23, 42, .88);
   color: #fff;
+}
+
+.inspector-status-row .status-pill.low {
+  border-color: #22c55e;
+  color: #166534;
+}
+
+.inspector-status-row .status-pill.medium {
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+.inspector-status-row .status-pill.high {
+  border-color: #ef4444;
+  color: #991b1b;
 }
 
 .vessel-overlay-details {

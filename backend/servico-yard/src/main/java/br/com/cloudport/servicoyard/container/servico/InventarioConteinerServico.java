@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +32,7 @@ public class InventarioConteinerServico {
                                                      TipoCargaConteiner tipoCarga) {
         String codigoNormalizado = normalizarCodigo(codigo);
         List<ConteinerPatio> conteineres = conteinerPatioRepositorio
-                .findAll(Sort.by(Sort.Direction.ASC, "codigo"))
+                .findAllByOrderByCodigoAsc()
                 .stream()
                 .filter(conteiner -> filtrarCodigo(conteiner, codigoNormalizado))
                 .filter(conteiner -> status == null || conteiner.getStatus() == status)

@@ -4,6 +4,7 @@ import br.com.cloudport.servicoyard.seguranca.PoliticaAutorizacaoEstiva;
 import br.com.cloudport.servicoyard.vesselplanner.dto.TampaPoraoDTOs.ComandoTarefaRequest;
 import br.com.cloudport.servicoyard.vesselplanner.dto.TampaPoraoDTOs.CriarTarefaRequest;
 import br.com.cloudport.servicoyard.vesselplanner.dto.TampaPoraoDTOs.TampaResposta;
+import br.com.cloudport.servicoyard.vesselplanner.servico.TampaPoraoComandoTransacionalServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.TampaPoraoServico;
 import java.security.Principal;
 import java.util.List;
@@ -23,9 +24,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class TampaPoraoControlador {
 
     private final TampaPoraoServico servico;
+    private final TampaPoraoComandoTransacionalServico comandoTransacionalServico;
 
-    public TampaPoraoControlador(TampaPoraoServico servico) {
+    public TampaPoraoControlador(
+            TampaPoraoServico servico,
+            TampaPoraoComandoTransacionalServico comandoTransacionalServico) {
         this.servico = servico;
+        this.comandoTransacionalServico = comandoTransacionalServico;
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
@@ -52,7 +57,7 @@ public class TampaPoraoControlador {
             @PathVariable Long tarefaId,
             @Valid @RequestBody(required = false) ComandoTarefaRequest request,
             Principal principal) {
-        return ResponseEntity.ok(servico.iniciarTarefa(
+        return ResponseEntity.ok(comandoTransacionalServico.iniciarTarefa(
                 planId,
                 tarefaId,
                 request == null ? new ComandoTarefaRequest() : request,

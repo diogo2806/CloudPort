@@ -29,6 +29,10 @@ public class DivergenciaPosicaoPatio {
     @JoinColumn(name = "unidade_id", nullable = false)
     private UnidadeInventario unidade;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "condicao_anterior", nullable = false, length = 30)
+    private UnidadeInventario.CondicaoEquipamento condicaoAnterior;
+
     @Column(name = "identificacao_unidade", nullable = false, length = 40)
     private String identificacaoUnidade;
 
@@ -93,6 +97,10 @@ public class DivergenciaPosicaoPatio {
     public Long getId() { return id; }
     public UnidadeInventario getUnidade() { return unidade; }
     public void setUnidade(UnidadeInventario unidade) { this.unidade = unidade; }
+    public UnidadeInventario.CondicaoEquipamento getCondicaoAnterior() { return condicaoAnterior; }
+    public void setCondicaoAnterior(UnidadeInventario.CondicaoEquipamento condicaoAnterior) {
+        this.condicaoAnterior = condicaoAnterior;
+    }
     public String getIdentificacaoUnidade() { return identificacaoUnidade; }
     public void setIdentificacaoUnidade(String identificacaoUnidade) { this.identificacaoUnidade = identificacaoUnidade; }
     public String getPosicaoEsperada() { return posicaoEsperada; }

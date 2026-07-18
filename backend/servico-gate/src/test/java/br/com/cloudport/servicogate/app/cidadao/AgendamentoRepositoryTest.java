@@ -3,6 +3,7 @@ package br.com.cloudport.servicogate.app.cidadao;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
+import br.com.cloudport.servicogate.app.transparencia.DashboardMetricsProjection;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.JanelaAtendimento;
 import br.com.cloudport.servicogate.model.Motorista;
@@ -11,7 +12,6 @@ import br.com.cloudport.servicogate.model.Veiculo;
 import br.com.cloudport.servicogate.model.enums.CanalEntrada;
 import br.com.cloudport.servicogate.model.enums.StatusAgendamento;
 import br.com.cloudport.servicogate.model.enums.TipoOperacao;
-import br.com.cloudport.servicogate.app.transparencia.DashboardMetricsProjection;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -26,6 +26,7 @@ import org.springframework.test.context.TestPropertySource;
 @DataJpaTest
 @TestPropertySource(properties = {
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.jpa.properties.hibernate.default_schema=PUBLIC",
         "spring.flyway.enabled=false"
 })
 class AgendamentoRepositoryTest {
@@ -159,16 +160,16 @@ class AgendamentoRepositoryTest {
     }
 
     private Agendamento criarAgendamento(String codigo,
-                                         Transportadora transportadora,
-                                         Motorista motorista,
-                                         Veiculo veiculo,
-                                         JanelaAtendimento janela,
-                                         TipoOperacao tipoOperacao,
-                                         StatusAgendamento status,
-                                         LocalDateTime previstoChegada,
-                                         LocalDateTime previstoSaida,
-                                         LocalDateTime realChegada,
-                                         LocalDateTime realSaida) {
+                                          Transportadora transportadora,
+                                          Motorista motorista,
+                                          Veiculo veiculo,
+                                          JanelaAtendimento janela,
+                                          TipoOperacao tipoOperacao,
+                                          StatusAgendamento status,
+                                          LocalDateTime previstoChegada,
+                                          LocalDateTime previstoSaida,
+                                          LocalDateTime realChegada,
+                                          LocalDateTime realSaida) {
         Agendamento agendamento = new Agendamento();
         agendamento.setCodigo(codigo);
         agendamento.setTransportadora(transportadora);

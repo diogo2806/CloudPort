@@ -14,6 +14,7 @@ import {
   buildImdgIndex,
   buildOverlayIndex
 } from '../vessel-planner-phase3.js';
+import { resolveControlledValue } from '../vessel-planner-complete.js';
 import '../vessel-planner-phase3.css';
 import '../vessel-planner-phase3-dashboard.css';
 import { VesselOverlayToolbar, VesselPlannerPhase3Panels } from './VesselPlannerPhase3Panels.jsx';
@@ -112,14 +113,25 @@ function OverlaySection({ slots, overlayIndex, selectedSlotId, onSelectSlot }) {
   </section>;
 }
 
-export function VesselPlannerPhase3Dashboard({ plan, sequencing, disabled }) {
+export function VesselPlannerPhase3Dashboard({
+  plan,
+  sequencing,
+  disabled,
+  selectedSlotId: controlledSelectedSlotId,
+  onSelectSlot,
+  overlayMode: controlledOverlayMode,
+  onOverlayModeChange,
+  showOverlayToolbar = true
+}) {
   const [stability, setStability] = useState(plan?.estabilidade ?? null);
   const [restow, setRestow] = useState(null);
-  const [overlayMode, setOverlayMode] = useState('COMBINED');
-  const [selectedSlotId, setSelectedSlotId] = useState('');
+  const [localOverlayMode, setLocalOverlayMode] = useState('COMBINED');
+  const [localSelectedSlotId, setLocalSelectedSlotId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const overlayMode = resolveControlledValue(controlledOverlayMode, localOverlayMode);
+  const selectedSlotId = resolveControlledValue(controlledSelectedSlotId, localSelectedSlotId);
   const slots = useMemo(() => normalizeSlots(plan), [plan]);
   const containerIndex = useMemo(() => buildContainerIndex(plan?.containers), [plan]);
   const stackSummaries = useMemo(() => buildStackSummaries(slots), [slots]);
@@ -149,29 +161,42 @@ export function VesselPlannerPhase3Dashboard({ plan, sequencing, disabled }) {
     }
   }, [plan?.id]);
 
+  function selectSlot(slot) {
+    if (!slot) return;
+    if (typeof onSelectSlot === 'function') onSelectSlot(slot);
+    else setLocalSelectedSlotId(String(slot.id));
+  }
+
+  function changeOverlayMode(mode) {
+    if (typeof onOverlayModeChange === 'function') onOverlayModeChange(mode);
+    else setLocalOverlayMode(mode);
+  }
+
   useEffect(() => {
     setStability(plan?.estabilidade ?? null);
     setRestow(null);
-    setSelectedSlotId('');
+    if (controlledSelectedSlotId === undefined || controlledSelectedSlotId === null) setLocalSelectedSlotId('');
     loadTechnicalData();
-  }, [plan?.id, loadTechnicalData]);
+  }, [plan?.id, controlledSelectedSlotId, loadTechnicalData]);
 
   useEffect(() => {
-    if (!selectedSlotId && slots.length) setSelectedSlotId(String(slots.find((slot) => slot.codigoContainer)?.id ?? slots[0].id));
-  }, [slots, selectedSlotId]);
+    if ((controlledSelectedSlotId === undefined || controlledSelectedSlotId === null) && !localSelectedSlotId && slots.length) {
+      setLocalSelectedSlotId(String(slots.find((slot) => slot.codigoContainer)?.id ?? slots[0].id));
+    }
+  }, [slots, controlledSelectedSlotId, localSelectedSlotId]);
 
   if (!plan?.id || !slots.length) return null;
 
   return <section className="vessel-phase3-dashboard" aria-label="Fase 3 do planejamento gráfico">
     <div className="phase3-dashboard-heading">
-      <div><span className="view-kicker">Vessel Planner · Fase 3</span><h2>Segregação, sequência, restow e integridade técnica</h2><p>Camadas gráficas calculadas a partir do plano e dos resultados técnicos persistidos pelo backend.</p></div>
+      <div><span className="view-kicker">Vessel Planner · Integridade técnica</span><h2>Segregação, sequência, restow e integridade técnica</h2><p>A seleção e a camada ativa permanecem sincronizadas com profile, top, scan, section e tier.</p></div>
       <button type="button" className="secondary" onClick={loadTechnicalData} disabled={loading || disabled}>{loading ? 'Atualizando...' : 'Atualizar análises'}</button>
     </div>
     {error && <div className="phase3-dashboard-message error">{error}</div>}
-    <VesselOverlayToolbar mode={overlayMode} setMode={setOverlayMode} overlayIndex={overlayIndex} />
+    {showOverlayToolbar && <VesselOverlayToolbar mode={overlayMode} setMode={changeOverlayMode} overlayIndex={overlayIndex} />}
     <div className="phase3-visual-grid">
-      <OverlayMap slots={slots} overlayIndex={overlayIndex} stackSummaries={stackSummaries} selectedSlotId={selectedSlotId} onSelectSlot={(slot) => setSelectedSlotId(String(slot.id))} />
-      <OverlaySection slots={slots} overlayIndex={overlayIndex} selectedSlotId={selectedSlotId} onSelectSlot={(slot) => setSelectedSlotId(String(slot.id))} />
+      <OverlayMap slots={slots} overlayIndex={overlayIndex} stackSummaries={stackSummaries} selectedSlotId={selectedSlotId} onSelectSlot={selectSlot} />
+      <OverlaySection slots={slots} overlayIndex={overlayIndex} selectedSlotId={selectedSlotId} onSelectSlot={selectSlot} />
     </div>
     <VesselPlannerPhase3Panels
       slots={slots}
@@ -180,7 +205,7 @@ export function VesselPlannerPhase3Dashboard({ plan, sequencing, disabled }) {
       selectedSlotId={selectedSlotId}
       sequencing={sequencing}
       restow={restow}
-      onSelectSlot={(slot) => setSelectedSlotId(String(slot.id))}
+      onSelectSlot={selectSlot}
     />
   </section>;
 }

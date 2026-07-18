@@ -47,6 +47,13 @@ function overlayLevel(stack, overlay) {
   return stackClass(stack);
 }
 
+function sameStack(left, right) {
+  return Boolean(left && right)
+    && String(left.bloco) === String(right.bloco)
+    && String(left.linha) === String(right.linha)
+    && String(left.coluna) === String(right.coluna);
+}
+
 function StackButton({ stack, overlay, selected, onSelect, onDragStart, onDrop }) {
   const level = overlayLevel(stack, overlay);
   const metric = overlay === 'occupancy'
@@ -134,14 +141,14 @@ function MicroView({ stack, onDragStart, onDrop }) {
   </div>;
 }
 
-export function OperationalYardViews({ blocks, movements, telemetry, alerts, filters, onApplyFilters, canOperate, onReload }) {
+export function OperationalYardViews({ blocks, movements, telemetry, alerts, filters, selectedStack: controlledSelectedStack, onSelectStack, onApplyFilters, canOperate, onReload }) {
   const operationalBlocks = useMemo(() => enrichOperationalStacks(blocks, movements), [blocks, movements]);
   const blockNames = operationalBlocks.map((block) => block.bloco);
   const [viewMode, setViewMode] = useState('block');
   const [overlay, setOverlay] = useState('status');
   const [selectedBlock, setSelectedBlock] = useState(blockNames[0] ?? '');
   const [selectedLine, setSelectedLine] = useState('');
-  const [selectedStack, setSelectedStack] = useState(null);
+  const [localSelectedStack, setLocalSelectedStack] = useState(null);
   const [dragSource, setDragSource] = useState(null);
   const [preview, setPreview] = useState(null);
   const [reason, setReason] = useState('');
@@ -151,6 +158,8 @@ export function OperationalYardViews({ blocks, movements, telemetry, alerts, fil
   const [workspaceName, setWorkspaceName] = useState('');
   const [workspaces, setWorkspaces] = useState(() => readYardWorkspaces(globalThis.localStorage));
   const [restriction, setRestriction] = useState({ bloqueada: false, interditada: false, areaPermitida: true, notaOperacional: '' });
+  const selectedSource = controlledSelectedStack ?? localSelectedStack;
+  const selectedStack = operationalBlocks.flatMap((block) => block.stacks).find((stack) => sameStack(stack, selectedSource)) ?? selectedSource;
 
   useEffect(() => {
     if (!selectedBlock && blockNames.length) setSelectedBlock(blockNames[0]);
@@ -159,6 +168,7 @@ export function OperationalYardViews({ blocks, movements, telemetry, alerts, fil
 
   useEffect(() => {
     if (!selectedStack) return;
+    setSelectedBlock(selectedStack.bloco);
     setRestriction({
       bloqueada: selectedStack.layers.some((layer) => layer.bloqueada),
       interditada: selectedStack.layers.some((layer) => layer.interditada),
@@ -174,8 +184,9 @@ export function OperationalYardViews({ blocks, movements, telemetry, alerts, fil
   const restricted = operationalBlocks.flatMap((block) => block.stacks).filter((stack) => stack.restricted).length;
 
   function selectStack(stack) {
-    setSelectedStack(stack);
+    setLocalSelectedStack(stack);
     setSelectedBlock(stack.bloco);
+    onSelectStack?.(stack);
   }
 
   function startDrag(event, layer) {
@@ -292,7 +303,7 @@ export function OperationalYardViews({ blocks, movements, telemetry, alerts, fil
     <div className="yard-live-equipment">{(telemetry ?? []).map((item, index) => <article key={item.equipamento ?? item.identificador ?? index}>
       <strong>{item.equipamento ?? item.identificador ?? 'CHE'}</strong>
       <StatusBadge value={item.statusOperacional ?? item.status} />
-      <small>{item.posicaoMaisProxima ?? `${item.linha ?? '—'}/${item.coluna ?? '—'}`}</small>
+      <small>{item.posicaoMaisProxima ?? `${item.bloco ? `${item.bloco} · ` : ''}${item.linha ?? '—'}/${item.coluna ?? '—'}`}</small>
     </article>)}</div>
 
     {viewMode === 'block' && <BlockView blocks={operationalBlocks} {...viewProps} />}

@@ -19,6 +19,7 @@ import {
   uniqueCoordinates
 } from '../vessel-planner-model.js';
 import { dominantLegendForSlots, findSynchronizedSlot, selectionCoordinates } from '../vessel-planner-phase1.js';
+import { VesselPlannerReconciliationPanel } from './VesselPlannerReconciliationPanel.jsx';
 import '../vessel-planner-phase1.css';
 
 const DRAG_TYPE = 'application/x-cloudport-vessel-container';
@@ -299,6 +300,7 @@ export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, seque
     <div className="vessel-workspace-toolbar"><div className="view-mode-tabs" role="tablist" aria-label="Vistas do Vessel Planner">{VESSEL_VIEW_MODES.map((mode) => <button key={mode.value} type="button" className={viewMode === mode.value ? 'active' : ''} onClick={() => setViewMode(mode.value)}>{mode.label}</button>)}</div><div className="coordinate-controls"><label>Bay<select value={coordinates.bay ?? ''} onChange={(event) => selectCoordinates({ bay: Number(event.target.value) })}>{bays.map((bay) => <option key={bay} value={bay}>{bay}</option>)}</select></label><label>Row<select value={coordinates.rowBay ?? ''} onChange={(event) => selectCoordinates({ rowBay: Number(event.target.value) })}>{rows.map((row) => <option key={row} value={row}>{row}</option>)}</select></label><label>Tier<select value={coordinates.tier ?? ''} onChange={(event) => selectCoordinates({ tier: Number(event.target.value) })}>{tiers.map((tier) => <option key={tier} value={tier}>{tier}</option>)}</select></label></div></div>
     <div className="vessel-phase1-selection"><span>Seleção sincronizada</span><strong>B{coordinates.bay} · R{coordinates.rowBay} · T{coordinates.tier}</strong><small>{selectedSlot?.codigoContainer || 'Slot livre'} · {selectedSlot ? legendValueForSlot(selectedSlot, legendMode, containerIndex) : '—'}</small></div>
     <LegendPanel mode={legendMode} setMode={setLegendMode} legend={legend} />
+    <VesselPlannerReconciliationPanel planId={plan?.id} planStatus={plan?.status} canCommand={canEdit} busy={busy} />
     <div className="vessel-workspace-layout"><main className="vessel-main-canvas">{viewMode === 'MULTI' ? <div className="multi-view-grid"><div>{renderView('PROFILE')}</div><div>{renderView('TOP')}</div><div>{renderView('SECTION')}</div><div>{renderView('TIER')}</div></div> : renderView(viewMode)}</main><Inspector slot={selectedSlot} context={context} onClear={() => onSelectSlot(null)} /></div>
     <UnallocatedTray containers={unallocated} canEdit={canEdit && !busy} />
     <TechnicalSummary stability={stability} restow={restow} sequencing={sequencing} onSelect={selectSlot} slots={slots} />

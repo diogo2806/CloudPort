@@ -135,7 +135,6 @@ class VisibilidadeDashboardServiceTest {
     @Test
     void detectarAlertasAutomaticosNaoDevePublicarQuandoHouverRollback() {
         VisibilidadeDashboardService service = spy(criarService(10));
-        doNothing().when(service).publicarDashboard();
         iniciarTransacaoSimulada();
 
         service.detectarAlertasAutomaticos();
@@ -152,7 +151,6 @@ class VisibilidadeDashboardServiceTest {
     @Test
     void naoDeveUsarFallbackDiretoQuandoHaTransacaoSemSincronizacao() {
         VisibilidadeDashboardService service = spy(criarService(10));
-        doNothing().when(service).publicarDashboard();
         TransactionSynchronizationManager.setActualTransactionActive(true);
 
         assertThrows(IllegalStateException.class, service::publicarDashboardAposCommit);

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import br.com.cloudport.servicogate.app.cidadao.AgendamentoRealtimeService;
 import br.com.cloudport.servicogate.app.gestor.dto.ConfirmacaoBarcodeRequest;
 import br.com.cloudport.servicogate.app.gestor.dto.ConfirmacaoBarcodeResponse;
 import br.com.cloudport.servicogate.exception.BusinessException;
@@ -30,6 +31,9 @@ class ConfirmacaoBarcodeServiceTest {
 
     @Mock
     private GateEventRepository gateEventRepository;
+
+    @Mock
+    private AgendamentoRealtimeService agendamentoRealtimeService;
 
     @InjectMocks
     private ConfirmacaoBarcodeService service;

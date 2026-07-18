@@ -317,7 +317,10 @@ export function RailLineUpPage() {
 
   const visitas = useMemo(() => normalizarVisitasFerrovia(dados), [dados]);
   const segmentos = useMemo(() => construirOcupacoesFerroviarias(visitas), [visitas]);
-  const simuladas = useMemo(() => construirSimulacaoFerroviaria(visitas, instante), [visitas, instante]);
+  const simuladas = useMemo(
+    () => construirSimulacaoFerroviaria(visitas, segmentos, instante),
+    [visitas, segmentos, instante]
+  );
   const composicao = useMemo(() => construirComposicaoFerroviaria(detalheVisita), [detalheVisita]);
   const ocupacoesComposicao = useMemo(
     () => construirOcupacaoLinhasComposicao(composicao, planejamento),

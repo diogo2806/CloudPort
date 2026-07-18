@@ -2,6 +2,7 @@ package br.com.cloudport.servicogate.app.operacional;
 
 import br.com.cloudport.servicogate.exception.ApiError;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -55,7 +56,7 @@ public class GateOperacionalDatabaseExceptionHandler {
             ApiError apiError = new ApiError(
                     rejeicao.status().value(),
                     rejeicao.mensagem(),
-                    java.util.Collections.emptyList());
+                    Collections.emptyList());
             return new ResponseEntity<>(apiError, rejeicao.status());
         }
 
@@ -63,7 +64,7 @@ public class GateOperacionalDatabaseExceptionHandler {
         ApiError apiError = new ApiError(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Não foi possível concluir a operação de Gate.",
-                java.util.Collections.emptyList());
+                Collections.emptyList());
         return new ResponseEntity<>(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -96,7 +97,8 @@ public class GateOperacionalDatabaseExceptionHandler {
         }
 
         if ("23503".equals(sqlState)
-                && CONSTRAINTS_REFERENCIA_TRUCK_VISIT.stream().anyMatch(constraint -> contem(mensagemTecnica, constraint))) {
+                && CONSTRAINTS_REFERENCIA_TRUCK_VISIT.stream()
+                .anyMatch(constraint -> contem(mensagemTecnica, constraint))) {
             return new RejeicaoOperacional(
                     HttpStatus.UNPROCESSABLE_ENTITY,
                     "Uma referência informada para a truck visit não está mais disponível.");

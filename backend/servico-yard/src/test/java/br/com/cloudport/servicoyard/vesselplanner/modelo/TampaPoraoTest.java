@@ -20,7 +20,7 @@ class TampaPoraoTest {
         assertTrue(tampa.permiteMovimento(true));
 
         tampa.confirmar(TipoOperacaoTampaPorao.ABRIR);
-        assertTrue(tampa.permiteMovimento(false));
+        assertFalse(tampa.permiteMovimento(false));
         assertFalse(tampa.permiteMovimento(true));
 
         tampa.confirmar(TipoOperacaoTampaPorao.REMOVER);

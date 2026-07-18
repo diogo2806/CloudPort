@@ -1,6 +1,7 @@
 package br.com.cloudport.servicogate.app.gestor;
 
 import br.com.cloudport.servicogate.exception.BusinessException;
+import br.com.cloudport.servicogate.exception.ConflictException;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.GatePass;
 import br.com.cloudport.servicogate.model.GateResourceOccupation;
@@ -8,10 +9,12 @@ import br.com.cloudport.servicogate.model.enums.GateResourceType;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -29,15 +32,16 @@ public class GateResourceOccupationService {
     }
 
     public List<GateResourceOccupation> ocuparRecursos(Agendamento agendamento,
-                                                        GatePass gatePass,
-                                                        String chassis,
-                                                        List<String> unidades) {
+                                                         GatePass gatePass,
+                                                         String chassis,
+                                                         List<String> unidades) {
+        Map<GateResourceType, List<String>> recursos = montarRecursos(agendamento, chassis, unidades);
         List<GateResourceOccupation> ocupacoesAtivas = repository.findByGatePassIdAndAtivoTrue(gatePass.getId());
         if (!ocupacoesAtivas.isEmpty()) {
+            validarOcupacaoExistente(gatePass, ocupacoesAtivas, recursos);
             return ocupacoesAtivas;
         }
 
-        Map<GateResourceType, List<String>> recursos = montarRecursos(agendamento, chassis, unidades);
         validarConflitos(recursos, gatePass.getId());
 
         LocalDateTime agora = LocalDateTime.now();
@@ -54,20 +58,24 @@ public class GateResourceOccupationService {
 
         try {
             return repository.saveAllAndFlush(ocupacoes);
-        } catch (DataIntegrityViolationException ex) {
-            validarConflitos(recursos, gatePass.getId());
-            throw new BusinessException("Um dos recursos da visita foi ocupado por outra operação concorrente");
+        } catch (DataIntegrityViolationException exception) {
+            throw new ConflictException(
+                    "Um dos recursos da visita foi ocupado por outra operação concorrente",
+                    exception);
         }
     }
 
     public void liberarRecursos(Long gatePassId) {
         LocalDateTime agora = LocalDateTime.now();
         List<GateResourceOccupation> ocupacoes = repository.findByGatePassIdAndAtivoTrue(gatePassId);
+        if (ocupacoes.isEmpty()) {
+            return;
+        }
         ocupacoes.forEach(ocupacao -> {
             ocupacao.setAtivo(false);
             ocupacao.setLiberadoEm(agora);
         });
-        repository.saveAll(ocupacoes);
+        repository.saveAllAndFlush(ocupacoes);
     }
 
     @Transactional(readOnly = true)
@@ -76,8 +84,8 @@ public class GateResourceOccupationService {
     }
 
     private Map<GateResourceType, List<String>> montarRecursos(Agendamento agendamento,
-                                                                String chassis,
-                                                                List<String> unidades) {
+                                                                 String chassis,
+                                                                 List<String> unidades) {
         Map<GateResourceType, List<String>> recursos = new LinkedHashMap<>();
         recursos.put(GateResourceType.MOTORISTA, List.of(
                 normalizar(agendamento.getMotorista().getDocumento(), "Motorista")));
@@ -97,6 +105,30 @@ public class GateResourceOccupationService {
         return recursos;
     }
 
+    private void validarOcupacaoExistente(GatePass gatePass,
+                                           List<GateResourceOccupation> ocupacoesAtivas,
+                                           Map<GateResourceType, List<String>> recursosSolicitados) {
+        Map<GateResourceType, Set<String>> recursosAtivos = ocupacoesAtivas.stream()
+                .collect(Collectors.groupingBy(
+                        GateResourceOccupation::getTipoRecurso,
+                        LinkedHashMap::new,
+                        Collectors.mapping(
+                                GateResourceOccupation::getChaveRecurso,
+                                Collectors.toCollection(LinkedHashSet::new))));
+        Map<GateResourceType, Set<String>> recursosNormalizados = recursosSolicitados.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> new LinkedHashSet<>(entry.getValue()),
+                        (existente, ignorado) -> existente,
+                        LinkedHashMap::new));
+
+        if (!recursosAtivos.equals(recursosNormalizados)) {
+            throw new ConflictException(String.format(
+                    "GatePass %s já possui visita ativa com recursos diferentes; finalize ou cancele a visita antes de alterá-los",
+                    gatePass.getCodigo()));
+        }
+    }
+
     private void validarConflitos(Map<GateResourceType, List<String>> recursos, Long gatePassAtualId) {
         recursos.forEach((tipo, chaves) -> repository
                 .findByTipoRecursoAndChaveRecursoInAndAtivoTrue(tipo, chaves)
@@ -105,7 +137,7 @@ public class GateResourceOccupationService {
                 .findFirst()
                 .ifPresent(ocupacao -> {
                     String gatePass = ocupacao.getGatePass().getCodigo();
-                    throw new BusinessException(String.format(
+                    throw new ConflictException(String.format(
                             "Conflito de visita ativa: recurso %s %s já está ocupado pelo GatePass %s",
                             tipo, ocupacao.getChaveRecurso(), gatePass));
                 }));

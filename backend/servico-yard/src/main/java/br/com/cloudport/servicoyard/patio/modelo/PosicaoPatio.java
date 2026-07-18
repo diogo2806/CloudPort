@@ -41,6 +41,9 @@ public class PosicaoPatio {
     @Column(name = "area_permitida", nullable = false)
     private boolean areaPermitida = true;
 
+    @Column(name = "nota_operacional", length = 500)
+    private String notaOperacional;
+
     @Column(name = "tipos_carga_permitidos", length = 500)
     private String tiposCargaPermitidos;
 
@@ -155,6 +158,14 @@ public class PosicaoPatio {
 
     public void setAreaPermitida(boolean areaPermitida) {
         this.areaPermitida = areaPermitida;
+    }
+
+    public String getNotaOperacional() {
+        return notaOperacional;
+    }
+
+    public void setNotaOperacional(String notaOperacional) {
+        this.notaOperacional = notaOperacional;
     }
 
     public String getTiposCargaPermitidos() {

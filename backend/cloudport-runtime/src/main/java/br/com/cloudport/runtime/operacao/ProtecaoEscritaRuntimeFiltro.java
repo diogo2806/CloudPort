@@ -30,7 +30,7 @@ public class ProtecaoEscritaRuntimeFiltro extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     public ProtecaoEscritaRuntimeFiltro(
-            @Value("${cloudport.runtime.writes-enabled:false}") boolean escritaHabilitada,
+            @Value("${cloudport.runtime.cutover-writes-enabled:false}") boolean escritaHabilitada,
             ObjectMapper objectMapper) {
         this.escritaHabilitada = escritaHabilitada;
         this.objectMapper = objectMapper;

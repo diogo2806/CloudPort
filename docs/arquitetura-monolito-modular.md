@@ -1,12 +1,14 @@
 # Arquitetura do monólito modular CloudPort
 
+Atualizado em 2026-07-18 com o estado da `main` após as entregas de Carga Geral, Inventory Management, Gate operacional, Control Room, Yard, Vessel Planner, Billing/CAP e implantação no EasyPanel.
+
 ## Status da decisão
 
 - Estado: vigente.
 - Arquitetura alvo: monólito modular.
 - Runtime geral: `backend/cloudport-runtime`.
 - Primeiro corte preservado para rollback: `backend/cloudport-monolito-navio`.
-- Módulos incorporados: Autenticação, Gate, Rail, Visibilidade, Yard, Navio e Navio Siderúrgico.
+- Módulos incorporados: Autenticação, Carga Geral, Gate, Rail, Visibilidade, Yard, Navio e Navio Siderúrgico.
 
 Este documento é a referência principal para estrutura, comunicação, persistência, segurança, build, implantação e rollback do backend.
 
@@ -14,10 +16,10 @@ Este documento é a referência principal para estrutura, comunicação, persist
 
 O CloudPort executa suas funcionalidades internas em um único processo Spring Boot, mantendo limites explícitos entre os módulos de negócio.
 
-O runtime geral deve possuir:
+O runtime geral possui:
 
 1. um artefato e um processo para o backend;
-2. módulos Maven com responsabilidade e dependências explícitas;
+2. oito módulos Maven com responsabilidade e dependências explícitas;
 3. comunicação local por portas, serviços de aplicação e eventos internos;
 4. contratos HTTP preservados na borda para frontend e integrações externas;
 5. segurança, CORS, OpenAPI, cache, banco e infraestrutura transversal centralizados;
@@ -28,30 +30,31 @@ O runtime geral deve possuir:
 
 | Capacidade | Estado |
 | --- | --- |
-| Processo Spring Boot único | Implementado em `cloudport-runtime` |
-| Autenticação | Incorporada; emissão e validação continuam separadas por componentes internos |
-| Gate | Incorporado |
-| Rail | Incorporado |
-| Visibilidade | Incorporada |
-| Yard | Incorporado |
-| Navio | Incorporado |
-| Navio Siderúrgico | Incorporado |
-| Navio Siderúrgico -> Navio | Chamada local por `CadastroNavioPorta` |
-| Navio -> Yard | Chamadas locais para ordens, work queues e posições reserváveis |
-| Gate -> Autenticação | Consulta local de usuário |
-| Gate -> status do Yard | Consulta local de disponibilidade |
-| TOS | Adaptador HTTP externo |
-| OCR | Adaptador RabbitMQ externo |
-| EDI | Adaptadores externos e mensageria |
-| RabbitMQ e Redis | Infraestrutura externa |
-| PostgreSQL | Uma conexão, sete schemas |
-| Flyway | Um histórico independente por módulo |
-| Segurança e CORS | Uma configuração do runtime |
-| OpenAPI | Um documento consolidado |
-| Cache | Gerenciador composto para Gate e Visibilidade |
+| Processo Spring Boot único | implementado em `cloudport-runtime` |
+| Autenticação | incorporada, com emissão e validação por componentes internos |
+| Carga Geral | incorporada, incluindo Bill of Lading, itens, lotes e estoque |
+| Gate | incorporado, incluindo configuração, execução, inspeções, documentos e Billing/CAP |
+| Rail | incorporado |
+| Visibilidade | incorporada |
+| Yard | incorporado, incluindo inventário canônico, reservas, work queues e telemetria |
+| Navio | incorporado |
+| Navio Siderúrgico | incorporado |
+| Navio Siderúrgico → Navio | chamada local por `CadastroNavioPorta` |
+| Navio → Yard | chamadas locais para ordens, work queues, posições e otimização |
+| Gate → Autenticação | consulta local de usuário |
+| Gate → Yard | consulta local de disponibilidade e status |
+| TOS | adaptador HTTP externo |
+| OCR | integração RabbitMQ externa |
+| EDI | processamento interno com canais externos de entrada e saída |
+| RabbitMQ e Redis | infraestrutura externa |
+| PostgreSQL | uma conexão, oito schemas proprietários |
+| Flyway | um histórico independente por módulo |
+| Segurança e CORS | uma configuração do runtime consolidado |
+| OpenAPI | um documento consolidado |
 | Teste de contexto | PostgreSQL 16 por Testcontainers |
-| Imagem e Compose | Implementados para o runtime geral |
-| Retirada dos deployments antigos | Pendente de corte operacional e rollback validado |
+| Imagem e Compose | implementados para o runtime geral |
+| EasyPanel | Dockerfiles específicos para os contextos `/backend` e `/frontend` |
+| Retirada dos deployments antigos | depende de corte operacional e rollback validado |
 
 ## Visão de execução
 
@@ -61,10 +64,11 @@ flowchart TB
 
     subgraph RUNTIME[Monólito modular]
         AUTH[Autenticação]
-        GATE[Gate]
+        CGO[Carga Geral]
+        GATE[Gate e Billing/CAP]
         RAIL[Rail]
         VIS[Visibilidade]
-        YARD[Yard]
+        YARD[Yard e Inventory]
         NAVIO[Navio]
         SIDERURGICO[Navio Siderúrgico]
 
@@ -78,7 +82,7 @@ flowchart TB
         VIS --> NAVIO
     end
 
-    RUNTIME --> POSTGRES[(PostgreSQL)]
+    RUNTIME --> POSTGRES[(PostgreSQL: 8 schemas)]
     RUNTIME --> RABBIT[(RabbitMQ)]
     RUNTIME --> REDIS[(Redis)]
     RUNTIME --> EXTERNOS[TOS, OCR, EDI, storage e sistemas externos]
@@ -93,7 +97,7 @@ Cada módulo deve:
 - possuir pacote raiz próprio;
 - expor operações internas por interfaces ou serviços de aplicação pequenos;
 - não acessar controller, repository ou entidade JPA de outro módulo;
-- não consultar diretamente o schema de outro módulo para evitar um contrato interno;
+- não consultar diretamente o schema de outro módulo para substituir um contrato interno;
 - não introduzir dependência cíclica;
 - possuir e versionar suas próprias migrações;
 - publicar evento interno quando a dependência síncrona não for necessária.
@@ -102,12 +106,13 @@ Cada módulo deve:
 
 | Módulo | Responsabilidade principal |
 | --- | --- |
-| Autenticação | login, emissão de JWT, usuários, papéis e permissões |
-| Gate | agendamentos, visitas de caminhão, transações, documentos e integrações de gate |
+| Autenticação | login, emissão de JWT, usuários, papéis, permissões e navegação |
+| Carga Geral | Bill of Lading, itens, cargo lots, referências, estoque, movimentações e avarias |
+| Gate | facilities, gates, lanes, appointments, truck visits, transações, documentos, inspeções, Billing e CAP |
 | Rail | visitas ferroviárias, composições, ordens e operações ferroviárias |
-| Visibilidade | dashboards, histórico, alertas e projeções de leitura |
-| Yard | mapa, posições, reservas, ordens, work queues e work instructions |
-| Navio | cadastro canônico, escalas e estiva |
+| Visibilidade | dashboards, histórico, alertas, projeções e central operacional |
+| Yard | mapa, posições, inventário, reservas, ordens, allocations, work queues, work instructions, reefers e CHEs |
+| Navio | cadastro canônico, escalas, line-up, Bay Plan, crane plan e estiva |
 | Navio Siderúrgico | visitas operacionais, itens, reservas, integração com Yard e regras siderúrgicas |
 | Integrações | TOS, OCR, EDI, webhooks, storage e mensageria externa |
 
@@ -123,9 +128,10 @@ Cada módulo deve:
 ### Permitido na borda
 
 - HTTP para TOS e outros sistemas externos;
-- RabbitMQ para OCR, EDI, interoperabilidade e eventos externos;
+- RabbitMQ para OCR, interoperabilidade e eventos externos;
 - Redis para cache e projeções;
-- storage local, objeto ou serviço externo por adaptador.
+- storage local, objeto ou serviço externo por adaptador;
+- SSE e WebSocket autenticados para atualização operacional do frontend.
 
 ### Transitório para rollback
 
@@ -148,14 +154,15 @@ O runtime usa uma conexão PostgreSQL e preserva ownership por schema:
 | Schema | Módulo proprietário |
 | --- | --- |
 | `cloudport_autenticacao` | Autenticação |
-| `cloudport_gate` | Gate |
+| `cloudport_carga_geral` | Carga Geral |
+| `cloudport_gate` | Gate, Billing e CAP |
 | `cloudport_rail` | Rail |
 | `cloudport_visibilidade` | Visibilidade |
-| `cloudport_yard` | Yard |
+| `cloudport_yard` | Yard e Inventory Management |
 | `cloudport_navio` | Navio |
 | `cloudport_siderurgico` | Navio Siderúrgico |
 
-O runtime cria sete objetos Flyway independentes antes do `EntityManagerFactory`. Cada histórico utiliza somente as migrações do artefato proprietário.
+O runtime cria oito objetos Flyway independentes antes do `EntityManagerFactory`. Cada histórico utiliza somente as migrações do artefato proprietário.
 
 Regras:
 
@@ -179,24 +186,26 @@ O runtime geral:
 - exige segredo JWT com no mínimo 32 bytes;
 - publica um único OpenAPI consolidado.
 
+As exceções técnicas ainda abertas, incluindo a proteção da execução standalone de Carga Geral, sanitização dos logs do TOS e autorização dos canais WebSocket do Yard, estão registradas em `docs/requisitos/requisito-tecnico.md`.
+
 ## Cache, mensageria e integrações
 
-O cache do runtime combina:
+O cache do runtime combina Caffeine para contratos TOS do Gate e Redis para projeções da Visibilidade.
 
-- Caffeine para contratos TOS do Gate;
-- Redis para projeções da Visibilidade.
-
-RabbitMQ permanece externo porque representa integração temporal, OCR, EDI e eventos publicados. Incorporar o módulo não transforma automaticamente esses contratos externos em chamadas diretas.
+RabbitMQ permanece externo porque representa OCR, interoperabilidade, EDI e eventos publicados. Incorporar o módulo não transforma automaticamente esses contratos externos em chamadas diretas.
 
 Durante o corte, somente uma instância pode consumir cada fila e executar cada job. Deployments antigos devem iniciar com consumidores, jobs e escrita desativados.
 
 ## Build
 
-O runtime geral é construído pelo reator:
+O runtime geral é construído pelo parent compartilhado e pelo reator:
 
 ```text
+backend/cloudport-navio-modules
 backend/cloudport-modules
+├── cloudport-contracts
 ├── servico-autenticacao
+├── servico-carga-geral
 ├── servico-gate
 ├── servico-rail
 ├── servico-visibilidade
@@ -210,24 +219,40 @@ Comandos:
 
 ```bash
 cd backend/cloudport-modules
+mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install
 mvn -B -Dspring-boot.repackage.skip=true \
   -pl :cloudport-runtime -am \
   -DskipTests install
 mvn -B -pl :cloudport-runtime test package
 ```
 
-O `Dockerfile` da raiz do runtime gera um único JAR executável e executa como usuário não privilegiado.
+O `backend/cloudport-runtime/Dockerfile` usa a raiz do repositório como contexto. O `backend/Dockerfile` usa `/backend` como contexto e é o arquivo destinado ao EasyPanel.
 
 ## Implantação
 
-O Compose em `deploy/cloudport-runtime/docker-compose.yml` inicia:
+### Docker Compose
 
-- PostgreSQL;
-- RabbitMQ;
-- Redis;
-- `cloudport-runtime`.
+O Compose em `deploy/cloudport-runtime/docker-compose.yml` inicia PostgreSQL, RabbitMQ, Redis e `cloudport-runtime`.
 
 O runtime geral é o único escritor e executor de jobs no perfil consolidado. O proxy ou frontend deve usar uma única origem de API.
+
+### EasyPanel
+
+Backend:
+
+- caminho de build `/backend`;
+- arquivo `Dockerfile`;
+- porta `8080`;
+- health `/actuator/health/readiness`.
+
+Frontend:
+
+- caminho de build `/frontend`;
+- arquivo `Dockerfile`;
+- porta `80`;
+- health `/health`.
+
+O frontend é compilado com Node 22 e servido por Nginx com fallback de SPA.
 
 ### Critérios para retirar os deployments antigos
 
@@ -255,12 +280,10 @@ Enquanto os deployments antigos existirem, o rollback deve:
 
 O `cloudport-monolito-navio` pode ser utilizado como rollback intermediário do domínio Navio. A retirada definitiva dele e dos serviços antigos ocorrerá somente após a estabilização do runtime geral.
 
-## Pendências arquiteturais
+## Pendências arquiteturais atuais
 
-- executar e testar o corte operacional do runtime geral;
-- criar smoke completo incluindo RabbitMQ, Redis, Gate, Rail e Visibilidade;
-- centralizar tratamento de erros, logs, métricas e tracing ainda definidos localmente;
-- substituir eventos periódicos internos por eventos no processo quando aplicável;
-- remover clientes e credenciais HTTP legados após encerrar o rollback;
-- consolidar versões e plugins em parent Maven compartilhado;
-- renomear artefatos `servico-*` somente após estabilização dos pipelines.
+- executar e testar o corte operacional do runtime geral nos ambientes;
+- comprovar paridade e e2e dos fluxos críticos antes de remover deployments antigos;
+- remover clientes, imagens e credenciais legadas somente após encerrar a janela de rollback;
+- renomear artefatos `servico-*` somente após estabilização dos pipelines;
+- concluir as pendências técnicas registradas em `docs/requisitos/requisito-tecnico.md`.

@@ -86,9 +86,9 @@ test('invalida plano e cria nova versão copiando posições', async () => {
   assert.deepEqual(JSON.parse(requests[1].options.body).posicoes, [{ itemOperacaoId: 3, porao: 1 }]);
 });
 
-test('rejeita motivo vazio e identificadores inválidos antes da rede', async () => {
-  await assert.rejects(
-    navioAdministrativeApi.cancelarVisita(12, '   '),
+test('rejeita motivo vazio e identificadores inválidos antes da rede', () => {
+  assert.throws(
+    () => navioAdministrativeApi.cancelarVisita(12, '   '),
     /motivo da operação administrativa/
   );
   assert.throws(

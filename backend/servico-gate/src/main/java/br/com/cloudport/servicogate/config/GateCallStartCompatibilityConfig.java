@@ -6,6 +6,7 @@ import br.com.cloudport.servicogate.model.enums.GateCallStatus;
 import java.time.LocalDateTime;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
+@ConditionalOnBean(GateCallRepository.class)
 public class GateCallStartCompatibilityConfig implements WebMvcConfigurer {
 
     private final GateCallRepository repository;

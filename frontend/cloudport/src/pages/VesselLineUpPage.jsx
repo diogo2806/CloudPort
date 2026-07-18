@@ -12,8 +12,9 @@ import {
 } from '../components.jsx';
 import {
   agruparEscalasPorBerco,
+  calcularAlturaTimelineVertical,
   calcularJanelaTimeline,
-  calcularPosicaoTimeline,
+  calcularPosicaoVerticalTimeline,
   construirSimulacao,
   gerarMarcadoresTimeline,
   normalizarEscalasLineUp,
@@ -50,55 +51,71 @@ function posicaoDoInstante(valor, janela) {
   return Math.max(0, Math.min(100, ((tempo - inicio) / total) * 100));
 }
 
-function Timeline({ escalas, instante }) {
+function calcularFaixaHorizontal(escala, totalFaixas) {
+  const quantidade = Math.max(Number(totalFaixas) || 1, 1);
+  const larguraFaixa = 88 / quantidade;
+  return {
+    left: `${6 + escala.faixa * larguraFaixa}%`,
+    width: `${Math.max(larguraFaixa - 2, 6)}%`
+  };
+}
+
+function VerticalBerthTimeline({ escalas, instante }) {
   const janela = useMemo(() => calcularJanelaTimeline(escalas), [escalas]);
   const marcadores = useMemo(() => gerarMarcadoresTimeline(janela), [janela]);
   const grupos = useMemo(() => agruparEscalasPorBerco(escalas), [escalas]);
+  const altura = useMemo(() => calcularAlturaTimelineVertical(janela), [janela]);
   const simulacaoPercentual = posicaoDoInstante(instante, janela);
 
   if (!escalas.length) {
     return <EmptyState title="Nenhuma escala no line-up" description="Cadastre escalas com ETA, ETB e ETD para executar a simulação." />;
   }
 
-  return <div className="lineup-timeline">
-    <div className="lineup-scale-row">
-      <div className="lineup-scale-label">Berço e navio</div>
-      <div className="lineup-track lineup-scale">
-        {marcadores.map((marcador) => <span key={marcador.percentual} style={{ left: `${marcador.percentual}%` }}>{formatarMarcador(marcador.data)}</span>)}
+  const colunas = `112px repeat(${grupos.length}, minmax(190px, 1fr))`;
+
+  return <div className="lineup-vertical-scroll">
+    <div className="lineup-vertical-board" style={{ gridTemplateColumns: colunas }}>
+      <div className="lineup-vertical-corner"><strong>Horário</strong><span>Fluxo de cima para baixo</span></div>
+      {grupos.map((grupo) => <header className="lineup-vertical-berth-header" key={grupo.berco}>
+        <strong>{grupo.berco}</strong>
+        <span>{grupo.itens.length} escala(s)</span>
+      </header>)}
+
+      <div className="lineup-vertical-time-axis" style={{ height: `${altura}px` }}>
+        {marcadores.map((marcador) => <span key={marcador.percentual} style={{ top: `${marcador.percentual}%` }}>{formatarMarcador(marcador.data)}</span>)}
       </div>
+
+      {grupos.map((grupo) => <section className="lineup-vertical-berth" key={grupo.berco} style={{ height: `${altura}px` }} aria-label={`Ocupação simulada do ${grupo.berco}`}>
+        {marcadores.map((marcador) => <i className="lineup-vertical-grid-line" key={marcador.percentual} style={{ top: `${marcador.percentual}%` }} />)}
+        <i className="lineup-vertical-simulation-cursor" style={{ top: `${simulacaoPercentual}%` }} title={`Simulação: ${formatarDataHora(instante)}`} />
+        {grupo.itens.map((escala) => {
+          const vertical = calcularPosicaoVerticalTimeline(escala, janela);
+          const horizontal = calcularFaixaHorizontal(escala, grupo.totalFaixas);
+          const etaPercentual = posicaoDoInstante(escala.eta, janela);
+          const classes = [
+            'lineup-vertical-ship',
+            `lineup-phase-${escala.faseSimulada.toLowerCase()}`,
+            escala.conflitoBerco ? 'lineup-conflict' : ''
+          ].filter(Boolean).join(' ');
+          return <div key={escala.chave}>
+            <i className="lineup-vertical-eta-marker" style={{ top: `${etaPercentual}%`, left: horizontal.left }} title={`ETA ${escala.nomeNavio}: ${formatarDataHora(escala.eta)}`} />
+            <article className={classes} style={{ ...vertical, ...horizontal }} title={`${escala.nomeNavio} · ETB ${formatarDataHora(escala.etb)} · ETD ${formatarDataHora(escala.etd)}`}>
+              <strong>{escala.nomeNavio}</strong>
+              <span>{escala.viagemEntrada || 'Sem viagem'}</span>
+              <small>{formatarDataHora(escala.etb)} → {formatarDataHora(escala.etd)}</small>
+              <footer><b>{escala.faseSimulada}</b>{escala.faseSimulada === 'OPERANDO' && <em>{escala.progressoOperacao}%</em>}</footer>
+            </article>
+          </div>;
+        })}
+      </section>)}
     </div>
-    {grupos.map((grupo) => <section className="lineup-berth-group" key={grupo.berco}>
-      <header><strong>{grupo.berco}</strong><span>{grupo.itens.length} escala(s)</span></header>
-      {grupo.itens.map((escala) => {
-        const posicao = calcularPosicaoTimeline(escala, janela);
-        const etaPercentual = posicaoDoInstante(escala.eta, janela);
-        const classes = [
-          'lineup-operation-bar',
-          `lineup-phase-${escala.faseSimulada.toLowerCase()}`,
-          escala.conflitoBerco ? 'lineup-conflict' : ''
-        ].filter(Boolean).join(' ');
-        return <div className="lineup-row" key={escala.chave}>
-          <div className="lineup-vessel-label">
-            <strong>{escala.nomeNavio}</strong>
-            <span>{escala.viagemEntrada || 'Viagem não informada'} · {escala.empresaArmadora || 'Armador não informado'}</span>
-          </div>
-          <div className="lineup-track">
-            {marcadores.map((marcador) => <i className="lineup-grid-line" key={marcador.percentual} style={{ left: `${marcador.percentual}%` }} />)}
-            <i className="lineup-simulation-cursor" style={{ left: `${simulacaoPercentual}%` }} title={`Simulação: ${formatarDataHora(instante)}`} />
-            <i className="lineup-eta-marker" style={{ left: `${etaPercentual}%` }} title={`ETA: ${formatarDataHora(escala.eta)}`} />
-            <div className={classes} style={posicao} title={`${escala.nomeNavio} · ETB ${formatarDataHora(escala.etb)} · ETD ${formatarDataHora(escala.etd)}`}>
-              <span>{escala.faseSimulada}</span>
-              {escala.faseSimulada === 'OPERANDO' && <small>{escala.progressoOperacao}%</small>}
-            </div>
-          </div>
-        </div>;
-      })}
-    </section>)}
     <footer className="lineup-legend">
       <span><i className="legend-dot prevista" /> Prevista</span>
       <span><i className="legend-dot inbound" /> Inbound</span>
       <span><i className="legend-dot operando" /> Operando</span>
       <span><i className="legend-dot partiu" /> Partiu</span>
+      <span><i className="legend-dot eta" /> ETA</span>
+      <span><i className="legend-dot simulacao" /> Horário simulado</span>
       <span><i className="legend-dot conflito" /> Conflito de berço</span>
     </footer>
   </div>;
@@ -143,7 +160,7 @@ export function VesselLineUpPage() {
   const bercoOcupados = new Set(simuladas.filter((escala) => escala.faseSimulada === 'OPERANDO').map((escala) => escala.berco)).size;
 
   return <>
-    <PageHeader eyebrow="Navio" title="Line-up operacional" description="Simule a sequência de chegada, atracação, operação e partida dos navios, com detecção de conflito por berço." actions={<button className="secondary" type="button" onClick={carregar} disabled={carregando}>Atualizar line-up</button>} />
+    <PageHeader eyebrow="Navio" title="Line-up operacional" description="Simule verticalmente a ocupação dos berços, da chegada à partida, com detecção de conflitos entre navios." actions={<button className="secondary" type="button" onClick={carregar} disabled={carregando}>Atualizar line-up</button>} />
     <Message type="error">{erro}</Message>
 
     <Section title="Controles da simulação" description="No modo automático, cada segundo avança uma hora operacional.">
@@ -176,7 +193,7 @@ export function VesselLineUpPage() {
         <MetricCard label="Navios operando" value={operando} detail={`${bercoOcupados} berço(s) ocupado(s)`} />
         <MetricCard label="Navios em conflito" value={conflitos} detail={conflitos ? 'Replanejamento necessário' : 'Sem sobreposição de berço'} />
       </div>
-      <Section title="Linha do tempo por berço" description={`Cenário simulado em ${formatarDataHora(instante)}.`}><Timeline escalas={simuladas} instante={instante} /></Section>
+      <Section title="Ocupação vertical dos berços" description={`O tempo avança de cima para baixo. Cenário simulado em ${formatarDataHora(instante)}.`}><VerticalBerthTimeline escalas={simuladas} instante={instante} /></Section>
       <Section title="Detalhamento das escalas" description="Compare o estado registrado com o estado calculado pela simulação.">
         <DataTable rows={simuladas} rowKey="chave" emptyTitle="Nenhuma escala disponível" columns={[
           { key: 'nomeNavio', label: 'Navio', render: (linha) => <div className="lineup-table-vessel"><strong>{linha.nomeNavio}</strong><span>{linha.codigoImo || 'IMO não informado'} · {linha.viagemEntrada || 'Sem viagem'}</span></div> },

@@ -1,3 +1,5 @@
+import './yard/OperationalYardViews.css';
+
 export { YardMapPage, YardPositionsPage } from './yard/YardMapPages.jsx';
 export { YardReceivingPlanPage } from './yard/YardReceivingPlanPage.jsx';
 export { YardMovementsPage, YardResourcesPage, YardWorkListPage } from './yard/YardWorkPages.jsx';

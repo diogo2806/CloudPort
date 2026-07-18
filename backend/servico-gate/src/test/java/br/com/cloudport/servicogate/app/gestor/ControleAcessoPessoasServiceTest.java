@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -115,6 +116,21 @@ class ControleAcessoPessoasServiceTest {
 
         assertEquals(409, exception.getRawStatusCode());
         assertEquals(MENSAGEM_CONFLITO_CONCORRENCIA, exception.getReason());
+        verify(movimentacaoRepository, never()).saveAndFlush(any(MovimentacaoPessoaAcesso.class));
+    }
+
+    @Test
+    void registrarEntrada_converteLockConcorrenteEmConflito() {
+        when(pessoaAcessoRepository.findByDocumentoNormalizado("12345678900"))
+                .thenThrow(new PessimisticLockingFailureException("registro em uso"));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.registrarEntrada(novaEntrada()));
+
+        assertEquals(409, exception.getRawStatusCode());
+        assertEquals(MENSAGEM_CONFLITO_CONCORRENCIA, exception.getReason());
+        verify(pessoaAcessoRepository, never()).saveAndFlush(any(PessoaAcesso.class));
         verify(movimentacaoRepository, never()).saveAndFlush(any(MovimentacaoPessoaAcesso.class));
     }
 

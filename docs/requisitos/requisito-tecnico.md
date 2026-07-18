@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após implementação dos requisitos ERR10, ERR20, ERR30 e ERR40.
+Status: atualizado em 2026-07-18 após implementação dos requisitos ERR10, ERR20, ERR30, ERR40 e SEC80.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -9,7 +9,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
 | SEC70 | Impedir que respostas brutas do TOS e motivos operacionais potencialmente sensíveis sejam gravados integralmente nos logs do Gate. | Falhas da integração registram somente status, recurso, identificador mascarado, código de erro permitido e `correlationId`; corpos externos, dados aduaneiros, tokens, credenciais e dados pessoais não aparecem nos logs nem são incorporados a mensagens técnicas. | ⬜ Pendente |
-| SEC80 | Proteger a aplicação standalone de carga geral com autenticação e autorização por operação. | A execução direta de `servico-carga-geral` rejeita requisições anônimas, diferencia consultas de comandos e restringe criação, movimentação, avaria e manutenção de referências aos perfis autorizados, com `401`/`403` antes de qualquer alteração persistente. | ⬜ Pendente |
 | SEC90 | Exigir autenticação e autorização de assinatura nos canais WebSocket operacionais do Pátio. | Handshakes e assinaturas em `/ws/patio`, `/ws/recursos` e tópicos operacionais rejeitam usuários anônimos e origens não autorizadas; cada tópico valida perfil antes de entregar posições, contêineres, equipamentos, recursos ou eventos internos. | ⬜ Pendente |
 
 ### SEC70 — arquivos e métodos
@@ -20,15 +19,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/integration/tos/TosClient.java` | criação de `TosIntegrationException` para respostas HTTP | A mensagem da exceção incorpora o corpo externo integral. Embora o handler genérico atual devolva mensagem neutra para exceções não mapeadas, o dado sensível continua circulando na cadeia de exceção e é gravado pelo log com stack trace do tratamento global. | Construir exceção apenas com status, recurso, identificador mascarado e código seguro. Preservar a causa técnica sem copiar o corpo da resposta para a mensagem da exceção. |
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/comum/erro/TratadorExcecoes.java` | `inesperado()` | O handler registra a exceção completa. Quando a causa é `TosIntegrationException` criada com o corpo remoto, o conteúdo reaparece no stack trace mesmo que a resposta HTTP enviada ao cliente seja neutra. | Sanitizar a exceção na origem e garantir que o tratamento central registre apenas metadados operacionais e `correlationId` para falhas de integração conhecidas, sem duplicar payload externo. |
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/integration/tos/TosIntegrationService.java` | `obterStatusContainer()` e validações de booking/entrada | O fluxo registra número de contêiner, booking e `motivoRestricao` sem classificação ou mascaramento. O motivo pode vir diretamente do sistema externo e conter informação aduaneira ou texto livre. | Definir campos permitidos para observabilidade, mascarar identificadores conforme política e não registrar `motivoRestricao` em texto livre. Manter o detalhe necessário apenas na resposta operacional autorizada ou em armazenamento auditável com acesso restrito. |
-
-### SEC80 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-carga-geral/pom.xml` | dependências de segurança | O artefato é executável e declara Web, JPA, Validation, Actuator e OpenAPI, mas não inclui `spring-boot-starter-security` nem `spring-boot-starter-oauth2-resource-server`. Na execução standalone não existe cadeia que exija autenticação. | Incluir as dependências de segurança compatíveis com o padrão canônico do CloudPort e configurar o serviço como resource server stateless, sem segredo funcional padrão. |
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/ServicoCargaGeralApplication.java` | `main()` e component scan | A aplicação possui ponto de entrada próprio com `@SpringBootApplication` e pode ser iniciada diretamente. Como não há configuração de segurança no pacote, todos os controllers do módulo ficam acessíveis sem autenticação nessa forma de implantação. | Registrar uma configuração standalone de segurança ou importar explicitamente uma configuração compartilhada que seja alcançada pelo component scan da aplicação. Falhar fechado quando a credencial obrigatória estiver ausente. |
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/controlador/CargaGeralControlador.java` | `GET`, `POST` e `PATCH` sob `/api/carga-geral/**` | O controller expõe consultas e comandos de criação de Bill of Lading, item, lote, movimentação, avaria e referência sem `@PreAuthorize` ou outra autorização por método. No standalone, chamadas anônimas alcançam diretamente os serviços e a persistência. | Definir permissões distintas para leitura, operação de carga, registro de avaria e manutenção cadastral. Aplicar autorização antes da chamada ao serviço e retornar `401` para ausência de autenticação e `403` para perfil insuficiente. |
-| `backend/cloudport-runtime/src/main/java/br/com/cloudport/runtime/configuracao/ConfiguracaoSegurancaRuntime.java` | cadeia consolidada de segurança | O runtime consolidado protege os módulos incorporados, mas essa cadeia pertence ao pacote do runtime e não é carregada pela aplicação standalone de carga geral. A proteção do runtime não comprova segurança da implantação executável preservada para rollback. | Manter a cadeia central do runtime e garantir paridade de autenticação, claims e roles no standalone, sem criar uma segunda semântica de autorização ou depender de o módulo ser executado apenas dentro do runtime. |
 
 ### SEC90 — arquivos e métodos
 

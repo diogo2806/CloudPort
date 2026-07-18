@@ -6,7 +6,6 @@ import br.com.cloudport.servicoautenticacao.model.StatusUsuarioEnum;
 import br.com.cloudport.servicoautenticacao.model.Usuario;
 import br.com.cloudport.servicoautenticacao.model.UsuarioPapel;
 import java.util.HashSet;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -29,8 +28,7 @@ class PapelRepositorioTest {
     void buscarPorNomeRetornaPapelComVinculosDeUsuarios() {
         Papel papel = papelRepositorio.save(new Papel("ADMIN"));
 
-        Usuario usuario = new Usuario("john.doe", "senha", new HashSet<>());
-        usuarioRepositorio.save(usuario);
+        Usuario usuario = usuarioRepositorio.save(new Usuario("john.doe", "senha", new HashSet<>()));
 
         UsuarioPapel vinculo = new UsuarioPapel(usuario, papel);
         vinculo.setStatus(StatusUsuarioEnum.ATIVO);

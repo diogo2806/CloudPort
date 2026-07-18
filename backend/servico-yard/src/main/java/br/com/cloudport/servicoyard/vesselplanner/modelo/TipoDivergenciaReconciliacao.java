@@ -1,0 +1,14 @@
+package br.com.cloudport.servicoyard.vesselplanner.modelo;
+
+public enum TipoDivergenciaReconciliacao {
+    AUSENTE_NO_PLANO,
+    AUSENTE_NO_BAPLIE,
+    AUSENTE_NO_INVENTARIO,
+    POSICAO_PLANO_DIVERGENTE,
+    POSICAO_INVENTARIO_DIVERGENTE,
+    POSICAO_INVENTARIO_NAO_COMPARAVEL,
+    POSICAO_EXECUCAO_DIVERGENTE,
+    EXECUCAO_SEM_POSICAO,
+    ISO_DIVERGENTE,
+    PESO_DIVERGENTE
+}

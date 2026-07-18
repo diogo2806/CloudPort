@@ -110,6 +110,12 @@ public class BayPlanServico {
                         if (confirmacao.getHorarioOperacao() != null) {
                             container.setHorarioOperacao(confirmacao.getHorarioOperacao());
                         }
+                        if (confirmacao.getPosicaoBay() != null) {
+                            container.setPosicaoExecucao(confirmacao.getPosicaoBay());
+                        }
+                        if (confirmacao.getPesoKg() != null) {
+                            container.setPesoExecucaoKg(confirmacao.getPesoKg());
+                        }
                         confirmados.add(container.getCodigoContainer());
                     });
         }

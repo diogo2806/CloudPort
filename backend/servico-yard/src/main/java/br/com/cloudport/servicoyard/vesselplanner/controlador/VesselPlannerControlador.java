@@ -13,9 +13,12 @@ import br.com.cloudport.servicoyard.vesselplanner.dto.ExecucaoSequenciaGuindaste
 import br.com.cloudport.servicoyard.vesselplanner.dto.ExecucaoSequenciaGuindasteDtos.IniciarMovimentoRequest;
 import br.com.cloudport.servicoyard.vesselplanner.dto.ExecucaoSequenciaGuindasteDtos.ReconciliarExecucaoRequest;
 import br.com.cloudport.servicoyard.vesselplanner.dto.ExecucaoSequenciaGuindasteDtos.ReplanejarMovimentoRequest;
+import br.com.cloudport.servicoyard.vesselplanner.dto.ReconciliacaoBaplieExecucaoDto;
+import br.com.cloudport.servicoyard.vesselplanner.dto.ResolverDivergenciaRequisicaoDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.RestowAnaliseDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.SequenciamentoGuindasteDto;
 import br.com.cloudport.servicoyard.vesselplanner.servico.ExecucaoSequenciaGuindasteServico;
+import br.com.cloudport.servicoyard.vesselplanner.servico.ReconciliacaoBaplieExecucaoServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.VesselPlannerServico;
 import java.security.Principal;
 import javax.validation.Valid;
@@ -36,12 +39,15 @@ public class VesselPlannerControlador {
 
     private final VesselPlannerServico servico;
     private final ExecucaoSequenciaGuindasteServico execucaoGuindasteServico;
+    private final ReconciliacaoBaplieExecucaoServico reconciliacaoServico;
 
     public VesselPlannerControlador(
             VesselPlannerServico servico,
-            ExecucaoSequenciaGuindasteServico execucaoGuindasteServico) {
+            ExecucaoSequenciaGuindasteServico execucaoGuindasteServico,
+            ReconciliacaoBaplieExecucaoServico reconciliacaoServico) {
         this.servico = servico;
         this.execucaoGuindasteServico = execucaoGuindasteServico;
+        this.reconciliacaoServico = reconciliacaoServico;
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
@@ -51,6 +57,9 @@ public class VesselPlannerControlador {
         EstivagemPlanDto dto = servico.criarPlanoDeBayPlan(
                 requisicao.getBayPlanId(),
                 requisicao.getVisitaNavioId());
+        if (dto.getId() != null) {
+            reconciliacaoServico.reconciliar(dto.getId());
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
@@ -69,13 +78,16 @@ public class VesselPlannerControlador {
         if (!resp.isSucesso()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(resp);
         }
+        reconciliacaoServico.reconciliar(id);
         return ResponseEntity.ok(resp);
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos/{id}/auto-estivagem")
     public ResponseEntity<EstivagemPlanDto> autoEstivar(@PathVariable Long id) {
-        return ResponseEntity.ok(servico.autoEstivar(id));
+        EstivagemPlanDto dto = servico.autoEstivar(id);
+        reconciliacaoServico.reconciliar(id);
+        return ResponseEntity.ok(dto);
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
@@ -181,9 +193,37 @@ public class VesselPlannerControlador {
                 usuario(principal)));
     }
 
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
+    @GetMapping("/planos/{id}/reconciliacao")
+    public ResponseEntity<ReconciliacaoBaplieExecucaoDto> consultarReconciliacao(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(reconciliacaoServico.consultar(id));
+    }
+
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
+    @PostMapping("/planos/{id}/reconciliacao")
+    public ResponseEntity<ReconciliacaoBaplieExecucaoDto> reconciliar(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(reconciliacaoServico.reconciliar(id));
+    }
+
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
+    @PostMapping("/planos/{id}/reconciliacao/{divergenciaId}/resolver")
+    public ResponseEntity<ReconciliacaoBaplieExecucaoDto> resolverDivergencia(
+            @PathVariable Long id,
+            @PathVariable Long divergenciaId,
+            @Valid @RequestBody ResolverDivergenciaRequisicaoDto requisicao) {
+        return ResponseEntity.ok(reconciliacaoServico.resolver(
+                id,
+                divergenciaId,
+                requisicao));
+    }
+
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
     @PostMapping("/planos/{id}/validar")
     public ResponseEntity<EstivagemPlanDto> validarEAprovar(@PathVariable Long id) {
+        reconciliacaoServico.reconciliar(id);
+        reconciliacaoServico.exigirSemDivergenciasCriticas(id);
         return ResponseEntity.ok(servico.validarEAprovar(id));
     }
 

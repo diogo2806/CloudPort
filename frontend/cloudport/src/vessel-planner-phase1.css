@@ -83,3 +83,179 @@
   .crane-movement-order { grid-template-columns: auto auto; justify-content: start; }
   .crane-movement-actions { grid-column: auto; }
 }
+
+.vessel-reconciliation-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #d7e3ec;
+  border-radius: 14px;
+  background: #fff;
+}
+.vessel-reconciliation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.vessel-reconciliation-heading h3 { margin: 2px 0; color: #27445d; }
+.vessel-reconciliation-heading small { color: #718397; }
+.vessel-reconciliation-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(100px, 1fr));
+  gap: 8px;
+}
+.vessel-reconciliation-summary article {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 9px;
+  background: #f6f9fb;
+}
+.vessel-reconciliation-summary article.critical { background: #fff0f0; }
+.vessel-reconciliation-summary span {
+  color: #718397;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.vessel-reconciliation-summary strong { color: #27445d; font-size: 18px; }
+.vessel-reconciliation-summary article.critical strong { color: #8c2f2f; }
+.vessel-reconciliation-block,
+.vessel-reconciliation-readonly {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.vessel-reconciliation-block {
+  border: 1px solid #e1a6a6;
+  background: #fff0f0;
+  color: #8c2f2f;
+}
+.vessel-reconciliation-readonly {
+  border: 1px solid #d5e1ea;
+  background: #f6f9fb;
+  color: #536b80;
+}
+.vessel-reconciliation-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, .8fr) minmax(360px, 1.2fr);
+  gap: 12px;
+  min-height: 260px;
+}
+.vessel-reconciliation-queue {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  max-height: 520px;
+  overflow: auto;
+}
+.vessel-reconciliation-item {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d7e3ec;
+  border-left-width: 5px;
+  border-radius: 9px;
+  background: #f9fbfd;
+  color: #31536e;
+  text-align: left;
+  box-shadow: none;
+}
+.vessel-reconciliation-item > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.vessel-reconciliation-item i {
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+}
+.vessel-reconciliation-item b { font-size: 11px; }
+.vessel-reconciliation-item small { color: #718397; }
+.vessel-reconciliation-item.severity-critica { border-left-color: #b94a4a; }
+.vessel-reconciliation-item.severity-aviso { border-left-color: #c78a24; }
+.vessel-reconciliation-item.severity-informativa { border-left-color: #4686b0; }
+.vessel-reconciliation-item.resolved { opacity: .7; }
+.vessel-reconciliation-item.selected { outline: 3px solid rgba(18, 97, 160, .18); border-color: #1261a0; }
+.vessel-reconciliation-inspector {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #d7e3ec;
+  border-radius: 10px;
+  background: #f9fbfd;
+}
+.vessel-reconciliation-inspector p { margin: 0; color: #536b80; }
+.vessel-reconciliation-inspector-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.vessel-reconciliation-inspector-heading h4 { margin: 2px 0 0; color: #27445d; font-size: 18px; }
+.reconciliation-severity {
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 850;
+}
+.reconciliation-severity.severity-critica { background: #ffe3e3; color: #8c2f2f; }
+.reconciliation-severity.severity-aviso { background: #fff1d4; color: #7b5210; }
+.reconciliation-severity.severity-informativa { background: #e8f4fb; color: #245f83; }
+.vessel-reconciliation-sources {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+}
+.vessel-reconciliation-sources div {
+  min-width: 0;
+  padding: 9px;
+  border-radius: 8px;
+  background: #fff;
+}
+.vessel-reconciliation-sources dt {
+  color: #718397;
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.vessel-reconciliation-sources dd {
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+  color: #31536e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+}
+.vessel-reconciliation-resolution { display: grid; gap: 10px; }
+.vessel-reconciliation-resolution label { display: grid; gap: 5px; }
+.vessel-reconciliation-resolution label > span {
+  color: #61788d;
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.vessel-reconciliation-resolution textarea { resize: vertical; }
+.vessel-reconciliation-decision {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #effaf2;
+  color: #27643d;
+}
+
+@media (max-width: 980px) {
+  .vessel-reconciliation-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .vessel-reconciliation-heading { align-items: flex-start; flex-direction: column; }
+  .vessel-reconciliation-summary { grid-template-columns: 1fr 1fr; }
+  .vessel-reconciliation-sources { grid-template-columns: 1fr; }
+}

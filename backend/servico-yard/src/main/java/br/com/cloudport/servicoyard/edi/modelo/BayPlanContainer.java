@@ -1,6 +1,8 @@
 package br.com.cloudport.servicoyard.edi.modelo;
 
 import java.time.LocalDateTime;
+import javax.persistence.AttributeOverride;
+import javax.persistence.AttributeOverrides;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
@@ -37,6 +39,14 @@ public class BayPlanContainer {
     @Embedded
     private PosicaoBay posicaoBay;
 
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "bay", column = @Column(name = "bay_execucao")),
+        @AttributeOverride(name = "row", column = @Column(name = "row_execucao")),
+        @AttributeOverride(name = "tier", column = @Column(name = "tier_execucao"))
+    })
+    private PosicaoBay posicaoExecucao;
+
     @Column(name = "porto_carga", length = 10)
     private String portoCarga;
 
@@ -45,6 +55,9 @@ public class BayPlanContainer {
 
     @Column(name = "peso_kg")
     private Double pesoKg;
+
+    @Column(name = "peso_execucao_kg")
+    private Double pesoExecucaoKg;
 
     @Column(name = "unidade_peso_original", length = 10)
     private String unidadePesoOriginal;
@@ -166,12 +179,16 @@ public class BayPlanContainer {
     public void setIsoCode(String isoCode) { this.isoCode = isoCode; }
     public PosicaoBay getPosicaoBay() { return posicaoBay; }
     public void setPosicaoBay(PosicaoBay posicaoBay) { this.posicaoBay = posicaoBay; }
+    public PosicaoBay getPosicaoExecucao() { return posicaoExecucao; }
+    public void setPosicaoExecucao(PosicaoBay posicaoExecucao) { this.posicaoExecucao = posicaoExecucao; }
     public String getPortoCarga() { return portoCarga; }
     public void setPortoCarga(String portoCarga) { this.portoCarga = portoCarga; }
     public String getPortoDescarga() { return portoDescarga; }
     public void setPortoDescarga(String portoDescarga) { this.portoDescarga = portoDescarga; }
     public Double getPesoKg() { return pesoKg; }
     public void setPesoKg(Double pesoKg) { this.pesoKg = pesoKg; }
+    public Double getPesoExecucaoKg() { return pesoExecucaoKg; }
+    public void setPesoExecucaoKg(Double pesoExecucaoKg) { this.pesoExecucaoKg = pesoExecucaoKg; }
     public String getUnidadePesoOriginal() { return unidadePesoOriginal; }
     public void setUnidadePesoOriginal(String unidadePesoOriginal) { this.unidadePesoOriginal = unidadePesoOriginal; }
     public Double getPesoVgmKg() { return pesoVgmKg; }

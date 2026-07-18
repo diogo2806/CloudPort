@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatError, request, sanitizeText } from '../api.js';
+import { VesselReconciliationPanel } from './VesselReconciliationPanel.jsx';
 
 function displayDateTime(value) {
   if (!value) return '—';
@@ -173,57 +174,60 @@ export function CraneExecutionTimeline({ plan, sequencing, disabled }) {
 
   if (!plan?.id) return null;
 
-  return <section className="crane-execution-panel" aria-label="Execução persistida dos guindastes">
-    <header className="crane-execution-heading">
-      <div><span className="view-kicker">Planejado × realizado</span><h3>Execução dos guindastes</h3></div>
-      <div className="actions">
-        <button type="button" className="secondary" onClick={loadExecution} disabled={loading || Boolean(busy) || disabled}>{loading ? 'Carregando...' : 'Recarregar'}</button>
-        {!execution && <button type="button" onClick={createExecution} disabled={loading || Boolean(busy) || disabled}>{busy === 'create' ? 'Persistindo...' : 'Persistir execução'}</button>}
-      </div>
-    </header>
-
-    {error && <div className="crane-execution-message error">{error}</div>}
-    {success && <div className="crane-execution-message success">{success}</div>}
-
-    {!execution && !loading
-      ? <div className="visual-empty">A sequência calculada ainda não possui execução persistida.</div>
-      : execution && <>
-        <div className="crane-execution-summary">
-          <article><span>Status</span><strong>{statusLabel(execution.status)}</strong></article>
-          <article><span>Progresso</span><strong>{displayQuantity(execution.percentualConcluido)}%</strong></article>
-          <article><span>Planejado</span><strong>{displayQuantity(execution.quantidadePlanejada)}</strong></article>
-          <article><span>Realizado</span><strong>{displayQuantity(execution.quantidadeRealizada)}</strong></article>
-          <article><span>Divergência</span><strong>{displayQuantity(execution.divergenciaQuantidade)}</strong></article>
-          <article><span>Exceções</span><strong>{execution.movimentosComFalha ?? 0}</strong></article>
+  return <>
+    <section className="crane-execution-panel" aria-label="Execução persistida dos guindastes">
+      <header className="crane-execution-heading">
+        <div><span className="view-kicker">Planejado × realizado</span><h3>Execução dos guindastes</h3></div>
+        <div className="actions">
+          <button type="button" className="secondary" onClick={loadExecution} disabled={loading || Boolean(busy) || disabled}>{loading ? 'Carregando...' : 'Recarregar'}</button>
+          {!execution && <button type="button" onClick={createExecution} disabled={loading || Boolean(busy) || disabled}>{busy === 'create' ? 'Persistindo...' : 'Persistir execução'}</button>}
         </div>
-        <progress className="crane-execution-progress" max="100" value={Number(execution.percentualConcluido ?? 0)}>{execution.percentualConcluido}%</progress>
-        <div className="crane-execution-timeline">
-          {movements.map((movement) => {
-            const planned = movement.status === 'PLANEJADO' || movement.status === 'REPLANEJADO';
-            const running = movement.status === 'EM_EXECUCAO';
-            return <article key={movement.id} className={`crane-execution-movement status-${String(movement.status).toLowerCase()}`}>
-              <div className="crane-movement-order"><span>Q{movement.guindasteId}</span><strong>#{movement.ordemPlanejada}</strong></div>
-              <div className="crane-movement-content">
-                <div className="crane-movement-title"><strong>{movement.codigoContainer}</strong><span>{statusLabel(movement.status)}{movement.atrasado ? ' · ATRASADO' : ''}</span></div>
-                <p>B{movement.bay} · R{movement.rowBay} · T{movement.tier} · {movement.tipoOperacao}</p>
-                <small>Janela: {displayDateTime(movement.janelaInicioPlanejada)} até {displayDateTime(movement.janelaFimPlanejada)}</small>
-                <small>Realizado: {displayQuantity(movement.quantidadeRealizada)} de {displayQuantity(movement.quantidadePlanejada)}</small>
-                {movement.iniciadoEm && <small>Início: {displayDateTime(movement.iniciadoEm)} · {movement.iniciadoPor || 'SISTEMA'}</small>}
-                {movement.concluidoEm && <small>Fim: {displayDateTime(movement.concluidoEm)} · {movement.concluidoPor || 'SISTEMA'}</small>}
-                {movement.motivoReplanejamento && <p className="crane-movement-note">Replanejamento: {movement.motivoReplanejamento}</p>}
-                {movement.excecao && <p className="crane-movement-exception">Exceção: {movement.excecao}</p>}
-              </div>
-              <div className="crane-movement-actions">
-                {planned && <button type="button" onClick={() => startMovement(movement)} disabled={Boolean(busy) || disabled}>Iniciar</button>}
-                {planned && <button type="button" className="secondary" onClick={() => replanMovement(movement)} disabled={Boolean(busy) || disabled}>Replanejar</button>}
-                {running && <button type="button" onClick={() => completeMovement(movement)} disabled={Boolean(busy) || disabled}>Concluir</button>}
-                {running && <button type="button" className="warning" onClick={() => failMovement(movement)} disabled={Boolean(busy) || disabled}>Falha</button>}
-              </div>
-            </article>;
-          })}
-        </div>
-        {execution.status === 'AGUARDANDO_RECONCILIACAO' && <div className="crane-reconcile-action"><button type="button" onClick={reconcile} disabled={Boolean(busy) || disabled}>{busy === 'reconcile' ? 'Reconciliando...' : 'Reconciliar execução'}</button></div>}
-        {execution.reconciliadoEm && <div className="crane-reconciled"><strong>Reconciliada em {displayDateTime(execution.reconciliadoEm)}</strong><span>{execution.reconciliadoPor || 'SISTEMA'}{execution.observacaoReconciliacao ? ` · ${execution.observacaoReconciliacao}` : ''}</span></div>}
-      </>}
-  </section>;
+      </header>
+
+      {error && <div className="crane-execution-message error">{error}</div>}
+      {success && <div className="crane-execution-message success">{success}</div>}
+
+      {!execution && !loading
+        ? <div className="visual-empty">A sequência calculada ainda não possui execução persistida.</div>
+        : execution && <>
+          <div className="crane-execution-summary">
+            <article><span>Status</span><strong>{statusLabel(execution.status)}</strong></article>
+            <article><span>Progresso</span><strong>{displayQuantity(execution.percentualConcluido)}%</strong></article>
+            <article><span>Planejado</span><strong>{displayQuantity(execution.quantidadePlanejada)}</strong></article>
+            <article><span>Realizado</span><strong>{displayQuantity(execution.quantidadeRealizada)}</strong></article>
+            <article><span>Divergência</span><strong>{displayQuantity(execution.divergenciaQuantidade)}</strong></article>
+            <article><span>Exceções</span><strong>{execution.movimentosComFalha ?? 0}</strong></article>
+          </div>
+          <progress className="crane-execution-progress" max="100" value={Number(execution.percentualConcluido ?? 0)}>{execution.percentualConcluido}%</progress>
+          <div className="crane-execution-timeline">
+            {movements.map((movement) => {
+              const planned = movement.status === 'PLANEJADO' || movement.status === 'REPLANEJADO';
+              const running = movement.status === 'EM_EXECUCAO';
+              return <article key={movement.id} className={`crane-execution-movement status-${String(movement.status).toLowerCase()}`}>
+                <div className="crane-movement-order"><span>Q{movement.guindasteId}</span><strong>#{movement.ordemPlanejada}</strong></div>
+                <div className="crane-movement-content">
+                  <div className="crane-movement-title"><strong>{movement.codigoContainer}</strong><span>{statusLabel(movement.status)}{movement.atrasado ? ' · ATRASADO' : ''}</span></div>
+                  <p>B{movement.bay} · R{movement.rowBay} · T{movement.tier} · {movement.tipoOperacao}</p>
+                  <small>Janela: {displayDateTime(movement.janelaInicioPlanejada)} até {displayDateTime(movement.janelaFimPlanejada)}</small>
+                  <small>Realizado: {displayQuantity(movement.quantidadeRealizada)} de {displayQuantity(movement.quantidadePlanejada)}</small>
+                  {movement.iniciadoEm && <small>Início: {displayDateTime(movement.iniciadoEm)} · {movement.iniciadoPor || 'SISTEMA'}</small>}
+                  {movement.concluidoEm && <small>Fim: {displayDateTime(movement.concluidoEm)} · {movement.concluidoPor || 'SISTEMA'}</small>}
+                  {movement.motivoReplanejamento && <p className="crane-movement-note">Replanejamento: {movement.motivoReplanejamento}</p>}
+                  {movement.excecao && <p className="crane-movement-exception">Exceção: {movement.excecao}</p>}
+                </div>
+                <div className="crane-movement-actions">
+                  {planned && <button type="button" onClick={() => startMovement(movement)} disabled={Boolean(busy) || disabled}>Iniciar</button>}
+                  {planned && <button type="button" className="secondary" onClick={() => replanMovement(movement)} disabled={Boolean(busy) || disabled}>Replanejar</button>}
+                  {running && <button type="button" onClick={() => completeMovement(movement)} disabled={Boolean(busy) || disabled}>Concluir</button>}
+                  {running && <button type="button" className="warning" onClick={() => failMovement(movement)} disabled={Boolean(busy) || disabled}>Falha</button>}
+                </div>
+              </article>;
+            })}
+          </div>
+          {execution.status === 'AGUARDANDO_RECONCILIACAO' && <div className="crane-reconcile-action"><button type="button" onClick={reconcile} disabled={Boolean(busy) || disabled}>{busy === 'reconcile' ? 'Reconciliando...' : 'Reconciliar execução'}</button></div>}
+          {execution.reconciliadoEm && <div className="crane-reconciled"><strong>Reconciliada em {displayDateTime(execution.reconciliadoEm)}</strong><span>{execution.reconciliadoPor || 'SISTEMA'}{execution.observacaoReconciliacao ? ` · ${execution.observacaoReconciliacao}` : ''}</span></div>}
+        </>}
+    </section>
+    <VesselReconciliationPanel plan={plan} disabled={disabled} />
+  </>;
 }

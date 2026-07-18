@@ -1,5 +1,6 @@
 package br.com.cloudport.servicocargageral.integracao.yard;
 
+import br.com.cloudport.servicocargageral.repositorio.AlocacaoCargoLotRepositorio;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,12 +19,15 @@ public class CapacidadeCargoLotCliente {
 
     private final RestTemplate restTemplate;
     private final String baseUrl;
+    private final AlocacaoCargoLotRepositorio alocacaoRepositorio;
 
     public CapacidadeCargoLotCliente(
             RestTemplateBuilder builder,
-            @Value("${cloudport.integracao.yard.base-url:http://localhost:8081}") String baseUrl) {
+            @Value("${cloudport.integracao.yard.base-url:http://localhost:8081}") String baseUrl,
+            AlocacaoCargoLotRepositorio alocacaoRepositorio) {
         this.restTemplate = builder.build();
         this.baseUrl = removerBarraFinal(baseUrl);
+        this.alocacaoRepositorio = alocacaoRepositorio;
     }
 
     public ReservaCapacidadeResposta reservar(
@@ -44,7 +48,7 @@ public class CapacidadeCargoLotCliente {
     public ReservaCapacidadeResposta confirmar(UUID reservaId, String usuario, String motivo) {
         return restTemplate.postForObject(
                 baseUrl + "/yard/capacidades-cargo-lot/reservas/{reservaId}/confirmar",
-                new ComandoCapacidadeRequest(usuario, motivo),
+                new ComandoCapacidadeRequest(usuario, motivo, buscarPosicaoOrigem(reservaId)),
                 ReservaCapacidadeResposta.class,
                 reservaId);
     }
@@ -52,9 +56,16 @@ public class CapacidadeCargoLotCliente {
     public ReservaCapacidadeResposta cancelar(UUID reservaId, String usuario, String motivo) {
         return restTemplate.postForObject(
                 baseUrl + "/yard/capacidades-cargo-lot/reservas/{reservaId}/cancelar",
-                new ComandoCapacidadeRequest(usuario, motivo),
+                new ComandoCapacidadeRequest(usuario, motivo, null),
                 ReservaCapacidadeResposta.class,
                 reservaId);
+    }
+
+    protected String buscarPosicaoOrigem(UUID reservaId) {
+        return alocacaoRepositorio.findByReservaCapacidadeId(reservaId)
+                .map(alocacao -> alocacao.getOrigem())
+                .filter(StringUtils::hasText)
+                .orElse(null);
     }
 
     private String removerBarraFinal(String valor) {
@@ -71,7 +82,7 @@ public class CapacidadeCargoLotCliente {
             String usuario) {
     }
 
-    public record ComandoCapacidadeRequest(String usuario, String motivo) {
+    public record ComandoCapacidadeRequest(String usuario, String motivo, String posicaoOrigem) {
     }
 
     public record ReservaCapacidadeResposta(

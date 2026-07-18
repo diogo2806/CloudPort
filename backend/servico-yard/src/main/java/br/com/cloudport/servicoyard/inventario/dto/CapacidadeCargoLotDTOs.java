@@ -37,7 +37,8 @@ public final class CapacidadeCargoLotDTOs {
 
     public record ComandoCapacidadeRequest(
             @NotBlank @Size(max = 120) String usuario,
-            @NotBlank @Size(max = 1000) String motivo) {
+            @NotBlank @Size(max = 1000) String motivo,
+            @Size(max = 120) String posicaoOrigem) {
     }
 
     public record ReservaCapacidadeResposta(
@@ -50,5 +51,13 @@ public final class CapacidadeCargoLotDTOs {
             BigDecimal pesoKg,
             StatusReservaCapacidade status,
             String restricoes) {
+    }
+
+    public record SaldoPosicaoResposta(
+            UUID loteId,
+            String posicao,
+            BigDecimal quantidade,
+            BigDecimal volumeM3,
+            BigDecimal pesoKg) {
     }
 }

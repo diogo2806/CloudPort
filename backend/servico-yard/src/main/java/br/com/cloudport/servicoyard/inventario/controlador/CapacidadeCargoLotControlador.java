@@ -4,12 +4,15 @@ import br.com.cloudport.servicoyard.inventario.dto.CapacidadeCargoLotDTOs.Comand
 import br.com.cloudport.servicoyard.inventario.dto.CapacidadeCargoLotDTOs.ConfigurarCapacidadeRequest;
 import br.com.cloudport.servicoyard.inventario.dto.CapacidadeCargoLotDTOs.ReservaCapacidadeResposta;
 import br.com.cloudport.servicoyard.inventario.dto.CapacidadeCargoLotDTOs.ReservarCapacidadeRequest;
+import br.com.cloudport.servicoyard.inventario.dto.CapacidadeCargoLotDTOs.SaldoPosicaoResposta;
 import br.com.cloudport.servicoyard.inventario.servico.CapacidadeCargoLotServico;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import java.util.UUID;
 import javax.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -35,6 +38,12 @@ public class CapacidadeCargoLotControlador {
             @Valid @RequestBody ConfigurarCapacidadeRequest request) {
         servico.configurar(posicao, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{posicao}/saldos")
+    @Operation(summary = "Listar saldos confirmados de cargo lots na posição")
+    public List<SaldoPosicaoResposta> listarSaldos(@PathVariable String posicao) {
+        return servico.listarSaldos(posicao);
     }
 
     @PostMapping("/{posicao}/reservas")

@@ -12,6 +12,8 @@ public interface AlocacaoCargoLotRepositorio extends JpaRepository<AlocacaoCargo
 
     Optional<AlocacaoCargoLot> findByCommandId(UUID commandId);
 
+    Optional<AlocacaoCargoLot> findByReservaCapacidadeId(UUID reservaCapacidadeId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<AlocacaoCargoLot> findComBloqueioById(UUID id);
 

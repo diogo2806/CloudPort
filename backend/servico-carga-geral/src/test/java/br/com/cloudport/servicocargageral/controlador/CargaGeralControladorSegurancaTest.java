@@ -103,6 +103,25 @@ class CargaGeralControladorSegurancaTest {
     }
 
     @Test
+    void deveRejeitarAjusteInventarioDireto() throws Exception {
+        mockMvc.perform(post("/api/carga-geral/lotes/{id}/movimentacoes", LOTE_ID)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_OPERADOR_GATE")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tipo": "AJUSTE_INVENTARIO",
+                                  "quantidade": 1,
+                                  "volumeM3": 0,
+                                  "pesoKg": 0,
+                                  "usuario": "operador"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(cargaGeralServico);
+    }
+
+    @Test
     void deveImpedirManutencaoDeReferenciaPeloPlanejador() throws Exception {
         mockMvc.perform(post("/api/carga-geral/referencias")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_PLANEJADOR")))

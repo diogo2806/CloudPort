@@ -85,6 +85,10 @@ public class PredictiveSchedulerService {
             resultado.setDistanciaEconomizada(Math.max(
                     0,
                     resultadoReal.distanciaOriginal() - resultadoReal.distanciaOtimizada()));
+            int dualCycles = resultado.getOperacoesDualCycle() == null
+                    ? 0
+                    : resultado.getOperacoesDualCycle();
+            resultado.setTotalOperacoes(resultadoReal.rehandlesEstimados() + (dualCycles * 2));
             resultado.setPontuacaoTotal(resultadoReal.pontuacaoTotal());
             resultado.setStatusGeral("OTIMIZADO_REAL");
             resultado.setObservacoes(resultado.getObservacoes()

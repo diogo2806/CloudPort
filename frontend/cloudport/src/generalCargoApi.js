@@ -2,6 +2,7 @@ import { request } from './api.js';
 
 const BASE = '/api/carga-geral';
 const STUFF_UNSTUFF = `${BASE}/operacoes-stuff-unstuff`;
+const INTERMODAL_OPERATIONS = `${BASE}/operacoes-intermodais`;
 const INVENTORY_RESERVATIONS = '/yard/inventario/canonico/reservas-carga-geral';
 
 export const generalCargoApi = {
@@ -18,6 +19,14 @@ export const generalCargoApi = {
   listarReferencias: (categoria) => request(`${BASE}/referencias`, { query: categoria ? { categoria } : undefined }),
   criarReferencia: (body) => request(`${BASE}/referencias`, { method: 'POST', body }),
   atualizarReferencia: (id, ativo) => request(`${BASE}/referencias/${encodeURIComponent(id)}/status`, { method: 'PATCH', query: { ativo } }),
+  registrarIdentificacao: (body) => request(`${INTERMODAL_OPERATIONS}/identificacoes`, { method: 'POST', body }),
+  resolverIdentificacao: (codigo) => request(`${INTERMODAL_OPERATIONS}/identificacoes/resolver`, { query: { codigo } }),
+  listarIdentificacoes: (loteId) => request(`${INTERMODAL_OPERATIONS}/identificacoes`, { query: { loteId } }),
+  listarInventarios: () => request(`${INTERMODAL_OPERATIONS}/inventarios`),
+  abrirInventario: (body) => request(`${INTERMODAL_OPERATIONS}/inventarios`, { method: 'POST', body }),
+  registrarContagem: (inventarioId, body) => request(`${INTERMODAL_OPERATIONS}/inventarios/${encodeURIComponent(inventarioId)}/contagens`, { method: 'POST', body }),
+  resolverDivergencia: (inventarioId, body) => request(`${INTERMODAL_OPERATIONS}/inventarios/${encodeURIComponent(inventarioId)}/divergencias`, { method: 'POST', body }),
+  concluirInventario: (inventarioId, body) => request(`${INTERMODAL_OPERATIONS}/inventarios/${encodeURIComponent(inventarioId)}/concluir`, { method: 'POST', body }),
   listarConteineresElegiveis: () => request(`${INVENTORY_RESERVATIONS}/elegiveis`),
   listarOperacoesStuffUnstuff: () => request(STUFF_UNSTUFF),
   obterOperacaoStuffUnstuff: (id) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}`),

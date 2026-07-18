@@ -1,6 +1,6 @@
 # Requisitos pendentes - CloudPort
 
-Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #393.
+Status: atualizado em 2026-07-18 após as implementações de ERR10 e ERR30 incorporadas à `main`.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -28,13 +28,15 @@ A lista detalhada está em `docs/implementados/requisitos-implementados.md`. Nã
 4. Inventário canônico de unidades e equipamentos, incluindo lacres, documentos, avarias, manutenção, holds, ownership, montagem, reefer e inventário físico.
 5. Vessel Planner com profile, top, section e tier views, drag-and-drop, segregação IMDG, restow e overlays operacionais.
 6. Gate operacional e visual com múltiplos gates, pistas, filas, appointments, truck visits, inspeções, imagens, documentos, EIR, SLA, trouble transactions e controle de pessoas.
-7. Ferrovia com visita, manifesto, ordens, composição gráfica, linhas, conflitos, conclusão, partida e transferência de locomotiva para navio.
-8. Carga geral, carga de projeto e break-bulk com Bill of Lading, itens, cargo lots, referências, estoque e movimentações.
-9. Billing e portal CAP.
-10. Grade operacional compartilhada, exportação CSV/Excel protegida contra fórmulas, inspector, filtros, layouts salvos e ajuda contextual.
-11. Central global de alertas e line-ups internos e públicos.
-12. Processamento EDI assíncrono e idempotente, eventos internos seletivos e contratos versionados.
-13. Dockerfiles e parâmetros de implantação do frontend e backend no EasyPanel.
+7. Serialização do acesso de pessoas por documento e tradução de disputas concorrentes para `409 Conflict`.
+8. Tradução das rejeições transacionais de truck visits para respostas operacionais `409` ou `422`, com SQLStates de domínio e rollback integral.
+9. Ferrovia com visita, manifesto, ordens, composição gráfica, linhas, conflitos, conclusão, partida e transferência de locomotiva para navio.
+10. Carga geral, carga de projeto e break-bulk com Bill of Lading, itens, cargo lots, referências, estoque e movimentações.
+11. Billing e portal CAP.
+12. Grade operacional compartilhada, exportação CSV/Excel protegida contra fórmulas, inspector, filtros, layouts salvos e ajuda contextual.
+13. Central global de alertas e line-ups internos e públicos.
+14. Processamento EDI assíncrono e idempotente, eventos internos seletivos e contratos versionados.
+15. Dockerfiles e parâmetros de implantação do frontend e backend no EasyPanel.
 
 ## P0 - Pendências obrigatórias
 
@@ -53,7 +55,7 @@ O replanejamento visual e a troca transacional de posições reais já existem. 
 
 O motor deve considerar, no mínimo:
 
-1. ETA, ETB, ETD, cutoff e sequência de descarga/embarque.
+1. ETA, ETB, ETD, cutoff e sequência de descarga/embarque;
 2. mapa completo do pátio, ocupação, restrições, allocations e reservas concorrentes;
 3. tipo, peso, altura, IMO, reefer, OOG, operador e destino da unidade;
 4. rehandles, dwell time, distância, disponibilidade e produtividade dos CHEs;
@@ -79,13 +81,11 @@ Critério de aceite: ao recarregar a página, o planejamento confirmado permanec
 
 As pendências técnicas comprovadas não devem ser duplicadas aqui. Implementar e encerrar os itens mantidos em `docs/requisitos/requisito-tecnico.md`:
 
-1. `ERR10`: concorrência no controle de entrada e saída de pessoas;
-2. `ERR20`: concorrência na geração de faturas e pagamentos;
-3. `ERR30`: tradução das rejeições transacionais de truck visits;
-4. `ERR40`: concorrência nos cadastros únicos de carga geral;
-5. `SEC70`: sanitização dos logs e exceções do TOS;
-6. `SEC80`: segurança da execução standalone de carga geral;
-7. `SEC90`: autenticação e autorização dos WebSockets operacionais do Yard.
+1. `ERR20`: concorrência na geração de faturas e pagamentos;
+2. `ERR40`: concorrência nos cadastros únicos de carga geral;
+3. `SEC70`: sanitização dos logs e exceções do TOS;
+4. `SEC80`: segurança da execução standalone de carga geral;
+5. `SEC90`: autenticação e autorização dos WebSockets operacionais do Yard.
 
 Critério de aceite: cada item deve sair do backlog técnico somente após alteração verificável no código e no contrato HTTP ou WebSocket correspondente.
 

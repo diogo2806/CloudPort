@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-18 com a conclusão do BUS10, da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -198,6 +198,10 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 7. Planejamento de bobinas, porões, tank top, empilhamento e posicionamento.
 8. Estabilidade, securing e aprovação baseada em evidências versionadas.
 9. Materiais, pontos de amarração, capacidades e regras persistidas.
+10. O BUS10 implementa operações persistidas de stuff e unstuff com bloqueio dos cargo lots, validação de saldo ou capacidade e compensação transacional no cancelamento.
+11. O contêiner é validado e reservado no inventário canônico, com bloqueio pessimista, verificação de condição, estado, manutenção e holds, e liberação na conclusão ou no cancelamento.
+12. Cada apontamento exige `commandId`, persiste hash do conteúdo e reutiliza o resultado aplicado em repetições equivalentes, rejeitando reutilização incompatível.
+13. O portal lista apenas contêineres elegíveis do inventário canônico e preserva o mesmo `commandId` para retentativa após falha de comunicação.
 
 ## Billing e portal CAP
 

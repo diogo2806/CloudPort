@@ -31,6 +31,15 @@ O runtime usa uma conexão PostgreSQL com schemas independentes:
 
 Cada artefato fornece `db/migration`. O build extrai essas migrações para namespaces exclusivos no runtime e cria um histórico Flyway por módulo.
 
+## Estrutura Maven
+
+O build consolidado usa dois níveis distintos:
+
+- `backend/cloudport-navio-modules/pom.xml`: parent Maven compartilhado, responsável por versões, `dependencyManagement`, `pluginManagement` e regras comuns;
+- `backend/cloudport-modules/pom.xml`: reator canônico que agrega contratos, módulos de domínio e `cloudport-runtime`.
+
+O diretório `cloudport-runtime` é o executável consolidado e não substitui o parent nem o reator. Por isso, o parent deve ser instalado antes de executar o build pelo reator.
+
 ## Build
 
 ```bash

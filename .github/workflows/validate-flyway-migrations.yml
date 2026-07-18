@@ -7,6 +7,7 @@ on:
       - 'backend/**/src/main/resources/db/migration/**'
       - 'backend/cloudport-runtime/pom.xml'
       - 'backend/cloudport-runtime/src/test/java/br/com/cloudport/runtime/configuracao/FlywayMigrationPackagingUniquenessTest.java'
+      - 'backend/cloudport-runtime/src/test/java/br/com/cloudport/runtime/configuracao/FlywayMigrationExecutionTest.java'
       - 'backend/Dockerfile'
       - 'backend/cloudport-runtime/Dockerfile'
       - '.github/workflows/validate-flyway-migrations.yml'
@@ -16,6 +17,7 @@ on:
       - 'backend/**/src/main/resources/db/migration/**'
       - 'backend/cloudport-runtime/pom.xml'
       - 'backend/cloudport-runtime/src/test/java/br/com/cloudport/runtime/configuracao/FlywayMigrationPackagingUniquenessTest.java'
+      - 'backend/cloudport-runtime/src/test/java/br/com/cloudport/runtime/configuracao/FlywayMigrationExecutionTest.java'
       - 'backend/Dockerfile'
       - 'backend/cloudport-runtime/Dockerfile'
       - '.github/workflows/validate-flyway-migrations.yml'
@@ -35,7 +37,7 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Montar runtime e validar versões Flyway
+      - name: Montar runtime e validar versões e execução Flyway
         working-directory: backend/cloudport-modules
         shell: bash
         run: |
@@ -46,4 +48,4 @@ jobs:
             -DskipTests install
           mvn -B -pl :cloudport-runtime -DskipTests clean package
           mvn -B -pl :cloudport-runtime \
-            -Dtest=FlywayMigrationPackagingUniquenessTest test
+            -Dtest=FlywayMigrationPackagingUniquenessTest,FlywayMigrationExecutionTest test

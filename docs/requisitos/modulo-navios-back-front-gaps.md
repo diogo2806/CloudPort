@@ -1,6 +1,6 @@
 # Requisitos pendentes - CloudPort
 
-Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #393.
+Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #396.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -27,14 +27,16 @@ A lista detalhada está em `docs/implementados/requisitos-implementados.md`. Nã
 3. Pátio georreferenciado com vistas de bloco, seção, scan, microvisão, heatmaps, workspaces, simulação, notas, restrições, rotas, reefers e editor de allocations.
 4. Inventário canônico de unidades e equipamentos, incluindo lacres, documentos, avarias, manutenção, holds, ownership, montagem, reefer e inventário físico.
 5. Vessel Planner com profile, top, section e tier views, drag-and-drop, segregação IMDG, restow e overlays operacionais.
-6. Gate operacional e visual com múltiplos gates, pistas, filas, appointments, truck visits, inspeções, imagens, documentos, EIR, SLA, trouble transactions e controle de pessoas.
-7. Ferrovia com visita, manifesto, ordens, composição gráfica, linhas, conflitos, conclusão, partida e transferência de locomotiva para navio.
-8. Carga geral, carga de projeto e break-bulk com Bill of Lading, itens, cargo lots, referências, estoque e movimentações.
-9. Billing e portal CAP.
-10. Grade operacional compartilhada, exportação CSV/Excel protegida contra fórmulas, inspector, filtros, layouts salvos e ajuda contextual.
-11. Central global de alertas e line-ups internos e públicos.
-12. Processamento EDI assíncrono e idempotente, eventos internos seletivos e contratos versionados.
-13. Dockerfiles e parâmetros de implantação do frontend e backend no EasyPanel.
+6. Gate operacional e visual com múltiplos Gates, pistas, filas, appointments, truck visits, inspeções, imagens, documentos, EIR, SLA, trouble transactions e controle de pessoas.
+7. Concorrência no controle de entrada e saída de pessoas com lock, resposta HTTP `409` e testes.
+8. Ferrovia com visita, manifesto, ordens, composição gráfica, linhas, conflitos, conclusão, partida e transferência de locomotiva para navio.
+9. Carga geral, carga de projeto e break-bulk com Bill of Lading, itens, cargo lots, referências, estoque e movimentações.
+10. Billing e portal CAP.
+11. Grade operacional compartilhada, exportação CSV/Excel protegida contra fórmulas, inspector, filtros, layouts salvos e ajuda contextual.
+12. Central global de alertas e line-ups internos e públicos.
+13. Processamento EDI assíncrono e idempotente, eventos internos seletivos e contratos versionados.
+14. Dockerfiles e parâmetros de implantação do frontend e backend no EasyPanel.
+15. Configuração do backend por `DB_*`, `SECURITY_JWT_*` e credenciais administrativas explícitas, sem administrador padrão inseguro.
 
 ## P0 - Pendências obrigatórias
 
@@ -53,7 +55,7 @@ O replanejamento visual e a troca transacional de posições reais já existem. 
 
 O motor deve considerar, no mínimo:
 
-1. ETA, ETB, ETD, cutoff e sequência de descarga/embarque.
+1. ETA, ETB, ETD, cutoff e sequência de descarga/embarque;
 2. mapa completo do pátio, ocupação, restrições, allocations e reservas concorrentes;
 3. tipo, peso, altura, IMO, reefer, OOG, operador e destino da unidade;
 4. rehandles, dwell time, distância, disponibilidade e produtividade dos CHEs;
@@ -79,13 +81,14 @@ Critério de aceite: ao recarregar a página, o planejamento confirmado permanec
 
 As pendências técnicas comprovadas não devem ser duplicadas aqui. Implementar e encerrar os itens mantidos em `docs/requisitos/requisito-tecnico.md`:
 
-1. `ERR10`: concorrência no controle de entrada e saída de pessoas;
-2. `ERR20`: concorrência na geração de faturas e pagamentos;
-3. `ERR30`: tradução das rejeições transacionais de truck visits;
-4. `ERR40`: concorrência nos cadastros únicos de carga geral;
-5. `SEC70`: sanitização dos logs e exceções do TOS;
-6. `SEC80`: segurança da execução standalone de carga geral;
-7. `SEC90`: autenticação e autorização dos WebSockets operacionais do Yard.
+1. `ERR20`: concorrência na geração de faturas e pagamentos;
+2. `ERR30`: tradução das rejeições transacionais de truck visits;
+3. `ERR40`: concorrência nos cadastros únicos de Carga Geral;
+4. `SEC70`: sanitização dos logs e exceções do TOS;
+5. `SEC80`: segurança da execução standalone de Carga Geral;
+6. `SEC90`: autenticação e autorização dos WebSockets operacionais do Yard.
+
+O requisito `ERR10` foi implementado no PR #396 e não deve voltar ao backlog sem regressão comprovada.
 
 Critério de aceite: cada item deve sair do backlog técnico somente após alteração verificável no código e no contrato HTTP ou WebSocket correspondente.
 
@@ -125,15 +128,15 @@ Critério de aceite: runbook executado em ambiente, evidências de paridade regi
 ### 3. EDI e eventos externos
 
 1. Aplicar VERMAS também às reservas, ordens e validações de capacidade do Yard.
-2. Publicar eventos externos específicos de estiva, reserva, ordem, movimento, gate, rail e work queue.
+2. Publicar eventos externos específicos de estiva, reserva, ordem, movimento, Gate, Rail e work queue.
 3. Implementar outbox transacional para eventos que atravessam a fronteira da aplicação.
 4. Definir política operacional de retenção, quarentena, reprocessamento e descarte de mensagens.
 5. Disponibilizar painel unificado de recepção, tentativa, erro, correlação e efeito produzido por mensagem.
 
 ### 4. Relatórios operacionais
 
-1. Evoluir relatórios integrados com planejado x realizado, produtividade, divergências e causa raiz.
-2. Criar relatórios de gate, pátio, navio, ferrovia, carga geral, inventário, billing e equipamentos usando a mesma infraestrutura.
+1. Evoluir relatórios integrados com planejado versus realizado, produtividade, divergências e causa raiz.
+2. Criar relatórios de Gate, pátio, navio, ferrovia, Carga Geral, inventário, Billing e equipamentos usando a mesma infraestrutura.
 3. Manter CSV e Excel na grade operacional e adicionar PDF somente para relatórios com layout controlado.
 4. Permitir agendamento, armazenamento, download autorizado e retenção configurável.
 

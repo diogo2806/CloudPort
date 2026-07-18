@@ -46,6 +46,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
                 "cloudport.modulo.navio.integracao=local",
                 "cloudport.modulo.yard.integracao=local",
                 "cloudport.security.jwt.secret=cloudport-runtime-test-secret-with-32-bytes",
+                "cloudport.security.jwt.expiration=PT2H",
                 "cloudport.security.internal-service-key=cloudport-runtime-test-service-key",
                 "api.security.token.secret=cloudport-runtime-test-secret-with-32-bytes",
                 "jwt.secret=cloudport-runtime-test-secret-with-32-bytes",

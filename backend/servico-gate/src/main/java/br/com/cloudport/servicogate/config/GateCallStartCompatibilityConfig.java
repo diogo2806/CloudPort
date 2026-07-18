@@ -6,7 +6,7 @@ import br.com.cloudport.servicogate.model.enums.GateCallStatus;
 import java.time.LocalDateTime;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,19 +15,21 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-@ConditionalOnBean(GateCallRepository.class)
 public class GateCallStartCompatibilityConfig implements WebMvcConfigurer {
 
-    private final GateCallRepository repository;
+    private final ObjectProvider<GateCallRepository> repositoryProvider;
 
-    public GateCallStartCompatibilityConfig(GateCallRepository repository) {
-        this.repository = repository;
+    public GateCallStartCompatibilityConfig(ObjectProvider<GateCallRepository> repositoryProvider) {
+        this.repositoryProvider = repositoryProvider;
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new LegacyStartInterceptor(repository))
-                .addPathPatterns("/api/gate/calls/*/start");
+        GateCallRepository repository = repositoryProvider.getIfAvailable();
+        if (repository != null) {
+            registry.addInterceptor(new LegacyStartInterceptor(repository))
+                    .addPathPatterns("/api/gate/calls/*/start");
+        }
     }
 
     private static class LegacyStartInterceptor implements HandlerInterceptor {

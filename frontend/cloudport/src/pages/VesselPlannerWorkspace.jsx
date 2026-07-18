@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   VESSEL_LEGEND_MODES,
-  VESSEL_VIEW_MODES,
   buildContainerIndex,
   buildCraneIndex,
   buildLegend,
@@ -28,10 +27,23 @@ import {
   validateDropTarget,
   validationClass
 } from '../vessel-planner-phase2.js';
+import {
+  VESSEL_OVERLAY_MODES,
+  aggregateOverlayForSlots,
+  buildImdgIndex,
+  buildOverlayIndex
+} from '../vessel-planner-phase3.js';
+import {
+  COMPLETE_VESSEL_VIEW_MODES,
+  overlayClassName,
+  overlayTooltip
+} from '../vessel-planner-complete.js';
 import '../vessel-planner-phase1.css';
 import '../vessel-planner-phase2.css';
+import '../vessel-planner-complete.css';
 import { CraneExecutionTimeline } from './CraneExecutionTimeline.jsx';
 import { VesselHatchCoverPanel } from './VesselHatchCoverPanel.jsx';
+import { VesselPlannerScanView } from './VesselPlannerScanView.jsx';
 
 const DRAG_TYPE = 'application/x-cloudport-vessel-container';
 
@@ -79,6 +91,11 @@ function SlotGlyph({ slot, selected, context, drag, canEdit, onSelect, onDragSta
   const source = dragSource(drag.payload);
   const sourceSlot = source?.sourceSlotId && String(source.sourceSlotId) === String(slot.id);
   const hovered = String(drag.hoveredTargetId ?? '') === String(slot.id);
+  const overlay = context.overlayIndex?.[String(slot.id)] ?? null;
+  const tooltip = [
+    (validation?.reasons?.length ? validation.reasons : warnings).map((warning) => warning.message).join('\n'),
+    overlayTooltip(overlay)
+  ].filter(Boolean).join('\n');
   const classes = [
     'vessel-visual-slot',
     occupied ? 'occupied' : 'empty',
@@ -87,6 +104,7 @@ function SlotGlyph({ slot, selected, context, drag, canEdit, onSelect, onDragSta
     occupied ? `legend-tone-${toneIndex(legendValue)}` : '',
     warnings.length ? 'has-warning' : '',
     validationClass(validation),
+    overlayClassName(overlay),
     hovered ? 'drop-hover' : '',
     sourceSlot ? 'drag-source' : ''
   ].filter(Boolean).join(' ');
@@ -112,8 +130,9 @@ function SlotGlyph({ slot, selected, context, drag, canEdit, onSelect, onDragSta
     onClick={() => onSelect(slot)}
     aria-pressed={selected}
     aria-label={`${formatSlotPosition(slot)}, ${occupied ? `contêiner ${slot.codigoContainer}` : 'livre'}, ${legendValue}`}
-    title={(validation?.reasons?.length ? validation.reasons : warnings).map((warning) => warning.message).join('\n') || `${formatSlotPosition(slot)} · ${legendValue}`}
+    title={tooltip || `${formatSlotPosition(slot)} · ${legendValue}`}
   >
+    {overlay?.shortLabel && <i className="vessel-complete-overlay-badge">{overlay.shortLabel}</i>}
     <span className="slot-coordinate">B{slot.bay} · R{slot.rowBay} · T{slot.tier}</span>
     <strong>{occupied ? slot.codigoContainer : slot.restrito ? 'Restrito' : 'Livre'}</strong>
     <small>{occupied ? `${legendValue} · ${displayWeight(slot.pesoVgmKg ?? slot.pesoKg)}` : slot.tipoSlot || 'NORMAL'}</small>
@@ -133,6 +152,7 @@ function AggregateCell({ slots, selectedSlotId, active, context, title, children
   const validation = drag.payload ? context.validateTarget(target, drag.payload) : null;
   const hovered = target && String(drag.hoveredTargetId ?? '') === String(target.id);
   const draggableSlot = occupied.length === 1 ? occupied[0] : null;
+  const overlay = aggregateOverlayForSlots(slots, context.overlayIndex);
   return <button
     type="button"
     className={[
@@ -143,6 +163,7 @@ function AggregateCell({ slots, selectedSlotId, active, context, title, children
       active ? 'active-coordinate' : '',
       dominant ? `legend-tone-${dominant.tone}` : '',
       validationClass(validation),
+      overlayClassName(overlay),
       hovered ? 'drop-hover' : ''
     ].filter(Boolean).join(' ')}
     draggable={Boolean(canEdit && draggableSlot)}
@@ -162,8 +183,9 @@ function AggregateCell({ slots, selectedSlotId, active, context, title, children
     }}
     onDrop={(event) => onDropTarget(event, target)}
     aria-pressed={selected}
-    title={`${title}${dominant ? ` · ${dominant.value}` : ''}${validation?.reasons?.length ? `\n${validation.reasons.map((reason) => reason.message).join('\n')}` : ''}`}
+    title={[title, dominant ? dominant.value : '', validation?.reasons?.map((reason) => reason.message).join('\n'), overlayTooltip(overlay)].filter(Boolean).join('\n')}
   >
+    {overlay?.shortLabel && <i className="vessel-complete-overlay-badge">{overlay.shortLabel}</i>}
     {children}
     {dominant && <span className="aggregate-legend"><i className={`legend-tone-${dominant.tone}`} />{dominant.value}</span>}
   </button>;
@@ -279,6 +301,17 @@ function TierView(props) {
   </section>;
 }
 
+function ScanView(props) {
+  const { slots, context, selectedSlotId, canEdit, drag, onSelect, onDragStart, onDragEnd, onHoverTarget, onDropTarget } = props;
+  return <VesselPlannerScanView
+    slots={slots}
+    context={context}
+    selectedSlotId={selectedSlotId}
+    onSelect={onSelect}
+    renderSlot={(slot) => <SlotGlyph key={slot.id} slot={slot} selected={String(slot.id) === String(selectedSlotId)} context={context} drag={drag} canEdit={canEdit} onSelect={onSelect} onDragStart={onDragStart} onDragEnd={onDragEnd} onHoverTarget={onHoverTarget} onDropTarget={onDropTarget} />}
+  />;
+}
+
 function LegendPanel({ mode, setMode, legend }) {
   return <aside className="vessel-legend-panel"><label><span>Colorir por</span><select value={mode} onChange={(event) => setMode(event.target.value)}>{VESSEL_LEGEND_MODES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
     <div className="vessel-legend-items">{legend.map((item) => <span key={item.value}><i className={`legend-tone-${item.tone}`} />{item.value}<small>{item.count}</small></span>)}{!legend.length && <span className="legend-empty">Nenhum contêiner alocado</span>}</div>
@@ -298,16 +331,18 @@ function DragValidationBanner({ payload, target, validation }) {
 }
 
 function Inspector({ slot, context, dragPayload, onClear }) {
-  if (!slot) return <aside className="vessel-slot-inspector empty"><span className="view-kicker">Seleção sincronizada</span><h3>Nenhum slot selecionado</h3><p>Selecione uma célula nas vistas profile, top, section ou tier.</p></aside>;
+  if (!slot) return <aside className="vessel-slot-inspector empty"><span className="view-kicker">Seleção sincronizada</span><h3>Nenhum slot selecionado</h3><p>Selecione uma célula nas vistas profile, top, scan, section ou tier.</p></aside>;
   const metadata = context.containerIndex[String(slot.codigoContainer ?? '').toUpperCase()] ?? {};
   const summary = context.stackSummaries[stackPositionKey(slot)];
   const warnings = buildSlotWarnings(slot, { violations: context.violationIndex }, summary);
   const validation = dragPayload ? context.validateTarget(slot, dragPayload) : null;
   const restrictions = validation?.reasons?.length ? validation.reasons : warnings.map((item) => ({ ...item, status: String(item.severity).toUpperCase() === 'PERIGO' ? DROP_VALIDATION_STATUS.BLOCKED : DROP_VALIDATION_STATUS.WARNING }));
+  const overlay = context.overlayIndex?.[String(slot.id)] ?? null;
   return <aside className="vessel-slot-inspector"><div className="inspector-heading"><div><span className="view-kicker">Slot selecionado</span><h3>{formatSlotPosition(slot)}</h3></div><button type="button" className="icon-button" onClick={onClear} aria-label="Limpar seleção">×</button></div>
-    <div className="inspector-status-row"><span className={slot.codigoContainer ? 'status-pill occupied' : 'status-pill empty'}>{slot.codigoContainer ? 'Ocupado' : 'Livre'}</span>{slot.restrito && <span className="status-pill danger">Restrito</span>}<HatchStateBadge slot={slot} covers={context.hatchCovers} /></div>
+    <div className="inspector-status-row"><span className={slot.codigoContainer ? 'status-pill occupied' : 'status-pill empty'}>{slot.codigoContainer ? 'Ocupado' : 'Livre'}</span>{slot.restrito && <span className="status-pill danger">Restrito</span>}{overlay?.risk && overlay.risk !== 'NONE' && <span className={`status-pill ${String(overlay.risk).toLowerCase()}`}>{overlay.label} · {overlay.risk}</span>}<HatchStateBadge slot={slot} covers={context.hatchCovers} /></div>
     <dl className="slot-inspector-grid"><div><dt>Contêiner</dt><dd>{slot.codigoContainer || '—'}</dd></div><div><dt>POD</dt><dd>{slot.portoDescarga || metadata.portoDescarga || '—'}</dd></div><div><dt>Peso</dt><dd>{displayWeight(slot.pesoVgmKg ?? slot.pesoKg ?? metadata.pesoVgmKg ?? metadata.pesoKg)}</dd></div><div><dt>Peso da stack</dt><dd>{displayWeight(summary?.weightKg)}{summary?.maxWeightKg ? ` / ${displayWeight(summary.maxWeightKg)} · ${summary.percent}%` : ''}</dd></div><div><dt>IMO</dt><dd>{slot.perigoso || metadata.perigoso ? slot.classeImo || metadata.classeImo || 'N/I' : 'Não perigoso'}</dd></div><div><dt>Reefer</dt><dd>{slot.reefer || metadata.reefer ? 'Sim' : 'Não'}</dd></div><div><dt>Operador</dt><dd>{legendValueForSlot(slot, 'OPERATOR', context.containerIndex)}</dd></div><div><dt>Limite do slot</dt><dd>{displayWeight(slot.maxPesoKg ?? slot.limitePesoKg)}</dd></div></dl>
     {restrictions.length > 0 && <div><span className="view-kicker">Restrições e validações</span><ul className="slot-restriction-list">{restrictions.map((item, index) => <li key={`${item.code ?? item.type}-${index}`} className={item.status === DROP_VALIDATION_STATUS.BLOCKED ? 'blocked' : ''}>{item.message}</li>)}</ul></div>}
+    {overlay?.details?.length > 0 && <div className="vessel-overlay-details"><span className="view-kicker">Camada técnica · {overlay.label}</span><ul>{overlay.details.map((detail, index) => <li key={`${detail}-${index}`}>{detail}</li>)}</ul></div>}
   </aside>;
 }
 
@@ -355,11 +390,14 @@ export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, seque
   const selectedSlot = useMemo(() => slots.find((slot) => String(slot.id) === String(selectedSlotId)) ?? null, [selectedSlotId, slots]);
   const [viewMode, setViewMode] = useState('MULTI');
   const [legendMode, setLegendMode] = useState('POD');
+  const [overlayMode, setOverlayMode] = useState('COMBINED');
   const [coordinates, setCoordinates] = useState(() => selectionCoordinates(slots[0]));
   const [hatchCovers, setHatchCovers] = useState([]);
   const [dragPayload, setDragPayload] = useState(null);
   const [hoveredTargetId, setHoveredTargetId] = useState('');
   const [lastValidation, setLastValidation] = useState(null);
+  const imdgIndex = useMemo(() => buildImdgIndex(slots, containerIndex, violationIndex), [slots, containerIndex, violationIndex]);
+  const overlayIndex = useMemo(() => buildOverlayIndex(slots, overlayMode, { stackSummaries, violationIndex, imdgIndex }), [slots, overlayMode, stackSummaries, violationIndex, imdgIndex]);
   const allocated = useMemo(() => new Set(slots.map((slot) => slot.codigoContainer).filter(Boolean)), [slots]);
   const unallocated = useMemo(() => (Array.isArray(bayPlan?.containers) ? bayPlan.containers : []).filter((container) => !allocated.has(container.codigoContainer)), [allocated, bayPlan]);
   const legend = useMemo(() => buildLegend(slots, legendMode, containerIndex), [slots, legendMode, containerIndex]);
@@ -431,13 +469,14 @@ export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, seque
   const activeBanner = dragPayload && hoveredTarget
     ? { payload: dragPayload, target: hoveredTarget, validation: validateTarget(hoveredTarget, dragPayload) }
     : lastValidation ?? { payload: dragPayload, target: null, validation: null };
-  const context = { legendMode, containerIndex, stackSummaries, violationIndex, restowIndex, craneIndex, coordinates, hatchCovers, selectedCoverCode, validateTarget };
+  const context = { legendMode, overlayMode, overlayIndex, imdgIndex, containerIndex, stackSummaries, violationIndex, restowIndex, craneIndex, coordinates, hatchCovers, selectedCoverCode, validateTarget };
   const drag = { payload: dragPayload, hoveredTargetId };
 
   function renderView(mode) {
     const shared = { slots, context, selectedSlotId, canEdit: canEdit && !busy, drag, onSelect: selectSlot, onDragStart: startDrag, onDragEnd: endDrag, onHoverTarget: hoverTarget, onDropTarget: dropTarget };
     if (mode === 'PROFILE') return <ProfileView {...shared} onCoordinates={selectCoordinates} />;
     if (mode === 'TOP') return <TopView {...shared} onCoordinates={selectCoordinates} />;
+    if (mode === 'SCAN') return <ScanView {...shared} />;
     if (mode === 'SECTION') return <SectionView {...shared} />;
     return <TierView {...shared} />;
   }
@@ -446,15 +485,23 @@ export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, seque
 
   return <div className="vessel-planner-workspace">
     <VesselHatchCoverPanel planId={plan?.id} canEdit={canEdit} busy={busy} selectedCoverCode={selectedCoverCode} onSelectCover={selectCover} onCoversChange={setHatchCovers} />
-    <div className="vessel-workspace-toolbar"><div className="view-mode-tabs" role="tablist" aria-label="Vistas do Vessel Planner">{VESSEL_VIEW_MODES.map((mode) => <button key={mode.value} type="button" className={viewMode === mode.value ? 'active' : ''} onClick={() => setViewMode(mode.value)}>{mode.label}</button>)}</div><div className="coordinate-controls"><label>Bay<select value={coordinates.bay ?? ''} onChange={(event) => selectCoordinates({ bay: Number(event.target.value) })}>{bays.map((bay) => <option key={bay} value={bay}>{bay}</option>)}</select></label><label>Row<select value={coordinates.rowBay ?? ''} onChange={(event) => selectCoordinates({ rowBay: Number(event.target.value) })}>{rows.map((row) => <option key={row} value={row}>{row}</option>)}</select></label><label>Tier<select value={coordinates.tier ?? ''} onChange={(event) => selectCoordinates({ tier: Number(event.target.value) })}>{tiers.map((tier) => <option key={tier} value={tier}>{tier}</option>)}</select></label></div></div>
-    <div className="vessel-phase1-selection"><span>Seleção sincronizada</span><strong>B{coordinates.bay} · R{coordinates.rowBay} · T{coordinates.tier}</strong><small>{selectedSlot?.codigoContainer || 'Slot livre'} · {selectedSlot ? legendValueForSlot(selectedSlot, legendMode, containerIndex) : '—'}</small></div>
+    <div className="vessel-workspace-toolbar">
+      <div className="view-mode-tabs" role="tablist" aria-label="Vistas do Vessel Planner">{COMPLETE_VESSEL_VIEW_MODES.map((mode) => <button key={mode.value} type="button" className={viewMode === mode.value ? 'active' : ''} onClick={() => setViewMode(mode.value)}>{mode.label}</button>)}</div>
+      <div className="coordinate-controls">
+        <label>Bay<select value={coordinates.bay ?? ''} onChange={(event) => selectCoordinates({ bay: Number(event.target.value) })}>{bays.map((bay) => <option key={bay} value={bay}>{bay}</option>)}</select></label>
+        <label>Row<select value={coordinates.rowBay ?? ''} onChange={(event) => selectCoordinates({ rowBay: Number(event.target.value) })}>{rows.map((row) => <option key={row} value={row}>{row}</option>)}</select></label>
+        <label>Tier<select value={coordinates.tier ?? ''} onChange={(event) => selectCoordinates({ tier: Number(event.target.value) })}>{tiers.map((tier) => <option key={tier} value={tier}>{tier}</option>)}</select></label>
+        <label className="vessel-complete-overlay-control"><span>Overlay</span><select value={overlayMode} onChange={(event) => setOverlayMode(event.target.value)}>{VESSEL_OVERLAY_MODES.map((mode) => <option key={mode.value} value={mode.value}>{mode.label}</option>)}</select></label>
+      </div>
+    </div>
+    <div className="vessel-phase1-selection"><span>Seleção sincronizada</span><strong>B{coordinates.bay} · R{coordinates.rowBay} · T{coordinates.tier}</strong><small>{selectedSlot?.codigoContainer || 'Slot livre'} · {selectedSlot ? legendValueForSlot(selectedSlot, legendMode, containerIndex) : '—'} · {VESSEL_OVERLAY_MODES.find((mode) => mode.value === overlayMode)?.label}</small></div>
     <LegendPanel mode={legendMode} setMode={setLegendMode} legend={legend} />
     <ValidationKey />
     <DragValidationBanner payload={activeBanner.payload} target={activeBanner.target} validation={activeBanner.validation} />
-    <div className="vessel-workspace-layout"><main className="vessel-main-canvas">{viewMode === 'MULTI' ? <div className="multi-view-grid"><div>{renderView('PROFILE')}</div><div>{renderView('TOP')}</div><div>{renderView('SECTION')}</div><div>{renderView('TIER')}</div></div> : renderView(viewMode)}</main><Inspector slot={selectedSlot} context={context} dragPayload={dragPayload} onClear={() => onSelectSlot(null)} /></div>
+    <div className="vessel-workspace-layout"><main className="vessel-main-canvas">{viewMode === 'MULTI' ? <div className="multi-view-grid"><div>{renderView('PROFILE')}</div><div>{renderView('TOP')}</div><div>{renderView('SECTION')}</div><div>{renderView('TIER')}</div><div className="multi-view-scan">{renderView('SCAN')}</div></div> : renderView(viewMode)}</main><Inspector slot={selectedSlot} context={context} dragPayload={dragPayload} onClear={() => onSelectSlot(null)} /></div>
     <UnallocatedTray containers={unallocated} canEdit={canEdit && !busy} onDragStart={startDrag} onDragEnd={endDrag} />
     <StackWeightPanel slots={slots} summaries={stackSummaries} coordinates={coordinates} dragPayload={dragPayload} onSelect={selectSlot} />
-    <CraneExecutionTimeline plan={plan} sequencing={sequencing} disabled={busy} />
+    <CraneExecutionTimeline plan={plan} sequencing={sequencing} disabled={busy} selectedSlotId={selectedSlotId} onSelectSlot={selectSlot} overlayMode={overlayMode} onOverlayModeChange={setOverlayMode} showOverlayToolbar={false} />
     <TechnicalSummary stability={stability} restow={restow} sequencing={sequencing} onSelect={selectSlot} slots={slots} />
   </div>;
 }

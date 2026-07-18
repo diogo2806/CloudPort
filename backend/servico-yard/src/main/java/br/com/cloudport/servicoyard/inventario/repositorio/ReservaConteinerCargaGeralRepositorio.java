@@ -16,7 +16,13 @@ public interface ReservaConteinerCargaGeralRepositorio
     Optional<ReservaConteinerCargaGeral> findByOperacaoId(UUID operacaoId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<ReservaConteinerCargaGeral> findByUnidadeIdAndStatus(Long unidadeId, StatusReserva status);
+    Optional<ReservaConteinerCargaGeral> findByUnidade_IdAndStatus(Long unidadeId, StatusReserva status);
+
+    default Optional<ReservaConteinerCargaGeral> findByUnidadeIdAndStatus(
+            Long unidadeId,
+            StatusReserva status) {
+        return findByUnidade_IdAndStatus(unidadeId, status);
+    }
 
     List<ReservaConteinerCargaGeral> findAllByStatus(StatusReserva status);
 }

@@ -10,6 +10,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.stream.Collectors;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
@@ -122,7 +123,10 @@ class TosIntegrationServiceTest {
                 .hasMessageNotContaining("12345678900")
                 .hasMessageNotContaining("detalhe aduaneiro reservado");
 
-        assertThat(output.getAll())
+        String logsTos = output.getAll().lines()
+                .filter(linha -> linha.contains("event=tos."))
+                .collect(Collectors.joining("\n"));
+        assertThat(logsTos)
                 .contains("event=tos.call.error")
                 .contains("resource=booking")
                 .contains("identifier=BK***56")

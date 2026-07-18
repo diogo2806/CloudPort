@@ -25,10 +25,12 @@ class ExecucaoSequenciaGuindasteServicoTest {
         EstivagemPlanRepositorio planRepositorio = mock(EstivagemPlanRepositorio.class);
         ExecucaoSequenciaGuindasteRepositorio execucaoRepositorio = mock(ExecucaoSequenciaGuindasteRepositorio.class);
         SequenciamentoGuindasteServico sequenciamentoServico = mock(SequenciamentoGuindasteServico.class);
+        TampaPoraoServico tampaPoraoServico = mock(TampaPoraoServico.class);
         ExecucaoSequenciaGuindasteServico servico = new ExecucaoSequenciaGuindasteServico(
                 planRepositorio,
                 execucaoRepositorio,
-                sequenciamentoServico);
+                sequenciamentoServico,
+                tampaPoraoServico);
 
         ExecucaoSequenciaGuindaste execucao = new ExecucaoSequenciaGuindaste();
         execucao.setId(15L);

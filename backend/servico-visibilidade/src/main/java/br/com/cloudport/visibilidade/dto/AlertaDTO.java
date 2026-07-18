@@ -10,11 +10,13 @@ public class AlertaDTO {
     private String entidadeId;
     private String descricao;
     private LocalDateTime dataGerada;
+    private LocalDateTime dataReconhecimento;
+    private String reconhecidoPor;
     private LocalDateTime dataResolucao;
+    private String resolvidoPor;
     private String status;
     private String acaoSugerida;
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -33,8 +35,17 @@ public class AlertaDTO {
     public LocalDateTime getDataGerada() { return dataGerada; }
     public void setDataGerada(LocalDateTime dataGerada) { this.dataGerada = dataGerada; }
 
+    public LocalDateTime getDataReconhecimento() { return dataReconhecimento; }
+    public void setDataReconhecimento(LocalDateTime dataReconhecimento) { this.dataReconhecimento = dataReconhecimento; }
+
+    public String getReconhecidoPor() { return reconhecidoPor; }
+    public void setReconhecidoPor(String reconhecidoPor) { this.reconhecidoPor = reconhecidoPor; }
+
     public LocalDateTime getDataResolucao() { return dataResolucao; }
     public void setDataResolucao(LocalDateTime dataResolucao) { this.dataResolucao = dataResolucao; }
+
+    public String getResolvidoPor() { return resolvidoPor; }
+    public void setResolvidoPor(String resolvidoPor) { this.resolvidoPor = resolvidoPor; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

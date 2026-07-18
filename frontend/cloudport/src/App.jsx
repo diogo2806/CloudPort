@@ -9,8 +9,8 @@ import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.j
 import { ControlRoomEquipamentosPage } from './pages/ControlRoomEquipamentosPage.jsx';
 import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
+import { GateOperationsPage } from './pages/GateOperationsPage.jsx';
 import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
-import { GeneralCargoPage } from './pages/GeneralCargoPage.jsx';
 import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
@@ -54,6 +54,7 @@ const FALLBACK_NAVIGATION = [
   ] },
   { group: 'Gate', items: [
     { label: 'Gate visual', path: '/home/gate/dashboard', roles: [] },
+    { label: 'Operação completa', path: '/home/gate/operacao', roles: ['ADMIN_PORTO', 'OPERADOR_GATE', 'PLANEJADOR'] },
     { label: 'Agendamentos', path: '/home/gate/agendamentos', roles: [] },
     { label: 'Janelas', path: '/home/gate/janelas', roles: [] },
     { label: 'Controle de pessoas', path: '/home/gate/pessoas', roles: ['ADMIN_PORTO', 'OPERADOR_GATE', 'PLANEJADOR'] },
@@ -84,9 +85,6 @@ const FALLBACK_NAVIGATION = [
     { label: 'Recursos', path: '/home/patio/recursos', roles: [] },
     { label: 'Indicadores', path: '/home/patio/dashboard-kpi', roles: [] },
     { label: 'Automação', path: '/home/patio/automacao', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }
-  ] },
-  { group: 'Carga geral', items: [
-    { label: 'Carga geral e break-bulk', path: '/home/carga-geral', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO', 'OPERADOR_GATE'] }
   ] },
   { group: 'Navio e embarque', items: [
     { label: 'Line-up de navios', path: '/home/navio/line-up', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
@@ -156,9 +154,9 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/lista-de-usuarios') return <UsersPage />;
   if (path === '/home/billing') return <BillingPage />;
   if (path === '/home/cap') return <CapPage />;
-  if (path === '/home/carga-geral') return <GeneralCargoPage />;
   if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
   if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
+  if (path === '/home/gate/operacao') return <GateOperationsPage session={session} />;
   if (path === '/home/gate' || path === '/home/gate/dashboard' || path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDashboardPage />;
   if (path === '/home/gate/pessoas') return <GatePeopleAccessPage />;
   if (path === '/home/gate/embarque-direto') return <GateDirectVesselPage session={session} />;

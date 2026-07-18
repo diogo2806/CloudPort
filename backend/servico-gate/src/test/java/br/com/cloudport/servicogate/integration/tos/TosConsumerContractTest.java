@@ -41,6 +41,7 @@ class TosConsumerContractTest {
     static class TestConfig {
 
         @Bean
+        @Primary
         TosProperties tosProperties(@Value("${wiremock.server.port}") int wireMockPort) {
             TosProperties properties = new TosProperties();
             properties.getApi().setBaseUrl("http://localhost:" + wireMockPort);

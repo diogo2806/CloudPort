@@ -4,6 +4,7 @@ import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.GatePass;
 import br.com.cloudport.servicogate.model.enums.StatusGate;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.UUID;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GateDecisionDTO {
@@ -16,10 +17,13 @@ public class GateDecisionDTO {
     private Long gatePassId;
     private String codigoGatePass;
     private String tokenGatePass;
+    private UUID reservaCargaGeralId;
+    private String statusReservaCargaGeral;
+    private String estagioConfirmacaoCargaGeral;
     private String mensagem;
 
     public static GateDecisionDTO autorizado(StatusGate status, Agendamento agendamento, GatePass gatePass,
-                                             String mensagem) {
+                                              String mensagem) {
         GateDecisionDTO dto = new GateDecisionDTO();
         dto.setAutorizado(true);
         dto.preencherContexto(status, agendamento, gatePass);
@@ -28,7 +32,7 @@ public class GateDecisionDTO {
     }
 
     public static GateDecisionDTO negado(StatusGate status, Agendamento agendamento, GatePass gatePass,
-                                         String mensagem) {
+                                          String mensagem) {
         GateDecisionDTO dto = new GateDecisionDTO();
         dto.setAutorizado(false);
         dto.preencherContexto(status, agendamento, gatePass);
@@ -125,6 +129,30 @@ public class GateDecisionDTO {
 
     public void setTokenGatePass(String tokenGatePass) {
         this.tokenGatePass = tokenGatePass;
+    }
+
+    public UUID getReservaCargaGeralId() {
+        return reservaCargaGeralId;
+    }
+
+    public void setReservaCargaGeralId(UUID reservaCargaGeralId) {
+        this.reservaCargaGeralId = reservaCargaGeralId;
+    }
+
+    public String getStatusReservaCargaGeral() {
+        return statusReservaCargaGeral;
+    }
+
+    public void setStatusReservaCargaGeral(String statusReservaCargaGeral) {
+        this.statusReservaCargaGeral = statusReservaCargaGeral;
+    }
+
+    public String getEstagioConfirmacaoCargaGeral() {
+        return estagioConfirmacaoCargaGeral;
+    }
+
+    public void setEstagioConfirmacaoCargaGeral(String estagioConfirmacaoCargaGeral) {
+        this.estagioConfirmacaoCargaGeral = estagioConfirmacaoCargaGeral;
     }
 
     public String getMensagem() {

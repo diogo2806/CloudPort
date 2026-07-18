@@ -317,7 +317,8 @@ public class RealYardReplanningOptimizerService {
             List<SchedulerEquipmentDto> equipamentos) {
         return equipamentos.stream()
                 .min(Comparator
-                        .comparingDouble(equipamento -> custoEquipamento(posicao, equipamento))
+                        .comparingDouble((SchedulerEquipmentDto equipamento) ->
+                                custoEquipamento(posicao, equipamento))
                         .thenComparing(equipamento -> normalizar(equipamento.getEquipamentoId())))
                 .orElseThrow(() -> new IllegalArgumentException("Nenhum equipamento disponivel para a posicao."));
     }

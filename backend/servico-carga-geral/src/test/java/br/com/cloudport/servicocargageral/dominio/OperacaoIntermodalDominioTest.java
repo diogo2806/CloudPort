@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import br.com.cloudport.servicocargageral.dominio.OperacaoIntermodalTipos.ResultadoAvaria;
 import br.com.cloudport.servicocargageral.dominio.OperacaoIntermodalTipos.StatusAvariaOperacional;
 import br.com.cloudport.servicocargageral.dominio.OperacaoIntermodalTipos.StatusPlanoOperacional;
-import br.com.cloudport.servicocargageral.dominio.OperacaoIntermodalTipos.StatusReservaGate;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
@@ -38,29 +37,6 @@ class OperacaoIntermodalDominioTest {
 
         assertTrue(item.estaCompleto());
         assertEquals(StatusPlanoOperacional.CONCLUIDO, plano.getStatus());
-    }
-
-    @Test
-    void deveConfirmarReservaEmEtapas() {
-        ReservaGateCarga reserva = new ReservaGateCarga();
-        reserva.setTransacaoId("gate-1");
-        reserva.setBlNumero("bl-1");
-        reserva.setVeiculoId("abc1d23");
-        reserva.setUsuario("operador");
-        reserva.setQuantidadeReservada(decimal("10.000"));
-        reserva.setVolumeReservadoM3(decimal("5.000"));
-        reserva.setPesoReservadoKg(decimal("100.000"));
-
-        reserva.confirmar("conf-1", decimal("4.000"), decimal("2.000"), decimal("40.000"),
-                "operador", "corr-1");
-        assertEquals(StatusReservaGate.PARCIAL, reserva.getStatus());
-        assertEquals(decimal("6.000"), reserva.getQuantidadePendente());
-
-        reserva.confirmar("conf-2", decimal("6.000"), decimal("3.000"), decimal("60.000"),
-                "operador", "corr-2");
-        assertEquals(StatusReservaGate.CONFIRMADA, reserva.getStatus());
-        assertEquals(BigDecimal.ZERO.setScale(3), reserva.getQuantidadePendente());
-        assertThrows(IllegalStateException.class, () -> reserva.liberar("indevido"));
     }
 
     @Test

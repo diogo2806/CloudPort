@@ -7,22 +7,17 @@ import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.CancelarPla
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.ComandoPlanoRequest;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.ConciliarInventarioRequest;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.ConcluirPlanoRequest;
-import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.ConfirmarReservaGateRequest;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.CriarPlanoRequest;
-import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.CriarReservaGateRequest;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.EncerrarAvariaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.ExecutarItemPlanoRequest;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.InspecionarAvariaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.InventarioResposta;
-import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.LiberarReservaGateRequest;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.NovaVersaoPlanoRequest;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.PlanoResposta;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.RegistrarAvariaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.RegistrarContagemRequest;
-import br.com.cloudport.servicocargageral.dto.OperacaoIntermodalDTOs.ReservaGateResposta;
 import br.com.cloudport.servicocargageral.servico.AvariaInventarioCargaServico;
 import br.com.cloudport.servicocargageral.servico.PlanoOperacionalCargaServico;
-import br.com.cloudport.servicocargageral.servico.ReservaGateCargaServico;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
@@ -45,15 +40,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class OperacaoIntermodalCargaControlador {
 
     private final PlanoOperacionalCargaServico planoServico;
-    private final ReservaGateCargaServico gateServico;
     private final AvariaInventarioCargaServico avariaInventarioServico;
 
     public OperacaoIntermodalCargaControlador(
             PlanoOperacionalCargaServico planoServico,
-            ReservaGateCargaServico gateServico,
             AvariaInventarioCargaServico avariaInventarioServico) {
         this.planoServico = planoServico;
-        this.gateServico = gateServico;
         this.avariaInventarioServico = avariaInventarioServico;
     }
 
@@ -115,38 +107,6 @@ public class OperacaoIntermodalCargaControlador {
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR')")
     public PlanoResposta cancelarPlano(@PathVariable UUID id, @Valid @RequestBody CancelarPlanoRequest request) {
         return planoServico.cancelar(id, request);
-    }
-
-    @GetMapping("/gate/reservas")
-    @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
-    public List<ReservaGateResposta> listarReservas() { return gateServico.listar(); }
-
-    @PostMapping("/gate/reservas")
-    @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
-    public ResponseEntity<ReservaGateResposta> reservarGate(@Valid @RequestBody CriarReservaGateRequest request) {
-        ReservaGateResposta resposta = gateServico.reservar(request);
-        return ResponseEntity.created(URI.create("/api/carga-geral/intermodal/gate/reservas/" + resposta.id())).body(resposta);
-    }
-
-    @PostMapping("/gate/reservas/{id}/confirmar")
-    @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
-    public ReservaGateResposta confirmarGate(@PathVariable UUID id,
-            @Valid @RequestBody ConfirmarReservaGateRequest request) {
-        return gateServico.confirmar(id, request);
-    }
-
-    @PostMapping("/gate/reservas/transacao/{transacaoId}/confirmar")
-    @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
-    public ReservaGateResposta confirmarGatePorTransacao(@PathVariable String transacaoId,
-            @Valid @RequestBody ConfirmarReservaGateRequest request) {
-        return gateServico.confirmarPorTransacao(transacaoId, request);
-    }
-
-    @PostMapping("/gate/reservas/{id}/liberar")
-    @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
-    public ReservaGateResposta liberarGate(@PathVariable UUID id,
-            @Valid @RequestBody LiberarReservaGateRequest request) {
-        return gateServico.liberar(id, request);
     }
 
     @GetMapping("/lotes/{loteId}/avarias")

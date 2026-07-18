@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Lock;
 
 public interface OperacaoStuffUnstuffRepositorio extends JpaRepository<OperacaoStuffUnstuff, UUID> {
 
+    boolean existsByPlanoIntermodalId(UUID planoIntermodalId);
+
     @EntityGraph(attributePaths = {"itens", "itens.lote", "historico"})
     List<OperacaoStuffUnstuff> findAllByOrderByCriadoEmDesc();
 

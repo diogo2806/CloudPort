@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após auditoria da branch main.
+Status: atualizado em 2026-07-18 após conclusão do BUS1090 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -139,19 +139,10 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| BUS1090 | Persistir o replanejamento visual entre vagões. | Vagão, posição, ordem e manifesto são atualizados atomicamente com versão, validação e auditoria. | ⬜ Pendente |
 | BUS1150 | Registrar execução da sequência de guindastes. | Cada movimento possui guindaste, ordem, janela, início, conclusão, exceção e quantidade realizada. | ⬜ Pendente |
 | BUS1160 | Implementar operação persistida de tampas de porão. | Tarefas de abrir, remover, posicionar e fechar controlam dependências e bloqueiam movimentos incompatíveis. | ⬜ Pendente |
 | BUS1170 | Implementar movimentos ferroviários internos. | Rotas, linhas, switches e trechos são reservados e liberados transacionalmente com detecção de conflito. | ⬜ Pendente |
 | DATA1180 | Reconciliar BAPLIE, plano, inventário e execução física. | Divergências são persistidas, classificadas, resolvidas e bloqueiam publicação ou conclusão quando críticas. | ⬜ Pendente |
-
-### BUS1090 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/pages/rail` | composição gráfica | O drag-and-drop é local e não permanece ao recarregar. | Chamar endpoint persistente com versão, origem, destino e motivo. |
-| `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/controlador/VisitaTremControlador.java` | rotas da visita | Não existe endpoint de replanejamento entre vagões. | Criar novo método sugerido: `replanejarConteinerEntreVagoes()`. |
-| `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/listatrabalho/servico/OrdemMovimentacaoServico.java` | ordens ferroviárias | Não há atualização atômica entre composição, ordem e manifesto. | Bloquear agregados, validar capacidade e persistir em uma transação. |
 
 ### BUS1150 — arquivos e métodos
 

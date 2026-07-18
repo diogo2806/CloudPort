@@ -21,6 +21,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.OrderColumn;
 import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 
 @Entity
@@ -65,6 +66,9 @@ public class OperacaoTransload {
     @Column(name = "status", nullable = false, length = 20)
     private StatusTransload status = StatusTransload.CONCLUIDO;
 
+    @Column(name = "motivo_cancelamento", length = 1000)
+    private String motivoCancelamento;
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "item_operacao_transload", joinColumns = @JoinColumn(name = "operacao_id"))
     @OrderColumn(name = "ordem")
@@ -76,14 +80,50 @@ public class OperacaoTransload {
     @Column(name = "correlation_id", length = 120)
     private String correlationId;
 
-    @Column(name = "executado_em", nullable = false)
+    @Column(name = "executado_em")
     private OffsetDateTime executadoEm;
+
+    @Column(name = "criado_em", nullable = false)
+    private OffsetDateTime criadoEm;
+
+    @Column(name = "atualizado_em", nullable = false)
+    private OffsetDateTime atualizadoEm;
 
     @PrePersist
     void prePersist() {
+        OffsetDateTime agora = OffsetDateTime.now();
+        criadoEm = agora;
+        atualizadoEm = agora;
+        if (status == StatusTransload.CONCLUIDO && executadoEm == null) {
+            executadoEm = agora;
+        }
+        normalizarCampos();
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        atualizadoEm = OffsetDateTime.now();
+        normalizarCampos();
+    }
+
+    public void iniciar() {
+        status = StatusTransload.EM_EXECUCAO;
+        motivoCancelamento = null;
+        executadoEm = null;
+    }
+
+    public void concluir() {
+        status = StatusTransload.CONCLUIDO;
+        motivoCancelamento = null;
         executadoEm = OffsetDateTime.now();
-        unidadeOrigem = normalizar(unidadeOrigem);
-        unidadeDestino = normalizar(unidadeDestino);
+    }
+
+    public void cancelar(String motivo) {
+        if (status == StatusTransload.CONCLUIDO) {
+            throw new IllegalStateException("Transload concluído não pode ser cancelado.");
+        }
+        status = StatusTransload.CANCELADO;
+        motivoCancelamento = motivo == null ? null : motivo.trim();
     }
 
     public void adicionarItem(
@@ -93,6 +133,16 @@ public class OperacaoTransload {
             BigDecimal volumeM3,
             BigDecimal pesoKg) {
         itens.add(new ItemTransload(loteOrigemId, loteDestinoId, quantidade, volumeM3, pesoKg));
+    }
+
+    private void normalizarCampos() {
+        unidadeOrigem = normalizar(unidadeOrigem);
+        unidadeDestino = normalizar(unidadeDestino);
+        lacreOrigem = normalizar(lacreOrigem);
+        lacreDestino = normalizar(lacreDestino);
+        codigoAvaria = normalizar(codigoAvaria);
+        usuario = usuario == null ? null : usuario.trim();
+        correlationId = correlationId == null ? null : correlationId.trim();
     }
 
     private String normalizar(String valor) {
@@ -121,12 +171,15 @@ public class OperacaoTransload {
     public String getDescricaoAvaria() { return descricaoAvaria; }
     public void setDescricaoAvaria(String descricaoAvaria) { this.descricaoAvaria = descricaoAvaria; }
     public StatusTransload getStatus() { return status; }
+    public String getMotivoCancelamento() { return motivoCancelamento; }
     public List<ItemTransload> getItens() { return Collections.unmodifiableList(itens); }
     public String getUsuario() { return usuario; }
     public void setUsuario(String usuario) { this.usuario = usuario; }
     public String getCorrelationId() { return correlationId; }
     public void setCorrelationId(String correlationId) { this.correlationId = correlationId; }
     public OffsetDateTime getExecutadoEm() { return executadoEm; }
+    public OffsetDateTime getCriadoEm() { return criadoEm; }
+    public OffsetDateTime getAtualizadoEm() { return atualizadoEm; }
 
     @Embeddable
     public static class ItemTransload {

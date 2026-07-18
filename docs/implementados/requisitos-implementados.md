@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão dos BUS10 e BUS1040, da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-18 com a conclusão dos BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -202,11 +202,25 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 11. O contêiner é validado e reservado no inventário canônico, com bloqueio pessimista, verificação de condição, estado, manutenção e holds, e liberação na conclusão ou no cancelamento.
 12. Cada apontamento exige `commandId`, persiste hash do conteúdo e reutiliza o resultado aplicado em repetições equivalentes, rejeitando reutilização incompatível.
 13. O portal lista apenas contêineres elegíveis do inventário canônico e preserva o mesmo `commandId` para retentativa após falha de comunicação.
-14. O BUS1040 persiste allocation de cargo lot com origem, destino, recurso, prioridade, restrições, quantidades e vínculo com a reserva de capacidade do Yard.
-15. A capacidade por posição considera simultaneamente o saldo confirmado e as reservas pendentes, evitando sobrealocação de quantidade, volume ou peso.
-16. A confirmação física debita a posição de origem e credita a posição de destino na mesma transação do Yard, com bloqueio pessimista e rejeição de saldo insuficiente.
-17. O saldo confirmado é persistido por cargo lot e posição, com carga inicial das reservas históricas já confirmadas.
-18. A API expõe consulta dos saldos por posição e os adaptadores HTTP e local propagam a origem da allocation para a transferência correta.
+14. O BUS1030 integra o fluxo de entrada e saída do Gate às reservas parciais de carga geral por BL, delivery order e cargo lot.
+15. A reserva é criada antes do processamento físico e carrega `commandId`, agendamento, lote, tipo de movimento, quantidade, volume e peso.
+16. Entregas parciais são confirmadas após a entrada autorizada; retiradas parciais permanecem reservadas na entrada e são confirmadas somente após a saída autorizada.
+17. Os modos HTTP e local implementam a mesma porta de reserva, confirmação e compensação.
+18. Confirmações e compensações usam comandos determinísticos e idempotentes; falhas do fluxo local acionam compensação automática sem ocultar a exceção original.
+19. O contrato legado com `reservaCargaGeralId` e `commandIdCargaGeral` permanece aceito, e a resposta informa o identificador, o estado e o estágio esperado da reserva.
+20. O BUS1040 persiste allocation de cargo lot com origem, destino, recurso, prioridade, restrições, quantidades e vínculo com a reserva de capacidade do Yard.
+21. A capacidade por posição considera simultaneamente o saldo confirmado e as reservas pendentes, evitando sobrealocação de quantidade, volume ou peso.
+22. A confirmação física debita a posição de origem e credita a posição de destino na mesma transação do Yard, com bloqueio pessimista e rejeição de saldo insuficiente.
+23. O saldo confirmado é persistido por cargo lot e posição, com carga inicial das reservas históricas já confirmadas.
+24. A API expõe consulta dos saldos por posição e os adaptadores HTTP e local propagam a origem da allocation para a transferência correta.
+25. O BUS1070 usa `AvariaOperacionalCarga` como agregado canônico para código, descrição, parcela afetada, responsável, evidência inicial, inspeção, decisão e histórico.
+26. A abertura bloqueia somente a quantidade, o volume e o peso afetados, preservando o saldo total e expondo o saldo disponível após a segregação.
+27. O encerramento exige relatório de inspeção e só é permitido no estado `EM_TRATAMENTO`.
+28. O resultado `REINTEGRAR` libera o saldo reparado, `BAIXAR` remove a perda do estoque e `MANTER_BLOQUEADA` conserva a parcela indisponível.
+29. O portal possui inspector com saldo total, segregado e disponível, evidência inicial, relatório, decisão e histórico operacional.
+30. O endpoint simplificado `POST /api/carga-geral/lotes/{id}/avarias` retorna `410 Gone` e direciona ao contrato canônico `/api/carga-geral/intermodal/avarias`.
+31. A tela possui ajuda contextual e manual operacional com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e referências do processo completo.
+32. Testes de domínio cobrem o ciclo completo, a obrigatoriedade da inspeção e a manutenção do bloqueio.
 
 ## Billing e portal CAP
 

@@ -12,7 +12,6 @@ import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.ComandoMo
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.CompensarGateCargaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.ConfirmarGateCargaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.CriarAlocacaoRequest;
-import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.ExecutarTransloadRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.ExecutarTransporteRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.InventarioFisicoResposta;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.PlanejarTransporteRequest;
@@ -22,9 +21,11 @@ import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.ReservaGa
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.ReservarGateCargaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.ResolverDivergenciaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.TransicionarAvariaRequest;
-import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.TransloadResposta;
+import br.com.cloudport.servicocargageral.dto.TransloadDTOs.ExecutarTransloadRequest;
+import br.com.cloudport.servicocargageral.dto.TransloadDTOs.TransloadResposta;
 import br.com.cloudport.servicocargageral.servico.IdentificacaoCargoLotServico;
 import br.com.cloudport.servicocargageral.servico.OperacoesIntermodaisServico;
+import br.com.cloudport.servicocargageral.servico.TransloadServico;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
@@ -49,18 +50,27 @@ public class OperacoesIntermodaisControlador {
 
     private final OperacoesIntermodaisServico servico;
     private final IdentificacaoCargoLotServico identificacaoServico;
+    private final TransloadServico transloadServico;
 
     public OperacoesIntermodaisControlador(
             OperacoesIntermodaisServico servico,
-            IdentificacaoCargoLotServico identificacaoServico) {
+            IdentificacaoCargoLotServico identificacaoServico,
+            TransloadServico transloadServico) {
         this.servico = servico;
         this.identificacaoServico = identificacaoServico;
+        this.transloadServico = transloadServico;
     }
 
     @PostMapping("/transloads")
-    @Operation(summary = "Executar transload atômico entre unidades")
+    @Operation(summary = "Executar transload atômico e recuperável entre unidades")
     public TransloadResposta executarTransload(@Valid @RequestBody ExecutarTransloadRequest request) {
-        return servico.executarTransload(request);
+        return transloadServico.executarTransload(request);
+    }
+
+    @GetMapping("/transloads/{id}")
+    @Operation(summary = "Consultar rastreabilidade de uma operação de transload")
+    public TransloadResposta obterTransload(@PathVariable UUID id) {
+        return transloadServico.obter(id);
     }
 
     @PostMapping("/gate/reservas")

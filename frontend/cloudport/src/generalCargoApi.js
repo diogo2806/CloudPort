@@ -1,6 +1,7 @@
 import { request } from './api.js';
 
 const BASE = '/api/carga-geral';
+const OPERATIONS = `${BASE}/operacoes-stuff-unstuff`;
 
 export const generalCargoApi = {
   dashboard: () => request(`${BASE}/dashboard`),
@@ -15,5 +16,12 @@ export const generalCargoApi = {
   registrarAvaria: (id, body) => request(`${BASE}/lotes/${encodeURIComponent(id)}/avarias`, { method: 'POST', body }),
   listarReferencias: (categoria) => request(`${BASE}/referencias`, { query: categoria ? { categoria } : undefined }),
   criarReferencia: (body) => request(`${BASE}/referencias`, { method: 'POST', body }),
-  atualizarReferencia: (id, ativo) => request(`${BASE}/referencias/${encodeURIComponent(id)}/status`, { method: 'PATCH', query: { ativo } })
+  atualizarReferencia: (id, ativo) => request(`${BASE}/referencias/${encodeURIComponent(id)}/status`, { method: 'PATCH', query: { ativo } }),
+  listarOperacoesStuffUnstuff: () => request(OPERATIONS),
+  obterOperacaoStuffUnstuff: (id) => request(`${OPERATIONS}/${encodeURIComponent(id)}`),
+  criarOperacaoStuffUnstuff: (body) => request(OPERATIONS, { method: 'POST', body }),
+  iniciarOperacaoStuffUnstuff: (id) => request(`${OPERATIONS}/${encodeURIComponent(id)}/iniciar`, { method: 'POST' }),
+  registrarExecucaoStuffUnstuff: (id, body) => request(`${OPERATIONS}/${encodeURIComponent(id)}/execucoes`, { method: 'POST', body }),
+  concluirOperacaoStuffUnstuff: (id, body) => request(`${OPERATIONS}/${encodeURIComponent(id)}/concluir`, { method: 'POST', body }),
+  cancelarOperacaoStuffUnstuff: (id, body) => request(`${OPERATIONS}/${encodeURIComponent(id)}/cancelar`, { method: 'POST', body })
 };

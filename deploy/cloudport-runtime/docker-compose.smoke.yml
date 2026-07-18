@@ -1,0 +1,133 @@
+services:
+  tos-smoke:
+    image: python:3.12-alpine
+    restart: unless-stopped
+    command: ["python", "/app/tos_mock.py"]
+    volumes:
+      - ./smoke/tos_mock.py:/app/tos_mock.py:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health', timeout=2)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [cloudport]
+
+  cloudport-runtime:
+    image: cloudport-runtime:cutover-smoke
+    environment:
+      CLOUDPORT_INSTANCE_ID: runtime-canonico-smoke
+      CLOUDPORT_RUNTIME_REVISION: ${CLOUDPORT_RUNTIME_REVISION:-smoke}
+      CLOUDPORT_WRITES_ENABLED: "true"
+      CLOUDPORT_JOBS_ENABLED: "true"
+      CLOUDPORT_CONSUMERS_ENABLED: "true"
+      RABBITMQ_ENABLED: "true"
+      RABBITMQ_LISTENER_CONCURRENCY: "1"
+      RABBITMQ_LISTENER_MAX_CONCURRENCY: "1"
+      TOS_API_BASE_URL: http://tos-smoke:8090
+      TOS_API_TIMEOUT_MS: "500"
+      VISIBILIDADE_DASHBOARD_REFRESH_MS: "3600000"
+      VISIBILIDADE_ALERTAS_REFRESH_MS: "3600000"
+      YARD_RECONCILIACAO_MS: "3600000"
+      NAVIO_SINCRONIZACAO_MS: "3600000"
+    depends_on:
+      tos-smoke:
+        condition: service_healthy
+
+  cloudport-observer:
+    image: cloudport-runtime:cutover-smoke
+    restart: unless-stopped
+    environment:
+      CLOUDPORT_SERVER_PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_SCHEMA: ${DB_SCHEMA}
+      SECURITY_JWT_SECRET: ${SECURITY_JWT_SECRET}
+      SECURITY_JWT_EXPIRATION_MS: ${SECURITY_JWT_EXPIRATION_MS}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      CLOUDPORT_SECURITY_INTERNAL_SERVICE_KEY: ${CLOUDPORT_INTERNAL_SERVICE_KEY}
+      CLOUDPORT_SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS}
+      CLOUDPORT_INSTANCE_ID: runtime-observador-smoke
+      CLOUDPORT_RUNTIME_REVISION: ${CLOUDPORT_RUNTIME_REVISION:-smoke}
+      CLOUDPORT_WRITES_ENABLED: "false"
+      CLOUDPORT_JOBS_ENABLED: "false"
+      CLOUDPORT_CONSUMERS_ENABLED: "false"
+      RABBITMQ_ENABLED: "false"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: cloudport
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CLOUDPORT_MODULO_AUTENTICACAO_INTEGRACAO: local
+      CLOUDPORT_MODULO_NAVIO_INTEGRACAO: local
+      CLOUDPORT_MODULO_YARD_INTEGRACAO: local
+      TOS_API_BASE_URL: http://tos-smoke:8090
+      DOCUMENT_STORAGE_BASE_PATH: /var/lib/cloudport/documents
+    volumes:
+      - cloudport-documents:/var/lib/cloudport/documents:ro
+    ports:
+      - "${CLOUDPORT_OBSERVER_PORT:-18081}:8080"
+    depends_on:
+      cloudport-runtime:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health/readiness"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [cloudport]
+
+  cloudport-rollback-probe:
+    profiles: ["rollback-proof"]
+    build:
+      context: ../..
+      dockerfile: backend/cloudport-monolito-navio/Dockerfile
+    image: cloudport-monolito-navio:cutover-smoke
+    restart: "no"
+    environment:
+      CLOUDPORT_ROLLBACK_ENABLED: "true"
+      CLOUDPORT_SERVER_PORT: 8086
+      CLOUDPORT_DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      CLOUDPORT_DB_USERNAME: ${DB_USER}
+      CLOUDPORT_DB_PASSWORD: ${DB_PASS}
+      MONOLITO_NAVIO_SCHEMA: cloudport_navio
+      MONOLITO_SIDERURGICO_SCHEMA: cloudport_siderurgico
+      MONOLITO_YARD_SCHEMA: cloudport_yard
+      MONOLITO_GATE_SCHEMA: cloudport_gate
+      MONOLITO_RAIL_SCHEMA: cloudport_rail
+      MONOLITO_AUTENTICACAO_SCHEMA: cloudport_autenticacao
+      MONOLITO_VISIBILIDADE_SCHEMA: cloudport_visibilidade
+      CLOUDPORT_WRITES_ENABLED: "false"
+      CLOUDPORT_JOBS_ENABLED: "false"
+      CLOUDPORT_CONSUMERS_ENABLED: "false"
+      SPRING_RABBITMQ_LISTENER_SIMPLE_AUTO_STARTUP: "false"
+      SPRING_RABBITMQ_LISTENER_DIRECT_AUTO_STARTUP: "false"
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: cloudport
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      JWT_SECRET: ${SECURITY_JWT_SECRET}
+      CLOUDPORT_INTERNAL_SERVICE_KEY: ${CLOUDPORT_INTERNAL_SERVICE_KEY}
+      SECURITY_CORS_ALLOWED_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS}
+      CONTROL_ROOM_BASE_API_URL: ""
+      CONTROL_ROOM_TRUSTED_PARENT_ORIGINS: ${SECURITY_CORS_ALLOWED_ORIGINS}
+    ports:
+      - "${CLOUDPORT_ROLLBACK_PROBE_PORT:-18086}:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [cloudport]
+
+networks:
+  cloudport:
+    name: ${CLOUDPORT_NETWORK_NAME:-cloudport-runtime-smoke}

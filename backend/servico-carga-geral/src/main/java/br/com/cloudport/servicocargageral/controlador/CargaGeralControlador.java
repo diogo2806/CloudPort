@@ -18,6 +18,8 @@ import br.com.cloudport.servicocargageral.dto.CargaGeralDTOs.RegistrarAvariaRequ
 import br.com.cloudport.servicocargageral.dto.CargaGeralDTOs.RegistrarMovimentacaoRequest;
 import br.com.cloudport.servicocargageral.servico.CargaGeralServico;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
 import java.util.List;
@@ -58,6 +60,10 @@ public class CargaGeralControlador {
 
     @PostMapping("/conhecimentos")
     @Operation(summary = "Criar Bill of Lading")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Bill of Lading criado"),
+        @ApiResponse(responseCode = "409", description = "Número de Bill of Lading já cadastrado")
+    })
     public ResponseEntity<ConhecimentoDetalhe> criarConhecimento(@Valid @RequestBody CriarConhecimentoRequest request) {
         ConhecimentoDetalhe criado = cargaGeralServico.criarConhecimento(request);
         return ResponseEntity.created(URI.create("/api/carga-geral/conhecimentos/" + criado.id())).body(criado);
@@ -71,6 +77,10 @@ public class CargaGeralControlador {
 
     @PostMapping("/conhecimentos/{id}/itens")
     @Operation(summary = "Adicionar item ao Bill of Lading")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Item criado"),
+        @ApiResponse(responseCode = "409", description = "Sequência de item já cadastrada no Bill of Lading")
+    })
     public ResponseEntity<ItemResposta> adicionarItem(
             @PathVariable UUID id,
             @Valid @RequestBody CriarItemRequest request) {
@@ -80,6 +90,10 @@ public class CargaGeralControlador {
 
     @PostMapping("/itens/{id}/lotes")
     @Operation(summary = "Criar cargo lot para um item do conhecimento")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Cargo lot criado"),
+        @ApiResponse(responseCode = "409", description = "Código de cargo lot já cadastrado")
+    })
     public ResponseEntity<LoteResumo> adicionarLote(
             @PathVariable UUID id,
             @Valid @RequestBody CriarLoteRequest request) {
@@ -126,6 +140,10 @@ public class CargaGeralControlador {
 
     @PostMapping("/referencias")
     @Operation(summary = "Criar referência do domínio de carga")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Referência criada"),
+        @ApiResponse(responseCode = "409", description = "Código já cadastrado na categoria informada")
+    })
     public ResponseEntity<ReferenciaResposta> criarReferencia(@Valid @RequestBody CriarReferenciaRequest request) {
         ReferenciaResposta criada = cargaGeralServico.criarReferencia(request);
         return ResponseEntity.created(URI.create("/api/carga-geral/referencias/" + criada.id())).body(criada);

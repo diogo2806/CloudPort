@@ -30,7 +30,7 @@ public class TosResponseAdapter {
     }
 
     public TosContainerStatus toContainerStatus(TosContainerStatusResponse statusResponse,
-                                                TosCustomsReleaseResponse customsResponse) {
+                                                 TosCustomsReleaseResponse customsResponse) {
         if (statusResponse == null) {
             return null;
         }
@@ -39,6 +39,7 @@ public class TosResponseAdapter {
                 .orElse(null);
         boolean customsReleased = customsResponse == null || customsResponse.isReleased();
         String holdReason = Optional.ofNullable(customsResponse)
+                .filter(response -> !response.isReleased())
                 .map(TosCustomsReleaseResponse::getDenialReason)
                 .filter(reason -> !reason.isBlank())
                 .orElse(statusResponse.getHoldReason());

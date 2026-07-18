@@ -37,7 +37,7 @@ public class CorteOperacionalController {
 
     public CorteOperacionalController(
             @Value("${cloudport.runtime.instance-id:local}") String instanciaId,
-            @Value("${cloudport.runtime.writes-enabled:false}") boolean escritaHabilitada,
+            @Value("${cloudport.runtime.cutover-writes-enabled:false}") boolean escritaHabilitada,
             @Value("${cloudport.runtime.jobs-enabled:false}") boolean jobsHabilitados,
             @Value("${cloudport.runtime.consumers-enabled:false}") boolean consumidoresHabilitados,
             @Value("${cloudport.modulo.autenticacao.integracao:local}") String integracaoAutenticacao,

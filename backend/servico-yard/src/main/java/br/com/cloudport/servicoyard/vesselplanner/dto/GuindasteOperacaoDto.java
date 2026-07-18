@@ -3,12 +3,16 @@ package br.com.cloudport.servicoyard.vesselplanner.dto;
 public class GuindasteOperacaoDto {
 
     private int ordem;
+    private Long slotId;
     private String codigoContainer;
     private int bay;
     private int rowBay;
     private int tier;
     private String tipoOperacao;
     private int guindasteId;
+    private String codigoHatchCover;
+    private boolean bloqueadaPorTampa;
+    private String motivoBloqueio;
 
     public GuindasteOperacaoDto() {
     }
@@ -19,6 +23,14 @@ public class GuindasteOperacaoDto {
 
     public void setOrdem(int ordem) {
         this.ordem = ordem;
+    }
+
+    public Long getSlotId() {
+        return slotId;
+    }
+
+    public void setSlotId(Long slotId) {
+        this.slotId = slotId;
     }
 
     public String getCodigoContainer() {
@@ -67,5 +79,29 @@ public class GuindasteOperacaoDto {
 
     public void setGuindasteId(int guindasteId) {
         this.guindasteId = guindasteId;
+    }
+
+    public String getCodigoHatchCover() {
+        return codigoHatchCover;
+    }
+
+    public void setCodigoHatchCover(String codigoHatchCover) {
+        this.codigoHatchCover = codigoHatchCover;
+    }
+
+    public boolean isBloqueadaPorTampa() {
+        return bloqueadaPorTampa;
+    }
+
+    public void setBloqueadaPorTampa(boolean bloqueadaPorTampa) {
+        this.bloqueadaPorTampa = bloqueadaPorTampa;
+    }
+
+    public String getMotivoBloqueio() {
+        return motivoBloqueio;
+    }
+
+    public void setMotivoBloqueio(String motivoBloqueio) {
+        this.motivoBloqueio = motivoBloqueio;
     }
 }

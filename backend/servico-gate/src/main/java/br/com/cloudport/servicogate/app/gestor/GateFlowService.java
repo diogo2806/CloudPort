@@ -1,7 +1,7 @@
 package br.com.cloudport.servicogate.app.gestor;
 
-import br.com.cloudport.servicogate.config.GateFlowProperties;
 import br.com.cloudport.servicogate.app.cidadao.AgendamentoRealtimeService;
+import br.com.cloudport.servicogate.app.cidadao.AgendamentoRepository;
 import br.com.cloudport.servicogate.app.cidadao.dto.AgendamentoDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.GateDecisionDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.GateFlowRequest;
@@ -9,26 +9,21 @@ import br.com.cloudport.servicogate.app.gestor.dto.ManualReleaseAction;
 import br.com.cloudport.servicogate.app.gestor.dto.ManualReleaseRequest;
 import br.com.cloudport.servicogate.app.gestor.dto.TosContainerStatus;
 import br.com.cloudport.servicogate.app.gestor.dto.TosSyncResponse;
-import br.com.cloudport.servicogate.app.gestor.GateMapper;
-import br.com.cloudport.servicogate.app.gestor.GateOperadorMapper;
+import br.com.cloudport.servicogate.config.BarcodeProperties;
+import br.com.cloudport.servicogate.config.GateFlowProperties;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.exception.NotFoundException;
-import br.com.cloudport.servicogate.integration.tos.TosIntegrationService;
 import br.com.cloudport.servicogate.integration.dmt.DmtBarcodeService;
-import br.com.cloudport.servicogate.config.BarcodeProperties;
+import br.com.cloudport.servicogate.integration.tos.TosIntegrationService;
 import br.com.cloudport.servicogate.model.Agendamento;
-import br.com.cloudport.servicogate.model.enums.StatusConfirmacaoBarcode;
 import br.com.cloudport.servicogate.model.DocumentoAgendamento;
 import br.com.cloudport.servicogate.model.GateEvent;
 import br.com.cloudport.servicogate.model.GatePass;
 import br.com.cloudport.servicogate.model.enums.MotivoExcecao;
 import br.com.cloudport.servicogate.model.enums.StatusAgendamento;
+import br.com.cloudport.servicogate.model.enums.StatusConfirmacaoBarcode;
 import br.com.cloudport.servicogate.model.enums.StatusGate;
 import br.com.cloudport.servicogate.monitoring.GateMetrics;
-import br.com.cloudport.servicogate.app.cidadao.AgendamentoRepository;
-import br.com.cloudport.servicogate.app.gestor.GateEventRepository;
-import br.com.cloudport.servicogate.app.gestor.GatePassRepository;
-import br.com.cloudport.servicogate.app.gestor.GateOperadorRealtimeService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -75,17 +70,19 @@ public class GateFlowService {
     private final GateOperadorRealtimeService gateOperadorRealtimeService;
     private final DmtBarcodeService dmtBarcodeService;
     private final BarcodeProperties barcodeProperties;
+    private final GateResourceOccupationService resourceOccupationService;
 
     public GateFlowService(AgendamentoRepository agendamentoRepository,
                            GatePassRepository gatePassRepository,
                            GateEventRepository gateEventRepository,
                            GateFlowProperties flowProperties,
                            TosIntegrationService tosIntegrationService,
-                              GateMetrics gateMetrics,
-                              AgendamentoRealtimeService agendamentoRealtimeService,
-                              GateOperadorRealtimeService gateOperadorRealtimeService,
-                              DmtBarcodeService dmtBarcodeService,
-                              BarcodeProperties barcodeProperties) {
+                           GateMetrics gateMetrics,
+                           AgendamentoRealtimeService agendamentoRealtimeService,
+                           GateOperadorRealtimeService gateOperadorRealtimeService,
+                           DmtBarcodeService dmtBarcodeService,
+                           BarcodeProperties barcodeProperties,
+                           GateResourceOccupationService resourceOccupationService) {
         this.agendamentoRepository = agendamentoRepository;
         this.gatePassRepository = gatePassRepository;
         this.gateEventRepository = gateEventRepository;
@@ -96,6 +93,7 @@ public class GateFlowService {
         this.gateOperadorRealtimeService = gateOperadorRealtimeService;
         this.dmtBarcodeService = dmtBarcodeService;
         this.barcodeProperties = barcodeProperties;
+        this.resourceOccupationService = resourceOccupationService;
     }
 
     public GateDecisionDTO registrarEntrada(GateFlowRequest request) {
@@ -113,6 +111,9 @@ public class GateFlowService {
                     flowProperties.getToleranciaEntradaAtraso(),
                     "Horário de chegada fora da tolerância permitida");
 
+            resourceOccupationService.ocuparRecursos(
+                    agendamento, gatePass, request.getChassis(), request.getUnidades());
+
             agendamento.setHorarioRealChegada(timestamp);
             agendamento.setStatus(StatusAgendamento.EM_EXECUCAO);
             gatePass.setDataEntrada(timestamp);
@@ -120,14 +121,14 @@ public class GateFlowService {
 
             gatePassRepository.save(gatePass);
             agendamentoRepository.save(agendamento);
+            sucesso = true;
 
             if (barcodeProperties.isHabilitado()) {
                 return registrarEntradaComValidacaoBarcode(gatePass, agendamento, statusContainer,
                         timestamp, request.getOperador());
-            } else {
-                return registrarEntradaComSucesso(gatePass, agendamento, statusContainer,
-                        timestamp, request.getOperador());
             }
+            return registrarEntradaComSucesso(gatePass, agendamento, statusContainer,
+                    timestamp, request.getOperador());
         } catch (RuntimeException ex) {
             registrarEvento(gatePass, StatusGate.RETIDO, null, ex.getMessage(),
                     resolverOperador(request.getOperador()), timestamp);
@@ -139,8 +140,8 @@ public class GateFlowService {
     }
 
     private GateDecisionDTO registrarEntradaComSucesso(GatePass gatePass, Agendamento agendamento,
-                                                        TosContainerStatus statusContainer,
-                                                        LocalDateTime timestamp, String operadorInformado) {
+                                                         TosContainerStatus statusContainer,
+                                                         LocalDateTime timestamp, String operadorInformado) {
         gatePass.setStatus(StatusGate.LIBERADO);
         gatePassRepository.save(gatePass);
 
@@ -157,8 +158,8 @@ public class GateFlowService {
     }
 
     private GateDecisionDTO registrarEntradaComValidacaoBarcode(GatePass gatePass, Agendamento agendamento,
-                                                                 TosContainerStatus statusContainer,
-                                                                 LocalDateTime timestamp, String operadorInformado) {
+                                                                  TosContainerStatus statusContainer,
+                                                                  LocalDateTime timestamp, String operadorInformado) {
         gatePass.setStatus(StatusGate.AGUARDANDO_CONFIRMACAO_BARCODE);
         gatePass.setStatusConfirmacaoBarcode(StatusConfirmacaoBarcode.PENDENTE);
         gatePassRepository.save(gatePass);
@@ -188,6 +189,8 @@ public class GateFlowService {
                     flowProperties.getToleranciaSaidaAtraso(),
                     "Horário de saída fora da tolerância permitida");
 
+            resourceOccupationService.liberarRecursos(gatePass.getId());
+
             agendamento.setHorarioRealSaida(timestamp);
             gatePass.setDataSaida(timestamp);
             gatePass.setStatus(StatusGate.FINALIZADO);
@@ -202,12 +205,12 @@ public class GateFlowService {
             agendamentoRepository.save(agendamento);
 
             GateEvent evento = registrarEvento(gatePass, StatusGate.FINALIZADO, null,
-                    "Saída registrada", resolverOperador(request.getOperador()), timestamp);
+                    "Saída registrada e recursos liberados", resolverOperador(request.getOperador()), timestamp);
             LOGGER.info("Saída registrada para agendamento {}", agendamento.getCodigo());
 
             agendamentoRealtimeService.notificarStatus(agendamento);
             return GateDecisionDTO.autorizado(evento.getStatus(), agendamento, gatePass,
-                    "Saída registrada e gate finalizado");
+                    "Saída registrada, recursos liberados e gate finalizado");
         } catch (RuntimeException ex) {
             registrarEvento(gatePass, StatusGate.RETIDO, null, ex.getMessage(),
                     resolverOperador(request.getOperador()), timestamp);
@@ -235,7 +238,8 @@ public class GateFlowService {
                 request.getObservacao(), resolverOperador(request.getOperador()), LocalDateTime.now());
     }
 
-    public br.com.cloudport.servicogate.app.gestor.dto.GateEventDTO liberarManual(Long agendamentoId, ManualReleaseRequest request) {
+    public br.com.cloudport.servicogate.app.gestor.dto.GateEventDTO liberarManual(
+            Long agendamentoId, ManualReleaseRequest request) {
         GateEvent evento;
         if (request.getAcao() == ManualReleaseAction.LIBERAR) {
             evento = registrarLiberacaoManual(agendamentoId, request);
@@ -310,7 +314,8 @@ public class GateFlowService {
     }
 
     private String gerarCodigoGatePass(Agendamento agendamento) {
-        return "GP-" + agendamento.getCodigo() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(Locale.ROOT);
+        return "GP-" + agendamento.getCodigo() + "-"
+                + UUID.randomUUID().toString().substring(0, 8).toUpperCase(Locale.ROOT);
     }
 
     private String gerarTokenGatePass() {
@@ -355,8 +360,10 @@ public class GateFlowService {
         if (horarioPrevisto == null) {
             return;
         }
-        LocalDateTime inicio = horarioPrevisto.minus(toleranciaAntecipada != null ? toleranciaAntecipada : Duration.ZERO);
-        LocalDateTime fim = horarioPrevisto.plus(toleranciaAtraso != null ? toleranciaAtraso : Duration.ZERO);
+        LocalDateTime inicio = horarioPrevisto.minus(
+                toleranciaAntecipada != null ? toleranciaAntecipada : Duration.ZERO);
+        LocalDateTime fim = horarioPrevisto.plus(
+                toleranciaAtraso != null ? toleranciaAtraso : Duration.ZERO);
         if (timestamp.isBefore(inicio) || timestamp.isAfter(fim)) {
             throw new BusinessException(mensagemErro);
         }

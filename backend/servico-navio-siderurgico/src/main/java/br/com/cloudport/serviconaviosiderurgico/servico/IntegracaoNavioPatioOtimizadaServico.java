@@ -6,6 +6,7 @@ import br.com.cloudport.serviconaviosiderurgico.dto.ResultadoReplanejamentoPatio
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ItemOperacaoNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ReservaPosicaoPatioNavioRepositorio;
 import br.com.cloudport.serviconaviosiderurgico.servico.AplicacaoPlanoOtimizadoNavioPatioServico.ResultadoAplicacaoPlano;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +25,9 @@ public class IntegracaoNavioPatioOtimizadaServico extends IntegracaoNavioPatioSe
             ValidadorIntegracaoNavioPatioServico validador,
             SincronizadorStatusNavioPatioServico sincronizador,
             OrdemPatioYardCliente ordemPatioYardCliente,
-            AplicacaoPlanoOtimizadoNavioPatioServico aplicacaoPlanoServico
+            AplicacaoPlanoOtimizadoNavioPatioServico aplicacaoPlanoServico,
+            @Value("${cloudport.integracao.yard.contingencia-consultas-enabled:false}")
+            boolean contingenciaConsultasYardHabilitada
     ) {
         super(
                 itemRepositorio,
@@ -34,7 +37,8 @@ public class IntegracaoNavioPatioOtimizadaServico extends IntegracaoNavioPatioSe
                 reservaPatioServico,
                 validador,
                 sincronizador,
-                ordemPatioYardCliente);
+                ordemPatioYardCliente,
+                contingenciaConsultasYardHabilitada);
         this.aplicacaoPlanoServico = aplicacaoPlanoServico;
     }
 

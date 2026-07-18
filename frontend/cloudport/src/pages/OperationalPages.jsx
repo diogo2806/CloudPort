@@ -3,6 +3,7 @@ import { api, formatError, getRuntimeConfig, normalizePage } from '../api.js';
 import { DataTable, EmptyState, JsonDetails, Loading, Message, MetricCard, PageHeader, Section, StatusBadge } from '../components.jsx';
 import { selectGateAppointments } from '../gateDataset.js';
 import { gateOperatorApi, selectGateOperatorVehicles } from '../gateOperatorApi.js';
+import { collectDatasetKeys, humanizeDatasetKey } from '../operationalDataset.js';
 
 function displayValue(value) {
   if (value === undefined || value === null || value === '') return '—';
@@ -16,12 +17,9 @@ function displayValue(value) {
 }
 
 function inferColumns(rows, preferred = []) {
-  if (!rows.length) return [];
-  const keys = Array.from(new Set(rows.slice(0, 10).flatMap((row) => Object.keys(row ?? {}))))
-    .filter((key) => !preferred.includes(key));
-  return [...preferred, ...keys].slice(0, 8).map((key) => ({
+  return collectDatasetKeys(rows, preferred).map((key) => ({
     key,
-    label: key.replace(/([A-Z])/g, ' $1').replace(/[_-]+/g, ' ').replace(/^./, (letter) => letter.toUpperCase()),
+    label: humanizeDatasetKey(key),
     render: (row) => /status|fase|severidade|nivel/i.test(key)
       ? <StatusBadge value={row?.[key]} />
       : displayValue(row?.[key])
@@ -73,7 +71,7 @@ export function GenericDatasetPage({ eyebrow, title, description, loader, prefer
     <PageHeader eyebrow={eyebrow} title={title} description={description} actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
     <Message type="error">{remote.error}</Message>
     <Section title="Registros">
-      {remote.loading ? <Loading /> : rows.length ? <DataTable rows={rows} columns={columns} rowKey={(row, index) => row.id ?? row.codigo ?? row.identificador ?? index} /> : <EmptyState title={emptyTitle ?? 'Nenhum registro encontrado'} />}
+      {remote.loading ? <Loading /> : rows.length ? <DataTable rows={rows} columns={columns} gridId={`${eyebrow || 'operacao'}-${title}`} exportFileName={title} rowKey={(row, index) => row.id ?? row.codigo ?? row.identificador ?? index} /> : <EmptyState title={emptyTitle ?? 'Nenhum registro encontrado'} />}
     </Section>
     <JsonDetails value={remote.data && !rows.length ? remote.data : null} title="Resposta recebida" />
   </>;

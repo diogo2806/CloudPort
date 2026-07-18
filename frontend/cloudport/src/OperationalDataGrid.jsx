@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyGridFilters,
   buildGridCsv,
+  buildGridExcel,
   DEFAULT_PAGE_SIZE_OPTIONS,
   FILTER_OPERATORS,
   moveColumn,
@@ -46,17 +47,25 @@ function safeFileName(value) {
   return normalized.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'registros-operacionais';
 }
 
-function downloadCsv(csv, fileName) {
+function downloadFile(content, fileName, extension, mimeType) {
   if (typeof document === 'undefined') return;
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${safeFileName(fileName)}.csv`;
+  link.download = `${safeFileName(fileName)}.${extension}`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function downloadCsv(csv, fileName) {
+  downloadFile(csv, fileName, 'csv', 'text/csv;charset=utf-8');
+}
+
+function downloadExcel(excel, fileName) {
+  downloadFile(excel, fileName, 'xls', 'application/vnd.ms-excel;charset=utf-8');
 }
 
 function Inspector({ row, columns, onClose }) {
@@ -215,8 +224,13 @@ export function OperationalDataGrid({
     if (inspectorEnabled) setInspectorRow(row);
   }
 
-  function exportRows(rowsToExport = selectedRows.length ? selectedRows : sortedRows) {
-    downloadCsv(buildGridCsv(rowsToExport, visibleColumns), exportFileName || gridId || 'registros-operacionais');
+  function exportRows(format, rowsToExport = selectedRows.length ? selectedRows : sortedRows) {
+    const name = exportFileName || gridId || 'registros-operacionais';
+    if (format === 'excel') {
+      downloadExcel(buildGridExcel(rowsToExport, visibleColumns), name);
+      return;
+    }
+    downloadCsv(buildGridCsv(rowsToExport, visibleColumns), name);
   }
 
   function toggleColumn(columnKey) {
@@ -287,7 +301,8 @@ export function OperationalDataGrid({
       <label className="operational-grid-search"><span>Busca rápida</span><input type="search" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder="Buscar em todas as colunas" /></label>
       <div className="operational-grid-toolbar-actions">
         <span>{totalRows} registro(s)</span>
-        <button type="button" className="secondary small" onClick={() => exportRows()} disabled={!sortedRows.length}>Exportar CSV</button>
+        <button type="button" className="secondary small" onClick={() => exportRows('csv')} disabled={!sortedRows.length}>Exportar CSV</button>
+        <button type="button" className="secondary small" onClick={() => exportRows('excel')} disabled={!sortedRows.length}>Exportar Excel</button>
         <button type="button" className="secondary small" aria-expanded={settingsOpen} onClick={() => setSettingsOpen((value) => !value)}>Colunas e visões</button>
       </div>
     </div>
@@ -313,7 +328,7 @@ export function OperationalDataGrid({
       <div className="operational-grid-saved-views"><h3>Visões salvas</h3><label><span>Nome da visão</span><input value={viewName} onChange={(event) => setViewName(event.target.value)} maxLength={80} placeholder="Ex.: Pendências do turno" /></label><button type="button" className="small" disabled={!viewName.trim()} onClick={saveView}>Salvar visão atual</button><label><span>Visões disponíveis</span><select value={selectedViewName} onChange={(event) => setSelectedViewName(event.target.value)}><option value="">Selecione</option>{savedViews.map((view) => <option key={view.name} value={view.name}>{view.name}</option>)}</select></label><div className="actions"><button type="button" className="secondary small" disabled={!selectedViewName} onClick={applyView}>Aplicar</button><button type="button" className="danger small" disabled={!selectedViewName} onClick={deleteView}>Excluir</button><button type="button" className="secondary small" onClick={resetLayout}>Restaurar padrão</button></div></div>
     </section>}
 
-    {!!selectedRows.length && <div className="operational-grid-selection-bar" role="status"><strong>{selectedRows.length} selecionado(s)</strong><div className="actions"><button type="button" className="secondary small" onClick={() => exportRows(selectedRows)}>Exportar seleção</button>{bulkActions.map((action) => <button type="button" className={`${action.className || 'secondary'} small`} key={action.label} onClick={() => action.onClick(selectedRows)}>{action.label}</button>)}<button type="button" className="secondary small" onClick={() => setSelectedRowsByKey(new Map())}>Limpar seleção</button></div></div>}
+    {!!selectedRows.length && <div className="operational-grid-selection-bar" role="status"><strong>{selectedRows.length} selecionado(s)</strong><div className="actions"><button type="button" className="secondary small" onClick={() => exportRows('csv', selectedRows)}>Exportar CSV</button><button type="button" className="secondary small" onClick={() => exportRows('excel', selectedRows)}>Exportar Excel</button>{bulkActions.map((action) => <button type="button" className={`${action.className || 'secondary'} small`} key={action.label} onClick={() => action.onClick(selectedRows)}>{action.label}</button>)}<button type="button" className="secondary small" onClick={() => setSelectedRowsByKey(new Map())}>Limpar seleção</button></div></div>}
 
     <div className="table-wrap operational-grid-table-wrap">
       <table>

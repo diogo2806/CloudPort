@@ -78,8 +78,8 @@ test('rejeita motivo vazio e visita inválida antes da rede', async () => {
     replanejamentoRealApi.simular(42, '   '),
     /motivo do replanejamento/
   );
-  assert.throws(
-    () => replanejamentoRealApi.aplicar(0, 'Aplicar'),
+  await assert.rejects(
+    replanejamentoRealApi.aplicar(0, 'Aplicar'),
     /visitaId/
   );
   assert.equal(requests.length, 0);

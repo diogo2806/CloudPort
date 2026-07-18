@@ -11,6 +11,7 @@ const YARD_ROUTES = [
   ['/home/patio/planejamento-recebimento', 'Recebimento'],
   ['/home/patio/posicoes', 'Posições'],
   ['/home/patio/lista-trabalho', 'Lista de trabalho'],
+  ['/home/patio/instrucoes', 'Instruções'],
   ['/home/patio/movimentacoes', 'Movimentações'],
   ['/home/patio/recursos', 'Recursos'],
   ['/home/patio/dashboard-kpi', 'Indicadores'],

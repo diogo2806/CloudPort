@@ -18,7 +18,8 @@ public enum CanalWebSocketOperacional {
                     "ROLE_PLANEJADOR",
                     "ROLE_OPERADOR_PATIO",
                     "ROLE_OPERADOR_GATE",
-                    "ROLE_SERVICE_NAVIO"
+                    "ROLE_SERVICE_NAVIO",
+                    "ROLE_SERVICE_SIDERURGICO"
             )
     ),
     RECURSOS(
@@ -36,7 +37,8 @@ public enum CanalWebSocketOperacional {
             Set.of(
                     "ROLE_ADMIN_PORTO",
                     "ROLE_PLANEJADOR",
-                    "ROLE_SERVICE_NAVIO"
+                    "ROLE_SERVICE_NAVIO",
+                    "ROLE_SERVICE_SIDERURGICO"
             )
     );
 

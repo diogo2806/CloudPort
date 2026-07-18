@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { formatError } from '../api.js';
 import { hatchCoverApi } from '../vessel-planner-hatch-api.js';
+import '../vessel-planner-hatch.css';
 
 function taskLabel(value) {
   return String(value ?? '').replaceAll('_', ' ');
@@ -30,13 +31,9 @@ export function HatchCoverOperationPanel({ plan, canEdit, disabled, onStateChang
   }, [canEdit, plan?.id, publish]);
 
   useEffect(() => {
-    let active = true;
     setError('');
     setSuccess('');
-    load(true).catch((reason) => {
-      if (active) setError(formatError(reason));
-    });
-    return () => { active = false; };
+    load(true).catch((reason) => setError(formatError(reason)));
   }, [load]);
 
   async function command(name, action, message) {

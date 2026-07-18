@@ -1,0 +1,154 @@
+.hatch-cover-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #d9e4ed;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.hatch-cover-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hatch-cover-panel-heading h3 {
+  margin: 2px 0 0;
+  color: #27445d;
+}
+
+.hatch-cover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.hatch-cover-grid > article {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #d7e2eb;
+  border-radius: 10px;
+  background: #f8fbfd;
+}
+
+.hatch-cover-grid > article.active {
+  border-color: #d79a3d;
+  background: #fff8e9;
+}
+
+.hatch-cover-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hatch-cover-heading > div {
+  display: grid;
+  gap: 2px;
+}
+
+.hatch-cover-heading small,
+.hatch-task small {
+  color: #6b7f91;
+}
+
+.hatch-position {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e4edf4;
+  color: #3b5870;
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.hatch-position.removida {
+  background: #e9f7ee;
+  color: #2d6d45;
+}
+
+.hatch-position.aberta,
+.hatch-position.posicionada {
+  background: #fff0d6;
+  color: #805817;
+}
+
+.hatch-task-list {
+  display: grid;
+  gap: 7px;
+}
+
+.hatch-task {
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid #dce5ec;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.hatch-task > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.hatch-task.status-concluida {
+  opacity: .72;
+  background: #f3faf5;
+}
+
+.hatch-task.status-em_execucao {
+  border-color: #d79a3d;
+}
+
+.hatch-task-command {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.hatch-task-command input {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid #cbd9e4;
+  border-radius: 7px;
+}
+
+.hatch-operation-message,
+.hatch-block-reason {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.hatch-operation-message.error,
+.hatch-block-reason {
+  background: #fff1f1;
+  color: #8f3434;
+}
+
+.hatch-operation-message.success {
+  background: #edf8f1;
+  color: #2f6f48;
+}
+
+.crane-execution-movement.hatch-blocked {
+  border-color: #d89494;
+  background: #fff8f8;
+}
+
+@media (max-width: 760px) {
+  .hatch-cover-panel-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hatch-task-command {
+    grid-template-columns: 1fr;
+  }
+}

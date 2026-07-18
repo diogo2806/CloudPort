@@ -198,7 +198,7 @@ jobs:
               perdidas = int(contador.attrib['missed'])
               total = cobertas + perdidas
               percentual = (cobertas / total * 100) if total else 0.0
-              nome = relatorio.parent.parent.name.removeprefix('jacoco-')
+              nome = relatorio.parent.name.removeprefix('jacoco-')
               modulos.append((nome, cobertas, perdidas, percentual))
               total_cobertas += cobertas
               total_perdidas += perdidas

@@ -72,8 +72,8 @@ public class AnaliseOperacionalAvancadaServico {
     public PainelOperacionalAvancadoDTO analisar(Long visitaId) {
         VisitaNavio visita = visitaServico.buscarEntidade(visitaId);
         List<ItemOperacaoNavio> itens = itemRepositorio.findByVisitaNavioId(visitaId);
-        List<ReservaPatioNavioDTO> reservas = integracaoServico.listarReservasPatio(visitaId);
-        List<OrdemPatioDaVisitaDTO> ordens = integracaoServico.listarOrdensPatio(visitaId);
+        List<ReservaPatioNavioDTO> reservas = integracaoServico.listarReservasDaVisita(visitaId);
+        List<OrdemPatioDaVisitaDTO> ordens = integracaoServico.listarOrdensDaVisita(visitaId);
         List<WorkQueuePatioYardDTO> workQueues = consultarWorkQueues(visitaId);
         List<TelemetriaEquipamentoYardDTO> telemetrias = consultarTelemetrias();
         List<DivergenciaOperacionalDTO> divergencias = compararPlanejadoExecutado(itens, ordens);

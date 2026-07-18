@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1050, BUS1090 e BUS1170 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1050, BUS1090, BUS1130 e BUS1170 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -81,7 +81,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | BUS1100 | Implementar chamada operacional de caminhões com fila persistida. | Posição, prioridade, gate ou pista, chamada, aceite, expiração, rechamada e cancelamento são persistidos. | ⬜ Pendente |
 | BUS1110 | Impedir truck hopping por visita ativa. | Motorista, cavalo, chassis e unidades não participam simultaneamente de visitas conflitantes e são liberados atomicamente. | ⬜ Pendente |
 | BUS1120 | Implementar tratamento de unidades fora de posição. | A divergência gera caso, bloqueio, investigação e instrução corretiva com origem e destino confirmados. | ⬜ Pendente |
-| BUS1130 | Implementar Lost & Found e unidades TBD. | Unidade sem registro ou sem localização entra em caso persistido com investigação, associação, baixa e encerramento. | ⬜ Pendente |
 | INT1140 | Integrar VMT à confirmação de work instructions. | Aceite, início e conclusão atualizam a instrução uma única vez e rejeitam evento duplicado ou fora de sequência. | ⬜ Pendente |
 
 ### BUS1100 — arquivos e métodos
@@ -104,13 +103,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/servico/AlertasPatioServico.java` | alertas | O alerta informa a condição, mas não cria caso com bloqueio, investigação e correção. | Criar novo agregado sugerido: `DivergenciaPosicaoPatio`. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/servico/ValidadorYardPlacementService.java` | validação de posição | Impede posição inválida, mas não resolve unidade já encontrada fora da posição lógica. | Criar comando de reconciliação com movimento corretivo auditável. |
-
-### BUS1130 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/inventario/controlador/InventarioCanonicoControlador.java` | inventário e divergências | Registra unidades conhecidas, mas não possui caso específico para unidade sem registro ou não localizada. | Criar endpoints de abertura, associação, investigação, regularização e baixa. |
-| `frontend/cloudport/src/pages/InventoryReportsPages.jsx` | relatórios | Não oferece fila operacional de investigação e encerramento. | Criar tela com estado, responsável, evidências e decisão final. |
 
 ### INT1140 — arquivos e métodos
 

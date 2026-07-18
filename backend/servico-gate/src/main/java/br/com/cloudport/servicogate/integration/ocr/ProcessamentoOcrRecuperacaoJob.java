@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
         prefix = "cloudport.runtime",
         name = "jobs-enabled",
         havingValue = "true",
-        matchIfMissing = true)
+        matchIfMissing = false)
 public class ProcessamentoOcrRecuperacaoJob {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProcessamentoOcrRecuperacaoJob.class);

@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #401.
+Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #406.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -23,15 +23,16 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 
 ## Maven, schemas e Flyway
 
-1. `backend/cloudport-modules` funciona como parent e reator Maven canônico.
-2. O build inclui `cloudport-contracts`, os oito módulos de domínio e o runtime.
-3. O parent Maven é instalado antes do empacotamento consolidado.
-4. Cada módulo publica suas próprias migrações.
-5. O PostgreSQL é compartilhado com ownership por schema.
-6. Cada schema possui histórico Flyway independente.
-7. Flyway executa antes da criação do `EntityManagerFactory`.
-8. `validateOnMigrate` está habilitado e `clean` permanece desabilitado.
-9. Alterações de banco seguem estratégia aditiva e `expand and contract`.
+1. `backend/cloudport-navio-modules` contém o parent Maven compartilhado.
+2. `backend/cloudport-modules` é o reator Maven canônico.
+3. O build inclui `cloudport-contracts`, os oito módulos de domínio e o runtime.
+4. O parent Maven é instalado antes do empacotamento consolidado pelo reator.
+5. Cada módulo publica suas próprias migrações.
+6. O PostgreSQL é compartilhado com ownership por schema.
+7. Cada schema possui histórico Flyway independente.
+8. Flyway executa antes da criação do `EntityManagerFactory`.
+9. `validateOnMigrate` está habilitado e `clean` permanece desabilitado.
+10. Alterações de banco seguem estratégia aditiva e `expand and contract`.
 
 Schemas atuais:
 
@@ -201,6 +202,19 @@ O requisito `ERR10` foi concluído no PR #396.
 
 O requisito `ERR30` foi concluído antes do PR documental #401.
 
+## Billing — ERR20 concluído
+
+1. A geração de faturas bloqueia a transportadora e as cobranças selecionadas com `SELECT ... FOR UPDATE` antes de criar a fatura.
+2. O registro de pagamento bloqueia a linha da fatura antes de recalcular o total pago e o saldo disponível.
+3. Fatura, itens, mudança de status das cobranças e pagamentos permanecem na mesma transação.
+4. Cobrança indisponível, saldo consumido por outra operação e falha de lock retornam `409 Conflict`.
+5. A tradução de violação de integridade é restrita à constraint única que impede a mesma cobrança em mais de uma fatura.
+6. O handler de domínio tem precedência e impede que conflitos conhecidos sejam convertidos em erro interno.
+7. Após a liberação do lock, o estado é recalculado antes da operação concorrente prosseguir.
+8. A operação perdedora sofre rollback integral e os testes cobrem locks, saldo e tradução funcional.
+
+O requisito `ERR20` foi concluído no PR #406.
+
 ## Ferrovia
 
 1. Visitas, manifestos, vagões, contêineres e ordens.
@@ -234,15 +248,16 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 
 1. Tarifas, cobranças, faturas, itens e pagamentos.
 2. Cobrança idempotente para atendimentos concluídos.
-3. Consolidação de cobranças pendentes e quitação automática.
-4. Isolamento por transportadora com dados do JWT.
-5. Portal CAP com agendamentos, cobranças e faturas.
-6. BAPLIE, COPRAR, COARRI e VERMAS.
-7. Auditoria persistente e reprocessamento motivado.
-8. Recepção EDI assíncrona e idempotente.
-9. Worker com reivindicação transacional, retentativa e quarentena.
-10. Eventos internos publicados após persistência.
-11. Reconciliação periódica mantida como reparo.
+3. Consolidação transacional de cobranças pendentes com lock de transportadora e cobranças.
+4. Registro de pagamentos com lock de fatura, recálculo de saldo e quitação automática.
+5. Isolamento por transportadora com dados do JWT.
+6. Portal CAP com agendamentos, cobranças e faturas.
+7. BAPLIE, COPRAR, COARRI e VERMAS.
+8. Auditoria persistente e reprocessamento motivado.
+9. Recepção EDI assíncrona e idempotente.
+10. Worker com reivindicação transacional, retentativa e quarentena.
+11. Eventos internos publicados após persistência.
+12. Reconciliação periódica mantida como reparo.
 
 ## Frontend compartilhado
 
@@ -271,6 +286,7 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 
 | PR | Entrega |
 | --- | --- |
+| #406 | Serialização de faturamento e pagamentos; conclusão de ERR20 |
 | #401 | Documentação após ERR10 e ERR30 |
 | #400 | Respostas operacionais para rejeições de truck visits; conclusão de ERR30 |
 | #399 | Arquitetura e runbook alinhados ao runtime atual |
@@ -295,6 +311,6 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 
 ## Pendências não marcadas como implementadas
 
-Permanecem no backlog técnico `ERR20`, `ERR40`, `SEC70`, `SEC80` e `SEC90`, conforme `docs/requisitos/requisito-tecnico.md`.
+Permanecem no backlog técnico `ERR40`, `SEC70`, `SEC80` e `SEC90`, conforme `docs/requisitos/requisito-tecnico.md`.
 
 Permanecem no backlog funcional a persistência do replanejamento ferroviário, a conclusão e edição integral das operações de navio, o corte operacional e as evoluções registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.

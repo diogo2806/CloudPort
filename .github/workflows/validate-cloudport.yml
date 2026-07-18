@@ -159,7 +159,7 @@ jobs:
             test
       - name: Executar prova do runtime canônico e retorno para rollback
         env:
-          CLOUDPORT_RUNTIME_REVISION: ${{ github.sha }}
+          CLOUDPORT_RUNTIME_REVISAO: ${{ github.sha }}
         run: bash deploy/cloudport-runtime/provar-corte.sh
       - name: Publicar evidências do corte operacional
         if: always()

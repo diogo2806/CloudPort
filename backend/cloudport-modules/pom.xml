@@ -19,6 +19,7 @@
         <module>../servico-yard</module>
         <module>../servico-navio</module>
         <module>../servico-navio-siderurgico</module>
+        <module>../servico-carga-geral</module>
         <module>../cloudport-runtime</module>
     </modules>
 </project>

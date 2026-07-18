@@ -1,7 +1,6 @@
 package br.com.cloudport.servicoyard.container.servico;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -15,7 +14,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Sort;
 
 class InventarioConteinerServicoTest {
 
@@ -39,7 +37,7 @@ class InventarioConteinerServicoTest {
                 new BigDecimal("22.000"),
                 null);
 
-        when(repositorio.findAll(any(Sort.class))).thenReturn(List.of(refrigerado, retido));
+        when(repositorio.findAllByOrderByCodigoAsc()).thenReturn(List.of(refrigerado, retido));
 
         InventarioConteinerRespostaDTO resposta = servico.consultar(null, null, null);
 
@@ -70,7 +68,7 @@ class InventarioConteinerServicoTest {
                 new BigDecimal("22.000"),
                 null);
 
-        when(repositorio.findAll(any(Sort.class))).thenReturn(List.of(alvo, outro));
+        when(repositorio.findAllByOrderByCodigoAsc()).thenReturn(List.of(alvo, outro));
 
         InventarioConteinerRespostaDTO resposta = servico.consultar(
                 "abcd",
@@ -78,8 +76,7 @@ class InventarioConteinerServicoTest {
                 TipoCargaConteiner.REFRIGERADO);
 
         assertThat(resposta.getConteineres()).singleElement()
-                .extracting("identificacao")
-                .isEqualTo("ABCD1234567");
+                .satisfies(conteiner -> assertThat(conteiner.getIdentificacao()).isEqualTo("ABCD1234567"));
         assertThat(resposta.getResumo().getTotalConteiners()).isEqualTo(1);
     }
 

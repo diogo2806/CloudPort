@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import { loadRuntimeConfig } from './api.js';
 import './styles.css';
+import './gateVisual.css';
 import './steel-coil-planner.css';
 import './vessel-lineup.css';
 import './rail-lineup.css';

@@ -4,6 +4,7 @@ import { DataTable, EmptyState, JsonDetails, Loading, Message, MetricCard, PageH
 import { selectGateAppointments } from '../gateDataset.js';
 import { gateOperatorApi, selectGateOperatorVehicles } from '../gateOperatorApi.js';
 import { collectDatasetKeys, humanizeDatasetKey } from '../operationalDataset.js';
+import { GateVisualPage } from './GateVisualPage.jsx';
 
 function displayValue(value) {
   if (value === undefined || value === null || value === '') return '—';
@@ -20,9 +21,7 @@ function inferColumns(rows, preferred = []) {
   return collectDatasetKeys(rows, preferred).map((key) => ({
     key,
     label: humanizeDatasetKey(key),
-    render: (row) => /status|fase|severidade|nivel/i.test(key)
-      ? <StatusBadge value={row?.[key]} />
-      : displayValue(row?.[key])
+    render: (row) => /status|fase|severidade|nivel/i.test(key) ? <StatusBadge value={row?.[key]} /> : displayValue(row?.[key])
   }));
 }
 
@@ -43,7 +42,7 @@ function useLoader(loader, dependencies = []) {
 export function HomeDashboard({ navigate }) {
   const visibility = useLoader(() => api.obterDashboardVisibilidade(), []);
   const cards = [
-    { title: 'Gate', description: 'Agendamentos, janelas, operação e relatórios.', route: '/home/gate/agendamentos' },
+    { title: 'Gate', description: 'Agendamentos, janelas, operação e relatórios.', route: '/home/gate/dashboard' },
     { title: 'Ferrovia', description: 'Visitas, manifestos e listas de trabalho.', route: '/home/ferrovia/visitas' },
     { title: 'Pátio', description: 'Mapa, posições, movimentos, recursos e automação.', route: '/home/patio/mapa' },
     { title: 'Navio', description: 'Control Room integrado Navio + Pátio.', route: '/home/navio/control-room' },
@@ -53,12 +52,7 @@ export function HomeDashboard({ navigate }) {
   return <>
     <PageHeader eyebrow="Operação portuária" title="Visão geral" description="Acesso centralizado aos domínios operacionais do CloudPort." actions={<button className="secondary" onClick={visibility.reload}>Atualizar indicadores</button>} />
     <Message type="error">{visibility.error}</Message>
-    {visibility.loading ? <Loading label="Carregando indicadores..." /> : <div className="metrics-grid">
-      <MetricCard label="Contêineres" value={dashboard.totalConteiners ?? dashboard.totalContainers ?? '—'} />
-      <MetricCard label="Alertas ativos" value={dashboard.alertasAtivos ?? dashboard.totalAlertas ?? '—'} />
-      <MetricCard label="Navios em operação" value={dashboard.naviosEmOperacao ?? dashboard.totalNavios ?? '—'} />
-      <MetricCard label="Ocupação do pátio" value={dashboard.ocupacaoPatioPercentual !== undefined ? `${dashboard.ocupacaoPatioPercentual}%` : '—'} />
-    </div>}
+    {visibility.loading ? <Loading label="Carregando indicadores..." /> : <div className="metrics-grid"><MetricCard label="Contêineres" value={dashboard.totalConteiners ?? dashboard.totalContainers ?? '—'} /><MetricCard label="Alertas ativos" value={dashboard.alertasAtivos ?? dashboard.totalAlertas ?? '—'} /><MetricCard label="Navios em operação" value={dashboard.naviosEmOperacao ?? dashboard.totalNavios ?? '—'} /><MetricCard label="Ocupação do pátio" value={dashboard.ocupacaoPatioPercentual !== undefined ? `${dashboard.ocupacaoPatioPercentual}%` : '—'} /></div>}
     <Section title="Módulos operacionais"><div className="module-grid">{cards.map((card) => <button className="module-card" key={card.route} onClick={() => navigate(card.route)}><strong>{card.title}</strong><span>{card.description}</span><small>Abrir módulo →</small></button>)}</div></Section>
   </>;
 }
@@ -70,37 +64,13 @@ export function GenericDatasetPage({ eyebrow, title, description, loader, prefer
   return <>
     <PageHeader eyebrow={eyebrow} title={title} description={description} actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
     <Message type="error">{remote.error}</Message>
-    <Section title="Registros">
-      {remote.loading ? <Loading /> : rows.length ? <DataTable rows={rows} columns={columns} gridId={`${eyebrow || 'operacao'}-${title}`} exportFileName={title} rowKey={(row, index) => row.id ?? row.codigo ?? row.identificador ?? index} /> : <EmptyState title={emptyTitle ?? 'Nenhum registro encontrado'} />}
-    </Section>
+    <Section title="Registros">{remote.loading ? <Loading /> : rows.length ? <DataTable rows={rows} columns={columns} gridId={`${eyebrow || 'operacao'}-${title}`} exportFileName={title} rowKey={(row, index) => row.id ?? row.codigo ?? row.identificador ?? index} /> : <EmptyState title={emptyTitle ?? 'Nenhum registro encontrado'} />}</Section>
     <JsonDetails value={remote.data && !rows.length ? remote.data : null} title="Resposta recebida" />
   </>;
 }
 
 export function GateDashboardPage() {
-  const central = useLoader(() => api.obterCentralGate(), []);
-  const appointments = selectGateAppointments(central.data);
-  return <>
-    <PageHeader eyebrow="Gate" title="Central de ação" description="Acompanhamento dos próximos agendamentos e ações disponíveis." actions={<button className="secondary" onClick={central.reload}>Atualizar</button>} />
-    <Message type="error">{central.error}</Message>
-    {central.loading ? <Loading /> : <>
-      <div className="metrics-grid">
-        <MetricCard label="Agendamentos" value={appointments.length} />
-        <MetricCard label="Transportadora" value={central.data?.usuario?.transportadoraNome || 'Todas'} />
-        <MetricCard label="Situação do pátio" value={central.data?.situacaoPatio?.status || '—'} detail={central.data?.situacaoPatio?.descricao} />
-        <MetricCard label="Atualizado em" value={central.data?.situacaoPatio?.verificadoEm ? new Date(central.data.situacaoPatio.verificadoEm).toLocaleString('pt-BR') : '—'} />
-      </div>
-      <Section title="Agendamentos prioritários"><DataTable rows={appointments} columns={[
-        { key: 'codigo', label: 'Código' },
-        { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> },
-        { key: 'tipoOperacaoDescricao', label: 'Operação' },
-        { key: 'horarioPrevistoChegada', label: 'Chegada', render: (row) => displayValue(row.horarioPrevistoChegada) },
-        { key: 'placaVeiculo', label: 'Placa' },
-        { key: 'transportadoraNome', label: 'Transportadora' },
-        { key: 'acaoPrincipal', label: 'Ação', render: (row) => row.acaoPrincipal?.titulo || '—' }
-      ]} emptyTitle="Nenhum agendamento prioritário" /></Section>
-    </>}
-  </>;
+  return <GateVisualPage />;
 }
 
 export function RailVisitsPage() {
@@ -110,15 +80,7 @@ export function RailVisitsPage() {
   return <>
     <PageHeader eyebrow="Ferrovia" title="Visitas de trem" description="Visitas previstas e situação das listas de carga e descarga." actions={<div className="inline"><label className="compact-field">Janela<select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="1">1 dia</option><option value="7">7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option></select></label><button className="secondary" onClick={remote.reload}>Atualizar</button></div>} />
     <Message type="error">{remote.error}</Message>
-    <Section title="Visitas"><DataTable rows={rows} columns={[
-      { key: 'identificadorTrem', label: 'Trem' },
-      { key: 'operadoraFerroviaria', label: 'Operadora' },
-      { key: 'statusVisita', label: 'Status', render: (row) => <StatusBadge value={row.statusVisita} /> },
-      { key: 'horaChegadaPrevista', label: 'Chegada', render: (row) => displayValue(row.horaChegadaPrevista) },
-      { key: 'horaPartidaPrevista', label: 'Partida', render: (row) => displayValue(row.horaPartidaPrevista) },
-      { key: 'descarga', label: 'Descarga', render: (row) => `${row.listaDescarga?.length ?? 0} contêiner(es)` },
-      { key: 'carga', label: 'Carga', render: (row) => `${row.listaCarga?.length ?? 0} contêiner(es)` }
-    ]} emptyTitle="Nenhuma visita prevista" /></Section>
+    <Section title="Visitas"><DataTable rows={rows} columns={[{ key: 'identificadorTrem', label: 'Trem' }, { key: 'operadoraFerroviaria', label: 'Operadora' }, { key: 'statusVisita', label: 'Status', render: (row) => <StatusBadge value={row.statusVisita} /> }, { key: 'horaChegadaPrevista', label: 'Chegada', render: (row) => displayValue(row.horaChegadaPrevista) }, { key: 'horaPartidaPrevista', label: 'Partida', render: (row) => displayValue(row.horaPartidaPrevista) }, { key: 'descarga', label: 'Descarga', render: (row) => `${row.listaDescarga?.length ?? 0} contêiner(es)` }, { key: 'carga', label: 'Carga', render: (row) => `${row.listaCarga?.length ?? 0} contêiner(es)` }]} emptyTitle="Nenhuma visita prevista" /></Section>
   </>;
 }
 
@@ -135,59 +97,32 @@ export function RailImportPage() {
     catch (reason) { setError(formatError(reason)); }
     finally { setBusy(false); }
   }
-  return <>
-    <PageHeader eyebrow="Ferrovia" title="Importar manifesto" description="Envie o manifesto operacional para criar ou atualizar a visita ferroviária." />
-    <Message type="error">{error}</Message><Message type="success">{result ? 'Manifesto importado com sucesso.' : ''}</Message>
-    <Section title="Arquivo de manifesto"><form className="upload-form" onSubmit={submit}><input type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required /><button disabled={!file || busy}>{busy ? 'Enviando...' : 'Importar'}</button></form></Section>
-    <JsonDetails value={result} />
-  </>;
+  return <><PageHeader eyebrow="Ferrovia" title="Importar manifesto" description="Envie o manifesto operacional para criar ou atualizar a visita ferroviária." /><Message type="error">{error}</Message><Message type="success">{result ? 'Manifesto importado com sucesso.' : ''}</Message><Section title="Arquivo de manifesto"><form className="upload-form" onSubmit={submit}><input type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} required /><button disabled={!file || busy}>{busy ? 'Enviando...' : 'Importar'}</button></form></Section><JsonDetails value={result} /></>;
 }
 
 export function ShippingPage() {
   const [days, setDays] = useState(30);
   const remote = useLoader(() => api.listarEscalasEmbarque(days), [days]);
   const rows = normalizePage(remote.data);
-  return <>
-    <PageHeader eyebrow="Embarque" title="Planejamento de estiva" description="Escalas disponíveis para planejamento e acompanhamento do embarque." actions={<select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option><option value="60">60 dias</option></select>} />
-    <Message type="error">{remote.error}</Message>
-    <Section title="Escalas"><DataTable rows={rows} columns={[
-      { key: 'nomeNavio', label: 'Navio' }, { key: 'codigoImo', label: 'IMO' }, { key: 'viagemEntrada', label: 'Viagem' }, { key: 'fase', label: 'Fase', render: (row) => <StatusBadge value={row.fase} /> }, { key: 'chegadaPrevista', label: 'Chegada', render: (row) => displayValue(row.chegadaPrevista) }, { key: 'bercoPrevisto', label: 'Berço' }
-    ]} emptyTitle="Nenhuma escala disponível" /></Section>
-  </>;
+  return <><PageHeader eyebrow="Embarque" title="Planejamento de estiva" description="Escalas disponíveis para planejamento e acompanhamento do embarque." actions={<select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="7">7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option><option value="60">60 dias</option></select>} /><Message type="error">{remote.error}</Message><Section title="Escalas"><DataTable rows={rows} columns={[{ key: 'nomeNavio', label: 'Navio' }, { key: 'codigoImo', label: 'IMO' }, { key: 'viagemEntrada', label: 'Viagem' }, { key: 'fase', label: 'Fase', render: (row) => <StatusBadge value={row.fase} /> }, { key: 'chegadaPrevista', label: 'Chegada', render: (row) => displayValue(row.chegadaPrevista) }, { key: 'bercoPrevisto', label: 'Berço' }]} emptyTitle="Nenhuma escala disponível" /></Section></>;
 }
 
 export function ControlRoomPage({ session }) {
   const iframeRef = useRef(null);
   const [error, setError] = useState('');
   const url = getRuntimeConfig().navioControlRoomUrl;
-  const targetOrigin = useMemo(() => {
-    try { return url ? new URL(url, window.location.href).origin : ''; }
-    catch { return ''; }
-  }, [url]);
-
+  const targetOrigin = useMemo(() => { try { return url ? new URL(url, window.location.href).origin : ''; } catch { return ''; } }, [url]);
   const sendSession = useCallback(() => {
     if (!iframeRef.current?.contentWindow || !targetOrigin || !session?.token) return;
-    iframeRef.current.contentWindow.postMessage({
-      type: 'CLOUDPORT_AUTH_SESSION',
-      session: { token: session.token, nome: session.nome, roles: session.roles ?? [] }
-    }, targetOrigin);
+    iframeRef.current.contentWindow.postMessage({ type: 'CLOUDPORT_AUTH_SESSION', session: { token: session.token, nome: session.nome, roles: session.roles ?? [] } }, targetOrigin);
   }, [session, targetOrigin]);
-
   useEffect(() => {
-    const listener = (event) => {
-      if (event.origin === targetOrigin && event.data?.type === 'CLOUDPORT_CONTROL_ROOM_READY') sendSession();
-    };
+    const listener = (event) => { if (event.origin === targetOrigin && event.data?.type === 'CLOUDPORT_CONTROL_ROOM_READY') sendSession(); };
     window.addEventListener('message', listener);
     return () => window.removeEventListener('message', listener);
   }, [sendSession, targetOrigin]);
-
   if (!url || !targetOrigin) return <><PageHeader eyebrow="Navio" title="Control Room" description="Integração operacional Navio + Pátio." /><Message type="error">A URL do Control Room não foi configurada em assets/configuracao.json.</Message></>;
-
-  return <>
-    <PageHeader eyebrow="Navio" title="Control Room" description="Painel React incorporado com sessão única do portal." actions={<button className="secondary" onClick={sendSession}>Reenviar sessão</button>} />
-    <Message type="error">{error}</Message>
-    <section className="iframe-panel"><iframe ref={iframeRef} src={url} title="Control Room Navio e Pátio" onLoad={sendSession} onError={() => setError('Não foi possível carregar o Control Room.')} /></section>
-  </>;
+  return <><PageHeader eyebrow="Navio" title="Control Room" description="Painel React incorporado com sessão única do portal." actions={<button className="secondary" onClick={sendSession}>Reenviar sessão</button>} /><Message type="error">{error}</Message><section className="iframe-panel"><iframe ref={iframeRef} src={url} title="Control Room Navio e Pátio" onLoad={sendSession} onError={() => setError('Não foi possível carregar o Control Room.')} /></section></>;
 }
 
 const loadGateAppointments = () => api.obterCentralGate().then(selectGateAppointments);

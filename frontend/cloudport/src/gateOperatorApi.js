@@ -40,7 +40,14 @@ export function selectGateOperatorVehicles(panel) {
   return Array.from(vehicles.values());
 }
 
+function requiredVehicleId(vehicleId) {
+  const value = Number(vehicleId);
+  if (!Number.isInteger(value) || value <= 0) throw new Error('O veículo é obrigatório para gerar o EIR.');
+  return value;
+}
+
 export const gateOperatorApi = {
   obterPainel: () => request('/gate/operador/painel'),
-  listarEventos: () => request('/gate/operador/eventos')
+  listarEventos: () => request('/gate/operador/eventos'),
+  obterComprovante: (vehicleId) => request(`/gate/operador/veiculos/${requiredVehicleId(vehicleId)}/comprovante`)
 };

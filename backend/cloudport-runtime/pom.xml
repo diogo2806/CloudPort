@@ -112,6 +112,11 @@
             <artifactId>servico-navio-siderurgico</artifactId>
             <version>${cloudport.modules.version}</version>
         </dependency>
+        <dependency>
+            <groupId>br.com.cloudport</groupId>
+            <artifactId>servico-carga-geral</artifactId>
+            <version>${cloudport.modules.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -284,6 +289,13 @@
                                     <artifactId>servico-navio-siderurgico</artifactId>
                                     <version>${cloudport.modules.version}</version>
                                     <outputDirectory>${project.build.directory}/generated-resources/cloudport/migrations/navio-siderurgico</outputDirectory>
+                                    <includes>db/migration/**</includes>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>br.com.cloudport</groupId>
+                                    <artifactId>servico-carga-geral</artifactId>
+                                    <version>${cloudport.modules.version}</version>
+                                    <outputDirectory>${project.build.directory}/generated-resources/cloudport/migrations/carga-geral</outputDirectory>
                                     <includes>db/migration/**</includes>
                                 </artifactItem>
                             </artifactItems>

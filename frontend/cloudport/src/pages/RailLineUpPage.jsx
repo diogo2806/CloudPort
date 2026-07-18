@@ -10,14 +10,20 @@ import {
   Section,
   StatusBadge
 } from '../components.jsx';
+import { railApi } from '../railApi.js';
 import {
   LINHAS_FERROVIARIAS,
+  LINHAS_PLANEJAMENTO,
   calcularJanelaFerroviaria,
   calcularPercentualInstante,
   calcularPosicaoVertical,
+  construirComposicaoFerroviaria,
+  construirOcupacaoLinhasComposicao,
   construirOcupacoesFerroviarias,
   construirSimulacaoFerroviaria,
+  criarPlanejamentoVagoes,
   gerarMarcadoresFerroviarios,
+  moverVagaoNoPlanejamento,
   normalizarVisitasFerrovia,
   paraDateTimeLocalFerroviario,
   somarHorasFerroviarias
@@ -108,6 +114,117 @@ function TimelineFerroviaria({ visitas, segmentos, instante }) {
   </div>;
 }
 
+function BarraProgressoVagao({ valor }) {
+  const progresso = Math.max(0, Math.min(100, Number(valor) || 0));
+  return <div className="rail-wagon-progress" aria-label={`Progresso operacional ${progresso}%`}>
+    <span style={{ width: `${progresso}%` }} />
+  </div>;
+}
+
+function VagaoComposicao({ vagao, linha, bloqueado, onMover, onAlternarBloqueio }) {
+  const indisponivel = bloqueado || vagao.bloqueadoOrigem;
+  const conteineres = vagao.operacoes.slice(0, 4);
+  return <article
+    className={`rail-wagon-card${indisponivel ? ' blocked' : ''}${vagao.incompativel ? ' incompatible' : ''}`}
+    draggable={!indisponivel}
+    onDragStart={(event) => {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', vagao.identificadorVagao);
+    }}
+    title={indisponivel ? 'Vagão bloqueado para replanejamento' : 'Arraste o vagão para outra linha ferroviária'}
+  >
+    <div className="rail-wagon-topline">
+      <span>#{vagao.posicaoNoTrem}</span>
+      <strong>{vagao.identificadorVagao}</strong>
+      <small>{vagao.tipoVagao}</small>
+    </div>
+    <div className="rail-wagon-containers">
+      {conteineres.map((operacao) => <span key={`${operacao.tipoOperacao}-${operacao.codigoConteiner}`} className={String(operacao.statusOperacao).toLowerCase()}>
+        {operacao.codigoConteiner}
+      </span>)}
+      {vagao.operacoes.length > conteineres.length && <span>+{vagao.operacoes.length - conteineres.length}</span>}
+      {!vagao.operacoes.length && <em>Sem contêiner associado</em>}
+    </div>
+    <div className="rail-wagon-stats">
+      <span>{vagao.quantidadeDescarga} descarga</span>
+      <span>{vagao.quantidadeCarga} carga</span>
+      <strong>{vagao.progresso}%</strong>
+    </div>
+    <BarraProgressoVagao valor={vagao.progresso} />
+    <label className="rail-wagon-line-select">Linha
+      <select value={linha ?? ''} disabled={indisponivel} onChange={(event) => onMover(vagao.identificadorVagao, event.target.value)}>
+        {LINHAS_PLANEJAMENTO.map((item) => <option key={item} value={item}>{item}</option>)}
+      </select>
+    </label>
+    <div className="rail-wagon-flags">
+      {indisponivel && <span className="blocked">Bloqueado</span>}
+      {vagao.incompativel && <span className="incompatible">Incompatível: {vagao.motivoIncompatibilidade}</span>}
+    </div>
+    {!vagao.bloqueadoOrigem && <button className="secondary small" type="button" onClick={() => onAlternarBloqueio(vagao.identificadorVagao)}>
+      {bloqueado ? 'Desbloquear' : 'Bloquear'}
+    </button>}
+  </article>;
+}
+
+function ComposicaoVisual({ composicao, planejamento, bloqueios, onMover, onAlternarBloqueio }) {
+  if (!composicao.locomotiva) return null;
+  return <div className="rail-composition-scroll">
+    <div className="rail-composition-sequence">
+      <article className="rail-locomotive-card">
+        <span className="rail-locomotive-cab" aria-hidden="true" />
+        <div><strong>{composicao.locomotiva.identificador}</strong><small>{composicao.locomotiva.operadora}</small></div>
+      </article>
+      {composicao.vagoes.map((vagao) => <VagaoComposicao
+        key={vagao.identificadorVagao}
+        vagao={vagao}
+        linha={planejamento[vagao.identificadorVagao]}
+        bloqueado={Boolean(bloqueios[vagao.identificadorVagao])}
+        onMover={onMover}
+        onAlternarBloqueio={onAlternarBloqueio}
+      />)}
+      {!composicao.vagoes.length && !composicao.locomotiva.isolada && <EmptyState title="Composição sem vagões" description="A visita selecionada não possui vagões cadastrados." />}
+    </div>
+  </div>;
+}
+
+function PatioFerroviario({ ocupacoes, bloqueios, onMover }) {
+  return <div className="rail-track-yard">
+    {ocupacoes.map((ocupacao) => <section
+      className="rail-track-row"
+      key={ocupacao.linha}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        const identificador = event.dataTransfer.getData('text/plain');
+        if (identificador) onMover(identificador, ocupacao.linha);
+      }}
+    >
+      <header><strong>{ocupacao.linha}</strong><span>{ocupacao.vagoes.length} vagão(ões)</span></header>
+      <div className="rail-track-bed">
+        <div className="rail-track-vehicles">
+          {ocupacao.vagoes.map((vagao) => <span
+            className={`rail-track-wagon${bloqueios[vagao.identificadorVagao] || vagao.bloqueadoOrigem ? ' blocked' : ''}${vagao.incompativel ? ' incompatible' : ''}`}
+            draggable={!bloqueios[vagao.identificadorVagao] && !vagao.bloqueadoOrigem}
+            key={vagao.identificadorVagao}
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = 'move';
+              event.dataTransfer.setData('text/plain', vagao.identificadorVagao);
+            }}
+            title={`${vagao.identificadorVagao} · ${vagao.progresso}% concluído`}
+          >
+            <strong>{vagao.identificadorVagao}</strong>
+            <small>{vagao.operacoes.length} contêiner(es)</small>
+          </span>)}
+          {!ocupacao.vagoes.length && <em>Solte vagões nesta linha</em>}
+        </div>
+      </div>
+    </section>)}
+  </div>;
+}
+
 export function RailLineUpPage() {
   const [dias, setDias] = useState(7);
   const [dados, setDados] = useState([]);
@@ -115,6 +232,12 @@ export function RailLineUpPage() {
   const [executando, setExecutando] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [visitaSelecionadaId, setVisitaSelecionadaId] = useState('');
+  const [detalheVisita, setDetalheVisita] = useState(null);
+  const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
+  const [erroDetalhe, setErroDetalhe] = useState('');
+  const [planejamento, setPlanejamento] = useState({});
+  const [bloqueios, setBloqueios] = useState({});
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -143,6 +266,55 @@ export function RailLineUpPage() {
   const visitas = useMemo(() => normalizarVisitasFerrovia(dados), [dados]);
   const segmentos = useMemo(() => construirOcupacoesFerroviarias(visitas), [visitas]);
   const simuladas = useMemo(() => construirSimulacaoFerroviaria(visitas, segmentos, instante), [visitas, segmentos, instante]);
+  const composicao = useMemo(() => construirComposicaoFerroviaria(detalheVisita), [detalheVisita]);
+  const ocupacoesComposicao = useMemo(
+    () => construirOcupacaoLinhasComposicao(composicao, planejamento),
+    [composicao, planejamento]
+  );
+
+  useEffect(() => {
+    setVisitaSelecionadaId((atual) => {
+      if (visitas.some((visita) => String(visita.id) === String(atual))) return atual;
+      const preferida = visitas.find((visita) => ['CHEGOU', 'PROCESSANDO', 'CONCLUIDO'].includes(visita.statusVisita)) ?? visitas[0];
+      return preferida?.id ? String(preferida.id) : '';
+    });
+  }, [visitas]);
+
+  useEffect(() => {
+    if (!visitaSelecionadaId) {
+      setDetalheVisita(null);
+      setPlanejamento({});
+      setBloqueios({});
+      return undefined;
+    }
+    let ativo = true;
+    setCarregandoDetalhe(true);
+    setErroDetalhe('');
+    railApi.consultarVisita(visitaSelecionadaId)
+      .then((detalhe) => {
+        if (!ativo) return;
+        const resumo = visitas.find((visita) => String(visita.id) === String(visitaSelecionadaId));
+        const segmentoOperacao = segmentos.find((segmento) => segmento.visitaChave === resumo?.chave && segmento.etapa === 'OPERACAO');
+        const novaComposicao = construirComposicaoFerroviaria(detalhe);
+        setDetalheVisita(detalhe);
+        setPlanejamento(criarPlanejamentoVagoes(detalhe, segmentoOperacao?.linha));
+        setBloqueios(Object.fromEntries(novaComposicao.vagoes
+          .filter((vagao) => vagao.bloqueadoOrigem)
+          .map((vagao) => [vagao.identificadorVagao, true])));
+      })
+      .catch((motivo) => {
+        if (!ativo) return;
+        setDetalheVisita(null);
+        setPlanejamento({});
+        setBloqueios({});
+        setErroDetalhe(formatError(motivo, 'Não foi possível carregar a composição ferroviária.'));
+      })
+      .finally(() => {
+        if (ativo) setCarregandoDetalhe(false);
+      });
+    return () => { ativo = false; };
+  }, [segmentos, visitaSelecionadaId, visitas]);
+
   const tempo = instante.getTime();
   const ocupacoesAtuais = segmentos.filter((segmento) => tempo >= segmento.inicio.getTime() && tempo < segmento.fim.getTime());
   const linhasOcupadas = new Set(ocupacoesAtuais.map((segmento) => segmento.linha)).size;
@@ -150,13 +322,31 @@ export function RailLineUpPage() {
   const operando = simuladas.filter((visita) => ['OPERANDO', 'EM_APOIO'].includes(visita.faseSimulada)).length;
   const conflitos = simuladas.filter((visita) => visita.conflitoLinha).length;
   const vagoes = simuladas.reduce((total, visita) => total + visita.quantidadeVagoes, 0);
+  const conflitosOperacionais = segmentos.filter((segmento) => segmento.conflito && segmento.etapa === 'OPERACAO');
+
+  function moverVagao(identificadorVagao, linhaDestino) {
+    setPlanejamento((atual) => moverVagaoNoPlanejamento(atual, identificadorVagao, linhaDestino, bloqueios));
+  }
+
+  function alternarBloqueio(identificadorVagao) {
+    setBloqueios((atual) => ({ ...atual, [identificadorVagao]: !atual[identificadorVagao] }));
+  }
+
+  function resetarPlano() {
+    const resumo = visitas.find((visita) => String(visita.id) === String(visitaSelecionadaId));
+    const segmentoOperacao = segmentos.find((segmento) => segmento.visitaChave === resumo?.chave && segmento.etapa === 'OPERACAO');
+    setPlanejamento(criarPlanejamentoVagoes(detalheVisita, segmentoOperacao?.linha));
+    setBloqueios(Object.fromEntries(composicao.vagoes
+      .filter((vagao) => vagao.bloqueadoOrigem)
+      .map((vagao) => [vagao.identificadorVagao, true])));
+  }
 
   return <>
     <PageHeader
       eyebrow="Ferrovia"
-      title="Line-up ferroviário"
-      description="Simule verticalmente a recepção, ocupação das linhas, operação e expedição dos trens no terminal."
-      actions={<button className="secondary" type="button" onClick={carregar} disabled={carregando}>Atualizar line-up</button>}
+      title="Ferrovia visual"
+      description="Planeje a composição, acompanhe a ocupação das linhas e simule a carga e a descarga de cada vagão."
+      actions={<button className="secondary" type="button" onClick={carregar} disabled={carregando}>Atualizar ferrovia</button>}
     />
     <Message type="error">{erro}</Message>
 
@@ -186,7 +376,7 @@ export function RailLineUpPage() {
       </div>
     </Section>
 
-    {carregando ? <Loading label="Montando line-up ferroviário..." /> : <>
+    {carregando ? <Loading label="Montando ferrovia visual..." /> : <>
       <div className="metrics-grid">
         <MetricCard label="Visitas na janela" value={simuladas.length} detail={`${vagoes} vagão(ões) planejados`} />
         <MetricCard label="Trens no terminal" value={emTerminal} />
@@ -194,18 +384,52 @@ export function RailLineUpPage() {
         <MetricCard label="Trens em conflito" value={conflitos} detail={conflitos ? 'Replanejamento necessário' : 'Sem sobreposição de linha'} />
       </div>
 
-      <Section title="Ocupação vertical das linhas" description={`Cenário simulado em ${formatarDataHora(instante)}. O tempo avança de cima para baixo.`}>
+      <Section title="Composição gráfica e planejamento" description="Selecione uma visita. Arraste os vagões entre as linhas ou use o seletor de linha em cada vagão.">
+        <div className="rail-composition-toolbar">
+          <label className="compact-field">Visita de trem
+            <select value={visitaSelecionadaId} onChange={(event) => setVisitaSelecionadaId(event.target.value)} disabled={!visitas.length}>
+              <option value="">Selecione</option>
+              {visitas.map((visita) => <option key={visita.chave} value={visita.id}>{visita.identificadorTrem} · {visita.operadoraFerroviaria} · {visita.statusVisita}</option>)}
+            </select>
+          </label>
+          <button className="secondary" type="button" disabled={!detalheVisita || carregandoDetalhe} onClick={resetarPlano}>Resetar plano</button>
+        </div>
+        <Message type="error">{erroDetalhe}</Message>
+        {carregandoDetalhe ? <Loading label="Carregando locomotiva, vagões e contêineres..." /> : !detalheVisita ? <EmptyState title="Selecione uma visita" description="A composição e a ocupação das linhas serão exibidas aqui." /> : <>
+          <ComposicaoVisual
+            composicao={composicao}
+            planejamento={planejamento}
+            bloqueios={bloqueios}
+            onMover={moverVagao}
+            onAlternarBloqueio={alternarBloqueio}
+          />
+          {composicao.operacoesSemVagao.length > 0 && <Message type="warning">Há {composicao.operacoesSemVagao.length} operação(ões) com vagão ausente ou incompatível na composição.</Message>}
+          <PatioFerroviario ocupacoes={ocupacoesComposicao} bloqueios={bloqueios} onMover={moverVagao} />
+        </>}
+      </Section>
+
+      <Section title="Cronograma e ocupação das linhas" description={`Cenário simulado em ${formatarDataHora(instante)}. O tempo avança de cima para baixo.`}>
         <TimelineFerroviaria visitas={visitas} segmentos={segmentos} instante={instante} />
         <footer className="rail-lineup-legend">
           <span><i className="rail-lineup-legend-dot recepcao" /> Recepção</span>
           <span><i className="rail-lineup-legend-dot operacao" /> Operação</span>
           <span><i className="rail-lineup-legend-dot expedicao" /> Expedição</span>
-          <span><i className="rail-lineup-legend-dot conflito" /> Conflito de linha</span>
+          <span><i className="rail-lineup-legend-dot conflito" /> Conflito de linha ou recurso</span>
         </footer>
       </Section>
 
-      <Section title="Detalhamento das visitas" description="Compare a situação registrada com a fase e a linha calculadas pela simulação.">
-        <DataTable rows={simuladas} rowKey="chave" emptyTitle="Nenhuma visita ferroviária disponível" columns={[
+      {conflitosOperacionais.length > 0 && <Section title="Conflitos operacionais" description="Sobreposições de trens na mesma linha durante a janela planejada.">
+        <div className="rail-conflict-grid">
+          {conflitosOperacionais.map((segmento) => <article key={segmento.chave}>
+            <strong>{segmento.visita.identificadorTrem}</strong>
+            <span>{segmento.linha}</span>
+            <small>{formatarDataHora(segmento.inicio)} até {formatarDataHora(segmento.fim)}</small>
+          </article>)}
+        </div>
+      </Section>}
+
+      <Section title="Detalhamento das visitas" description="Clique em uma visita para abrir sua composição gráfica.">
+        <DataTable rows={simuladas} rowKey="chave" onRowClick={(linha) => setVisitaSelecionadaId(String(linha.id))} emptyTitle="Nenhuma visita ferroviária disponível" columns={[
           { key: 'identificadorTrem', label: 'Trem', render: (linha) => <div className="rail-lineup-table-train"><strong>{linha.identificadorTrem}</strong><span>{linha.operadoraFerroviaria}</span></div> },
           { key: 'tipoVisita', label: 'Tipo', render: (linha) => <StatusBadge value={linha.tipoVisita} /> },
           { key: 'statusVisita', label: 'Status registrado', render: (linha) => <StatusBadge value={linha.statusVisita} /> },

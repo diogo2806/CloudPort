@@ -25,6 +25,7 @@ RUN apt-get update \
     && chown -R cloudport:cloudport /app /var/lib/cloudport
 
 COPY --from=build /workspace/cloudport-runtime/target/cloudport-runtime-*.jar /app/app.jar
+COPY backend/cloudport-runtime/docker/entrypoint.sh /app/entrypoint.sh
 
 USER cloudport
 EXPOSE 8080
@@ -32,4 +33,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=5s --start-period=120s --retries=20 \
     CMD curl -fsS http://127.0.0.1:8080/actuator/health/readiness || exit 1
 
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
+ENTRYPOINT ["sh", "/app/entrypoint.sh"]

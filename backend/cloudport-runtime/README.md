@@ -78,6 +78,22 @@ cloudport_autenticacao,cloudport_carga_geral,cloudport_gate,cloudport_rail,cloud
 
 O administrador configurado é criado somente quando ainda não existe. A migração remove apenas a antiga credencial insegura `gitpod/gitpod`; contas que já tiveram a senha alterada não são excluídas.
 
+## Redis
+
+Na imagem Docker do runtime, configure o Redis com estas variáveis:
+
+```text
+REDIS_USER=
+REDIS_HOST=
+REDIS_PORT=
+REDIS_PASSWORD=
+REDIS_URL=
+```
+
+`REDIS_URL` é opcional. Quando preenchida, a URL tem precedência sobre host, porta, usuário e senha separados. São aceitas URLs `redis://` e `rediss://`. Quando o provedor não usar ACL por usuário, `REDIS_USER` pode permanecer vazio.
+
+O entrypoint da imagem converte essas variáveis para as propriedades nativas do Spring Boot sem registrar os valores sensíveis nos logs.
+
 As integrações continuam usando suas variáveis específicas, incluindo RabbitMQ, Redis, TOS, alertas e armazenamento.
 
 Para entrega de alertas de reconciliação de barcode, configure `GATE_ALERTAS_WEBHOOK_URL` e, quando exigido pelo provedor, `GATE_ALERTAS_BEARER_TOKEN`. Sem URL configurada, a ocorrência permanece pendente e registra a falha de entrega para nova tentativa.

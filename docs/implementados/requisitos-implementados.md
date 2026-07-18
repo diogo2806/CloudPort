@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a integração do motor de otimização ao replanejamento operacional real.
+Status: atualizado em 2026-07-18 com a proteção fail-closed dos jobs persistentes do Gate e a integração do motor de otimização ao replanejamento operacional real.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -43,6 +43,7 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 8. Logs e exceções da integração TOS são sanitizados.
 9. A execução standalone de Carga Geral é protegida por JWT e roles.
 10. Jobs e consumidores falham fechados quando não são habilitados explicitamente.
+11. O job de recuperação OCR do Gate só é registrado no serviço standalone e no runtime consolidado quando `cloudport.runtime.jobs-enabled=true`; sem a propriedade, não há polling, consulta, reivindicação nem submissão de documentos.
 
 ## Contratos compartilhados e API
 

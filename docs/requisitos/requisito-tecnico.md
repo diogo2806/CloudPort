@@ -28,16 +28,3 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/billing/BillingCapService.java` | `registrarPagamento()` | O fluxo lê `status`, total e soma já paga sem lock, valida o saldo e insere o pagamento. Pagamentos concorrentes podem observar o mesmo saldo e ambos serem aceitos, fazendo a soma ultrapassar o total; a atualização posterior da fatura não impede o excesso. | Bloquear a fatura durante o cálculo e a inserção ou executar uma atualização condicional atômica baseada no saldo. Recalcular o total pago dentro da seção serializada, rejeitar excesso com `409 Conflict` e atualizar `PAGA` somente após a persistência válida. |
 | `backend/servico-gate/src/main/resources/db/migration/V200__create_billing_cap.sql` | `billing_fatura_item.cobranca_id`, `billing_pagamento` | A unicidade do item impede que uma cobrança pertença a duas faturas, mas funciona apenas como última defesa. A tabela de pagamentos não possui restrição capaz de garantir que a soma por fatura não exceda `billing_fatura.total`. | Preservar a unicidade existente e adicionar, se necessário, mecanismo persistente compatível com a transição atômica escolhida. Não depender de violação de constraint para controlar o fluxo normal. |
 | `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/billing/BillingCapController.java` | endpoints de geração de fatura e registro de pagamento | As disputas de banco produzidas pelos fluxos concorrentes não são traduzidas para um contrato operacional específico. | Retornar `409 Conflict` com mensagem estável quando cobranças já tiverem sido faturadas ou o saldo tiver sido consumido por outra operação, preservando rollback integral. |
-
-## 2. Segurança de exportação
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| SEC60 | Neutralizar fórmulas em valores exportados pela grade operacional antes de gerar CSV. | Células iniciadas por `=`, `+`, `-` ou `@`, inclusive após espaços, tabulação ou caracteres de controle, são exportadas como texto literal e não são executadas como fórmulas ao abrir o arquivo em planilhas. | ⬜ Pendente |
-
-### SEC60 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `frontend/cloudport/src/operationalDataGrid.js` | `escapeCsv()` e `buildGridCsv()` | O exportador apenas duplica aspas e envolve o valor em aspas. Conteúdo operacional controlado por dados que comece com `=`, `+`, `-` ou `@` permanece interpretável como fórmula por aplicativos de planilha, mesmo estando entre aspas no CSV. | Antes do escape CSV, detectar prefixos de fórmula após espaços e caracteres de controle e prefixar o conteúdo com apóstrofo ou aplicar codificação equivalente que preserve o valor como texto. Manter o tratamento centralizado em `escapeCsv()`. |
-| `frontend/cloudport/src/OperationalDataGrid.jsx` | `exportRows()` e `downloadCsv()` | A ação exporta diretamente os registros selecionados ou filtrados usando `buildGridCsv()` e entrega o arquivo ao operador, sem etapa adicional de neutralização. | Consumir somente o CSV neutralizado pelo utilitário central, preservando busca, filtros, seleção, ordem e colunas visíveis. |

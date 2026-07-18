@@ -1,0 +1,216 @@
+name: Cobertura de testes do backend
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-coverage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cobertura-modulos:
+    name: Cobertura ${{ matrix.nome }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nome: autenticacao
+            modulo: backend/servico-autenticacao
+            preparacao: ':'
+            testes: '-Dtest=TokenServiceTest,SecurityFilterTest,AuthenticationControllerTest,PrivacidadeConsultaServicoTest,PapelServicoTest,SanitizadorEntradaTest,UserInitializerTest'
+          - nome: gate
+            modulo: backend/servico-gate
+            preparacao: ':'
+            testes: '-Dtest=SecurityConfigTest,AnomalyDetectionTest,GateFlowControllerTest,ReconciliacaoBarcodeJobTest,AgendamentoRulesPropertiesTest,DmtBarcodeServiceTest,TosResponseAdapterTest,ConfirmacaoBarcodeServiceTest'
+          - nome: rail
+            modulo: backend/servico-rail
+            preparacao: ':'
+            testes: '-Dtest=PartidaTremServicoTest,CsvManifestoVisitaParserTest,MovimentoFerroviarioInternoServicoTest,TransferenciaLocomotivaServicoTest,OrdemMovimentacaoServicoTest,ReplanejamentoConteinerFerroviarioServicoTest'
+          - nome: visibilidade
+            modulo: backend/servico-visibilidade
+            preparacao: ':'
+            testes: ''
+          - nome: yard
+            modulo: backend/servico-yard
+            preparacao: ':'
+            testes: '-Dtest=OtimizadorRotasPatioServicoTest,OtimizadorDualCyclingServicoTest,WorkQueuePatioServicoTest,WorkQueuePatioControladorAutorizacaoTest,ConsumidoresMigracaoConfiguracaoTest,ObservabilidadeYardFiltroTest,VermasParserTest,BaplieParserTest,AutoStowageServicoTest,EstabilidadeNavioServicoTest'
+          - nome: navio
+            modulo: backend/servico-navio
+            preparacao: ':'
+            testes: '-Dtest=ModoEscritaNavioFiltroTest,LinhaUpEscalaServicoTest,PlanoEstivaServicoEmbarqueDiretoTest,EscalaServicoTest,NavioServicoTest'
+          - nome: navio-siderurgico
+            modulo: backend/servico-navio-siderurgico
+            preparacao: 'mvn -B -f ../cloudport-contracts/pom.xml -DskipTests install'
+            testes: '-Dtest=YardRestTemplateCustomizerContractTest,ObservabilidadeOperacionalFiltroTest,ReservaPatioNavioServicoTest,ReconciliacaoNavioPatioJobTest'
+          - nome: carga-geral
+            modulo: backend/servico-carga-geral
+            preparacao: ':'
+            testes: '-Dtest=LoteCargaTest,OrdemTrabalhoCargaTest,SegredoJwtValidatorTest,TratadorConflitosCargaGeralTest,TradutorConflitoCadastroCargaTest,StuffUnstuffDomainTest,CargaGeralControladorSegurancaTest'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Preparar dependências
+        working-directory: ${{ matrix.modulo }}
+        run: ${{ matrix.preparacao }}
+
+      - name: Executar testes e gerar relatório JaCoCo
+        working-directory: ${{ matrix.modulo }}
+        env:
+          TESTES_MAVEN: ${{ matrix.testes }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn -B \
+            org.jacoco:jacoco-maven-plugin:0.8.13:prepare-agent \
+            ${TESTES_MAVEN} \
+            test \
+            org.jacoco:jacoco-maven-plugin:0.8.13:report
+
+      - name: Publicar resumo do módulo
+        working-directory: ${{ matrix.modulo }}
+        env:
+          NOME_MODULO: ${{ matrix.nome }}
+        shell: python
+        run: |
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          relatorio = Path('target/site/jacoco/jacoco.xml')
+          if not relatorio.exists():
+              raise SystemExit(f'Relatório não encontrado: {relatorio}')
+
+          raiz = ET.parse(relatorio).getroot()
+          contadores = {contador.attrib['type']: contador.attrib for contador in raiz.findall('counter')}
+
+          linhas = contadores.get('LINE', {'covered': '0', 'missed': '0'})
+          cobertas = int(linhas['covered'])
+          perdidas = int(linhas['missed'])
+          total = cobertas + perdidas
+          percentual = (cobertas / total * 100) if total else 0.0
+
+          resumo = Path(os.environ['GITHUB_STEP_SUMMARY'])
+          with resumo.open('a', encoding='utf-8') as arquivo:
+              arquivo.write(f"## Cobertura: {os.environ['NOME_MODULO']}\n\n")
+              arquivo.write('| Métrica | Resultado |\n')
+              arquivo.write('|---|---:|\n')
+              arquivo.write(f'| Linhas cobertas | {cobertas} |\n')
+              arquivo.write(f'| Linhas não cobertas | {perdidas} |\n')
+              arquivo.write(f'| Cobertura de linhas | {percentual:.2f}% |\n')
+
+      - name: Publicar relatório JaCoCo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-${{ matrix.nome }}
+          path: ${{ matrix.modulo }}/target/site/jacoco
+          if-no-files-found: warn
+          retention-days: 14
+
+  cobertura-runtime:
+    name: Cobertura runtime canônico
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Preparar módulos do runtime
+        working-directory: backend/cloudport-modules
+        run: |
+          mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install
+          mvn -B -Dspring-boot.repackage.skip=true \
+            -pl :cloudport-runtime -am \
+            -DskipTests install
+
+      - name: Executar testes e gerar relatório JaCoCo
+        working-directory: backend/cloudport-modules
+        run: |
+          mvn -B -Dspring-boot.repackage.skip=true \
+            -pl :cloudport-runtime \
+            org.jacoco:jacoco-maven-plugin:0.8.13:prepare-agent \
+            test \
+            org.jacoco:jacoco-maven-plugin:0.8.13:report
+
+      - name: Publicar relatório JaCoCo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-runtime
+          path: backend/cloudport-runtime/target/site/jacoco
+          if-no-files-found: warn
+          retention-days: 14
+
+  consolidar-cobertura:
+    name: Consolidar cobertura do backend
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - cobertura-modulos
+      - cobertura-runtime
+    steps:
+      - name: Baixar relatórios
+        uses: actions/download-artifact@v4
+        with:
+          pattern: jacoco-*
+          path: cobertura
+
+      - name: Consolidar cobertura de linhas
+        shell: python
+        run: |
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          relatorios = sorted(Path('cobertura').rglob('jacoco.xml'))
+          if not relatorios:
+              raise SystemExit('Nenhum relatório JaCoCo foi encontrado.')
+
+          modulos = []
+          total_cobertas = 0
+          total_perdidas = 0
+
+          for relatorio in relatorios:
+              raiz = ET.parse(relatorio).getroot()
+              contador = next(
+                  (item for item in raiz.findall('counter') if item.attrib['type'] == 'LINE'),
+                  None,
+              )
+              if contador is None:
+                  continue
+
+              cobertas = int(contador.attrib['covered'])
+              perdidas = int(contador.attrib['missed'])
+              total = cobertas + perdidas
+              percentual = (cobertas / total * 100) if total else 0.0
+              nome = relatorio.parent.parent.name.removeprefix('jacoco-')
+              modulos.append((nome, cobertas, perdidas, percentual))
+              total_cobertas += cobertas
+              total_perdidas += perdidas
+
+          total_linhas = total_cobertas + total_perdidas
+          percentual_total = (total_cobertas / total_linhas * 100) if total_linhas else 0.0
+
+          resumo = Path(os.environ['GITHUB_STEP_SUMMARY'])
+          with resumo.open('a', encoding='utf-8') as arquivo:
+              arquivo.write('## Cobertura consolidada do backend\n\n')
+              arquivo.write('| Módulo | Cobertas | Não cobertas | Cobertura |\n')
+              arquivo.write('|---|---:|---:|---:|\n')
+              for nome, cobertas, perdidas, percentual in sorted(modulos):
+                  arquivo.write(f'| {nome} | {cobertas} | {perdidas} | {percentual:.2f}% |\n')
+              arquivo.write(f'| **Total** | **{total_cobertas}** | **{total_perdidas}** | **{percentual_total:.2f}%** |\n')

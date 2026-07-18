@@ -52,7 +52,7 @@ public class ConfiguracaoSeguranca {
     public SecurityFilterChain cargaGeralSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors().configurationSource(corsConfigurationSource()).and()
-                .csrf().disable()
+                .csrf(csrf -> csrf.ignoringAntMatchers("/api/carga-geral/**"))
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests(authorize -> authorize
                         .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()

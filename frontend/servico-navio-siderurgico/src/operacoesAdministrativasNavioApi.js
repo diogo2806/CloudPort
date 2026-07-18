@@ -16,6 +16,10 @@ async function resolveBaseApiUrl() {
   return baseApiUrlPromise;
 }
 
+export function setAdministrativeBaseUrlForTests(value) {
+  baseApiUrlPromise = Promise.resolve(normalizeBaseUrl(value));
+}
+
 function positiveId(value, label) {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) {

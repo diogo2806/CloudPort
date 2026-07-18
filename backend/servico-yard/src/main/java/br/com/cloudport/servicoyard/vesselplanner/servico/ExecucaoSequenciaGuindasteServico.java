@@ -13,6 +13,7 @@ import br.com.cloudport.servicoyard.vesselplanner.dto.SequenciamentoGuindasteDto
 import br.com.cloudport.servicoyard.vesselplanner.modelo.EstivagemPlan;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.ExecucaoSequenciaGuindaste;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.MovimentoExecucaoGuindaste;
+import br.com.cloudport.servicoyard.vesselplanner.modelo.SlotNavio;
 import br.com.cloudport.servicoyard.vesselplanner.modelo.StatusMovimentoExecucaoGuindaste;
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.EstivagemPlanRepositorio;
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.ExecucaoSequenciaGuindasteRepositorio;
@@ -39,14 +40,17 @@ public class ExecucaoSequenciaGuindasteServico {
     private final EstivagemPlanRepositorio planRepositorio;
     private final ExecucaoSequenciaGuindasteRepositorio execucaoRepositorio;
     private final SequenciamentoGuindasteServico sequenciamentoServico;
+    private final TampaPoraoServico tampaPoraoServico;
 
     public ExecucaoSequenciaGuindasteServico(
             EstivagemPlanRepositorio planRepositorio,
             ExecucaoSequenciaGuindasteRepositorio execucaoRepositorio,
-            SequenciamentoGuindasteServico sequenciamentoServico) {
+            SequenciamentoGuindasteServico sequenciamentoServico,
+            TampaPoraoServico tampaPoraoServico) {
         this.planRepositorio = planRepositorio;
         this.execucaoRepositorio = execucaoRepositorio;
         this.sequenciamentoServico = sequenciamentoServico;
+        this.tampaPoraoServico = tampaPoraoServico;
     }
 
     @Transactional
@@ -124,7 +128,14 @@ public class ExecucaoSequenciaGuindasteServico {
         ExecucaoSequenciaGuindaste execucao = buscarExecucao(execucaoId);
         MovimentoExecucaoGuindaste movimento = buscarMovimento(execucao, movimentoId);
         validarVersao(movimento.getVersao(), request.versao(), "movimento");
-        executarTransicao(() -> movimento.iniciar(request.ocorridoEm(), usuario));
+        executarTransicao(() -> {
+            SlotNavio slot = buscarSlotDoMovimento(execucao.getEstivagem(), movimento);
+            tampaPoraoServico.validarInicioMovimento(
+                    execucao.getEstivagem(),
+                    slot,
+                    movimento.getCodigoContainer());
+            movimento.iniciar(request.ocorridoEm(), usuario);
+        });
         execucao.atualizarStatus();
         return toResponse(execucaoRepositorio.saveAndFlush(execucao));
     }
@@ -214,6 +225,18 @@ public class ExecucaoSequenciaGuindasteServico {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Movimento não pertence à execução informada: " + movimentoId));
+    }
+
+    private SlotNavio buscarSlotDoMovimento(
+            EstivagemPlan plan,
+            MovimentoExecucaoGuindaste movimento) {
+        return plan.getSlots().stream()
+                .filter(slot -> slot.getBay() == movimento.getBay())
+                .filter(slot -> slot.getRowBay() == movimento.getRowBay())
+                .filter(slot -> slot.getTier() == movimento.getTier())
+                .findFirst()
+                .orElseThrow(() -> conflito(
+                        "O slot do movimento não foi encontrado no plano de estivagem."));
     }
 
     private void validarVersao(Long versaoAtual, Long versaoEsperada, String recurso) {

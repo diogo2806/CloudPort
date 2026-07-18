@@ -108,16 +108,31 @@ export function calcularJanelaTimeline(escalas) {
   return { inicio, fim };
 }
 
-export function calcularPosicaoTimeline(escala, janela) {
+function calcularIntervaloPercentual(escala, janela) {
   const total = Math.max(janela.fim.getTime() - janela.inicio.getTime(), 1);
   const inicio = Math.max(escala.etb.getTime(), janela.inicio.getTime());
   const fim = Math.min(escala.etd.getTime(), janela.fim.getTime());
-  const left = Math.max(0, Math.min(100, ((inicio - janela.inicio.getTime()) / total) * 100));
-  const width = Math.max(1.5, Math.min(100 - left, ((Math.max(fim - inicio, 1)) / total) * 100));
-  return { left: `${left}%`, width: `${width}%` };
+  const deslocamento = Math.max(0, Math.min(100, ((inicio - janela.inicio.getTime()) / total) * 100));
+  const tamanho = Math.max(1.5, Math.min(100 - deslocamento, ((Math.max(fim - inicio, 1)) / total) * 100));
+  return { deslocamento, tamanho };
 }
 
-export function gerarMarcadoresTimeline(janela, quantidade = 6) {
+export function calcularPosicaoTimeline(escala, janela) {
+  const intervalo = calcularIntervaloPercentual(escala, janela);
+  return { left: `${intervalo.deslocamento}%`, width: `${intervalo.tamanho}%` };
+}
+
+export function calcularPosicaoVerticalTimeline(escala, janela) {
+  const intervalo = calcularIntervaloPercentual(escala, janela);
+  return { top: `${intervalo.deslocamento}%`, height: `${intervalo.tamanho}%` };
+}
+
+export function calcularAlturaTimelineVertical(janela) {
+  const duracaoHoras = Math.max(24, (janela.fim.getTime() - janela.inicio.getTime()) / HORA_MS);
+  return Math.round(Math.max(680, Math.min(1800, duracaoHoras * 2.5)));
+}
+
+export function gerarMarcadoresTimeline(janela, quantidade = 8) {
   const total = janela.fim.getTime() - janela.inicio.getTime();
   return Array.from({ length: quantidade }, (_, indice) => {
     const percentual = quantidade === 1 ? 0 : indice / (quantidade - 1);
@@ -128,13 +143,30 @@ export function gerarMarcadoresTimeline(janela, quantidade = 6) {
   });
 }
 
+function distribuirFaixas(itens) {
+  const fimPorFaixa = [];
+  const distribuidos = [...itens]
+    .sort((a, b) => a.etb.getTime() - b.etb.getTime())
+    .map((escala) => {
+      let faixa = fimPorFaixa.findIndex((fim) => fim <= escala.etb.getTime());
+      if (faixa < 0) {
+        faixa = fimPorFaixa.length;
+        fimPorFaixa.push(escala.etd.getTime());
+      } else {
+        fimPorFaixa[faixa] = escala.etd.getTime();
+      }
+      return { ...escala, faixa };
+    });
+  return { itens: distribuidos, totalFaixas: Math.max(fimPorFaixa.length, 1) };
+}
+
 export function agruparEscalasPorBerco(escalas) {
   const grupos = new Map();
   escalas.forEach((escala) => {
     if (!grupos.has(escala.berco)) grupos.set(escala.berco, []);
     grupos.get(escala.berco).push(escala);
   });
-  return Array.from(grupos, ([berco, itens]) => ({ berco, itens }))
+  return Array.from(grupos, ([berco, itens]) => ({ berco, ...distribuirFaixas(itens) }))
     .sort((a, b) => a.berco.localeCompare(b.berco, 'pt-BR'));
 }
 

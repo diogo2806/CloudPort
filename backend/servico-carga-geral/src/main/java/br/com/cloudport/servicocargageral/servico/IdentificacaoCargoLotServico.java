@@ -77,6 +77,11 @@ public class IdentificacaoCargoLotServico {
                 .orElseThrow(() -> naoEncontrada("Código de barras, QR ou cargo lot não encontrado."));
     }
 
+    @Transactional(readOnly = true)
+    public String resolverCodigoLote(String codigo) {
+        return buscarLote(resolverLoteId(codigo)).getCodigo();
+    }
+
     private IdentificacaoCargoLot buscarIdentificacao(String codigo) {
         return identificacaoRepositorio.findByCodigoIgnoreCaseAndAtivoTrue(codigo)
                 .orElseThrow(() -> naoEncontrada("Identificação física não encontrada ou inativa."));

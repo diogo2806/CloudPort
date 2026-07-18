@@ -56,7 +56,7 @@ public class ConfiguracaoSeguranca {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors().configurationSource(corsConfigurationSource()).and()
-                .csrf().disable()
+                .csrf(csrf -> csrf.ignoringAntMatchers("/api/**", "/ws/**"))
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests(authorize -> authorize
                         .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()

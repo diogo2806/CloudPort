@@ -23,34 +23,27 @@ import org.springframework.web.bind.annotation.RestController;
 public class GateFlowController {
 
     private final GateFlowService gateFlowService;
-    private final GateOperationsService gateOperationsService;
+    private final GateFlowOrchestrator gateFlowOrchestrator;
 
-    public GateFlowController(GateFlowService gateFlowService,
-                              GateOperationsService gateOperationsService) {
+    public GateFlowController(
+            GateFlowService gateFlowService,
+            GateFlowOrchestrator gateFlowOrchestrator) {
         this.gateFlowService = gateFlowService;
-        this.gateOperationsService = gateOperationsService;
+        this.gateFlowOrchestrator = gateFlowOrchestrator;
     }
 
     @PostMapping("/entrada")
     @Operation(summary = "Processa um evento de entrada identificado por placa ou QR code")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
     public ResponseEntity<GateDecisionDTO> registrarEntrada(@Valid @RequestBody GateFlowRequest request) {
-        GateDecisionDTO decision = gateFlowService.registrarEntrada(request);
-        if (decision.isAutorizado()) {
-            gateOperationsService.registrarEntrada(request, decision.getGatePassId());
-        }
-        return ResponseEntity.ok(decision);
+        return ResponseEntity.ok(gateFlowOrchestrator.registrarEntrada(request));
     }
 
     @PostMapping("/saida")
     @Operation(summary = "Processa um evento de saída identificado por placa ou QR code")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
     public ResponseEntity<GateDecisionDTO> registrarSaida(@Valid @RequestBody GateFlowRequest request) {
-        GateDecisionDTO decision = gateFlowService.registrarSaida(request);
-        if (decision.isAutorizado()) {
-            gateOperationsService.registrarSaida(request, decision.getGatePassId());
-        }
-        return ResponseEntity.ok(decision);
+        return ResponseEntity.ok(gateFlowOrchestrator.registrarSaida(request));
     }
 
     @PostMapping("/agendamentos/{id}/liberacao-manual")

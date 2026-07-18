@@ -33,6 +33,10 @@ public class VisitaTrem {
     @Column(name = "operadora_ferroviaria", nullable = false, length = 80)
     private String operadoraFerroviaria;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_visita", nullable = false, length = 30)
+    private TipoVisitaTrem tipoVisita = TipoVisitaTrem.COMPOSICAO_FERROVIARIA;
+
     @Column(name = "hora_chegada_prevista", nullable = false)
     private LocalDateTime horaChegadaPrevista;
 
@@ -102,6 +106,14 @@ public class VisitaTrem {
 
     public void setOperadoraFerroviaria(String operadoraFerroviaria) {
         this.operadoraFerroviaria = operadoraFerroviaria;
+    }
+
+    public TipoVisitaTrem getTipoVisita() {
+        return tipoVisita;
+    }
+
+    public void setTipoVisita(TipoVisitaTrem tipoVisita) {
+        this.tipoVisita = tipoVisita;
     }
 
     public LocalDateTime getHoraChegadaPrevista() {
@@ -182,6 +194,9 @@ public class VisitaTrem {
         LocalDateTime agora = LocalDateTime.now();
         this.criadoEm = agora;
         this.atualizadoEm = agora;
+        if (this.tipoVisita == null) {
+            this.tipoVisita = TipoVisitaTrem.COMPOSICAO_FERROVIARIA;
+        }
     }
 
     @PreUpdate

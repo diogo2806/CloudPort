@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoyard.patio.modelo;
 
+import java.time.LocalDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -7,6 +8,8 @@ import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 
 @Entity
@@ -34,6 +37,9 @@ public class EquipamentoPatio {
     @Column(name = "status_operacional", nullable = false, length = 30)
     private StatusEquipamento statusOperacional;
 
+    @Column(name = "atualizado_em", nullable = false)
+    private LocalDateTime atualizadoEm;
+
     public EquipamentoPatio() {
     }
 
@@ -47,51 +53,24 @@ public class EquipamentoPatio {
         this.statusOperacional = statusOperacional;
     }
 
-    public Long getId() {
-        return id;
+    @PrePersist
+    @PreUpdate
+    public void atualizarTimestamp() {
+        atualizadoEm = LocalDateTime.now();
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getIdentificador() {
-        return identificador;
-    }
-
-    public void setIdentificador(String identificador) {
-        this.identificador = identificador;
-    }
-
-    public TipoEquipamento getTipoEquipamento() {
-        return tipoEquipamento;
-    }
-
-    public void setTipoEquipamento(TipoEquipamento tipoEquipamento) {
-        this.tipoEquipamento = tipoEquipamento;
-    }
-
-    public Integer getLinha() {
-        return linha;
-    }
-
-    public void setLinha(Integer linha) {
-        this.linha = linha;
-    }
-
-    public Integer getColuna() {
-        return coluna;
-    }
-
-    public void setColuna(Integer coluna) {
-        this.coluna = coluna;
-    }
-
-    public StatusEquipamento getStatusOperacional() {
-        return statusOperacional;
-    }
-
-    public void setStatusOperacional(StatusEquipamento statusOperacional) {
-        this.statusOperacional = statusOperacional;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getIdentificador() { return identificador; }
+    public void setIdentificador(String identificador) { this.identificador = identificador; }
+    public TipoEquipamento getTipoEquipamento() { return tipoEquipamento; }
+    public void setTipoEquipamento(TipoEquipamento tipoEquipamento) { this.tipoEquipamento = tipoEquipamento; }
+    public Integer getLinha() { return linha; }
+    public void setLinha(Integer linha) { this.linha = linha; }
+    public Integer getColuna() { return coluna; }
+    public void setColuna(Integer coluna) { this.coluna = coluna; }
+    public StatusEquipamento getStatusOperacional() { return statusOperacional; }
+    public void setStatusOperacional(StatusEquipamento statusOperacional) { this.statusOperacional = statusOperacional; }
+    public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
+    public void setAtualizadoEm(LocalDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
 }

@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1050, BUS1090 e BUS1170 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1050, BUS1090, BUS1150 e BUS1170 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -123,16 +123,8 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| BUS1150 | Registrar execução da sequência de guindastes. | Cada movimento possui guindaste, ordem, janela, início, conclusão, exceção e quantidade realizada. | ⬜ Pendente |
 | BUS1160 | Implementar operação persistida de tampas de porão. | Tarefas de abrir, remover, posicionar e fechar controlam dependências e bloqueiam movimentos incompatíveis. | ⬜ Pendente |
 | DATA1180 | Reconciliar BAPLIE, plano, inventário e execução física. | Divergências são persistidas, classificadas, resolvidas e bloqueiam publicação ou conclusão quando críticas. | ⬜ Pendente |
-
-### BUS1150 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-navio/src/main/java/br/com/cloudport/serviconavio` | sequência de guindastes | Existe planejamento, mas não agregado de execução por movimento. | Criar novo agregado sugerido: `ExecucaoSequenciaGuindaste`. |
-| `frontend/cloudport/src/pages/VesselPlannerWorkspace.jsx` | plano visual | Não apresenta linha do tempo persistida de execução real. | Exibir progresso, exceções e reconciliação. |
 
 ### BUS1160 — arquivos e métodos
 

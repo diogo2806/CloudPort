@@ -34,7 +34,9 @@ public class InterceptadorAutorizacaoWebSocket implements ChannelInterceptor {
         String destino = accessor.getDestination();
 
         if (command == StompCommand.CONNECT) {
-            canal.ifPresent(canalOperacional -> validarConexao(obterAutenticacao(accessor), canalOperacional));
+            if (canal.isPresent()) {
+                validarConexao(obterAutenticacao(accessor), canal.get());
+            }
             return message;
         }
 

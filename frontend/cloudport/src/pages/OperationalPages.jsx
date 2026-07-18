@@ -5,6 +5,7 @@ import { selectGateAppointments } from '../gateDataset.js';
 import { gateOperatorApi, selectGateOperatorVehicles } from '../gateOperatorApi.js';
 import { collectDatasetKeys, humanizeDatasetKey } from '../operationalDataset.js';
 import { GateVisualPage } from './GateVisualPage.jsx';
+import { RailLineUpPage } from './RailLineUpPage.jsx';
 import { YardInstructionCreateModal } from './yard/YardInstructionsPage.jsx';
 
 function displayValue(value) {
@@ -75,14 +76,7 @@ export function GateDashboardPage() {
 }
 
 export function RailVisitsPage() {
-  const [days, setDays] = useState(7);
-  const remote = useLoader(() => api.listarVisitasFerrovia(days), [days]);
-  const rows = normalizePage(remote.data);
-  return <>
-    <PageHeader eyebrow="Ferrovia" title="Visitas de trem" description="Visitas previstas e situação das listas de carga e descarga." actions={<div className="inline"><label className="compact-field">Janela<select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value="1">1 dia</option><option value="7">7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option></select></label><button className="secondary" onClick={remote.reload}>Atualizar</button></div>} />
-    <Message type="error">{remote.error}</Message>
-    <Section title="Visitas"><DataTable rows={rows} columns={[{ key: 'identificadorTrem', label: 'Trem' }, { key: 'operadoraFerroviaria', label: 'Operadora' }, { key: 'statusVisita', label: 'Status', render: (row) => <StatusBadge value={row.statusVisita} /> }, { key: 'horaChegadaPrevista', label: 'Chegada', render: (row) => displayValue(row.horaChegadaPrevista) }, { key: 'horaPartidaPrevista', label: 'Partida', render: (row) => displayValue(row.horaPartidaPrevista) }, { key: 'descarga', label: 'Descarga', render: (row) => `${row.listaDescarga?.length ?? 0} contêiner(es)` }, { key: 'carga', label: 'Carga', render: (row) => `${row.listaCarga?.length ?? 0} contêiner(es)` }]} emptyTitle="Nenhuma visita prevista" /></Section>
-  </>;
+  return <RailLineUpPage />;
 }
 
 export function RailImportPage() {

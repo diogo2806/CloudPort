@@ -71,7 +71,6 @@ public class GateFlowService {
     private final GateOperadorRealtimeService gateOperadorRealtimeService;
     private final DmtBarcodeService dmtBarcodeService;
     private final BarcodeProperties barcodeProperties;
-    private final GateResourceOccupationService resourceOccupationService;
     private final CargaGeralGateCliente cargaGeralGateCliente;
 
     public GateFlowService(
@@ -85,7 +84,6 @@ public class GateFlowService {
             GateOperadorRealtimeService gateOperadorRealtimeService,
             DmtBarcodeService dmtBarcodeService,
             BarcodeProperties barcodeProperties,
-            GateResourceOccupationService resourceOccupationService,
             CargaGeralGateCliente cargaGeralGateCliente) {
         this.agendamentoRepository = agendamentoRepository;
         this.gatePassRepository = gatePassRepository;
@@ -97,7 +95,6 @@ public class GateFlowService {
         this.gateOperadorRealtimeService = gateOperadorRealtimeService;
         this.dmtBarcodeService = dmtBarcodeService;
         this.barcodeProperties = barcodeProperties;
-        this.resourceOccupationService = resourceOccupationService;
         this.cargaGeralGateCliente = cargaGeralGateCliente;
     }
 
@@ -117,12 +114,6 @@ public class GateFlowService {
                     flowProperties.getToleranciaEntradaAntecipada(),
                     flowProperties.getToleranciaEntradaAtraso(),
                     "Horário de chegada fora da tolerância permitida");
-
-            resourceOccupationService.ocuparRecursos(
-                    agendamento,
-                    gatePass,
-                    request.getChassis(),
-                    request.getUnidades());
             confirmarReservaCargaGeral(request, "ENTRADA");
 
             agendamento.setHorarioRealChegada(timestamp);
@@ -235,9 +226,7 @@ public class GateFlowService {
                     flowProperties.getToleranciaSaidaAntecipada(),
                     flowProperties.getToleranciaSaidaAtraso(),
                     "Horário de saída fora da tolerância permitida");
-
             confirmarReservaCargaGeral(request, "SAIDA");
-            resourceOccupationService.liberarRecursos(gatePass.getId());
 
             agendamento.setHorarioRealSaida(timestamp);
             gatePass.setDataSaida(timestamp);
@@ -256,7 +245,7 @@ public class GateFlowService {
                     gatePass,
                     StatusGate.FINALIZADO,
                     null,
-                    "Saída registrada e recursos liberados",
+                    "Saída registrada",
                     resolverOperador(request.getOperador()),
                     timestamp);
             LOGGER.info("Saída registrada para agendamento {}", agendamento.getCodigo());
@@ -266,7 +255,7 @@ public class GateFlowService {
                     evento.getStatus(),
                     agendamento,
                     gatePass,
-                    "Saída registrada, recursos liberados e gate finalizado");
+                    "Saída registrada e gate finalizado");
         } catch (RuntimeException exception) {
             registrarEvento(
                     gatePass,

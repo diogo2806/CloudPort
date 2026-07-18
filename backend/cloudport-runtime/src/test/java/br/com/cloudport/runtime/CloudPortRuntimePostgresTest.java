@@ -57,6 +57,7 @@ class CloudPortRuntimePostgresTest {
 
     private static final List<String> SCHEMAS = List.of(
             "cloudport_autenticacao",
+            "cloudport_carga_geral",
             "cloudport_gate",
             "cloudport_rail",
             "cloudport_visibilidade",

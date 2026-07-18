@@ -1,5 +1,6 @@
 package br.com.cloudport.servicocargageral.controlador;
 
+import br.com.cloudport.servicocargageral.dominio.OperacaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.CancelarOperacaoRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.ConcluirOperacaoRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.CriarOperacaoRequest;
@@ -8,6 +9,7 @@ import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.LiberarPlanoReque
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.OperacaoResposta;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.PlanoVersaoResposta;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.RegistrarExecucaoRequest;
+import br.com.cloudport.servicocargageral.repositorio.OperacaoStuffUnstuffRepositorio;
 import br.com.cloudport.servicocargageral.servico.PlanoStuffUnstuffServico;
 import br.com.cloudport.servicocargageral.servico.StuffUnstuffServico;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +22,7 @@ import java.util.UUID;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/carga-geral/operacoes-stuff-unstuff")
@@ -39,12 +43,15 @@ public class StuffUnstuffControlador {
 
     private final StuffUnstuffServico servico;
     private final PlanoStuffUnstuffServico planoServico;
+    private final OperacaoStuffUnstuffRepositorio operacaoRepositorio;
 
     public StuffUnstuffControlador(
             StuffUnstuffServico servico,
-            PlanoStuffUnstuffServico planoServico) {
+            PlanoStuffUnstuffServico planoServico,
+            OperacaoStuffUnstuffRepositorio operacaoRepositorio) {
         this.servico = servico;
         this.planoServico = planoServico;
+        this.operacaoRepositorio = operacaoRepositorio;
     }
 
     @GetMapping
@@ -77,9 +84,9 @@ public class StuffUnstuffControlador {
     })
     public ResponseEntity<OperacaoResposta> criar(@Valid @RequestBody CriarOperacaoRequest request) {
         OperacaoResposta criada = servico.criarOperacaoStuffUnstuff(request);
-        planoServico.criarVersaoInicial(
-                servico.buscarEntidade(criada.id()),
-                request.usuario());
+        OperacaoStuffUnstuff operacao = operacaoRepositorio.findDetalhadaById(criada.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Operação criada não encontrada."));
+        planoServico.criarVersaoInicial(operacao, request.usuario());
         return ResponseEntity.created(URI.create("/api/carga-geral/operacoes-stuff-unstuff/" + criada.id())).body(criada);
     }
 

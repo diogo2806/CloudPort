@@ -11,4 +11,6 @@ Implementada a segunda fase do planejamento gráfico de navio:
 - seleção bidirecional entre tampa e slots;
 - documentação e testes unitários das regras puras.
 
+Validação executada com `node --test`: 6 testes aprovados para origem, peso VGM, restrições, suporte da pilha, limites de peso, reefer e estados das tampas.
+
 A validação local é preventiva. O backend continua responsável pela confirmação definitiva da movimentação.

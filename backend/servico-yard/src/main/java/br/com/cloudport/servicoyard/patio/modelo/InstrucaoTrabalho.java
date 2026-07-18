@@ -11,6 +11,7 @@ import javax.persistence.Id;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
+import javax.persistence.Version;
 
 @Entity
 @Table(name = "work_instruction")
@@ -20,17 +21,17 @@ public class InstrucaoTrabalho {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "codigo_conteiner", nullable = false, length = 30)
+    @Column(name = "codigo_conteiner", nullable = false, length = 40)
     private String codigoConteiner;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_operacao", nullable = false, length = 30)
     private TipoOperacaoInstrucao tipoOperacao;
 
-    @Column(name = "origem", length = 80)
+    @Column(name = "origem", length = 120)
     private String origem;
 
-    @Column(name = "destino", length = 80)
+    @Column(name = "destino", length = 120)
     private String destino;
 
     @Enumerated(EnumType.STRING)
@@ -44,16 +45,22 @@ public class InstrucaoTrabalho {
     @Column(name = "agendada_em")
     private LocalDateTime agendadaEm;
 
+    @Column(name = "aceita_em")
+    private LocalDateTime aceitaEm;
+
     @Column(name = "iniciada_em")
     private LocalDateTime iniciadaEm;
 
     @Column(name = "concluida_em")
     private LocalDateTime concluidaEm;
 
+    @Column(name = "falha_em")
+    private LocalDateTime falhaEm;
+
     @Column(name = "cancelada_em")
     private LocalDateTime canceladaEm;
 
-    @Column(name = "equipamento", length = 30)
+    @Column(name = "equipamento", length = 40)
     private String equipamento;
 
     @Column(name = "equipe", length = 80)
@@ -67,6 +74,13 @@ public class InstrucaoTrabalho {
 
     @Column(name = "justificativa_cancelamento", length = 500)
     private String justificativaCancelamento;
+
+    @Column(name = "resultado_vmt", length = 1000)
+    private String resultadoVmt;
+
+    @Version
+    @Column(name = "versao", nullable = false)
+    private Long versao;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -101,10 +115,14 @@ public class InstrucaoTrabalho {
     public void setStatus(StatusInstrucao status) { this.status = status; }
     public LocalDateTime getAgendadaEm() { return agendadaEm; }
     public void setAgendadaEm(LocalDateTime agendadaEm) { this.agendadaEm = agendadaEm; }
+    public LocalDateTime getAceitaEm() { return aceitaEm; }
+    public void setAceitaEm(LocalDateTime aceitaEm) { this.aceitaEm = aceitaEm; }
     public LocalDateTime getIniciadaEm() { return iniciadaEm; }
     public void setIniciadaEm(LocalDateTime iniciadaEm) { this.iniciadaEm = iniciadaEm; }
     public LocalDateTime getConcluidaEm() { return concluidaEm; }
     public void setConcluidaEm(LocalDateTime concluidaEm) { this.concluidaEm = concluidaEm; }
+    public LocalDateTime getFalhaEm() { return falhaEm; }
+    public void setFalhaEm(LocalDateTime falhaEm) { this.falhaEm = falhaEm; }
     public LocalDateTime getCanceladaEm() { return canceladaEm; }
     public void setCanceladaEm(LocalDateTime canceladaEm) { this.canceladaEm = canceladaEm; }
     public String getEquipamento() { return equipamento; }
@@ -117,6 +135,9 @@ public class InstrucaoTrabalho {
     public void setCriadoPor(String criadoPor) { this.criadoPor = criadoPor; }
     public String getJustificativaCancelamento() { return justificativaCancelamento; }
     public void setJustificativaCancelamento(String justificativaCancelamento) { this.justificativaCancelamento = justificativaCancelamento; }
+    public String getResultadoVmt() { return resultadoVmt; }
+    public void setResultadoVmt(String resultadoVmt) { this.resultadoVmt = resultadoVmt; }
+    public Long getVersao() { return versao; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

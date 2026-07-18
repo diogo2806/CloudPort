@@ -4,6 +4,7 @@ import br.com.cloudport.servicoyard.patio.dto.AtualizarRestricaoPilhaDto;
 import br.com.cloudport.servicoyard.patio.dto.ConteinerMapaDto;
 import br.com.cloudport.servicoyard.patio.dto.ConteinerPatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.dto.EventoMapaTempoRealDto;
+import br.com.cloudport.servicoyard.patio.dto.MapaPatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.dto.MovimentarConteinerPatioDto;
 import br.com.cloudport.servicoyard.patio.modelo.ConteinerPatio;
 import br.com.cloudport.servicoyard.patio.modelo.PosicaoPatio;
@@ -111,7 +112,7 @@ public class OperacaoGraficaPatioServico {
     }
 
     private void publicarAtualizacao() {
-        var mapa = mapaPatioServico.consultarMapa(
+        MapaPatioRespostaDto mapa = mapaPatioServico.consultarMapa(
                 mapaPatioServico.construirFiltro(List.of(), List.of(), List.of(), List.of(), List.of()));
         messagingTemplate.convertAndSend(TOPICO_ATUALIZACOES,
                 new EventoMapaTempoRealDto("RESTRICAO_PILHA_ATUALIZADA", mapa));

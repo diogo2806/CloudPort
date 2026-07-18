@@ -90,6 +90,7 @@ jobs:
         run: |
           set +e
           {
+            mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install &&
             mvn -B -Dspring-boot.repackage.skip=true \
               -pl :cloudport-runtime -am \
               -DskipTests install &&
@@ -121,8 +122,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validar Docker Compose
         run: docker compose -f deploy/cloudport-runtime/docker-compose.yml config
-      - name: Construir imagem do runtime canônico
+      - name: Construir imagem do runtime canônico pela raiz
         run: docker build -f backend/cloudport-runtime/Dockerfile -t cloudport-runtime:ci .
+      - name: Construir imagem do runtime canônico no contexto do EasyPanel
+        run: docker build -f backend/Dockerfile -t cloudport-runtime-easypanel:ci backend
 
   frontend:
     name: Frontend ${{ matrix.name }}

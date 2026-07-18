@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS10, BUS1000, BUS1010, BUS1050, BUS1090, BUS1160, BUS1170 e DATA1180 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão dos BUS10, BUS1000, BUS1010, BUS1050, BUS1090, BUS1100, BUS1110, BUS1160, BUS1170 e DATA1180 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -61,25 +61,9 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| BUS1100 | Implementar chamada operacional de caminhões com fila persistida. | Posição, prioridade, gate ou pista, chamada, aceite, expiração, rechamada e cancelamento são persistidos. | ⬜ Pendente |
-| BUS1110 | Impedir truck hopping por visita ativa. | Motorista, cavalo, chassis e unidades não participam simultaneamente de visitas conflitantes e são liberados atomicamente. | ⬜ Pendente |
 | BUS1120 | Implementar tratamento de unidades fora de posição. | A divergência gera caso, bloqueio, investigação e instrução corretiva com origem e destino confirmados. | ⬜ Pendente |
 | BUS1130 | Implementar Lost & Found e unidades TBD. | Unidade sem registro ou sem localização entra em caso persistido com investigação, associação, baixa e encerramento. | ⬜ Pendente |
 | INT1140 | Integrar VMT à confirmação de work instructions. | Aceite, início e conclusão atualizam a instrução uma única vez e rejeitam evento duplicado ou fora de sequência. | ⬜ Pendente |
-
-### BUS1100 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/gestor/GateFlowService.java` | `confirmarChegadaAntecipada()` e `registrarEntrada()` | Muda estados de agendamento e gate pass, mas não existe entidade de chamada com posição, aceite ou expiração. | Criar novo agregado sugerido: `ChamadaCaminhao`. |
-| `frontend/cloudport/src/pages/gate/GateVisualOperationsPage.jsx` | filas e pistas | Não consome contrato persistido de chamada. | Exibir histórico, estado e confirmação da chamada. |
-
-### BUS1110 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/gestor/GateFlowService.java` | `obterOuCriarGatePass()` e `registrarEntrada()` | Não comprova exclusividade conjunta de motorista, caminhão, chassis e unidades em visita ativa. | Criar validação transacional e retorno funcional de conflito. |
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/model/GatePass.java` | vínculos da passagem | Não existe ocupação explícita dos recursos com liberação atômica. | Persistir vínculos ativos e liberá-los no encerramento ou cancelamento. |
 
 ### BUS1120 — arquivos e métodos
 

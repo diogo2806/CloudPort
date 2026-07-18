@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -27,6 +28,7 @@ import org.springframework.util.StringUtils;
 
 @Service
 public class TokenService {
+    private static final String PAPEL_ROOT = "ROLE_ROOT";
 
     private final String secret;
     private final Duration tokenExpiration;
@@ -57,9 +59,11 @@ public class TokenService {
                     .map(nomePapel -> nomePapel.startsWith("ROLE_")
                             ? nomePapel
                             : "ROLE_" + nomePapel.toUpperCase())
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
 
-            String perfil = papeis.stream().findFirst().orElse(null);
+            String perfil = papeis.contains(PAPEL_ROOT)
+                    ? PAPEL_ROOT
+                    : papeis.stream().findFirst().orElse(null);
             Map<String, Object> claims = new HashMap<>();
             if (usuario.getId() != null) {
                 claims.put("userId", usuario.getId().toString());

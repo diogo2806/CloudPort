@@ -66,6 +66,17 @@ public final class GateOperacionalDtos {
             Map<String, Object> configuracao) {
     }
 
+    public record AccessRuleRequest(
+            @NotNull Long gateId,
+            @NotBlank @Schema(allowableValues = {"MOTORISTA", "TRANSPORTADORA", "VEICULO"}) String escopo,
+            @NotNull Long referenciaId,
+            @NotBlank @Schema(allowableValues = {"BLOQUEIO", "PERMISSAO"}) String tipo,
+            @NotBlank @Size(max = 500) String motivo,
+            LocalDateTime inicioVigencia,
+            LocalDateTime fimVigencia,
+            Boolean ativo) {
+    }
+
     public record BookingRequest(
             @NotBlank @Size(max = 60) String codigo,
             Long transportadoraId,
@@ -77,10 +88,22 @@ public final class GateOperacionalDtos {
             @Size(max = 500) String observacoes) {
     }
 
+    public record BillOfLadingRequest(
+            @NotBlank @Size(max = 80) String numero,
+            @Size(max = 120) String armador,
+            @Size(max = 80) String viagem,
+            @Size(max = 160) String consignatario,
+            @NotNull @Min(1) Integer quantidadeTotal,
+            LocalDateTime validadeInicio,
+            LocalDateTime validadeFim,
+            @Size(max = 500) String observacoes) {
+    }
+
     public record OrderRequest(
             @NotBlank @Schema(allowableValues = {"EDO", "ERO", "IDO"}) String tipo,
             @NotBlank @Size(max = 60) String codigo,
             Long bookingId,
+            Long billOfLadingId,
             Long transportadoraId,
             @Size(max = 30) String unidadeReferencia,
             LocalDateTime validadeInicio,
@@ -101,6 +124,7 @@ public final class GateOperacionalDtos {
             @NotBlank @Size(max = 40) String tipoOperacao,
             @Size(max = 30) String unidadeReferencia,
             Long bookingId,
+            Long billOfLadingId,
             Long orderId,
             Long preadviceId) {
     }
@@ -218,6 +242,18 @@ public final class GateOperacionalDtos {
             List<BusinessTaskDTO> tarefas) {
     }
 
+    public record AccessRuleDTO(
+            Long id,
+            Long gateId,
+            String escopo,
+            Long referenciaId,
+            String tipo,
+            String motivo,
+            LocalDateTime inicioVigencia,
+            LocalDateTime fimVigencia,
+            boolean ativo) {
+    }
+
     public record BookingDTO(
             Long id,
             String codigo,
@@ -232,11 +268,26 @@ public final class GateOperacionalDtos {
             String observacoes) {
     }
 
+    public record BillOfLadingDTO(
+            Long id,
+            String numero,
+            String armador,
+            String viagem,
+            String consignatario,
+            int quantidadeTotal,
+            int quantidadeLiberada,
+            String status,
+            LocalDateTime validadeInicio,
+            LocalDateTime validadeFim,
+            String observacoes) {
+    }
+
     public record OrderDTO(
             Long id,
             String tipo,
             String codigo,
             Long bookingId,
+            Long billOfLadingId,
             Long transportadoraId,
             String unidadeReferencia,
             String status,
@@ -264,6 +315,7 @@ public final class GateOperacionalDtos {
             String status,
             String unidadeReferencia,
             Long bookingId,
+            Long billOfLadingId,
             Long orderId,
             Long preadviceId,
             Long stageAtualId,
@@ -366,6 +418,7 @@ public final class GateOperacionalDtos {
 
     public record ReferenceCatalogDTO(
             List<BookingDTO> bookings,
+            List<BillOfLadingDTO> billsOfLading,
             List<OrderDTO> ordens,
             List<PreadviceDTO> preAvisos) {
     }
@@ -376,6 +429,7 @@ public final class GateOperacionalDtos {
             List<GateDTO> gates,
             List<LaneDTO> lanes,
             List<StageDTO> stages,
+            List<AccessRuleDTO> regrasAcesso,
             List<TruckVisitDTO> visitasAtivas,
             List<TroubleDTO> troublesAbertos,
             CapacityDTO capacidadeAgendamentos,

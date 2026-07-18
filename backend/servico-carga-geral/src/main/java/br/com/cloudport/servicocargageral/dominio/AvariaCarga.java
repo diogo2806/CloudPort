@@ -21,6 +21,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.OrderColumn;
 import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 
 @Entity
@@ -81,55 +82,93 @@ public class AvariaCarga {
 
     @PrePersist
     void prePersist() {
-        criadoEm = OffsetDateTime.now();
-        atualizadoEm = criadoEm;
+        OffsetDateTime agora = OffsetDateTime.now();
+        criadoEm = agora;
+        atualizadoEm = agora;
+        normalizarCampos();
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        atualizadoEm = OffsetDateTime.now();
+        normalizarCampos();
     }
 
     public void adicionarEvidencia(String tipo, String uri, String checksum, String responsavelEvidencia) {
-        evidencias.add(new Evidencia(tipo, uri, checksum, responsavelEvidencia, OffsetDateTime.now()));
+        exigirNaoEncerrada();
+        evidencias.add(new Evidencia(
+                normalizarCodigo(tipo),
+                normalizarTexto(uri),
+                normalizarTextoOpcional(checksum),
+                normalizarTexto(responsavelEvidencia),
+                OffsetDateTime.now()));
         atualizadoEm = OffsetDateTime.now();
     }
 
     public void iniciarInspecao(String usuario, String nota) {
-        exigirAberta();
+        exigirStatus(StatusAvariaCarga.BLOQUEADA, "Avaria deve estar bloqueada para iniciar inspeção.");
         status = StatusAvariaCarga.EM_INSPECAO;
-        inspecionadoPor = usuario;
-        observacoes = nota;
+        inspecionadoPor = normalizarTexto(usuario);
+        observacoes = normalizarTextoOpcional(nota);
         atualizadoEm = OffsetDateTime.now();
     }
 
     public void iniciarReparo(String usuario, String nota) {
-        if (status != StatusAvariaCarga.EM_INSPECAO && status != StatusAvariaCarga.BLOQUEADA) {
-            throw new IllegalStateException("Avaria não está pronta para reparo.");
-        }
+        exigirStatus(StatusAvariaCarga.EM_INSPECAO, "Avaria deve estar em inspeção para iniciar reparo.");
         status = StatusAvariaCarga.EM_REPARO;
-        reparadoPor = usuario;
-        observacoes = nota;
+        reparadoPor = normalizarTexto(usuario);
+        observacoes = normalizarTextoOpcional(nota);
         atualizadoEm = OffsetDateTime.now();
     }
 
     public void concluirReparo(String usuario, String nota) {
-        if (status != StatusAvariaCarga.EM_REPARO && status != StatusAvariaCarga.EM_INSPECAO) {
-            throw new IllegalStateException("Avaria não está em inspeção ou reparo.");
-        }
+        exigirStatus(StatusAvariaCarga.EM_REPARO, "Avaria deve estar em reparo para ser concluída.");
         status = StatusAvariaCarga.REPARADA;
-        reparadoPor = usuario;
-        observacoes = nota;
+        reparadoPor = normalizarTexto(usuario);
+        observacoes = normalizarTextoOpcional(nota);
         atualizadoEm = OffsetDateTime.now();
     }
 
     public void baixar(String usuario, String nota) {
-        exigirAberta();
+        exigirNaoEncerrada();
         status = StatusAvariaCarga.BAIXADA;
-        reparadoPor = usuario;
-        observacoes = nota;
+        reparadoPor = normalizarTexto(usuario);
+        observacoes = normalizarTextoOpcional(nota);
         atualizadoEm = OffsetDateTime.now();
     }
 
-    private void exigirAberta() {
+    private void exigirStatus(StatusAvariaCarga esperado, String mensagem) {
+        if (status != esperado) {
+            throw new IllegalStateException(mensagem);
+        }
+    }
+
+    private void exigirNaoEncerrada() {
         if (status == StatusAvariaCarga.REPARADA || status == StatusAvariaCarga.BAIXADA) {
             throw new IllegalStateException("Avaria já está encerrada.");
         }
+    }
+
+    private void normalizarCampos() {
+        codigo = normalizarCodigo(codigo);
+        descricao = normalizarTexto(descricao);
+        responsavel = normalizarTexto(responsavel);
+        inspecionadoPor = normalizarTextoOpcional(inspecionadoPor);
+        reparadoPor = normalizarTextoOpcional(reparadoPor);
+        observacoes = normalizarTextoOpcional(observacoes);
+    }
+
+    private String normalizarCodigo(String valor) {
+        return normalizarTexto(valor).toUpperCase();
+    }
+
+    private String normalizarTexto(String valor) {
+        return valor == null ? null : valor.trim();
+    }
+
+    private String normalizarTextoOpcional(String valor) {
+        String normalizado = normalizarTexto(valor);
+        return normalizado == null || normalizado.isEmpty() ? null : normalizado;
     }
 
     public UUID getId() { return id; }

@@ -6,6 +6,7 @@ public final class OperacoesIntermodaisTipos {
     }
 
     public enum StatusTransload {
+        EM_EXECUCAO,
         CONCLUIDO,
         CANCELADO
     }

@@ -8,7 +8,8 @@ WORKDIR /workspace
 COPY . .
 
 WORKDIR /workspace/cloudport-modules
-RUN mvn -B -Dspring-boot.repackage.skip=true \
+RUN mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install \
+    && mvn -B -Dspring-boot.repackage.skip=true \
         -pl :cloudport-runtime -am \
         -DskipTests install \
     && mvn -B -pl :cloudport-runtime -DskipTests package

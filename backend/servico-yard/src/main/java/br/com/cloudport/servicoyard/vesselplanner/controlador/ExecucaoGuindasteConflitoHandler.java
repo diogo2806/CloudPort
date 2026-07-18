@@ -8,7 +8,6 @@ import javax.persistence.OptimisticLockException;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,26 +25,6 @@ public class ExecucaoGuindasteConflitoHandler {
     public ResponseEntity<Map<String, Object>> lockOtimista(
             Exception exception,
             HttpServletRequest request) {
-        return conflito(
-                "CONFLITO_VERSAO_EXECUCAO_GUINDASTE",
-                "A execução foi alterada por outro operador. Recarregue os dados antes de continuar.",
-                request);
-    }
-
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Map<String, Object>> integridade(
-            DataIntegrityViolationException exception,
-            HttpServletRequest request) {
-        return conflito(
-                "CONFLITO_EXECUCAO_GUINDASTE",
-                "A operação conflita com uma execução, ordem ou janela já persistida.",
-                request);
-    }
-
-    private ResponseEntity<Map<String, Object>> conflito(
-            String codigo,
-            String mensagem,
-            HttpServletRequest request) {
         String correlationId = request.getHeader(CORRELATION_HEADER);
         if (correlationId == null || correlationId.trim().isEmpty()) {
             correlationId = UUID.randomUUID().toString();
@@ -55,8 +34,8 @@ public class ExecucaoGuindasteConflitoHandler {
         detalhes.put("rota", request.getMethod() + " " + request.getRequestURI());
 
         Map<String, Object> corpo = new LinkedHashMap<>();
-        corpo.put("codigo", codigo);
-        corpo.put("mensagem", mensagem);
+        corpo.put("codigo", "CONFLITO_VERSAO_EXECUCAO_GUINDASTE");
+        corpo.put("mensagem", "A execução foi alterada por outro operador. Recarregue os dados antes de continuar.");
         corpo.put("detalhes", detalhes);
         corpo.put("correlationId", correlationId);
         corpo.put("timestamp", Instant.now().toString());

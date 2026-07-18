@@ -1,7 +1,7 @@
 import { request } from './api.js';
 
 const BASE = '/api/carga-geral';
-const OPERATIONS = `${BASE}/operacoes-stuff-unstuff`;
+const STUFF_UNSTUFF = `${BASE}/operacoes-stuff-unstuff`;
 
 export const generalCargoApi = {
   dashboard: () => request(`${BASE}/dashboard`),
@@ -17,11 +17,13 @@ export const generalCargoApi = {
   listarReferencias: (categoria) => request(`${BASE}/referencias`, { query: categoria ? { categoria } : undefined }),
   criarReferencia: (body) => request(`${BASE}/referencias`, { method: 'POST', body }),
   atualizarReferencia: (id, ativo) => request(`${BASE}/referencias/${encodeURIComponent(id)}/status`, { method: 'PATCH', query: { ativo } }),
-  listarOperacoesStuffUnstuff: () => request(OPERATIONS),
-  obterOperacaoStuffUnstuff: (id) => request(`${OPERATIONS}/${encodeURIComponent(id)}`),
-  criarOperacaoStuffUnstuff: (body) => request(OPERATIONS, { method: 'POST', body }),
-  iniciarOperacaoStuffUnstuff: (id) => request(`${OPERATIONS}/${encodeURIComponent(id)}/iniciar`, { method: 'POST' }),
-  registrarExecucaoStuffUnstuff: (id, body) => request(`${OPERATIONS}/${encodeURIComponent(id)}/execucoes`, { method: 'POST', body }),
-  concluirOperacaoStuffUnstuff: (id, body) => request(`${OPERATIONS}/${encodeURIComponent(id)}/concluir`, { method: 'POST', body }),
-  cancelarOperacaoStuffUnstuff: (id, body) => request(`${OPERATIONS}/${encodeURIComponent(id)}/cancelar`, { method: 'POST', body })
+  listarOperacoesStuffUnstuff: () => request(STUFF_UNSTUFF),
+  obterOperacaoStuffUnstuff: (id) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}`),
+  criarOperacaoStuffUnstuff: (body) => request(STUFF_UNSTUFF, { method: 'POST', body }),
+  iniciarOperacaoStuffUnstuff: (id, usuario, correlationId) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/iniciar`, {
+    method: 'POST', query: { usuario, correlationId }
+  }),
+  registrarExecucaoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/execucoes`, { method: 'POST', body }),
+  concluirOperacaoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/concluir`, { method: 'POST', body }),
+  cancelarOperacaoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/cancelar`, { method: 'POST', body })
 };

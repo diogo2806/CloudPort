@@ -1,6 +1,7 @@
 package br.com.cloudport.servicocargageral.dominio;
 
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusOperacaoStuffUnstuff;
+import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoEventoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoOperacaoStuffUnstuff;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -21,7 +22,6 @@ import javax.persistence.OrderBy;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
-import javax.persistence.Version;
 
 @Entity
 @Table(name = "operacao_stuff_unstuff")
@@ -31,19 +31,16 @@ public class OperacaoStuffUnstuff {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(nullable = false, unique = true, length = 80)
-    private String numero;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TipoOperacaoStuffUnstuff tipo;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false, length = 20)
     private StatusOperacaoStuffUnstuff status = StatusOperacaoStuffUnstuff.PLANEJADA;
 
-    @Column(name = "container_id", nullable = false, length = 80)
-    private String containerId;
+    @Column(name = "conteiner_id", nullable = false, length = 80)
+    private String conteinerId;
 
     @Column(name = "armazem_id", length = 80)
     private String armazemId;
@@ -51,7 +48,7 @@ public class OperacaoStuffUnstuff {
     @Column(name = "posicao_operacao", length = 120)
     private String posicaoOperacao;
 
-    @Column(name = "equipe_recurso", length = 160)
+    @Column(name = "equipe_recurso", length = 120)
     private String equipeRecurso;
 
     @Column(name = "lacre_inicial", length = 80)
@@ -60,12 +57,6 @@ public class OperacaoStuffUnstuff {
     @Column(name = "lacre_final", length = 80)
     private String lacreFinal;
 
-    @Column(nullable = false, length = 120)
-    private String usuario;
-
-    @Column(length = 1000)
-    private String observacao;
-
     @Column(name = "motivo_cancelamento", length = 1000)
     private String motivoCancelamento;
 
@@ -73,14 +64,9 @@ public class OperacaoStuffUnstuff {
     @OrderBy("criadoEm ASC")
     private List<ItemOperacaoStuffUnstuff> itens = new ArrayList<>();
 
-    @Column(name = "iniciada_em")
-    private OffsetDateTime iniciadaEm;
-
-    @Column(name = "concluida_em")
-    private OffsetDateTime concluidaEm;
-
-    @Column(name = "cancelada_em")
-    private OffsetDateTime canceladaEm;
+    @OneToMany(mappedBy = "operacao", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("ocorridoEm ASC")
+    private List<EventoOperacaoStuffUnstuff> historico = new ArrayList<>();
 
     @Column(name = "criado_em", nullable = false)
     private OffsetDateTime criadoEm;
@@ -88,22 +74,27 @@ public class OperacaoStuffUnstuff {
     @Column(name = "atualizado_em", nullable = false)
     private OffsetDateTime atualizadoEm;
 
-    @Version
-    private long versao;
+    @Column(name = "iniciado_em")
+    private OffsetDateTime iniciadoEm;
+
+    @Column(name = "concluido_em")
+    private OffsetDateTime concluidoEm;
+
+    @Column(name = "cancelado_em")
+    private OffsetDateTime canceladoEm;
 
     @PrePersist
     void prePersist() {
         OffsetDateTime agora = OffsetDateTime.now();
         criadoEm = agora;
         atualizadoEm = agora;
-        numero = normalizar(numero);
-        containerId = normalizar(containerId);
-        usuario = usuario.trim();
+        conteinerId = normalizar(conteinerId);
     }
 
     @PreUpdate
     void preUpdate() {
         atualizadoEm = OffsetDateTime.now();
+        conteinerId = normalizar(conteinerId);
     }
 
     public void adicionarItem(ItemOperacaoStuffUnstuff item) {
@@ -111,44 +102,52 @@ public class OperacaoStuffUnstuff {
         itens.add(item);
     }
 
+    public void registrarEvento(TipoEventoStuffUnstuff tipoEvento, String usuario, String correlationId, String descricao) {
+        EventoOperacaoStuffUnstuff evento = new EventoOperacaoStuffUnstuff();
+        evento.setOperacao(this);
+        evento.setTipo(tipoEvento);
+        evento.setUsuario(usuario);
+        evento.setCorrelationId(correlationId);
+        evento.setDescricao(descricao);
+        historico.add(evento);
+    }
+
     public void iniciar() {
-        exigirStatus(StatusOperacaoStuffUnstuff.PLANEJADA);
+        if (status != StatusOperacaoStuffUnstuff.PLANEJADA) {
+            throw new IllegalStateException("Somente operação planejada pode ser iniciada.");
+        }
         status = StatusOperacaoStuffUnstuff.EM_EXECUCAO;
-        iniciadaEm = OffsetDateTime.now();
+        iniciadoEm = OffsetDateTime.now();
     }
 
-    public void marcarParcial() {
-        if (status != StatusOperacaoStuffUnstuff.EM_EXECUCAO && status != StatusOperacaoStuffUnstuff.PARCIAL) {
-            throw new IllegalStateException("A operação não está disponível para execução.");
-        }
-        status = StatusOperacaoStuffUnstuff.PARCIAL;
+    public void atualizarStatusExecucao() {
+        boolean algumaExecucao = itens.stream().anyMatch(ItemOperacaoStuffUnstuff::possuiExecucao);
+        boolean completa = itens.stream().allMatch(ItemOperacaoStuffUnstuff::estaCompleto);
+        status = completa ? StatusOperacaoStuffUnstuff.EM_EXECUCAO
+                : algumaExecucao ? StatusOperacaoStuffUnstuff.PARCIAL : StatusOperacaoStuffUnstuff.EM_EXECUCAO;
     }
 
-    public void concluir(String lacreFinal) {
-        if (status != StatusOperacaoStuffUnstuff.EM_EXECUCAO && status != StatusOperacaoStuffUnstuff.PARCIAL) {
-            throw new IllegalStateException("A operação não está disponível para conclusão.");
+    public void concluir(String lacre, String observacao, String usuario, String correlationId) {
+        if (status == StatusOperacaoStuffUnstuff.CANCELADA || status == StatusOperacaoStuffUnstuff.CONCLUIDA) {
+            throw new IllegalStateException("Operação já está encerrada.");
         }
-        if (itens.stream().anyMatch(item -> !item.podeConcluir())) {
-            throw new IllegalStateException("Todos os itens devem possuir execução e divergências justificadas antes da conclusão.");
+        if (itens.stream().anyMatch(item -> !item.estaCompleto())) {
+            throw new IllegalStateException("Todos os itens devem atingir a quantidade planejada antes da conclusão.");
         }
-        this.lacreFinal = normalizar(lacreFinal);
+        lacreFinal = lacre;
         status = StatusOperacaoStuffUnstuff.CONCLUIDA;
-        concluidaEm = OffsetDateTime.now();
+        concluidoEm = OffsetDateTime.now();
+        registrarEvento(TipoEventoStuffUnstuff.CONCLUIDA, usuario, correlationId, observacao);
     }
 
-    public void cancelar(String motivo) {
+    public void cancelar(String motivo, String usuario, String correlationId) {
         if (status == StatusOperacaoStuffUnstuff.CONCLUIDA || status == StatusOperacaoStuffUnstuff.CANCELADA) {
-            throw new IllegalStateException("Operação concluída ou cancelada não pode ser cancelada novamente.");
+            throw new IllegalStateException("Operação já está encerrada.");
         }
-        motivoCancelamento = motivo.trim();
+        motivoCancelamento = motivo;
         status = StatusOperacaoStuffUnstuff.CANCELADA;
-        canceladaEm = OffsetDateTime.now();
-    }
-
-    private void exigirStatus(StatusOperacaoStuffUnstuff esperado) {
-        if (status != esperado) {
-            throw new IllegalStateException("Status atual da operação não permite esta ação.");
-        }
+        canceladoEm = OffsetDateTime.now();
+        registrarEvento(TipoEventoStuffUnstuff.CANCELADA, usuario, correlationId, motivo);
     }
 
     private String normalizar(String valor) {
@@ -156,13 +155,11 @@ public class OperacaoStuffUnstuff {
     }
 
     public UUID getId() { return id; }
-    public String getNumero() { return numero; }
-    public void setNumero(String numero) { this.numero = numero; }
     public TipoOperacaoStuffUnstuff getTipo() { return tipo; }
     public void setTipo(TipoOperacaoStuffUnstuff tipo) { this.tipo = tipo; }
     public StatusOperacaoStuffUnstuff getStatus() { return status; }
-    public String getContainerId() { return containerId; }
-    public void setContainerId(String containerId) { this.containerId = containerId; }
+    public String getConteinerId() { return conteinerId; }
+    public void setConteinerId(String conteinerId) { this.conteinerId = conteinerId; }
     public String getArmazemId() { return armazemId; }
     public void setArmazemId(String armazemId) { this.armazemId = armazemId; }
     public String getPosicaoOperacao() { return posicaoOperacao; }
@@ -172,15 +169,11 @@ public class OperacaoStuffUnstuff {
     public String getLacreInicial() { return lacreInicial; }
     public void setLacreInicial(String lacreInicial) { this.lacreInicial = lacreInicial; }
     public String getLacreFinal() { return lacreFinal; }
-    public String getUsuario() { return usuario; }
-    public void setUsuario(String usuario) { this.usuario = usuario; }
-    public String getObservacao() { return observacao; }
-    public void setObservacao(String observacao) { this.observacao = observacao; }
     public String getMotivoCancelamento() { return motivoCancelamento; }
     public List<ItemOperacaoStuffUnstuff> getItens() { return Collections.unmodifiableList(itens); }
-    public OffsetDateTime getIniciadaEm() { return iniciadaEm; }
-    public OffsetDateTime getConcluidaEm() { return concluidaEm; }
-    public OffsetDateTime getCanceladaEm() { return canceladaEm; }
+    public List<EventoOperacaoStuffUnstuff> getHistorico() { return Collections.unmodifiableList(historico); }
     public OffsetDateTime getCriadoEm() { return criadoEm; }
-    public OffsetDateTime getAtualizadoEm() { return atualizadoEm; }
+    public OffsetDateTime getIniciadoEm() { return iniciadoEm; }
+    public OffsetDateTime getConcluidoEm() { return concluidoEm; }
+    public OffsetDateTime getCanceladoEm() { return canceladoEm; }
 }

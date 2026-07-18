@@ -62,6 +62,16 @@ public final class CargaGeralTipos {
         CANCELADA
     }
 
+    public enum TipoEventoStuffUnstuff {
+        CRIADA,
+        INICIADA,
+        EXECUCAO_REGISTRADA,
+        DIVERGENCIA_REGISTRADA,
+        AVARIA_REGISTRADA,
+        CONCLUIDA,
+        CANCELADA
+    }
+
     public enum CategoriaReferenciaCarga {
         COMMODITY,
         TIPO_EMBALAGEM,

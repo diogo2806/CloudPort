@@ -122,6 +122,13 @@
   font-size: 11px;
 }
 
+.yard-google-map-legend i.route {
+  width: 24px;
+  height: 4px;
+  border-radius: 4px;
+  background: #0f4c81;
+}
+
 @media (max-width: 760px) {
   .yard-allocation-selector {
     grid-template-columns: 1fr;

@@ -25,6 +25,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import javax.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,11 +36,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/carga-geral")
 @Tag(name = "Carga geral e break-bulk", description = "Bill of Lading, cargo lots, referências e execução física da carga")
 public class CargaGeralControlador {
+
+    private static final String ENDPOINT_AVARIA_CANONICO = "/api/carga-geral/intermodal/avarias";
 
     private final CargaGeralServico cargaGeralServico;
 
@@ -133,13 +137,17 @@ public class CargaGeralControlador {
         return cargaGeralServico.registrarMovimentacao(id, request);
     }
 
+    @Deprecated
     @PostMapping("/lotes/{id}/avarias")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'OPERADOR_GATE')")
-    @Operation(summary = "Registrar avaria de carga")
-    public LoteDetalhe registrarAvaria(
+    @Operation(summary = "Endpoint legado desativado; use o ciclo canônico de avarias")
+    @ApiResponse(responseCode = "410", description = "Registro simplificado removido para preservar o saldo segregado")
+    public LoteDetalhe registrarAvariaLegada(
             @PathVariable UUID id,
             @Valid @RequestBody RegistrarAvariaRequest request) {
-        return cargaGeralServico.registrarAvaria(id, request);
+        throw new ResponseStatusException(
+                HttpStatus.GONE,
+                "O registro simplificado de avaria foi desativado. Use " + ENDPOINT_AVARIA_CANONICO + ".");
     }
 
     @GetMapping("/referencias")

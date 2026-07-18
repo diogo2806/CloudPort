@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertCenterPage, GlobalAlertCenter } from './AlertCenter.jsx';
 import { api, clearSession, formatError, hasAnyRole, readSession, sanitizeText, saveSession, subscribeSessionExpired } from './api.js';
 import { Message } from './components.jsx';
 import { usePortalRouter } from './router.js';
@@ -35,7 +36,10 @@ import {
 } from './pages/YardPages.jsx';
 
 const FALLBACK_NAVIGATION = [
-  { group: 'Visão geral', items: [{ label: 'Painel', path: '/home/dashboard', roles: [] }] },
+  { group: 'Visão geral', items: [
+    { label: 'Painel', path: '/home/dashboard', roles: [] },
+    { label: 'Central de alertas', path: '/home/alertas', roles: [] }
+  ] },
   { group: 'Configurações', items: [
     { label: 'Papéis de acesso', path: '/home/role', roles: ['ADMIN_PORTO'] },
     { label: 'Segurança', path: '/home/seguranca', roles: [] },
@@ -149,6 +153,7 @@ function NotFoundPage({ navigate }) {
 
 function RouteContent({ path, navigate, session }) {
   if (path === '/home' || path === '/home/dashboard') return <HomeDashboard navigate={navigate} />;
+  if (path === '/home/alertas') return <AlertCenterPage navigate={navigate} session={session} />;
   if (path === '/home/role') return <RolesPage />;
   if (path === '/home/seguranca') return <SecurityPage />;
   if (path === '/home/notificacoes') return <NotificationsPage />;
@@ -228,7 +233,10 @@ function PortalShell({ path, navigate, session, onLogout }) {
       <header className="topbar">
         <button className="menu-button" onClick={() => setMobileMenu((value) => !value)} aria-label="Abrir menu">☰</button>
         <div className="topbar-context"><strong>CloudPort</strong><span>{path.replace('/home/', '').replaceAll('/', ' / ') || 'Painel'}</span></div>
-        <div className="user-menu"><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div>
+        <div className="topbar-actions">
+          <GlobalAlertCenter navigate={navigate} session={session} />
+          <div className="user-menu"><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div>
+        </div>
       </header>
       <main className="content"><RouteContent path={path} navigate={navigate} session={session} /></main>
     </div>

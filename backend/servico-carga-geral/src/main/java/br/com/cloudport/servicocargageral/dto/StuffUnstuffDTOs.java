@@ -39,6 +39,7 @@ public final class StuffUnstuffDTOs {
     }
 
     public record RegistrarExecucaoRequest(
+            @NotNull UUID commandId,
             @NotNull UUID itemId,
             @NotNull @DecimalMin("0.001") BigDecimal quantidade,
             @NotNull @DecimalMin("0.000") BigDecimal volumeM3,

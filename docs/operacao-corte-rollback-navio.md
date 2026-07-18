@@ -20,6 +20,9 @@ O executável `backend/cloudport-monolito-navio` é o primeiro corte preservado 
 | --- | --- |
 | Runtime canônico | `backend/cloudport-runtime` |
 | Build canônico | `backend/cloudport-modules` |
+| Dockerfile EasyPanel do backend | `backend/Dockerfile` |
+| Dockerfile do backend a partir da raiz | `backend/cloudport-runtime/Dockerfile` |
+| Dockerfile EasyPanel do frontend | `frontend/Dockerfile` |
 | Compose canônico | `deploy/cloudport-runtime/docker-compose.yml` |
 | Rollback intermediário | `backend/cloudport-monolito-navio` |
 | Compose de rollback | `deploy/navio-monolito/docker-compose.yml`, perfil `rollback` |
@@ -42,10 +45,11 @@ Jobs críticos usam `pg_try_advisory_xact_lock`. Consumidores e comandos sujeito
 | Módulo | Schema |
 | --- | --- |
 | Autenticação | `cloudport_autenticacao` |
+| Carga Geral | `cloudport_carga_geral` |
 | Gate | `cloudport_gate` |
 | Rail | `cloudport_rail` |
 | Visibilidade | `cloudport_visibilidade` |
-| Yard | `cloudport_yard` |
+| Yard e Inventário | `cloudport_yard` |
 | Navio | `cloudport_navio` |
 | Navio Siderúrgico | `cloudport_siderurgico` |
 
@@ -56,15 +60,37 @@ Cada schema mantém sua própria tabela `flyway_schema_history`. Não alterar ch
 1. Sincronizar a branch de implantação com `main` e confirmar ausência de conflitos.
 2. Executar o build em `backend/cloudport-modules` e os testes de `cloudport-runtime`.
 3. Validar `deploy/cloudport-runtime/docker-compose.yml` e construir a imagem canônica.
-4. Executar `Flyway.validate()` nos sete schemas e confirmar ausência de migração pendente.
-5. Confirmar ownership e contagens essenciais de cada domínio.
-6. Criar backup consistente e registrar o ponto de restauração.
-7. Confirmar que o proxy direciona cada rota para exatamente um backend.
-8. Confirmar que o runtime canônico usa integrações internas em modo `local`.
-9. Validar login, autorização, CORS, OpenAPI, erros, correlação, métricas e health checks.
-10. Validar produção e consumo de eventos externos sem duplicação.
-11. Executar smoke dos fluxos de Navio, Yard, Gate, Rail, Autenticação e Visibilidade.
-12. Registrar responsável, janela, critérios de aborto e procedimento de comunicação.
+4. Validar também `backend/Dockerfile` com contexto `/backend`, que é o formato usado no EasyPanel.
+5. Executar `Flyway.validate()` nos oito schemas e confirmar ausência de migração pendente.
+6. Confirmar ownership e contagens essenciais de cada domínio.
+7. Criar backup consistente e registrar o ponto de restauração.
+8. Confirmar que o proxy direciona cada rota para exatamente um backend.
+9. Confirmar que o runtime canônico usa integrações internas em modo `local`.
+10. Validar login, autorização, CORS, OpenAPI, erros, correlação, métricas e health checks.
+11. Validar produção e consumo de eventos externos sem duplicação.
+12. Executar smoke dos fluxos de Autenticação, Carga Geral, Gate, Rail, Visibilidade, Yard, Inventário, Navio e Navio Siderúrgico.
+13. Validar portal, Control Room e configuração dinâmica.
+14. Registrar responsável, janela, critérios de aborto e procedimento de comunicação.
+
+## Configuração no EasyPanel
+
+### Backend
+
+- repositório: `diogo2806/CloudPort`;
+- ramo: `main`;
+- caminho de build: `/backend`;
+- construção/arquivo: `Dockerfile`;
+- porta: `8080`;
+- health check: `/actuator/health/readiness`.
+
+### Frontend
+
+- repositório: `diogo2806/CloudPort`;
+- ramo: `main`;
+- caminho de build: `/frontend`;
+- construção/arquivo: `Dockerfile`;
+- porta: `80`;
+- health check: `/health`.
 
 ## Início do runtime canônico
 
@@ -86,21 +112,26 @@ Durante a operação consolidada:
 
 Validar, no mínimo:
 
-1. `health` e `prometheus`;
-2. portal, Control Room e configuração dinâmica;
+1. `health`, readiness e Prometheus;
+2. portal, fallback de SPA, Control Room e configuração dinâmica;
 3. login e emissão de JWT;
 4. rejeição de chamada sem token;
 5. roles e restrições administrativas;
-6. cadastro canônico e projeção siderúrgica por porta local;
-7. mapa, reserva, ordem, work queue e work instruction do Yard;
-8. Gate para Yard e Gate para Autenticação por porta local;
-9. visita de trem e integração Rail/Yard;
-10. projeções e alertas de Visibilidade;
-11. `X-Correlation-Id` e `traceparent`;
-12. erro padronizado;
-13. OpenAPI sem rota ou operação duplicada;
-14. persistência no schema proprietário;
-15. um único job e um único consumidor por chave ou fila.
+6. carga geral: conhecimento, item, lote, referência e movimentação;
+7. cadastro canônico e projeção siderúrgica por porta local;
+8. Vessel Planner, plano de estiva e contratos de quay/crane;
+9. mapa, inventário, reserva, allocation, ordem, work queue e work instruction do Yard;
+10. Gate para Yard e Gate para Autenticação por porta local;
+11. monitor de Gate, visita, transações, documentos e EIR;
+12. visita de trem, composição e integração Rail/Yard;
+13. Billing/CAP e isolamento por transportadora;
+14. projeções e alertas da Visibilidade;
+15. telemetria, dispositivos, comandos e alarmes do Control Room;
+16. `X-Correlation-Id` e `traceparent`;
+17. erro padronizado;
+18. OpenAPI sem rota ou operação duplicada;
+19. persistência no schema proprietário;
+20. um único job e um único consumidor por chave ou fila.
 
 ## Critérios de aprovação
 
@@ -126,7 +157,7 @@ O retorno não desfaz migrações. Ele reativa um binário anterior compatível 
 6. Iniciar o perfil `rollback`.
 7. Executar health checks e leituras controladas.
 8. Direcionar as rotas para o runtime de rollback.
-9. Executar uma escrita controlada em cada domínio afetado.
+9. Executar uma escrita controlada em cada domínio coberto pelo runtime anterior.
 10. Validar auditoria, dados, filas e integrações externas.
 
 Comando:
@@ -157,7 +188,7 @@ docker compose \
   up -d --build servico-navio servico-navio-siderurgico
 ```
 
-Os demais serviços anteriores devem ser reativados pelos manifests atuais de cada ambiente.
+Os demais serviços anteriores, inclusive Carga Geral, Gate, Rail, Visibilidade, Yard e Autenticação, devem ser reativados somente pelos manifests validados do ambiente e com exclusão mútua de escrita, jobs e consumidores.
 
 ## Compatibilidade Flyway
 
@@ -171,7 +202,7 @@ Durante a janela de retorno:
 6. não renomear diretamente estruturas usadas pelo rollback;
 7. nunca editar migração aplicada;
 8. corrigir por nova versão;
-9. validar os sete históricos antes da promoção;
+9. validar os oito históricos antes da promoção;
 10. encerrar formalmente a janela de rollback antes da fase destrutiva.
 
 ## Retirada de deployments e credenciais anteriores
@@ -198,4 +229,5 @@ A remoção exige:
 - falha de autenticação, autorização, CORS ou token;
 - OpenAPI com operação duplicada;
 - ausência de correlação, tracing ou métricas operacionais;
+- health check do backend ou frontend indisponível;
 - incapacidade de executar o rollback ensaiado.

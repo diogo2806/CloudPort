@@ -57,15 +57,10 @@ public class IntegracaoNavioPatioOtimizadaServico extends IntegracaoNavioPatioSe
             Long visitaId,
             ComandoReplanejamentoPatioNavioDTO comando
     ) {
-        OtimizacaoGlobalNavioPatioDTO planoPreparado = otimizacaoGlobalServico.prepararPlano(
+        OtimizacaoGlobalNavioPatioDTO planoPreparado = otimizacaoGlobalServico.otimizar(
                 visitaId,
                 comando);
-        ResultadoAplicacaoPlano resultado;
-        try {
-            resultado = aplicacaoPlanoServico.replanejar(visitaId, comando);
-        } finally {
-            otimizacaoGlobalServico.limparPlanoPreparado();
-        }
+        ResultadoAplicacaoPlano resultado = aplicacaoPlanoServico.replanejar(visitaId, comando);
         Map<String, Object> plano = planoPreparado.planoOtimizado() == null
                 ? Map.of()
                 : planoPreparado.planoOtimizado();

@@ -70,6 +70,15 @@ public class LoteCarga {
     @Column(name = "peso_saldo_kg", nullable = false, precision = 19, scale = 3)
     private BigDecimal pesoSaldoKg = BigDecimal.ZERO;
 
+    @Column(name = "quantidade_bloqueada", nullable = false, precision = 19, scale = 3)
+    private BigDecimal quantidadeBloqueada = BigDecimal.ZERO;
+
+    @Column(name = "volume_bloqueado_m3", nullable = false, precision = 19, scale = 3)
+    private BigDecimal volumeBloqueadoM3 = BigDecimal.ZERO;
+
+    @Column(name = "peso_bloqueado_kg", nullable = false, precision = 19, scale = 3)
+    private BigDecimal pesoBloqueadoKg = BigDecimal.ZERO;
+
     @Column(name = "unidade_medida", nullable = false, length = 20)
     private String unidadeMedida;
 
@@ -131,18 +140,68 @@ public class LoteCarga {
     }
 
     public void retirarSaldo(BigDecimal quantidade, BigDecimal volume, BigDecimal peso) {
-        BigDecimal novaQuantidade = quantidadeSaldo.subtract(valor(quantidade));
-        BigDecimal novoVolume = volumeSaldoM3.subtract(valor(volume));
-        BigDecimal novoPeso = pesoSaldoKg.subtract(valor(peso));
-        if (novaQuantidade.signum() < 0 || novoVolume.signum() < 0 || novoPeso.signum() < 0) {
-            throw new IllegalStateException("Movimentação excede o saldo disponível do lote.");
+        BigDecimal quantidadeRetirada = valor(quantidade);
+        BigDecimal volumeRetirado = valor(volume);
+        BigDecimal pesoRetirado = valor(peso);
+        if (quantidadeRetirada.compareTo(getQuantidadeDisponivel()) > 0
+                || volumeRetirado.compareTo(getVolumeDisponivelM3()) > 0
+                || pesoRetirado.compareTo(getPesoDisponivelKg()) > 0) {
+            throw new IllegalStateException("Movimentação excede o saldo disponível e não bloqueado do lote.");
         }
-        quantidadeSaldo = novaQuantidade;
-        volumeSaldoM3 = novoVolume;
-        pesoSaldoKg = novoPeso;
-        status = novaQuantidade.signum() == 0 && novoVolume.signum() == 0 && novoPeso.signum() == 0
+        quantidadeSaldo = quantidadeSaldo.subtract(quantidadeRetirada);
+        volumeSaldoM3 = volumeSaldoM3.subtract(volumeRetirado);
+        pesoSaldoKg = pesoSaldoKg.subtract(pesoRetirado);
+        status = quantidadeSaldo.signum() == 0 && volumeSaldoM3.signum() == 0 && pesoSaldoKg.signum() == 0
                 ? StatusLoteCarga.CONCLUIDO
                 : StatusLoteCarga.PARCIALMENTE_CARREGADO;
+    }
+
+    public void bloquearSaldo(BigDecimal quantidade, BigDecimal volume, BigDecimal peso) {
+        BigDecimal quantidadeNova = valor(quantidade);
+        BigDecimal volumeNovo = valor(volume);
+        BigDecimal pesoNovo = valor(peso);
+        if (quantidadeNova.compareTo(getQuantidadeDisponivel()) > 0
+                || volumeNovo.compareTo(getVolumeDisponivelM3()) > 0
+                || pesoNovo.compareTo(getPesoDisponivelKg()) > 0) {
+            throw new IllegalStateException("Avaria excede o saldo disponível do lote.");
+        }
+        quantidadeBloqueada = quantidadeBloqueada.add(quantidadeNova);
+        volumeBloqueadoM3 = volumeBloqueadoM3.add(volumeNovo);
+        pesoBloqueadoKg = pesoBloqueadoKg.add(pesoNovo);
+        status = StatusLoteCarga.AVARIADO;
+    }
+
+    public void liberarSaldoBloqueado(BigDecimal quantidade, BigDecimal volume, BigDecimal peso) {
+        validarSaldoBloqueado(quantidade, volume, peso);
+        quantidadeBloqueada = quantidadeBloqueada.subtract(valor(quantidade));
+        volumeBloqueadoM3 = volumeBloqueadoM3.subtract(valor(volume));
+        pesoBloqueadoKg = pesoBloqueadoKg.subtract(valor(peso));
+        if (quantidadeBloqueada.signum() == 0 && volumeBloqueadoM3.signum() == 0 && pesoBloqueadoKg.signum() == 0) {
+            status = quantidadeSaldo.signum() == 0 ? StatusLoteCarga.CONCLUIDO : StatusLoteCarga.NO_TERMINAL;
+        }
+    }
+
+    public void baixarSaldoBloqueado(BigDecimal quantidade, BigDecimal volume, BigDecimal peso) {
+        validarSaldoBloqueado(quantidade, volume, peso);
+        quantidadeBloqueada = quantidadeBloqueada.subtract(valor(quantidade));
+        volumeBloqueadoM3 = volumeBloqueadoM3.subtract(valor(volume));
+        pesoBloqueadoKg = pesoBloqueadoKg.subtract(valor(peso));
+        quantidadeSaldo = quantidadeSaldo.subtract(valor(quantidade));
+        volumeSaldoM3 = volumeSaldoM3.subtract(valor(volume));
+        pesoSaldoKg = pesoSaldoKg.subtract(valor(peso));
+        status = quantidadeSaldo.signum() == 0 && volumeSaldoM3.signum() == 0 && pesoSaldoKg.signum() == 0
+                ? StatusLoteCarga.CONCLUIDO
+                : quantidadeBloqueada.signum() > 0 || volumeBloqueadoM3.signum() > 0 || pesoBloqueadoKg.signum() > 0
+                    ? StatusLoteCarga.AVARIADO
+                    : StatusLoteCarga.NO_TERMINAL;
+    }
+
+    private void validarSaldoBloqueado(BigDecimal quantidade, BigDecimal volume, BigDecimal peso) {
+        if (valor(quantidade).compareTo(quantidadeBloqueada) > 0
+                || valor(volume).compareTo(volumeBloqueadoM3) > 0
+                || valor(peso).compareTo(pesoBloqueadoKg) > 0) {
+            throw new IllegalStateException("Operação excede o saldo bloqueado pela avaria.");
+        }
     }
 
     public void registrarMovimentacao(MovimentacaoCarga movimentacao) {
@@ -181,6 +240,12 @@ public class LoteCarga {
     public BigDecimal getQuantidadeSaldo() { return quantidadeSaldo; }
     public BigDecimal getVolumeSaldoM3() { return volumeSaldoM3; }
     public BigDecimal getPesoSaldoKg() { return pesoSaldoKg; }
+    public BigDecimal getQuantidadeBloqueada() { return quantidadeBloqueada; }
+    public BigDecimal getVolumeBloqueadoM3() { return volumeBloqueadoM3; }
+    public BigDecimal getPesoBloqueadoKg() { return pesoBloqueadoKg; }
+    public BigDecimal getQuantidadeDisponivel() { return quantidadeSaldo.subtract(quantidadeBloqueada); }
+    public BigDecimal getVolumeDisponivelM3() { return volumeSaldoM3.subtract(volumeBloqueadoM3); }
+    public BigDecimal getPesoDisponivelKg() { return pesoSaldoKg.subtract(pesoBloqueadoKg); }
     public String getUnidadeMedida() { return unidadeMedida; }
     public void setUnidadeMedida(String unidadeMedida) { this.unidadeMedida = unidadeMedida; }
     public String getMarcasEmbalagem() { return marcasEmbalagem; }

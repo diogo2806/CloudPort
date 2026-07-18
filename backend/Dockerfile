@@ -14,8 +14,11 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install
 
 # Barreira obrigatória do deploy: compila e executa todos os testes do backend.
+# Remove POMs corrompidos por respostas HTML preservadas no cache do BuildKit.
 # Qualquer falha retorna código diferente de zero e interrompe o build do EasyPanel.
 RUN --mount=type=cache,target=/root/.m2 \
+    find /root/.m2/repository -type f -name '*.pom' -exec sh -c \
+        'grep -Eqi "<html|<!doctype html" "$1" && rm -f "$1" || true' _ {} \; && \
     mvn -B \
         -Dmaven.test.skip=false \
         -DskipTests=false \

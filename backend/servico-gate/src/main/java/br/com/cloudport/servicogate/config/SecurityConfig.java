@@ -132,7 +132,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public RestTemplate securityRestTemplate(RestTemplateBuilder builder) {
+    public static RestTemplate securityRestTemplate(RestTemplateBuilder builder) {
         return builder
                 .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(5))

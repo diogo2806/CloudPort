@@ -1,10 +1,16 @@
 package br.com.cloudport.servicogate.app.cidadao;
 
-import br.com.cloudport.servicogate.config.SecurityConfig;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import br.com.cloudport.servicogate.app.cidadao.dto.AgendamentoDTO;
 import br.com.cloudport.servicogate.app.cidadao.dto.AgendamentoRequest;
+import br.com.cloudport.servicogate.config.SecurityConfig;
 import br.com.cloudport.servicogate.security.TransportadoraSynchronizationFilter;
-import br.com.cloudport.servicogate.app.cidadao.AgendamentoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
@@ -19,17 +25,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 @WebMvcTest(controllers = AgendamentoController.class)
 @Import(SecurityConfig.class)
 @TestPropertySource(properties = {
-        "cloudport.security.jwt.secret=test-secret",
+        "cloudport.security.jwt.secret=test-secret-test-secret-test-secret-1234",
         "cloudport.security.cors.allowed-origins=http://localhost:4200"
 })
 class AgendamentoControllerSecurityTest {
@@ -42,6 +41,9 @@ class AgendamentoControllerSecurityTest {
 
     @MockBean
     private AgendamentoService agendamentoService;
+
+    @MockBean
+    private AgendamentoRealtimeService agendamentoRealtimeService;
 
     @MockBean
     private TransportadoraSynchronizationFilter transportadoraSynchronizationFilter;

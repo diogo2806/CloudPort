@@ -7,9 +7,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import br.com.cloudport.servicogate.config.AgendamentoRulesProperties;
+import br.com.cloudport.servicogate.app.configuracoes.TransportadoraRepository;
+import br.com.cloudport.servicogate.app.transparencia.DashboardService;
 import br.com.cloudport.servicogate.app.cidadao.dto.AgendamentoDTO;
 import br.com.cloudport.servicogate.app.cidadao.dto.AgendamentoRequest;
+import br.com.cloudport.servicogate.config.AgendamentoRulesProperties;
 import br.com.cloudport.servicogate.exception.BusinessException;
 import br.com.cloudport.servicogate.integration.ocr.ProcessamentoOcrPublisher;
 import br.com.cloudport.servicogate.integration.tos.TosIntegrationService;
@@ -19,14 +21,7 @@ import br.com.cloudport.servicogate.model.Motorista;
 import br.com.cloudport.servicogate.model.Transportadora;
 import br.com.cloudport.servicogate.model.Veiculo;
 import br.com.cloudport.servicogate.model.enums.StatusAgendamento;
-import br.com.cloudport.servicogate.app.cidadao.AgendamentoRepository;
-import br.com.cloudport.servicogate.app.cidadao.DocumentoAgendamentoRepository;
-import br.com.cloudport.servicogate.app.cidadao.JanelaAtendimentoRepository;
-import br.com.cloudport.servicogate.app.cidadao.MotoristaRepository;
-import br.com.cloudport.servicogate.app.configuracoes.TransportadoraRepository;
-import br.com.cloudport.servicogate.app.cidadao.VeiculoRepository;
 import br.com.cloudport.servicogate.storage.DocumentoStorageService;
-import br.com.cloudport.servicogate.app.transparencia.DashboardService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -148,7 +143,7 @@ class AgendamentoServiceTest {
     }
 
     private AgendamentoRequest criarRequestBasico() {
-        LocalDateTime inicio = LocalDateTime.now().plusHours(6);
+        LocalDateTime inicio = LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.of(11, 0));
         AgendamentoRequest request = new AgendamentoRequest();
         request.setCodigo("AG001");
         request.setTipoOperacao("ENTRADA");
@@ -163,4 +158,3 @@ class AgendamentoServiceTest {
         return request;
     }
 }
-

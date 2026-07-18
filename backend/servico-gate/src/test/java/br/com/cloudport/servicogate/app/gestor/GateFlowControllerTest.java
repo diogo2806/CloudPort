@@ -34,6 +34,9 @@ class GateFlowControllerTest {
     private GateFlowService gateFlowService;
 
     @MockBean
+    private GateFlowOrchestrator gateFlowOrchestrator;
+
+    @MockBean
     private GateOperationsService gateOperationsService;
 
     @Test
@@ -58,7 +61,7 @@ class GateFlowControllerTest {
         agendamento.setCodigo("AG-100");
         GateDecisionDTO decision = GateDecisionDTO.autorizado(StatusGate.LIBERADO, agendamento, null,
                 "Entrada liberada");
-        when(gateFlowService.registrarEntrada(any())).thenReturn(decision);
+        when(gateFlowOrchestrator.registrarEntrada(any())).thenReturn(decision);
 
         GateFlowRequest request = new GateFlowRequest();
         request.setPlaca("ABC1234");

@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import br.com.cloudport.servicogate.app.gestor.dto.GateDecisionDTO;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.enums.StatusGate;
-import br.com.cloudport.servicogate.app.gestor.GateFlowService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -44,6 +43,9 @@ class GateFlowIntegrationTest {
     @MockBean
     private GateFlowService gateFlowService;
 
+    @MockBean
+    private GateFlowOrchestrator gateFlowOrchestrator;
+
     @Test
     @DisplayName("Fluxo de saída deve exigir autenticação com perfis válidos")
     void saidaDeveExigirAutenticacao() throws Exception {
@@ -60,7 +62,7 @@ class GateFlowIntegrationTest {
         Agendamento agendamento = new Agendamento();
         agendamento.setId(22L);
         agendamento.setCodigo("AG-200");
-        when(gateFlowService.registrarSaida(any())).thenReturn(
+        when(gateFlowOrchestrator.registrarSaida(any())).thenReturn(
                 GateDecisionDTO.autorizado(StatusGate.FINALIZADO, agendamento, null, "Saída registrada"));
 
         Map<String, Object> payload = Map.of(
@@ -75,4 +77,3 @@ class GateFlowIntegrationTest {
                 .andExpect(status().isOk());
     }
 }
-

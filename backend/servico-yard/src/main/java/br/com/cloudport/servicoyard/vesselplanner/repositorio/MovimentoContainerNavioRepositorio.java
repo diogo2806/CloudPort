@@ -11,7 +11,7 @@ public interface MovimentoContainerNavioRepositorio extends JpaRepository<Movime
             Long slotId,
             StatusMovimentoContainerNavio status);
 
-    boolean existsByEstivagemIdAndSlotCodigoHatchCoverAndStatus(
+    boolean existsByEstivagemIdAndSlotCodigoHatchCoverIgnoreCaseAndStatus(
             Long estivagemId,
             String codigoHatchCover,
             StatusMovimentoContainerNavio status);

@@ -1,40 +1,44 @@
 .lineup-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px; }
 .lineup-controls .compact-field { display: grid; gap: 6px; min-width: 170px; }
 .lineup-control-buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.lineup-timeline { min-width: 880px; overflow: hidden; border: 1px solid #d8e3ec; border-radius: 14px; background: #f8fbfd; }
-.lineup-scale-row, .lineup-row { display: grid; grid-template-columns: 260px minmax(600px, 1fr); }
-.lineup-scale-row { min-height: 58px; border-bottom: 1px solid #d8e3ec; background: #eef4f8; }
-.lineup-scale-label, .lineup-vessel-label { display: flex; flex-direction: column; justify-content: center; padding: 10px 14px; border-right: 1px solid #d8e3ec; }
-.lineup-scale-label { color: #52677e; font-size: 12px; font-weight: 850; text-transform: uppercase; }
-.lineup-vessel-label strong { color: #172033; font-size: 13px; }
-.lineup-vessel-label span { margin-top: 3px; overflow: hidden; color: #6d7f93; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.lineup-track { position: relative; min-height: 54px; overflow: hidden; background: #fff; }
-.lineup-scale { overflow: visible; background: #eef4f8; }
-.lineup-scale > span { position: absolute; top: 50%; width: 82px; color: #60748a; font-size: 10px; font-weight: 750; text-align: center; transform: translate(-50%, -50%); }
-.lineup-scale > span:first-child { text-align: left; transform: translate(0, -50%); }
-.lineup-scale > span:last-child { text-align: right; transform: translate(-100%, -50%); }
-.lineup-berth-group > header { display: flex; align-items: center; justify-content: space-between; min-height: 38px; padding: 8px 14px; border-bottom: 1px solid #dce6ee; background: #e5edf4; }
-.lineup-berth-group > header strong { color: #173b59; font-size: 13px; }
-.lineup-berth-group > header span { color: #667b91; font-size: 11px; }
-.lineup-row { border-bottom: 1px solid #e5edf3; }
-.lineup-grid-line { position: absolute; inset: 0 auto 0 0; width: 1px; background: #e4ebf1; }
-.lineup-simulation-cursor { position: absolute; z-index: 4; inset: 0 auto 0 0; width: 2px; background: #a31c1c; }
-.lineup-simulation-cursor::before { position: absolute; top: 2px; left: 50%; width: 8px; height: 8px; border-radius: 50%; background: #a31c1c; content: ""; transform: translateX(-50%); }
-.lineup-eta-marker { position: absolute; z-index: 2; top: 8px; bottom: 8px; width: 1px; border-left: 2px dashed #52677e; }
-.lineup-operation-bar { position: absolute; z-index: 3; top: 13px; display: flex; align-items: center; justify-content: space-between; min-height: 28px; padding: 4px 9px; overflow: hidden; border-radius: 8px; color: #fff; font-size: 10px; font-weight: 850; letter-spacing: .03em; white-space: nowrap; box-shadow: 0 3px 8px rgba(27,55,81,.16); }
-.lineup-operation-bar small { margin-left: 8px; font-size: 9px; opacity: .9; }
+.lineup-vertical-scroll { overflow-x: auto; border: 1px solid #d8e3ec; border-radius: 14px; background: #f8fbfd; }
+.lineup-vertical-board { display: grid; width: max-content; min-width: 100%; align-items: stretch; }
+.lineup-vertical-corner, .lineup-vertical-berth-header { position: relative; z-index: 5; display: flex; flex-direction: column; justify-content: center; min-height: 66px; padding: 10px 14px; border-bottom: 1px solid #d8e3ec; background: #e7eff5; }
+.lineup-vertical-corner { border-right: 1px solid #d2dee8; }
+.lineup-vertical-corner strong, .lineup-vertical-berth-header strong { color: #173b59; font-size: 13px; }
+.lineup-vertical-corner span, .lineup-vertical-berth-header span { margin-top: 3px; color: #667b91; font-size: 10px; }
+.lineup-vertical-berth-header { align-items: center; border-left: 1px solid #d2dee8; text-align: center; }
+.lineup-vertical-time-axis { position: relative; border-right: 1px solid #d2dee8; background: #eef4f8; }
+.lineup-vertical-time-axis > span { position: absolute; right: 10px; left: 8px; color: #566c82; font-size: 10px; font-weight: 800; line-height: 1.2; text-align: right; transform: translateY(-50%); }
+.lineup-vertical-time-axis > span:first-child { transform: translateY(0); }
+.lineup-vertical-time-axis > span:last-child { transform: translateY(-100%); }
+.lineup-vertical-berth { position: relative; overflow: hidden; border-left: 1px solid #dbe5ed; background: #fff; }
+.lineup-vertical-berth:nth-child(even) { background: #fbfdfe; }
+.lineup-vertical-grid-line { position: absolute; z-index: 1; right: 0; left: 0; height: 1px; background: #e2eaf0; }
+.lineup-vertical-simulation-cursor { position: absolute; z-index: 4; right: 0; left: 0; height: 2px; background: #a31c1c; box-shadow: 0 0 0 1px rgba(163,28,28,.08); }
+.lineup-vertical-simulation-cursor::before { position: absolute; top: 50%; left: 4px; width: 9px; height: 9px; border-radius: 50%; background: #a31c1c; content: ""; transform: translateY(-50%); }
+.lineup-vertical-eta-marker { position: absolute; z-index: 3; width: 0; height: 0; border-right: 6px solid transparent; border-bottom: 9px solid #52677e; border-left: 6px solid transparent; transform: translate(-2px, -100%); }
+.lineup-vertical-ship { position: absolute; z-index: 3; display: flex; flex-direction: column; min-height: 48px; padding: 8px 9px; overflow: hidden; border-radius: 9px; color: #fff; box-shadow: 0 4px 10px rgba(27,55,81,.18); }
+.lineup-vertical-ship strong { overflow: hidden; font-size: 12px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.lineup-vertical-ship > span { margin-top: 2px; overflow: hidden; font-size: 10px; opacity: .92; text-overflow: ellipsis; white-space: nowrap; }
+.lineup-vertical-ship > small { margin-top: 5px; overflow: hidden; font-size: 9px; line-height: 1.25; opacity: .88; text-overflow: ellipsis; white-space: nowrap; }
+.lineup-vertical-ship > footer { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; padding-top: 5px; font-size: 9px; letter-spacing: .03em; }
+.lineup-vertical-ship > footer b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lineup-vertical-ship > footer em { font-style: normal; font-weight: 850; }
 .lineup-phase-prevista { background: #60758a; }
 .lineup-phase-inbound { background: #246b9f; }
 .lineup-phase-operando { background: #197449; }
 .lineup-phase-partiu { background: #64508b; }
 .lineup-phase-indefinida { background: #8a6d3b; }
-.lineup-operation-bar.lineup-conflict { outline: 3px solid rgba(184,49,37,.34); background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.2) 0 8px, transparent 8px 16px); }
-.lineup-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; padding: 12px 14px; border-top: 1px solid #d8e3ec; background: #f4f8fb; color: #5f7389; font-size: 11px; font-weight: 700; }
+.lineup-vertical-ship.lineup-conflict { outline: 3px solid rgba(184,49,37,.5); outline-offset: -2px; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.2) 0 8px, transparent 8px 16px); }
+.lineup-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; min-width: max-content; padding: 12px 14px; border-top: 1px solid #d8e3ec; background: #f4f8fb; color: #5f7389; font-size: 11px; font-weight: 700; }
 .lineup-legend > span { display: inline-flex; align-items: center; gap: 6px; }
 .legend-dot { width: 11px; height: 11px; border-radius: 3px; background: #60758a; }
 .legend-dot.inbound { background: #246b9f; }
 .legend-dot.operando { background: #197449; }
 .legend-dot.partiu { background: #64508b; }
+.legend-dot.eta { width: 0; height: 0; border-radius: 0; border-right: 5px solid transparent; border-bottom: 8px solid #52677e; border-left: 5px solid transparent; background: transparent; }
+.legend-dot.simulacao { width: 15px; height: 2px; border-radius: 0; background: #a31c1c; }
 .legend-dot.conflito { border: 2px solid #b83125; background: #fff; }
 .lineup-table-vessel { display: grid; gap: 3px; min-width: 190px; }
 .lineup-table-vessel span { color: #718198; font-size: 11px; }
@@ -46,4 +50,6 @@
   .lineup-controls { align-items: stretch; }
   .lineup-controls .compact-field, .lineup-controls .compact-field input, .lineup-controls .compact-field select { width: 100%; min-width: 0; }
   .lineup-control-buttons { width: 100%; }
+  .lineup-vertical-board { min-width: max-content; }
+  .lineup-vertical-corner { width: 96px; }
 }

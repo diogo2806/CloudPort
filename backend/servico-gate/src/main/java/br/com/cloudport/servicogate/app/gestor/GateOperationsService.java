@@ -6,19 +6,16 @@ import br.com.cloudport.servicogate.exception.NotFoundException;
 import br.com.cloudport.servicogate.model.GateCall;
 import br.com.cloudport.servicogate.model.GatePass;
 import br.com.cloudport.servicogate.model.GateQueueEntry;
-import br.com.cloudport.servicogate.model.TruckHoppingSession;
 import br.com.cloudport.servicogate.model.enums.GateCallPriority;
 import br.com.cloudport.servicogate.model.enums.GateCallStatus;
 import br.com.cloudport.servicogate.model.enums.GateQueueDirection;
 import br.com.cloudport.servicogate.model.enums.GateQueuePriority;
 import br.com.cloudport.servicogate.model.enums.GateQueueStatus;
-import br.com.cloudport.servicogate.model.enums.TruckHoppingStatus;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,22 +25,20 @@ import org.springframework.util.StringUtils;
 @Transactional
 public class GateOperationsService {
 
+    private static final int VALIDADE_PADRAO_MINUTOS = 5;
     private static final EnumSet<GateCallStatus> CHAMADOS_ATIVOS =
-            EnumSet.of(GateCallStatus.CHAMADO, GateCallStatus.EM_ATENDIMENTO);
+            EnumSet.of(GateCallStatus.CHAMADO, GateCallStatus.ACEITO, GateCallStatus.EM_ATENDIMENTO);
     private static final EnumSet<GateQueueStatus> FILA_ATIVA =
             EnumSet.of(GateQueueStatus.AGUARDANDO, GateQueueStatus.CHAMADO, GateQueueStatus.EM_ATENDIMENTO);
 
     private final GatePassRepository gatePassRepository;
-    private final TruckHoppingSessionRepository truckHoppingSessionRepository;
     private final GateCallRepository gateCallRepository;
     private final GateQueueEntryRepository gateQueueEntryRepository;
 
     public GateOperationsService(GatePassRepository gatePassRepository,
-                                 TruckHoppingSessionRepository truckHoppingSessionRepository,
                                  GateCallRepository gateCallRepository,
                                  GateQueueEntryRepository gateQueueEntryRepository) {
         this.gatePassRepository = gatePassRepository;
-        this.truckHoppingSessionRepository = truckHoppingSessionRepository;
         this.gateCallRepository = gateCallRepository;
         this.gateQueueEntryRepository = gateQueueEntryRepository;
     }
@@ -54,73 +49,51 @@ public class GateOperationsService {
         }
         removerDaFila(gatePassId, GateQueueDirection.ENTRADA);
         garantirNaFila(gatePassId, GateQueueDirection.SAIDA);
-        if (Boolean.TRUE.equals(request.getTrocaCavalo())) {
-            abrirTroca(request.getCpfMotorista(), request.getNumeroCnh(), request.getPlaca(), gatePassId);
-        }
     }
 
     public void registrarSaida(GateFlowRequest request, Long gatePassId) {
-        if (gatePassId == null) {
-            return;
-        }
-        removerDaFila(gatePassId, GateQueueDirection.SAIDA);
-        if (Boolean.TRUE.equals(request.getTrocaCavalo())) {
-            encerrarTroca(request.getCpfMotorista(), request.getPlaca(), gatePassId);
+        if (gatePassId != null) {
+            removerDaFila(gatePassId, GateQueueDirection.SAIDA);
         }
     }
 
-    public TruckHoppingSession abrirTroca(String cpf, String cnh, String cavalo, Long gatePassId) {
-        String cpfNormalizado = normalizarCpf(cpf);
-        String cnhNormalizada = normalizarCnh(cnh);
-        String cavaloNormalizado = obrigatorio(cavalo, "Placa do cavalo").toUpperCase(Locale.ROOT);
-        if (truckHoppingSessionRepository.existsByCpfMotoristaAndStatus(cpfNormalizado, TruckHoppingStatus.ABERTA)) {
-            throw new BusinessException("Já existe uma troca de cavalo aberta para o CPF informado");
-        }
-        TruckHoppingSession sessao = new TruckHoppingSession();
-        sessao.setCpfMotorista(cpfNormalizado);
-        sessao.setNumeroCnh(cnhNormalizada);
-        sessao.setCavaloAtual(cavaloNormalizado);
-        sessao.setStatus(TruckHoppingStatus.ABERTA);
-        sessao.setGateIn(obterGatePass(gatePassId));
-        return truckHoppingSessionRepository.save(sessao);
-    }
-
-    public TruckHoppingSession encerrarTroca(String cpf, String cavalo, Long gatePassId) {
-        String cpfNormalizado = normalizarCpf(cpf);
-        TruckHoppingSession sessao = truckHoppingSessionRepository
-                .findFirstByCpfMotoristaAndStatusOrderByCreatedAtDesc(cpfNormalizado, TruckHoppingStatus.ABERTA)
-                .orElseThrow(() -> new NotFoundException("Não existe troca de cavalo aberta para o CPF informado"));
-        if (StringUtils.hasText(cavalo)) {
-            sessao.setCavaloAtual(cavalo.trim().toUpperCase(Locale.ROOT));
-        }
-        sessao.setGateOut(obterGatePass(gatePassId));
-        sessao.setStatus(TruckHoppingStatus.ENCERRADA);
-        sessao.setEncerradaEm(LocalDateTime.now());
-        return truckHoppingSessionRepository.save(sessao);
-    }
-
-    @Transactional(readOnly = true)
-    public List<TruckHoppingSession> listarTrocas() {
-        return truckHoppingSessionRepository.findAllByOrderByCreatedAtDesc();
-    }
-
-    public GateCall chamarVeiculo(Long gatePassId, GateCallPriority prioridade, String operador) {
+    public GateCall chamarVeiculo(Long gatePassId,
+                                  GateCallPriority prioridade,
+                                  String gatePista,
+                                  Integer validadeMinutos,
+                                  String operador) {
+        expirarChamadasVencidas();
         if (gateCallRepository.findFirstByGatePassIdAndStatusIn(gatePassId, CHAMADOS_ATIVOS).isPresent()) {
             throw new BusinessException("Já existe um chamado ativo para o GatePass informado");
         }
+        GateQueueEntry entradaFila = obterFilaAtiva(gatePassId);
+        LocalDateTime agora = LocalDateTime.now();
         GateCall chamado = new GateCall();
         chamado.setGatePass(obterGatePass(gatePassId));
         chamado.setStatus(GateCallStatus.CHAMADO);
         chamado.setPrioridade(prioridade != null ? prioridade : GateCallPriority.NORMAL);
-        chamado.setChamadoEm(LocalDateTime.now());
+        chamado.setPosicaoFila(entradaFila.getPosicaoAtual());
+        chamado.setGatePista(obrigatorio(gatePista, "Gate/pista"));
+        chamado.setChamadoEm(agora);
+        chamado.setExpiraEm(agora.plusMinutes(validade(validadeMinutos)));
+        chamado.setQuantidadeRechamadas(0);
         chamado.setOperador(normalizarOpcional(operador));
         atualizarFilaPeloChamado(gatePassId, GateQueueStatus.CHAMADO);
         return gateCallRepository.save(chamado);
     }
 
+    public GateCall aceitarChamado(Long chamadoId) {
+        GateCall chamado = obterChamado(chamadoId);
+        expirarSeVencido(chamado);
+        exigirStatus(chamado, GateCallStatus.CHAMADO);
+        chamado.setStatus(GateCallStatus.ACEITO);
+        chamado.setAceitoEm(LocalDateTime.now());
+        return gateCallRepository.save(chamado);
+    }
+
     public GateCall iniciarAtendimento(Long chamadoId) {
         GateCall chamado = obterChamado(chamadoId);
-        exigirStatus(chamado, GateCallStatus.CHAMADO);
+        exigirStatus(chamado, GateCallStatus.ACEITO);
         chamado.setStatus(GateCallStatus.EM_ATENDIMENTO);
         chamado.setAtendimentoIniciadoEm(LocalDateTime.now());
         atualizarFilaPeloChamado(chamado.getGatePass().getId(), GateQueueStatus.EM_ATENDIMENTO);
@@ -136,6 +109,31 @@ public class GateOperationsService {
         return gateCallRepository.save(chamado);
     }
 
+    public GateCall expirarChamado(Long chamadoId) {
+        GateCall chamado = obterChamado(chamadoId);
+        exigirStatus(chamado, GateCallStatus.CHAMADO);
+        aplicarExpiracao(chamado, LocalDateTime.now());
+        return gateCallRepository.save(chamado);
+    }
+
+    public GateCall rechamar(Long chamadoId, String gatePista, Integer validadeMinutos) {
+        GateCall chamado = obterChamado(chamadoId);
+        if (chamado.getStatus() != GateCallStatus.EXPIRADO) {
+            throw new BusinessException("Somente chamadas expiradas podem ser rechamadas");
+        }
+        LocalDateTime agora = LocalDateTime.now();
+        chamado.setStatus(GateCallStatus.CHAMADO);
+        chamado.setChamadoEm(agora);
+        chamado.setAceitoEm(null);
+        chamado.setExpiradoEm(null);
+        chamado.setExpiraEm(agora.plusMinutes(validade(validadeMinutos)));
+        chamado.setGatePista(StringUtils.hasText(gatePista) ? gatePista.trim() : chamado.getGatePista());
+        chamado.setQuantidadeRechamadas(chamado.getQuantidadeRechamadas() + 1);
+        chamado.setUltimaRechamadaEm(agora);
+        atualizarFilaPeloChamado(chamado.getGatePass().getId(), GateQueueStatus.CHAMADO);
+        return gateCallRepository.save(chamado);
+    }
+
     public GateCall cancelar(Long chamadoId, String justificativa) {
         GateCall chamado = obterChamado(chamadoId);
         if (!CHAMADOS_ATIVOS.contains(chamado.getStatus())) {
@@ -148,8 +146,8 @@ public class GateOperationsService {
         return gateCallRepository.save(chamado);
     }
 
-    @Transactional(readOnly = true)
     public List<GateCall> listarChamados() {
+        expirarChamadasVencidas();
         return gateCallRepository.findAllByOrderByChamadoEmDesc();
     }
 
@@ -211,6 +209,31 @@ public class GateOperationsService {
                 .collect(Collectors.toList());
     }
 
+    private void expirarChamadasVencidas() {
+        LocalDateTime agora = LocalDateTime.now();
+        gateCallRepository.findAllByOrderByChamadoEmDesc().stream()
+                .filter(chamado -> chamado.getStatus() == GateCallStatus.CHAMADO)
+                .filter(chamado -> chamado.getExpiraEm() != null && !chamado.getExpiraEm().isAfter(agora))
+                .forEach(chamado -> aplicarExpiracao(chamado, agora));
+    }
+
+    private void expirarSeVencido(GateCall chamado) {
+        if (chamado.getStatus() == GateCallStatus.CHAMADO
+                && chamado.getExpiraEm() != null
+                && !chamado.getExpiraEm().isAfter(LocalDateTime.now())) {
+            aplicarExpiracao(chamado, LocalDateTime.now());
+            gateCallRepository.save(chamado);
+            throw new BusinessException("A chamada expirou e precisa ser refeita");
+        }
+    }
+
+    private void aplicarExpiracao(GateCall chamado, LocalDateTime timestamp) {
+        chamado.setStatus(GateCallStatus.EXPIRADO);
+        chamado.setExpiradoEm(timestamp);
+        restaurarFilaAguardando(chamado.getGatePass().getId());
+        gateCallRepository.save(chamado);
+    }
+
     private GateQueueEntry garantirNaFila(Long gatePassId, GateQueueDirection sentido) {
         return gateQueueEntryRepository.findFirstByGatePassIdAndSentidoAndStatusIn(gatePassId, sentido, FILA_ATIVA)
                 .orElseGet(() -> {
@@ -230,21 +253,24 @@ public class GateOperationsService {
                 });
     }
 
-    private void atualizarFilaPeloChamado(Long gatePassId, GateQueueStatus status) {
-        Arrays.stream(GateQueueDirection.values())
+    private GateQueueEntry obterFilaAtiva(Long gatePassId) {
+        return Arrays.stream(GateQueueDirection.values())
                 .map(sentido -> gateQueueEntryRepository
                         .findFirstByGatePassIdAndSentidoAndStatusIn(gatePassId, sentido, FILA_ATIVA).orElse(null))
                 .filter(item -> item != null)
                 .findFirst()
-                .ifPresent(item -> {
-                    item.setStatus(status);
-                    if (status == GateQueueStatus.CHAMADO) {
-                        item.setChamadoEm(LocalDateTime.now());
-                    } else if (status == GateQueueStatus.EM_ATENDIMENTO) {
-                        item.setAtendimentoIniciadoEm(LocalDateTime.now());
-                    }
-                    gateQueueEntryRepository.save(item);
-                });
+                .orElseThrow(() -> new BusinessException("GatePass não está em uma fila ativa"));
+    }
+
+    private void atualizarFilaPeloChamado(Long gatePassId, GateQueueStatus status) {
+        GateQueueEntry item = obterFilaAtiva(gatePassId);
+        item.setStatus(status);
+        if (status == GateQueueStatus.CHAMADO) {
+            item.setChamadoEm(LocalDateTime.now());
+        } else if (status == GateQueueStatus.EM_ATENDIMENTO) {
+            item.setAtendimentoIniciadoEm(LocalDateTime.now());
+        }
+        gateQueueEntryRepository.save(item);
     }
 
     private void restaurarFilaAguardando(Long gatePassId) {
@@ -265,13 +291,13 @@ public class GateOperationsService {
                 .ifPresent(entrada -> {
                     int posicaoRemovida = entrada.getPosicaoAtual();
                     List<GateQueueEntry> itens = gateQueueEntryRepository.findBySentidoAndStatusIn(sentido, FILA_ATIVA);
-                    itens.stream()
+                    List<GateQueueEntry> restantes = itens.stream()
                             .filter(item -> !item.getId().equals(entrada.getId()))
+                            .collect(Collectors.toList());
+                    restantes.stream()
                             .filter(item -> item.getPosicaoAtual() > posicaoRemovida)
                             .forEach(item -> item.setPosicaoAtual(item.getPosicaoAtual() - 1));
-                    gateQueueEntryRepository.saveAll(itens.stream()
-                            .filter(item -> !item.getId().equals(entrada.getId()))
-                            .collect(Collectors.toList()));
+                    gateQueueEntryRepository.saveAll(restantes);
                     gateQueueEntryRepository.delete(entrada);
                 });
     }
@@ -314,20 +340,14 @@ public class GateOperationsService {
         return 1;
     }
 
-    private String normalizarCpf(String cpf) {
-        String valor = obrigatorio(cpf, "CPF do motorista").replaceAll("\\D", "");
-        if (valor.length() != 11) {
-            throw new BusinessException("CPF do motorista deve conter 11 dígitos");
+    private int validade(Integer validadeMinutos) {
+        if (validadeMinutos == null) {
+            return VALIDADE_PADRAO_MINUTOS;
         }
-        return valor;
-    }
-
-    private String normalizarCnh(String cnh) {
-        String valor = obrigatorio(cnh, "Número da CNH").replaceAll("\\D", "");
-        if (valor.length() != 11) {
-            throw new BusinessException("Número da CNH deve conter 11 dígitos");
+        if (validadeMinutos < 1 || validadeMinutos > 60) {
+            throw new BusinessException("A validade da chamada deve estar entre 1 e 60 minutos");
         }
-        return valor;
+        return validadeMinutos;
     }
 
     private String obrigatorio(String valor, String campo) {

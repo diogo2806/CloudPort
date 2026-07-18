@@ -2,7 +2,6 @@ package br.com.cloudport.servicorail.ferrovia.dto;
 
 import br.com.cloudport.servicorail.comum.validacao.ValidacaoEntradaUtil;
 import br.com.cloudport.servicorail.ferrovia.modelo.StatusVisitaTrem;
-import br.com.cloudport.servicorail.ferrovia.modelo.TipoVisitaTrem;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,8 +19,6 @@ public class VisitaTremRequisicaoDto {
     @NotBlank
     @Size(max = 80)
     private String operadoraFerroviaria;
-
-    private TipoVisitaTrem tipoVisita;
 
     @NotNull
     private LocalDateTime horaChegadaPrevista;
@@ -55,14 +52,6 @@ public class VisitaTremRequisicaoDto {
 
     public void setOperadoraFerroviaria(String operadoraFerroviaria) {
         this.operadoraFerroviaria = ValidacaoEntradaUtil.limparTexto(operadoraFerroviaria);
-    }
-
-    public TipoVisitaTrem getTipoVisita() {
-        return tipoVisita;
-    }
-
-    public void setTipoVisita(TipoVisitaTrem tipoVisita) {
-        this.tipoVisita = tipoVisita;
     }
 
     public LocalDateTime getHoraChegadaPrevista() {

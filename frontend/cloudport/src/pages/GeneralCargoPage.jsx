@@ -11,6 +11,7 @@ import {
   StatusBadge
 } from '../components.jsx';
 import { generalCargoApi } from '../generalCargoApi.js';
+import { GeneralCargoDamageInspector } from './GeneralCargoDamageInspector.jsx';
 
 const EMPTY_DASHBOARD = {
   conhecimentosAbertos: 0,
@@ -22,6 +23,8 @@ const EMPTY_DASHBOARD = {
   pesoEmEstoqueKg: 0,
   ultimasMovimentacoes: []
 };
+
+const DAMAGE_MANUAL_URL = 'https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/carga-geral-avarias.md';
 
 function number(value, digits = 3) {
   return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits }).format(Number(value ?? 0));
@@ -84,7 +87,6 @@ export function GeneralCargoPage() {
   const [lot, setLot] = useState(blankLot);
   const [movement, setMovement] = useState(blankMovement);
   const [reference, setReference] = useState(blankReference);
-  const [damage, setDamage] = useState({ codigoAvaria: '', descricaoAvaria: '' });
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -195,13 +197,6 @@ export function GeneralCargoPage() {
     setMovement(blankMovement());
   }
 
-  async function registerDamage(event) {
-    event.preventDefault();
-    if (!selectedLotId) return;
-    await execute('damage', () => generalCargoApi.registrarAvaria(selectedLotId, damage), 'Avaria registrada.');
-    setDamage({ codigoAvaria: '', descricaoAvaria: '' });
-  }
-
   async function createReference(event) {
     event.preventDefault();
     await execute('reference', () => generalCargoApi.criarReferencia(reference), 'Referência criada.');
@@ -213,7 +208,10 @@ export function GeneralCargoPage() {
       eyebrow="Cargo"
       title="Carga geral e break-bulk"
       description="Controle canônico de Bill of Lading, itens, cargo lots, estoque físico, carga parcial, descarga, consolidação, avarias e referências operacionais."
-      actions={<button type="button" className="secondary" onClick={reload}>Atualizar</button>}
+      actions={<>
+        <a className="secondary" href={DAMAGE_MANUAL_URL} target="_blank" rel="noreferrer" title="Abrir manual da tela" aria-label="Abrir manual da tela">Manual</a>
+        <button type="button" className="secondary" onClick={reload}>Atualizar</button>
+      </>}
     />
     <Message type="error">{error}</Message>
     <Message type="success" onClose={() => setSuccess('')}>{success}</Message>
@@ -325,7 +323,7 @@ export function GeneralCargoPage() {
             { key: 'pesoSaldoKg', label: 'Peso kg' }, { key: 'armazemId', label: 'Armazém' },
             { key: 'posicaoArmazenagem', label: 'Posição' }, { key: 'veiculoId', label: 'Veículo' },
             { key: 'visitaNavioId', label: 'Navio' }, { key: 'clienteId', label: 'Cliente' },
-            { key: 'codigoAvaria', label: 'Avaria' },
+            { key: 'codigoAvaria', label: 'Última avaria' },
             { key: 'acao', label: 'Ação', exportable: false, render: (row) => <button type="button" className="secondary small" onClick={() => setSelectedLotId(row.id)}>Operar</button> }
           ]}
         />
@@ -346,12 +344,9 @@ export function GeneralCargoPage() {
           <label className="field"><span>Observação</span><input maxLength="1000" value={movement.observacao} onChange={(event) => setMovement((current) => ({ ...current, observacao: event.target.value }))} /></label>
           <div className="field"><span>Ação</span><button type="submit" disabled={!selectedLotId || busy === 'movement'}>{busy === 'movement' ? 'Registrando...' : 'Registrar movimento'}</button></div>
         </form>
-        <form className="planner-selection-grid" onSubmit={registerDamage}>
-          <label className="field"><span>Código da avaria</span><input required maxLength="80" value={damage.codigoAvaria} onChange={(event) => setDamage((current) => ({ ...current, codigoAvaria: event.target.value }))} /></label>
-          <label className="field"><span>Descrição da avaria</span><input required maxLength="1000" value={damage.descricaoAvaria} onChange={(event) => setDamage((current) => ({ ...current, descricaoAvaria: event.target.value }))} /></label>
-          <div className="field"><span>Ação</span><button type="submit" className="danger" disabled={!selectedLotId || busy === 'damage'}>{busy === 'damage' ? 'Registrando...' : 'Registrar avaria'}</button></div>
-        </form>
       </Section>
+
+      <GeneralCargoDamageInspector lot={selectedLot} onChanged={reload} />
 
       <Section title="Referências de carga" description="Catálogo único de commodities, embalagens, produtos, armazenagem, manuseio, perigosos, temperatura e avarias.">
         <form className="planner-selection-grid" onSubmit={createReference}>

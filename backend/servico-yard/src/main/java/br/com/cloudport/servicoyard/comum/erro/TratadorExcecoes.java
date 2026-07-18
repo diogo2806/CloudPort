@@ -3,6 +3,7 @@ package br.com.cloudport.servicoyard.comum.erro;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -30,6 +31,16 @@ public class TratadorExcecoes {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> argumento(IllegalArgumentException ex, HttpServletRequest request) {
         return resposta(HttpStatus.BAD_REQUEST, "REQUISICAO_INVALIDA", ex.getMessage(), null, request, ex);
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<Map<String, Object>> naoEncontrado(NoSuchElementException ex, HttpServletRequest request) {
+        return resposta(HttpStatus.NOT_FOUND, "RECURSO_NAO_ENCONTRADO", ex.getMessage(), null, request, ex);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> conflito(IllegalStateException ex, HttpServletRequest request) {
+        return resposta(HttpStatus.CONFLICT, "CONFLITO_OPERACIONAL", ex.getMessage(), null, request, ex);
     }
 
     @ExceptionHandler(ResponseStatusException.class)

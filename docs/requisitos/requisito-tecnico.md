@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS10, BUS1000, BUS1010, BUS1040, BUS1050, BUS1060, BUS1090, BUS1100, BUS1110, BUS1120, BUS1150, BUS1160, BUS1170 e DATA1180 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão dos BUS10, BUS1000, BUS1010, BUS1040, BUS1050, BUS1060, BUS1090, BUS1100, BUS1110, BUS1120, BUS1150, BUS1160, BUS1170, DATA1180 e INT1140 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -40,16 +40,3 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/CargaGeralServico.java` | `AJUSTE_INVENTARIO` | Altera diretamente o saldo sem sessão de contagem e aprovação. | Criar novos métodos sugeridos: `abrirInventarioFisico()`, `registrarContagem()` e `confirmarDivergencia()`. |
 | `frontend/cloudport/src/pages/GeneralCargoPage.jsx` | seleção de lote | A identificação é manual. | Criar leitura por código de barras ou QR e inventário por posição. |
-
-## 2. Gate, pátio e controle de equipamentos
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| INT1140 | Integrar VMT à confirmação de work instructions. | Aceite, início e conclusão atualizam a instrução uma única vez e rejeitam evento duplicado ou fora de sequência. | ⬜ Pendente |
-
-### INT1140 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio` | work instructions | Não há contrato comprovado que use confirmação real de VMT com deduplicação e sequência. | Criar porta de eventos com `eventId`, `instructionId`, estado esperado, timestamp e resultado. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/controlroom` | conclusão operacional | A instrução pode ser concluída sem confirmação idempotente do equipamento. | Integrar aceite, início, falha e conclusão do VMT ao ciclo persistido. |

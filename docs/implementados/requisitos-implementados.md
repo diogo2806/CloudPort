@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #393.
+Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o commit `98b1468920e80762b239310654db4c1ce63c55c1`.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -250,6 +250,7 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 20. Operação de embarque de contêiner direto do gate para o navio, sem passagem pelo pátio.
 21. Fechamento do gate somente após confirmação do módulo Navio.
 22. Idempotência e auditoria do embarque direto.
+23. Rejeições transacionais na abertura de truck visits são identificadas por SQLState de domínio e traduzidas para `409 Conflict` ou `422 Unprocessable Entity`, preservando rollback e sem expor mensagens SQL.
 
 ## Controle de entrada e saída de pessoas
 

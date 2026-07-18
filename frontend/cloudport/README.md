@@ -2,25 +2,57 @@
 
 Portal principal do CloudPort, desenvolvido com React 19 e Vite 8.
 
-## Escopo migrado
+## Escopo disponível
 
-O runtime Angular foi removido. O portal React preserva:
+O runtime Angular foi removido. O portal React preserva autenticação, autorização e navegação e concentra as interfaces operacionais dos módulos.
+
+### Componentes compartilhados
 
 - autenticação JWT e sessão compatível com o portal anterior;
 - autorização por papéis;
 - navegação dinâmica por `/api/navegacao/abas`, com menu de contingência;
-- papéis, usuários, segurança, notificações e privacidade;
-- telas operacionais de Gate, Ferrovia, Pátio, Navio e Embarque;
-- mapa operacional do pátio com grade de contingência e desenho georreferenciado no Google Maps;
-- integração SSO com o Control Room React por `postMessage` com origem restrita;
-- `X-Correlation-Id` e contexto do usuário nos comandos operacionais;
-- rotas públicas usadas anteriormente em `/home/*`.
+- cliente HTTP comum com JWT e `X-Correlation-Id`;
+- tratamento do contrato de erro com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp;
+- central global de alertas no cabeçalho e em `/home/alertas`;
+- ajuda contextual por rota, módulo, papel e processo;
+- layout responsivo e navegação por teclado.
+
+### Grade operacional
+
+O componente `OperationalDataGrid` é usado pelas páginas que antes exibiam tabelas simples.
+
+Ele oferece:
+
+- busca rápida em todas as colunas;
+- filtros combináveis por coluna;
+- ordenação de texto, número e data;
+- paginação local e contrato opcional para paginação no backend;
+- ocultação, reordenação e congelamento de colunas;
+- layouts e filtros salvos no navegador;
+- seleção múltipla e ações em lote;
+- inspector lateral do registro;
+- exportação CSV e Excel;
+- neutralização de fórmulas em arquivos exportados;
+- suporte a teclado e atributos de acessibilidade.
+
+### Telas operacionais
+
+- Gate visual com pistas, filas, calendário, capacidade, jornada, OCR, balança, inspeção, documentos, avarias, EIR e SLA;
+- Rail com composição gráfica do trem, vagões, linhas, ocupação, progresso, conflitos, drag-and-drop e line-up vertical;
+- Yard com Google Maps, blocos, scan, seção, microvisão, heatmaps, CHEs, reefers, rotas, allocations, restrições e simulação;
+- Navio com line-up vertical, Vessel Planner em múltiplas vistas, drag-and-drop, overlays e Quay Monitor;
+- Inventory Management com unidade, equipamento, documentos, avarias, manutenção, holds, permissions, reefer e inventário físico;
+- Carga Geral com Bill of Lading, itens, lotes, referências, movimentações, avarias e consolidação;
+- Billing e CAP com tarifas, cobranças, faturas, pagamentos e visão da transportadora;
+- Control Room React incorporado por iframe e SSO restrito por origem;
+- Visibilidade e rastreamento operacional;
+- administração, usuários, papéis, segurança, notificações e privacidade.
 
 ## Integração com o backend
 
-O backend está migrando para um monólito modular. O frontend consome uma única origem de API e não conhece hosts, portas ou nomes de módulos internos.
+O frontend consome uma única origem de API e não conhece hosts, portas ou nomes de módulos internos.
 
-A URL pode apontar para o runtime consolidado, um proxy de transição ou a entrada única do ambiente. A arquitetura vigente está documentada em [`../../docs/arquitetura-monolito-modular.md`](../../docs/arquitetura-monolito-modular.md).
+A URL pode apontar para o runtime consolidado, um proxy de transição ou a entrada única do ambiente. A arquitetura vigente está em [`../../docs/arquitetura-monolito-modular.md`](../../docs/arquitetura-monolito-modular.md).
 
 ## Configuração dinâmica
 
@@ -29,7 +61,7 @@ A configuração é carregada de `public/assets/configuracao.json` antes da rend
 ```json
 {
   "baseApiUrl": "http://localhost:8080",
-  "navioControlRoomUrl": "http://localhost:8086",
+  "navioControlRoomUrl": "http://localhost:8080",
   "googleMaps": {
     "apiKey": "",
     "mapId": "",
@@ -51,22 +83,24 @@ A configuração é carregada de `public/assets/configuracao.json` antes da rend
 
 - `baseApiUrl`: origem única para os contratos do portal;
 - `navioControlRoomUrl`: endereço do Control Room incorporado por iframe e SSO;
-- `googleMaps.apiKey`: chave de navegador da Maps JavaScript API. Quando vazia, o mapa externo não é carregado e a grade operacional permanece disponível;
+- `googleMaps.apiKey`: chave de navegador da Maps JavaScript API;
 - `googleMaps.mapId`: identificador opcional de estilo do mapa;
-- `googleMaps.center`: ponto de ancoragem usado para desenhar o pátio. O valor versionado aponta para a região portuária de Itaguaí e deve ser substituído pelas coordenadas reais do terminal;
+- `googleMaps.center`: ponto de ancoragem usado para desenhar o terminal;
 - `googleMaps.zoom` e `mapTypeId`: aproximação inicial e camada base;
 - `slotWidthMeters` e `slotLengthMeters`: dimensões do polígono de uma pilha;
 - `stackGapMeters`, `blockGapMeters` e `blockColumns`: espaçamento e distribuição visual dos blocos;
-- `rotationDegrees`: rotação do conjunto para alinhar o desenho às vias e aos blocos da imagem de satélite.
+- `rotationDegrees`: rotação do conjunto para alinhar o desenho às vias e aos blocos.
 
-A chave do Google Maps é entregue ao navegador e não deve ser tratada como segredo de backend. No Google Cloud, restrinja-a por referenciador HTTP aos domínios do CloudPort e limite sua utilização à Maps JavaScript API. O projeto da chave precisa ter faturamento habilitado.
+Quando `googleMaps.apiKey` está vazia, o mapa externo não é carregado e a grade operacional permanece disponível.
 
-Em produção, o arquivo pode ser substituído sem reconstruir os artefatos estáticos. Isso permite ajustar chave, coordenadas, escala e rotação por terminal.
+A chave do Google Maps é entregue ao navegador. Restrinja-a por referenciador HTTP e limite seu uso à Maps JavaScript API.
+
+Em produção, `assets/configuracao.json` pode ser substituído sem reconstruir o frontend.
 
 ## Pré-requisitos
 
-- Node.js 22
-- npm 10+
+- Node.js 22;
+- npm 10+.
 
 ## Instalação
 
@@ -88,7 +122,7 @@ A aplicação fica disponível em `http://localhost:4200`.
 npm test
 ```
 
-Os testes unitários usam o test runner nativo do Node e cobrem sessão, papéis, erros, JWT, correlação, contratos operacionais e geometria do mapa do pátio.
+Os testes unitários usam o test runner nativo do Node e cobrem sessão, papéis, erros, JWT, correlação, grade operacional, exportações, alertas, ajuda contextual, contratos operacionais, Gate, Rail, Yard e Vessel Planner.
 
 ## Build
 
@@ -106,11 +140,26 @@ npm run e2e
 
 O Playwright inicia o servidor Vite conforme `playwright.config.ts`.
 
+## EasyPanel
+
+Use uma aplicação GitHub com:
+
+- repositório: `diogo2806/CloudPort`;
+- branch: `main`;
+- caminho de build: `/frontend`;
+- arquivo: `Dockerfile`;
+- porta: `80`;
+- health check: `/health`.
+
+O `frontend/Dockerfile` usa Node 22 no estágio de build e Nginx no estágio final. O `frontend/nginx.conf` entrega os arquivos estáticos, expõe `/health` e usa fallback para `index.html` nas rotas da SPA.
+
 ## Regras para novos contratos
 
 - usar caminhos relativos à `baseApiUrl`;
 - manter autenticação e `X-Correlation-Id` no cliente compartilhado;
 - não reproduzir no frontend a decisão entre chamada local e remota do backend;
-- consumir erros padronizados com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp;
+- consumir erros padronizados;
 - preservar as rotas funcionais durante a migração do backend;
-- não introduzir dependências Angular no portal React.
+- não introduzir dependências Angular;
+- reutilizar `OperationalDataGrid`, `PageHeader`, ajuda contextual e central de alertas antes de criar componentes paralelos;
+- manter alternativa acessível para interações baseadas em drag-and-drop.

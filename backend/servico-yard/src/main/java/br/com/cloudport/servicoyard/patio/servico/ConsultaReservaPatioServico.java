@@ -23,7 +23,7 @@ public class ConsultaReservaPatioServico {
     private final ConteinerPatioRepositorio conteinerRepositorio;
 
     public ConsultaReservaPatioServico(PosicaoPatioRepositorio posicaoRepositorio,
-                                       ConteinerPatioRepositorio conteinerRepositorio) {
+                                        ConteinerPatioRepositorio conteinerRepositorio) {
         this.posicaoRepositorio = posicaoRepositorio;
         this.conteinerRepositorio = conteinerRepositorio;
     }
@@ -69,6 +69,7 @@ public class ConsultaReservaPatioServico {
                 posicao.isBloqueada(),
                 posicao.isInterditada(),
                 posicao.isAreaPermitida(),
+                posicao.getNotaOperacional(),
                 tiposCargaPermitidos(posicao.getTiposCargaPermitidos()),
                 posicao.getPesoMaximoToneladas(),
                 posicao.getAlturaMaximaMetros(),

@@ -8,36 +8,27 @@ import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+import javax.persistence.MapsId;
+import javax.persistence.OneToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
 import javax.persistence.Version;
 
 @Entity
-@Table(name = "transferencia_locomotiva",
-        uniqueConstraints = @UniqueConstraint(name = "uk_transferencia_locomotiva_visita_identificador",
-                columnNames = {"visita_trem_id", "identificador_locomotiva"}))
+@Table(name = "transferencia_locomotiva")
 public class TransferenciaLocomotiva {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "visita_trem_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @MapsId
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "visita_trem_id", nullable = false)
     private VisitaTrem visitaTrem;
-
-    @Column(name = "identificador_locomotiva", nullable = false, length = 60)
-    private String identificadorLocomotiva;
-
-    @Column(name = "operadora_ferroviaria", nullable = false, length = 80)
-    private String operadoraFerroviaria;
 
     @Column(name = "fabricante", length = 80)
     private String fabricante;
@@ -148,10 +139,6 @@ public class TransferenciaLocomotiva {
     public void setId(Long id) { this.id = id; }
     public VisitaTrem getVisitaTrem() { return visitaTrem; }
     public void setVisitaTrem(VisitaTrem visitaTrem) { this.visitaTrem = visitaTrem; }
-    public String getIdentificadorLocomotiva() { return identificadorLocomotiva; }
-    public void setIdentificadorLocomotiva(String identificadorLocomotiva) { this.identificadorLocomotiva = identificadorLocomotiva; }
-    public String getOperadoraFerroviaria() { return operadoraFerroviaria; }
-    public void setOperadoraFerroviaria(String operadoraFerroviaria) { this.operadoraFerroviaria = operadoraFerroviaria; }
     public String getFabricante() { return fabricante; }
     public void setFabricante(String fabricante) { this.fabricante = fabricante; }
     public String getModelo() { return modelo; }

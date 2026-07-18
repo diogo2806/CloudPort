@@ -1,6 +1,7 @@
 package br.com.cloudport.servicorail.ferrovia.dto;
 
 import br.com.cloudport.servicorail.ferrovia.modelo.StatusVisitaTrem;
+import br.com.cloudport.servicorail.ferrovia.modelo.TipoVisitaTrem;
 import br.com.cloudport.servicorail.ferrovia.modelo.VisitaTrem;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -13,6 +14,7 @@ public class VisitaTremRespostaDto {
     private final Long id;
     private final String identificadorTrem;
     private final String operadoraFerroviaria;
+    private final TipoVisitaTrem tipoVisita;
     private final LocalDateTime horaChegadaPrevista;
     private final LocalDateTime horaPartidaPrevista;
     private final StatusVisitaTrem statusVisita;
@@ -21,17 +23,19 @@ public class VisitaTremRespostaDto {
     private final List<VagaoVisitaRespostaDto> listaVagoes;
 
     public VisitaTremRespostaDto(Long id,
-                                 String identificadorTrem,
-                                 String operadoraFerroviaria,
-                                 LocalDateTime horaChegadaPrevista,
-                                 LocalDateTime horaPartidaPrevista,
-                                 StatusVisitaTrem statusVisita,
-                                 List<OperacaoConteinerVisitaRespostaDto> listaDescarga,
-                                 List<OperacaoConteinerVisitaRespostaDto> listaCarga,
-                                 List<VagaoVisitaRespostaDto> listaVagoes) {
+                                  String identificadorTrem,
+                                  String operadoraFerroviaria,
+                                  TipoVisitaTrem tipoVisita,
+                                  LocalDateTime horaChegadaPrevista,
+                                  LocalDateTime horaPartidaPrevista,
+                                  StatusVisitaTrem statusVisita,
+                                  List<OperacaoConteinerVisitaRespostaDto> listaDescarga,
+                                  List<OperacaoConteinerVisitaRespostaDto> listaCarga,
+                                  List<VagaoVisitaRespostaDto> listaVagoes) {
         this.id = id;
         this.identificadorTrem = identificadorTrem;
         this.operadoraFerroviaria = operadoraFerroviaria;
+        this.tipoVisita = tipoVisita;
         this.horaChegadaPrevista = horaChegadaPrevista;
         this.horaPartidaPrevista = horaPartidaPrevista;
         this.statusVisita = statusVisita;
@@ -45,6 +49,7 @@ public class VisitaTremRespostaDto {
                 entidade.getId(),
                 HtmlUtils.htmlEscape(entidade.getIdentificadorTrem()),
                 HtmlUtils.htmlEscape(entidade.getOperadoraFerroviaria()),
+                entidade.getTipoVisita(),
                 entidade.getHoraChegadaPrevista(),
                 entidade.getHoraPartidaPrevista(),
                 entidade.getStatusVisita(),
@@ -68,6 +73,7 @@ public class VisitaTremRespostaDto {
                 entidade.getId(),
                 HtmlUtils.htmlEscape(entidade.getIdentificadorTrem()),
                 HtmlUtils.htmlEscape(entidade.getOperadoraFerroviaria()),
+                entidade.getTipoVisita(),
                 entidade.getHoraChegadaPrevista(),
                 entidade.getHoraPartidaPrevista(),
                 entidade.getStatusVisita(),
@@ -87,6 +93,10 @@ public class VisitaTremRespostaDto {
 
     public String getOperadoraFerroviaria() {
         return operadoraFerroviaria;
+    }
+
+    public TipoVisitaTrem getTipoVisita() {
+        return tipoVisita;
     }
 
     public LocalDateTime getHoraChegadaPrevista() {

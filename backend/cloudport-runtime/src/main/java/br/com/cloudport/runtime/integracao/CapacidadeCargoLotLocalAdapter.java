@@ -1,6 +1,7 @@
 package br.com.cloudport.runtime.integracao;
 
 import br.com.cloudport.servicocargageral.integracao.yard.CapacidadeCargoLotCliente;
+import br.com.cloudport.servicocargageral.repositorio.AlocacaoCargoLotRepositorio;
 import br.com.cloudport.servicoyard.inventario.dto.CapacidadeCargoLotDTOs;
 import br.com.cloudport.servicoyard.inventario.servico.CapacidadeCargoLotServico;
 import java.math.BigDecimal;
@@ -15,8 +16,10 @@ public class CapacidadeCargoLotLocalAdapter extends CapacidadeCargoLotCliente {
 
     private final CapacidadeCargoLotServico servico;
 
-    public CapacidadeCargoLotLocalAdapter(CapacidadeCargoLotServico servico) {
-        super(new RestTemplateBuilder(), "http://capacidade-local.invalid");
+    public CapacidadeCargoLotLocalAdapter(
+            CapacidadeCargoLotServico servico,
+            AlocacaoCargoLotRepositorio alocacaoRepositorio) {
+        super(new RestTemplateBuilder(), "http://capacidade-local.invalid", alocacaoRepositorio);
         this.servico = servico;
     }
 
@@ -44,14 +47,17 @@ public class CapacidadeCargoLotLocalAdapter extends CapacidadeCargoLotCliente {
     public ReservaCapacidadeResposta confirmar(UUID reservaId, String usuario, String motivo) {
         return converter(servico.confirmar(
                 reservaId,
-                new CapacidadeCargoLotDTOs.ComandoCapacidadeRequest(usuario, motivo)));
+                new CapacidadeCargoLotDTOs.ComandoCapacidadeRequest(
+                        usuario,
+                        motivo,
+                        buscarPosicaoOrigem(reservaId))));
     }
 
     @Override
     public ReservaCapacidadeResposta cancelar(UUID reservaId, String usuario, String motivo) {
         return converter(servico.cancelar(
                 reservaId,
-                new CapacidadeCargoLotDTOs.ComandoCapacidadeRequest(usuario, motivo)));
+                new CapacidadeCargoLotDTOs.ComandoCapacidadeRequest(usuario, motivo, null)));
     }
 
     private ReservaCapacidadeResposta converter(

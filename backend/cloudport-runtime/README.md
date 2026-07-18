@@ -68,7 +68,10 @@ O ambiente deve fornecer:
 - `SECURITY_JWT_SECRET`: segredo compartilhado pelo emissor e decoder, com pelo menos 32 bytes;
 - `SECURITY_JWT_EXPIRATION_MS`: duração do token em milissegundos;
 - `ADMIN_EMAIL`: login do administrador inicial;
-- `ADMIN_PASSWORD`: senha do administrador inicial, entre 6 e 255 caracteres.
+- `ADMIN_PASSWORD`: senha do administrador inicial, entre 6 e 255 caracteres;
+- `CLOUDPORT_PUBLIC_API_CLIENTS`: clientes opcionais da API pública no formato `cliente:segredo`, separados por vírgula, com cada segredo contendo pelo menos 32 bytes.
+
+Quando `CLOUDPORT_PUBLIC_API_CLIENTS` não estiver configurada, o runtime inicia normalmente e mantém `/api/public/v1/**` bloqueado com HTTP 401. Uma configuração não vazia, porém inválida, continua impedindo a inicialização para evitar credenciais fracas ou malformadas.
 
 Valor recomendado para `DB_SCHEMA`:
 

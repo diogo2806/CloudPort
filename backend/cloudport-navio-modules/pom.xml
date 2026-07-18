@@ -153,6 +153,7 @@
         <module>../servico-rail</module>
         <module>../servico-autenticacao</module>
         <module>../servico-visibilidade</module>
+        <module>../servico-carga-geral</module>
         <module>../cloudport-monolito-navio</module>
     </modules>
 </project>

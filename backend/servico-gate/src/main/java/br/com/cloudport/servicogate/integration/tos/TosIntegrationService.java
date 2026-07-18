@@ -131,7 +131,7 @@ public class TosIntegrationService {
                     "TOS_GATE_BLOQUEADO",
                     "TOS bloqueou a entrada para o contêiner " + identificadorMascarado + ".");
         }
-        if (!status.isLiberacaoAduaneIRA()) {
+        if (!status.isLiberacaoAduaneira()) {
             throw erroOperacional(
                     "customs-release",
                     identificadorMascarado,

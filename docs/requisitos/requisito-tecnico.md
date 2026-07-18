@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1040, BUS1050, BUS1090, BUS1170 e DATA1180 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1050, BUS1090, BUS1170 e DATA1180 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -12,7 +12,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | BUS1010 | Versionar e liberar planos de stuff e unstuff antes da execução física. | O plano é versionado, aprovado, validado por capacidade e conciliado por item sem alterar estoque antes da confirmação operacional. | ⬜ Pendente |
 | BUS1020 | Implementar transload entre unidades com rastreabilidade e atualização atômica. | Origem, destino, lotes, quantidades, lacres, divergências e avarias são persistidos sem saldo negativo ou atualização parcial. | ⬜ Pendente |
 | BUS1030 | Integrar Gate à carga geral para retirada e entrega parcial. | O Gate reserva quantidade por BL, delivery order e cargo lot e só confirma o estoque após o estágio físico correspondente. | ⬜ Pendente |
-| BUS1040 | Implementar planejamento de pátio e armazém para cargo lots. | Allocation, capacidade, restrições, origem, destino, recurso e saldo por posição são persistidos e confirmados pela execução. | ✅ Concluído |
+| BUS1040 | Implementar planejamento de pátio e armazém para cargo lots. | Allocation, capacidade, restrições, origem, destino, recurso e saldo por posição são persistidos e confirmados pela execução. | ⬜ Pendente |
 | BUS1060 | Implementar plano de carga e descarga de cargo lots por visita ferroviária. | Lotes são planejados e executados por vagão e posição, com capacidade, incompatibilidades, sequência e custódia persistida. | ⬜ Pendente |
 | BUS1070 | Implementar ciclo completo de avaria da carga. | Avarias possuem quantidade afetada, evidências, responsável, bloqueio, inspeção, reparo ou baixa e saldo segregado. | ⬜ Pendente |
 | BUS1080 | Implementar identificação e inventário físico reconciliável de cargo lots. | Código de barras ou QR identifica lote e embalagem; contagens e divergências geram ajuste motivado sem sobrescrever diretamente o saldo lógico. | ⬜ Pendente |
@@ -48,11 +48,10 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 ### BUS1040 — arquivos e métodos
 
-| Caminho completo | Método/campo/contrato | Como ficou | Evidência de conclusão |
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
 |---|---|---|---|
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/dominio/AlocacaoCargoLot.java` | allocation operacional | Persiste lote, reserva de capacidade, origem, destino, recurso, prioridade, restrições, quantidades, estado e usuário. | A criação reserva capacidade sem alterar o saldo físico; confirmação e cancelamento possuem ciclo próprio e idempotente. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/inventario/servico/CapacidadeCargoLotServico.java` | `reservar()`, `confirmar()` e `listarSaldos()` | Reserva capacidade considerando ocupação confirmada e reservas pendentes. | A confirmação debita a origem e credita o destino na mesma transação do Yard. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/inventario/modelo/SaldoPosicaoCargoLot.java` | saldo por lote e posição | Mantém quantidade, volume e peso ocupados por cargo lot em cada posição. | Débitos superiores ao saldo são bloqueados e a API permite consultar a ocupação confirmada da posição. |
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/dominio/LoteCarga.java` | `armazemId` e `posicaoArmazenagem` | Mantém somente a localização corrente. | Criar allocation e instrução com origem, destino, recurso, prioridade, estado e quantidades. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/BayPlanServico.java` | planejamento do Yard | O planejamento é orientado a unidades conteinerizadas. | Criar adaptador para reservar capacidade e confirmar movimentos de cargo lot. |
 
 ### BUS1060 — arquivos e métodos
 
@@ -83,7 +82,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | BUS1110 | Impedir truck hopping por visita ativa. | Motorista, cavalo, chassis e unidades não participam simultaneamente de visitas conflitantes e são liberados atomicamente. | ⬜ Pendente |
 | BUS1120 | Implementar tratamento de unidades fora de posição. | A divergência gera caso, bloqueio, investigação e instrução corretiva com origem e destino confirmados. | ⬜ Pendente |
 | BUS1130 | Implementar Lost & Found e unidades TBD. | Unidade sem registro ou sem localização entra em caso persistido com investigação, associação, baixa e encerramento. | ⬜ Pendente |
-| INT1140 | Integrar VMT à confirmação de work instructions. | Aceite, início e conclusão atualizam a instrução uma única vez e rejeitam evento duplicado ou fora de sequência. | ⬜ Pendente |
+| INT1140 | Integrar VMT à confirmação de work instructions. | Aceite, início e conclusão atualizam a instrução uma única vez e rejeita evento duplicado ou fora de sequência. | ⬜ Pendente |
 
 ### BUS1100 — arquivos e métodos
 

@@ -42,6 +42,62 @@ class LoteCargaTest {
                 () -> lote.retirarSaldo(decimal("2"), decimal("2"), decimal("10")));
     }
 
+    @Test
+    void deveSegregarSomenteSaldoAfetadoPelaAvaria() {
+        LoteCarga lote = new LoteCarga();
+        lote.adicionarSaldo(decimal("10"), decimal("20"), decimal("1000"));
+
+        lote.bloquearSaldo(decimal("3"), decimal("5"), decimal("200"));
+
+        assertEquals(decimal("10"), lote.getQuantidadeSaldo());
+        assertEquals(decimal("3"), lote.getQuantidadeBloqueada());
+        assertEquals(decimal("7"), lote.getQuantidadeDisponivel());
+        assertEquals(decimal("15"), lote.getVolumeDisponivelM3());
+        assertEquals(decimal("800"), lote.getPesoDisponivelKg());
+        assertEquals(StatusLoteCarga.AVARIADO, lote.getStatus());
+    }
+
+    @Test
+    void deveReintegrarSaldoDepoisDoReparo() {
+        LoteCarga lote = new LoteCarga();
+        lote.adicionarSaldo(decimal("10"), decimal("20"), decimal("1000"));
+        lote.bloquearSaldo(decimal("3"), decimal("5"), decimal("200"));
+
+        lote.liberarSaldoBloqueado(decimal("3"), decimal("5"), decimal("200"));
+
+        assertEquals(BigDecimal.ZERO, lote.getQuantidadeBloqueada());
+        assertEquals(decimal("10"), lote.getQuantidadeDisponivel());
+        assertEquals(StatusLoteCarga.NO_TERMINAL, lote.getStatus());
+    }
+
+    @Test
+    void deveBaixarSaldoAvariadoDoEstoque() {
+        LoteCarga lote = new LoteCarga();
+        lote.adicionarSaldo(decimal("10"), decimal("20"), decimal("1000"));
+        lote.bloquearSaldo(decimal("3"), decimal("5"), decimal("200"));
+
+        lote.baixarSaldoBloqueado(decimal("3"), decimal("5"), decimal("200"));
+
+        assertEquals(decimal("7"), lote.getQuantidadeSaldo());
+        assertEquals(decimal("15"), lote.getVolumeSaldoM3());
+        assertEquals(decimal("800"), lote.getPesoSaldoKg());
+        assertEquals(BigDecimal.ZERO, lote.getQuantidadeBloqueada());
+        assertEquals(StatusLoteCarga.NO_TERMINAL, lote.getStatus());
+    }
+
+    @Test
+    void deveRejeitarAvariaAcimaDoSaldoDisponivel() {
+        LoteCarga lote = new LoteCarga();
+        lote.adicionarSaldo(decimal("5"), decimal("10"), decimal("500"));
+        lote.bloquearSaldo(decimal("3"), decimal("5"), decimal("200"));
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> lote.bloquearSaldo(decimal("3"), decimal("5"), decimal("200")));
+
+        assertEquals("Avaria excede o saldo disponível do lote.", exception.getMessage());
+    }
+
     private BigDecimal decimal(String valor) {
         return new BigDecimal(valor);
     }

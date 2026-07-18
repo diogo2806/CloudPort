@@ -7,8 +7,6 @@ import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,16 +16,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.util.StringUtils;
-import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 @Configuration
 @EnableConfigurationProperties(TosProperties.class)
 public class TosClientConfig {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(TosClientConfig.class);
 
     @Bean
     public WebClient tosWebClient(TosProperties properties) {
@@ -42,9 +36,7 @@ public class TosClientConfig {
 
         WebClient.Builder builder = WebClient.builder()
                 .baseUrl(properties.getApi().getBaseUrl())
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .filter(logRequest())
-                .filter(logResponse());
+                .clientConnector(new ReactorClientHttpConnector(httpClient));
 
         if (StringUtils.hasText(properties.getApi().getUsername())) {
             builder.defaultHeaders(headers -> headers.setBasicAuth(
@@ -93,19 +85,5 @@ public class TosClientConfig {
     public CacheManager cacheManagerStandalone(
             @Qualifier("tosCacheManager") CacheManager tosCacheManager) {
         return tosCacheManager;
-    }
-
-    private ExchangeFilterFunction logRequest() {
-        return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
-            LOGGER.info("event=tos.request method={} url={}", clientRequest.method(), clientRequest.url());
-            return Mono.just(clientRequest);
-        });
-    }
-
-    private ExchangeFilterFunction logResponse() {
-        return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
-            LOGGER.info("event=tos.response status={} headers={}", clientResponse.statusCode(), clientResponse.headers().asHttpHeaders());
-            return Mono.just(clientResponse);
-        });
     }
 }

@@ -42,14 +42,18 @@ public class OrdemMovimentacaoRespostaDto {
         return new OrdemMovimentacaoRespostaDto(
                 entidade.getId(),
                 entidade.getVisitaTrem() != null ? entidade.getVisitaTrem().getId() : null,
-                HtmlUtils.htmlEscape(entidade.getCodigoConteiner()),
+                escaparHtml(entidade.getCodigoConteiner()),
                 entidade.getTipoMovimentacao(),
                 entidade.getStatusMovimentacao(),
-                HtmlUtils.htmlEscape(entidade.getIdentificadorVagao()),
+                escaparHtml(entidade.getIdentificadorVagao()),
                 entidade.getPosicaoVagaoNoTrem(),
                 entidade.getCriadoEm(),
                 entidade.getAtualizadoEm()
         );
+    }
+
+    private static String escaparHtml(String valor) {
+        return valor != null ? HtmlUtils.htmlEscape(valor) : null;
     }
 
     public Long getId() {

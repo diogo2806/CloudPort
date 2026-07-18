@@ -5,6 +5,7 @@ import br.com.cloudport.servicoyard.vesselplanner.dto.OperacaoTampaPoraoDTOs.Can
 import br.com.cloudport.servicoyard.vesselplanner.dto.OperacaoTampaPoraoDTOs.ConfirmarTarefaRequest;
 import br.com.cloudport.servicoyard.vesselplanner.dto.OperacaoTampaPoraoDTOs.IniciarTarefaRequest;
 import br.com.cloudport.servicoyard.vesselplanner.dto.OperacaoTampaPoraoDTOs.TampaPoraoResposta;
+import br.com.cloudport.servicoyard.vesselplanner.servico.MarcoSequenciaTampaPoraoValidador;
 import br.com.cloudport.servicoyard.vesselplanner.servico.OperacaoTampaPoraoServico;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,9 +30,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class OperacaoTampaPoraoControlador {
 
     private final OperacaoTampaPoraoServico servico;
+    private final MarcoSequenciaTampaPoraoValidador marcoSequenciaValidador;
 
-    public OperacaoTampaPoraoControlador(OperacaoTampaPoraoServico servico) {
+    public OperacaoTampaPoraoControlador(
+            OperacaoTampaPoraoServico servico,
+            MarcoSequenciaTampaPoraoValidador marcoSequenciaValidador) {
         this.servico = servico;
+        this.marcoSequenciaValidador = marcoSequenciaValidador;
     }
 
     @GetMapping
@@ -56,6 +61,7 @@ public class OperacaoTampaPoraoControlador {
             @PathVariable Long tarefaId,
             @Valid @RequestBody IniciarTarefaRequest request,
             Principal principal) {
+        marcoSequenciaValidador.validarInicio(planId, tarefaId);
         return servico.iniciarTarefa(planId, tarefaId, request, usuario(principal));
     }
 

@@ -1,0 +1,338 @@
+.yard-operational-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.yard-operational-metrics,
+.yard-operational-toolbar,
+.yard-workspace-bar,
+.yard-live-equipment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.yard-operational-metrics span {
+  padding: 9px 12px;
+  border: 1px solid #dce5ed;
+  border-radius: 10px;
+  background: #f8fbfd;
+  color: #5d7086;
+  font-size: 12px;
+}
+
+.yard-operational-metrics strong {
+  color: #20364d;
+  font-size: 16px;
+}
+
+.yard-operational-toolbar {
+  justify-content: space-between;
+  padding: 14px;
+  border: 1px solid #dce5ed;
+  border-radius: 12px;
+  background: #f8fbfd;
+}
+
+.yard-operational-toolbar > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: end;
+}
+
+.yard-operational-toolbar label,
+.yard-restriction-editor label,
+.yard-simulation-panel label {
+  display: grid;
+  gap: 5px;
+  color: #60748a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.yard-operational-toolbar button.active {
+  background: #1261a0;
+  color: #fff;
+}
+
+.yard-operational-selectors select {
+  min-width: 130px;
+}
+
+.yard-workspace-bar input {
+  min-width: 220px;
+}
+
+.yard-workspace-bar > span {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.yard-workspace-bar .danger {
+  min-width: 34px;
+  padding-inline: 8px;
+}
+
+.yard-live-equipment article {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 3px 8px;
+  align-items: center;
+  min-width: 150px;
+  padding: 10px;
+  border: 1px solid #dce5ed;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.yard-live-equipment small {
+  grid-column: 1 / -1;
+  color: #6c7d91;
+}
+
+.yard-operational-blocks {
+  display: grid;
+  gap: 16px;
+}
+
+.yard-operational-blocks > section {
+  padding: 14px;
+  border: 1px solid #dce5ed;
+  border-radius: 12px;
+  background: #f8fbfd;
+}
+
+.yard-operational-blocks > section > header,
+.yard-micro-view > header,
+.yard-simulation-panel > header,
+.yard-restriction-editor > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.yard-operational-grid,
+.yard-scan-view section > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 10px;
+}
+
+.yard-operational-stack {
+  display: grid;
+  gap: 7px;
+  min-height: 115px;
+  padding: 11px;
+  border: 2px solid transparent;
+  background: #fff;
+  color: #263a50;
+  text-align: left;
+  box-shadow: none;
+}
+
+.yard-operational-stack:hover {
+  background: #fff;
+  color: #263a50;
+}
+
+.yard-operational-stack.selected {
+  border-color: #1261a0;
+  box-shadow: 0 0 0 3px rgba(18, 97, 160, .12);
+}
+
+.yard-operational-stack.critical,
+.yard-operational-stack.interdicted {
+  background: #fff0ef;
+}
+
+.yard-operational-stack.warning,
+.yard-operational-stack.reserved {
+  background: #fff7e7;
+}
+
+.yard-operational-stack.info,
+.yard-operational-stack.occupied {
+  background: #eef7fc;
+}
+
+.yard-operational-stack.normal,
+.yard-operational-stack.available {
+  background: #effaf3;
+}
+
+.yard-operational-stack.blocked,
+.yard-operational-stack.full {
+  background: #edf2f7;
+}
+
+.yard-operational-layers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.yard-operational-layers i {
+  min-width: 28px;
+  padding: 4px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-style: normal;
+  text-align: center;
+}
+
+.yard-operational-layers .occupied,
+.yard-section-layers .occupied,
+.yard-micro-view .occupied {
+  background: #ddebfa;
+  color: #155485;
+}
+
+.yard-operational-layers .available,
+.yard-section-layers .available,
+.yard-micro-view .available {
+  background: #dcf4e6;
+  color: #17613a;
+}
+
+.yard-operational-layers .reserved,
+.yard-section-layers .reserved,
+.yard-micro-view .reserved {
+  background: #fff0cf;
+  color: #8a570d;
+}
+
+.yard-section-view {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  overflow-x: auto;
+  padding: 12px;
+  border: 1px solid #dce5ed;
+  border-radius: 12px;
+  background: #f8fbfd;
+}
+
+.yard-section-view article {
+  min-width: 150px;
+}
+
+.yard-section-view article > strong {
+  display: block;
+  margin-bottom: 7px;
+  text-align: center;
+}
+
+.yard-section-layers {
+  display: grid;
+  gap: 5px;
+}
+
+.yard-section-layers button,
+.yard-micro-view > button {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 8px;
+  align-items: center;
+  min-height: 48px;
+  padding: 8px;
+  border: 1px solid rgba(61, 81, 105, .15);
+  color: inherit;
+  text-align: left;
+  box-shadow: none;
+}
+
+.yard-section-layers button:hover,
+.yard-micro-view > button:hover {
+  color: inherit;
+  box-shadow: none;
+}
+
+.yard-scan-view {
+  display: grid;
+  gap: 14px;
+}
+
+.yard-scan-view section {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.yard-scan-view section > header {
+  padding: 12px 8px;
+  font-weight: 700;
+}
+
+.yard-micro-view {
+  display: grid;
+  gap: 7px;
+  max-width: 720px;
+}
+
+.yard-micro-view > button {
+  grid-template-columns: 80px 1fr auto;
+}
+
+.yard-simulation-panel,
+.yard-restriction-editor {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #dce5ed;
+  border-radius: 12px;
+  background: #f8fbfd;
+}
+
+.yard-simulation-panel.valid {
+  border-color: #8dccaa;
+  background: #effaf3;
+}
+
+.yard-simulation-panel.invalid {
+  border-color: #e5aaa6;
+  background: #fff1f0;
+}
+
+.yard-simulation-panel textarea,
+.yard-restriction-editor textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.yard-simulation-panel > div,
+.yard-restriction-editor > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.yard-restriction-editor > div label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .yard-operational-toolbar {
+    align-items: stretch;
+  }
+
+  .yard-operational-toolbar > div,
+  .yard-workspace-bar {
+    width: 100%;
+  }
+
+  .yard-operational-grid,
+  .yard-scan-view section > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .yard-scan-view section {
+    grid-template-columns: 1fr;
+  }
+}

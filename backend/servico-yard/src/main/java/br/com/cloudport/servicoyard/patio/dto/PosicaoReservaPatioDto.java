@@ -17,6 +17,7 @@ public class PosicaoReservaPatioDto {
     private final boolean bloqueada;
     private final boolean interditada;
     private final boolean areaPermitida;
+    private final String notaOperacional;
     private final List<String> tiposCargaPermitidos;
     private final BigDecimal pesoMaximoToneladas;
     private final BigDecimal alturaMaximaMetros;
@@ -35,6 +36,7 @@ public class PosicaoReservaPatioDto {
                                   boolean bloqueada,
                                   boolean interditada,
                                   boolean areaPermitida,
+                                  String notaOperacional,
                                   List<String> tiposCargaPermitidos,
                                   BigDecimal pesoMaximoToneladas,
                                   BigDecimal alturaMaximaMetros,
@@ -52,6 +54,7 @@ public class PosicaoReservaPatioDto {
         this.bloqueada = bloqueada;
         this.interditada = interditada;
         this.areaPermitida = areaPermitida;
+        this.notaOperacional = notaOperacional;
         this.tiposCargaPermitidos = tiposCargaPermitidos;
         this.pesoMaximoToneladas = pesoMaximoToneladas;
         this.alturaMaximaMetros = alturaMaximaMetros;
@@ -102,6 +105,10 @@ public class PosicaoReservaPatioDto {
 
     public boolean isAreaPermitida() {
         return areaPermitida;
+    }
+
+    public String getNotaOperacional() {
+        return notaOperacional;
     }
 
     public List<String> getTiposCargaPermitidos() {

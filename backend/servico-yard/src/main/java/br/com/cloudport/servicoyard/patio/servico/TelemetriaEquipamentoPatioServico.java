@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoyard.patio.servico;
 
+import br.com.cloudport.servicoyard.patio.controlroom.ControlRoomEquipamentoServico;
 import br.com.cloudport.servicoyard.patio.dto.TelemetriaEquipamentoPatioDto;
 import br.com.cloudport.servicoyard.patio.dto.TelemetriaEquipamentoPatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.modelo.EquipamentoPatio;
@@ -18,15 +19,18 @@ public class TelemetriaEquipamentoPatioServico {
     private final EquipamentoPatioRepositorio equipamentoRepositorio;
     private final TelemetriaEquipamentoPatioRepositorio telemetriaRepositorio;
     private final TelemetriaEquipamentoStreamingServico streamingServico;
+    private final ControlRoomEquipamentoServico controlRoomServico;
 
     public TelemetriaEquipamentoPatioServico(
             EquipamentoPatioRepositorio equipamentoRepositorio,
             TelemetriaEquipamentoPatioRepositorio telemetriaRepositorio,
-            TelemetriaEquipamentoStreamingServico streamingServico
+            TelemetriaEquipamentoStreamingServico streamingServico,
+            ControlRoomEquipamentoServico controlRoomServico
     ) {
         this.equipamentoRepositorio = equipamentoRepositorio;
         this.telemetriaRepositorio = telemetriaRepositorio;
         this.streamingServico = streamingServico;
+        this.controlRoomServico = controlRoomServico;
     }
 
     @Transactional
@@ -63,6 +67,7 @@ public class TelemetriaEquipamentoPatioServico {
         }
 
         TelemetriaEquipamentoPatioDto resposta = TelemetriaEquipamentoPatioDto.de(telemetriaRepositorio.save(telemetria));
+        controlRoomServico.registrarTelemetria(resposta);
         streamingServico.publicar(resposta);
         return resposta;
     }

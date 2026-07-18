@@ -48,14 +48,14 @@ public class DivergenciaPosicaoPatioController {
     @PostMapping("/{id}/investigate")
     @Operation(summary = "Inicia a investigação")
     public ResponseEntity<Map<String, Object>> investigar(@PathVariable Long id,
-                                                           @Valid @RequestBody InvestigacaoRequest request) {
+                                                            @Valid @RequestBody InvestigacaoRequest request) {
         return ResponseEntity.ok(mapear(servico.iniciarInvestigacao(id, request.responsavel, request.evidencia)));
     }
 
     @PostMapping("/{id}/corrective-instruction")
     @Operation(summary = "Cria instrução corretiva com origem e destino confirmados")
     public ResponseEntity<Map<String, Object>> criarInstrucao(@PathVariable Long id,
-                                                               @Valid @RequestBody CorrecaoRequest request) {
+                                                                @Valid @RequestBody CorrecaoRequest request) {
         return ResponseEntity.ok(mapear(servico.criarInstrucaoCorretiva(
                 id, request.equipamento, request.equipe, request.operador)));
     }
@@ -63,14 +63,14 @@ public class DivergenciaPosicaoPatioController {
     @PostMapping("/{id}/resolve")
     @Operation(summary = "Resolve após a conclusão da instrução corretiva")
     public ResponseEntity<Map<String, Object>> resolver(@PathVariable Long id,
-                                                         @Valid @RequestBody DecisaoRequest request) {
+                                                          @Valid @RequestBody DecisaoRequest request) {
         return ResponseEntity.ok(mapear(servico.resolver(id, request.decisao)));
     }
 
     @PostMapping("/{id}/cancel")
     @Operation(summary = "Cancela o caso e remove o bloqueio")
     public ResponseEntity<Map<String, Object>> cancelar(@PathVariable Long id,
-                                                         @Valid @RequestBody DecisaoRequest request) {
+                                                          @Valid @RequestBody DecisaoRequest request) {
         return ResponseEntity.ok(mapear(servico.cancelar(id, request.decisao)));
     }
 
@@ -78,6 +78,7 @@ public class DivergenciaPosicaoPatioController {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", caso.getId());
         dto.put("unidadeId", caso.getUnidade().getId());
+        dto.put("condicaoAnterior", caso.getCondicaoAnterior());
         dto.put("identificacaoUnidade", caso.getIdentificacaoUnidade());
         dto.put("posicaoEsperada", caso.getPosicaoEsperada());
         dto.put("posicaoEncontrada", caso.getPosicaoEncontrada());

@@ -1,6 +1,8 @@
 package br.com.cloudport.servicocargageral.controlador;
 
 import br.com.cloudport.servicocargageral.dominio.OperacoesIntermodaisTipos.ModalTransporteCargo;
+import br.com.cloudport.servicocargageral.dto.IdentificacaoCargoLotDTOs.IdentificacaoResposta;
+import br.com.cloudport.servicocargageral.dto.IdentificacaoCargoLotDTOs.RegistrarIdentificacaoRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.AdicionarEvidenciaAvariaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.AbrirAvariaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.AbrirInventarioFisicoRequest;
@@ -21,12 +23,14 @@ import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.ReservarG
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.ResolverDivergenciaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.TransicionarAvariaRequest;
 import br.com.cloudport.servicocargageral.dto.OperacoesIntermodaisDTOs.TransloadResposta;
+import br.com.cloudport.servicocargageral.servico.IdentificacaoCargoLotServico;
 import br.com.cloudport.servicocargageral.servico.OperacoesIntermodaisServico;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.UUID;
 import javax.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,6 +39,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/carga-geral/operacoes-intermodais")
@@ -43,9 +48,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class OperacoesIntermodaisControlador {
 
     private final OperacoesIntermodaisServico servico;
+    private final IdentificacaoCargoLotServico identificacaoServico;
 
-    public OperacoesIntermodaisControlador(OperacoesIntermodaisServico servico) {
+    public OperacoesIntermodaisControlador(
+            OperacoesIntermodaisServico servico,
+            IdentificacaoCargoLotServico identificacaoServico) {
         this.servico = servico;
+        this.identificacaoServico = identificacaoServico;
     }
 
     @PostMapping("/transloads")
@@ -170,6 +179,25 @@ public class OperacoesIntermodaisControlador {
         return servico.transicionarAvaria(id, request);
     }
 
+    @PostMapping("/identificacoes")
+    @Operation(summary = "Registrar código de barras ou QR de um cargo lot")
+    public IdentificacaoResposta registrarIdentificacao(
+            @Valid @RequestBody RegistrarIdentificacaoRequest request) {
+        return identificacaoServico.registrar(request);
+    }
+
+    @GetMapping("/identificacoes/resolver")
+    @Operation(summary = "Resolver código de barras ou QR")
+    public IdentificacaoResposta resolverIdentificacao(@RequestParam String codigo) {
+        return identificacaoServico.resolver(codigo);
+    }
+
+    @GetMapping("/identificacoes")
+    @Operation(summary = "Listar identificações de um cargo lot")
+    public List<IdentificacaoResposta> listarIdentificacoes(@RequestParam UUID loteId) {
+        return identificacaoServico.listar(loteId);
+    }
+
     @PostMapping("/inventarios")
     @Operation(summary = "Abrir inventário físico por posição")
     public InventarioFisicoResposta abrirInventario(
@@ -188,7 +216,22 @@ public class OperacoesIntermodaisControlador {
     public InventarioFisicoResposta registrarContagem(
             @PathVariable UUID id,
             @Valid @RequestBody RegistrarContagemRequest request) {
-        return servico.registrarContagem(id, request);
+        UUID loteIdentificado = identificacaoServico.resolverLoteId(request.identificacao());
+        if (!loteIdentificado.equals(request.loteId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "A identificação física pertence a outro cargo lot.");
+        }
+        RegistrarContagemRequest requestNormalizado = new RegistrarContagemRequest(
+                request.commandId(),
+                request.loteId(),
+                identificacaoServico.resolverCodigoLote(request.identificacao()),
+                request.quantidadeContada(),
+                request.volumeContadoM3(),
+                request.pesoContadoKg(),
+                request.usuario(),
+                request.observacao());
+        return servico.registrarContagem(id, requestNormalizado);
     }
 
     @PostMapping("/inventarios/{id}/divergencias")

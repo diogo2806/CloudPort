@@ -4,6 +4,7 @@ import { api, clearSession, formatError, hasAnyRole, readSession, sanitizeText, 
 import { Message } from './components.jsx';
 import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
+import { BillingPage, CapPage } from './pages/BillingCapPages.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
 import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
@@ -54,6 +55,12 @@ const FALLBACK_NAVIGATION = [
     { label: 'Embarque direto', path: '/home/gate/embarque-direto', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
     { label: 'Saída direta do navio', path: '/home/gate/operador/console', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
     { label: 'Relatórios', path: '/home/gate/relatorios', roles: [] }
+  ] },
+  { group: 'Faturamento', items: [
+    { label: 'Billing', path: '/home/billing', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }
+  ] },
+  { group: 'Portal do cliente', items: [
+    { label: 'Portal da transportadora', path: '/home/cap', roles: ['TRANSPORTADORA'] }
   ] },
   { group: 'Ferrovia', items: [
     { label: 'Visitas', path: '/home/ferrovia/visitas', roles: [] },
@@ -152,6 +159,8 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/notificacoes') return <NotificationsPage />;
   if (path === '/home/privacidade') return <PrivacyPage />;
   if (path === '/home/lista-de-usuarios') return <UsersPage />;
+  if (path === '/home/billing') return <BillingPage />;
+  if (path === '/home/cap') return <CapPage />;
   if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
   if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
   if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;

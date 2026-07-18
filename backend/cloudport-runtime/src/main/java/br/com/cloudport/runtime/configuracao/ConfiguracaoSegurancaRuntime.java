@@ -75,6 +75,13 @@ public class ConfiguracaoSegurancaRuntime {
                         .antMatchers(HttpMethod.GET, "/public/line-up-navios", "/line-up", "/line-up/**").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .antMatchers("/api/public/v1/**").hasRole("INTEGRACAO_EXTERNA")
+                        .antMatchers("/ws/patio", "/ws/patio/**")
+                        .hasAnyRole("ADMIN_PORTO", "PLANEJADOR", "OPERADOR_PATIO", "OPERADOR_GATE",
+                                "SERVICE_NAVIO", "SERVICE_SIDERURGICO")
+                        .antMatchers("/ws/recursos", "/ws/recursos/**")
+                        .hasAnyRole("ADMIN_PORTO", "PLANEJADOR", "OPERADOR_PATIO")
+                        .antMatchers("/ws/edi", "/ws/edi/**")
+                        .hasAnyRole("ADMIN_PORTO", "PLANEJADOR", "SERVICE_NAVIO", "SERVICE_SIDERURGICO")
                         .antMatchers(HttpMethod.GET,
                                 "/",
                                 "/index.html",

@@ -1,6 +1,7 @@
 package br.com.cloudport.runtime.configuracao;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -22,6 +23,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -44,6 +46,9 @@ class ConfiguracaoSegurancaRuntimeTest {
 
     private static final String CAMINHO_PUBLICO = "/api/public/v1/secretaria-clientes:sync";
     private static final String CAMINHO_LINE_UP = "/public/line-up-navios";
+    private static final String CAMINHO_WS_PATIO = "/ws/patio";
+    private static final String CAMINHO_WS_RECURSOS = "/ws/recursos";
+    private static final String CAMINHO_WS_EDI = "/ws/edi";
 
     @Autowired
     private MockMvc mockMvc;
@@ -94,12 +99,62 @@ class ConfiguracaoSegurancaRuntimeTest {
                 .contains("x-cloudport-client-secret");
     }
 
+    @Test
+    void deveRejeitarHandshakePatioAnonimo() throws Exception {
+        mockMvc.perform(get(CAMINHO_WS_PATIO))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void deveRejeitarHandshakePatioParaPerfilSemEscopo() throws Exception {
+        mockMvc.perform(get(CAMINHO_WS_PATIO)
+                        .with(jwtComRole("USUARIO_CAP")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void devePermitirHandshakePatioParaOperador() throws Exception {
+        mockMvc.perform(get(CAMINHO_WS_PATIO)
+                        .with(jwtComRole("OPERADOR_PATIO")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void deveRejeitarHandshakeRecursosParaOperadorGate() throws Exception {
+        mockMvc.perform(get(CAMINHO_WS_RECURSOS)
+                        .with(jwtComRole("OPERADOR_GATE")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void devePermitirHandshakeRecursosParaPlanejador() throws Exception {
+        mockMvc.perform(get(CAMINHO_WS_RECURSOS)
+                        .with(jwtComRole("PLANEJADOR")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void devePermitirHandshakeEdiParaServicoSiderurgico() throws Exception {
+        mockMvc.perform(get(CAMINHO_WS_EDI)
+                        .with(jwtComRole("SERVICE_SIDERURGICO")))
+                .andExpect(status().isOk());
+    }
+
+    private static org.springframework.test.web.servlet.request.RequestPostProcessor jwtComRole(String role) {
+        return jwt().authorities(new SimpleGrantedAuthority("ROLE_" + role));
+    }
+
     @RestController
     static class ControladorSec10 {
 
         @GetMapping(CAMINHO_LINE_UP)
         Map<String, Object> lineUp() {
             return Map.of("publico", true);
+        }
+
+        @GetMapping({CAMINHO_WS_PATIO, CAMINHO_WS_RECURSOS, CAMINHO_WS_EDI})
+        Map<String, Object> websocket(Authentication authentication) {
+            return Map.of("principal", authentication.getName());
         }
 
         @PostMapping(CAMINHO_PUBLICO)

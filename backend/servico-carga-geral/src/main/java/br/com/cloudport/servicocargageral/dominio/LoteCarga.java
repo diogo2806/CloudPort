@@ -7,9 +7,13 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import javax.persistence.CascadeType;
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
+import javax.persistence.Embeddable;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -106,9 +110,41 @@ public class LoteCarga {
     @Column(name = "descricao_avaria", length = 1000)
     private String descricaoAvaria;
 
+    @Column(name = "visita_trem_id", length = 80)
+    private String visitaTremId;
+
+    @Column(name = "vagao_id", length = 120)
+    private String vagaoId;
+
+    @Column(name = "posicao_ferroviaria", length = 120)
+    private String posicaoFerroviaria;
+
+    @Column(name = "sequencia_ferroviaria")
+    private Integer sequenciaFerroviaria;
+
+    @Column(name = "capacidade_vagao_peso_kg", precision = 19, scale = 3)
+    private BigDecimal capacidadeVagaoPesoKg;
+
+    @Column(name = "incompatibilidades_ferroviarias", length = 1000)
+    private String incompatibilidadesFerroviarias;
+
+    @Column(name = "custodia_ferroviaria", length = 120)
+    private String custodiaFerroviaria;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_ordem_ferroviaria", length = 20)
+    private StatusOrdemFerroviariaCarga statusOrdemFerroviaria;
+
     @OneToMany(mappedBy = "lote", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("ocorridoEm DESC")
     private List<MovimentacaoCarga> movimentacoes = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(
+            name = "historico_custodia_ferroviaria_carga",
+            joinColumns = @JoinColumn(name = "lote_id", nullable = false))
+    @OrderBy("ocorridoEm DESC")
+    private List<HistoricoCustodiaFerroviaria> historicoCustodiaFerroviaria = new ArrayList<>();
 
     @Column(name = "criado_em", nullable = false)
     private OffsetDateTime criadoEm;
@@ -196,6 +232,125 @@ public class LoteCarga {
                     : StatusLoteCarga.NO_TERMINAL;
     }
 
+    public void planejarFerrovia(
+            String visitaTrem,
+            String vagao,
+            String posicao,
+            int sequencia,
+            BigDecimal capacidadePesoKg,
+            String incompatibilidades,
+            String custodia,
+            String responsavel) {
+        validarTexto(visitaTrem, "A visita de trem deve ser informada.");
+        validarTexto(vagao, "O vagão deve ser informado.");
+        validarTexto(custodia, "A custódia deve ser informada.");
+        validarTexto(responsavel, "O responsável deve ser informado.");
+        if (sequencia <= 0) {
+            throw new IllegalArgumentException("A sequência ferroviária deve ser maior que zero.");
+        }
+        if (capacidadePesoKg == null || capacidadePesoKg.signum() <= 0) {
+            throw new IllegalArgumentException("A capacidade de peso do vagão deve ser maior que zero.");
+        }
+        BigDecimal pesoOperacional = pesoSaldoKg.signum() > 0 ? pesoSaldoKg : pesoPrevistoKg;
+        if (pesoOperacional != null && pesoOperacional.compareTo(capacidadePesoKg) > 0) {
+            throw new IllegalStateException("O peso do cargo lot excede a capacidade do vagão.");
+        }
+
+        StatusOrdemFerroviariaCarga statusAnterior = statusOrdemFerroviaria;
+        String custodiaAnterior = custodiaFerroviaria;
+        visitaTremId = visitaTrem.trim();
+        vagaoId = vagao.trim();
+        posicaoFerroviaria = textoOuNulo(posicao);
+        sequenciaFerroviaria = sequencia;
+        capacidadeVagaoPesoKg = capacidadePesoKg;
+        incompatibilidadesFerroviarias = textoOuNulo(incompatibilidades);
+        custodiaFerroviaria = custodia.trim();
+        statusOrdemFerroviaria = StatusOrdemFerroviariaCarga.PENDENTE;
+        registrarHistoricoCustodia(
+                statusAnterior,
+                statusOrdemFerroviaria,
+                custodiaAnterior,
+                custodiaFerroviaria,
+                "PLANEJAMENTO",
+                "Ordem ferroviária planejada ou replanejada.",
+                responsavel);
+    }
+
+    public void atualizarStatusFerroviario(
+            StatusOrdemFerroviariaCarga novoStatus,
+            String novaCustodia,
+            String motivo,
+            String responsavel) {
+        if (statusOrdemFerroviaria == null || visitaTremId == null) {
+            throw new IllegalStateException("O cargo lot não possui ordem ferroviária planejada.");
+        }
+        if (novoStatus == null) {
+            throw new IllegalArgumentException("O status da ordem ferroviária deve ser informado.");
+        }
+        validarTexto(responsavel, "O responsável deve ser informado.");
+        validarTransicaoStatusFerroviario(statusOrdemFerroviaria, novoStatus);
+
+        String custodiaNova = textoOuNulo(novaCustodia);
+        if (custodiaNova == null) {
+            custodiaNova = custodiaFerroviaria;
+        }
+        if (Objects.equals(statusOrdemFerroviaria, novoStatus)
+                && Objects.equals(custodiaFerroviaria, custodiaNova)) {
+            return;
+        }
+
+        StatusOrdemFerroviariaCarga statusAnterior = statusOrdemFerroviaria;
+        String custodiaAnterior = custodiaFerroviaria;
+        statusOrdemFerroviaria = novoStatus;
+        custodiaFerroviaria = custodiaNova;
+        registrarHistoricoCustodia(
+                statusAnterior,
+                novoStatus,
+                custodiaAnterior,
+                custodiaNova,
+                "ATUALIZACAO_STATUS",
+                motivo,
+                responsavel);
+    }
+
+    private void validarTransicaoStatusFerroviario(
+            StatusOrdemFerroviariaCarga atual,
+            StatusOrdemFerroviariaCarga novoStatus) {
+        if (atual == novoStatus) {
+            return;
+        }
+        if (atual == StatusOrdemFerroviariaCarga.PENDENTE
+                && (novoStatus == StatusOrdemFerroviariaCarga.EM_EXECUCAO
+                || novoStatus == StatusOrdemFerroviariaCarga.CONCLUIDA)) {
+            return;
+        }
+        if (atual == StatusOrdemFerroviariaCarga.EM_EXECUCAO
+                && novoStatus == StatusOrdemFerroviariaCarga.CONCLUIDA) {
+            return;
+        }
+        throw new IllegalStateException(
+                "A transição ferroviária de " + atual + " para " + novoStatus + " não é permitida.");
+    }
+
+    private void registrarHistoricoCustodia(
+            StatusOrdemFerroviariaCarga statusAnterior,
+            StatusOrdemFerroviariaCarga statusNovo,
+            String custodiaAnterior,
+            String custodiaNova,
+            String evento,
+            String motivo,
+            String responsavel) {
+        historicoCustodiaFerroviaria.add(new HistoricoCustodiaFerroviaria(
+                statusAnterior,
+                statusNovo,
+                custodiaAnterior,
+                custodiaNova,
+                evento,
+                textoOuNulo(motivo),
+                responsavel.trim(),
+                OffsetDateTime.now()));
+    }
+
     private void validarSaldoBloqueado(BigDecimal quantidade, BigDecimal volume, BigDecimal peso) {
         if (valor(quantidade).compareTo(quantidadeBloqueada) > 0
                 || valor(volume).compareTo(volumeBloqueadoM3) > 0
@@ -219,6 +374,13 @@ public class LoteCarga {
 
     private BigDecimal valor(BigDecimal valor) { return valor == null ? BigDecimal.ZERO : valor; }
     private String normalizar(String valor) { return valor == null ? null : valor.trim().toUpperCase(); }
+    private String textoOuNulo(String valor) { return valor == null || valor.isBlank() ? null : valor.trim(); }
+
+    private void validarTexto(String valor, String mensagem) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException(mensagem);
+        }
+    }
 
     public UUID getId() { return id; }
     public String getCodigo() { return codigo; }
@@ -264,7 +426,79 @@ public class LoteCarga {
     public void setCodigoAvaria(String codigoAvaria) { this.codigoAvaria = codigoAvaria; }
     public String getDescricaoAvaria() { return descricaoAvaria; }
     public void setDescricaoAvaria(String descricaoAvaria) { this.descricaoAvaria = descricaoAvaria; }
+    public String getVisitaTremId() { return visitaTremId; }
+    public String getVagaoId() { return vagaoId; }
+    public String getPosicaoFerroviaria() { return posicaoFerroviaria; }
+    public Integer getSequenciaFerroviaria() { return sequenciaFerroviaria; }
+    public BigDecimal getCapacidadeVagaoPesoKg() { return capacidadeVagaoPesoKg; }
+    public String getIncompatibilidadesFerroviarias() { return incompatibilidadesFerroviarias; }
+    public String getCustodiaFerroviaria() { return custodiaFerroviaria; }
+    public StatusOrdemFerroviariaCarga getStatusOrdemFerroviaria() { return statusOrdemFerroviaria; }
+    public List<HistoricoCustodiaFerroviaria> getHistoricoCustodiaFerroviaria() {
+        return Collections.unmodifiableList(historicoCustodiaFerroviaria);
+    }
     public List<MovimentacaoCarga> getMovimentacoes() { return Collections.unmodifiableList(movimentacoes); }
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public OffsetDateTime getAtualizadoEm() { return atualizadoEm; }
+
+    @Embeddable
+    public static class HistoricoCustodiaFerroviaria {
+
+        @Enumerated(EnumType.STRING)
+        @Column(name = "status_anterior", length = 20)
+        private StatusOrdemFerroviariaCarga statusAnterior;
+
+        @Enumerated(EnumType.STRING)
+        @Column(name = "status_novo", nullable = false, length = 20)
+        private StatusOrdemFerroviariaCarga statusNovo;
+
+        @Column(name = "custodia_anterior", length = 120)
+        private String custodiaAnterior;
+
+        @Column(name = "custodia_nova", length = 120)
+        private String custodiaNova;
+
+        @Column(nullable = false, length = 40)
+        private String evento;
+
+        @Column(length = 1000)
+        private String motivo;
+
+        @Column(nullable = false, length = 120)
+        private String responsavel;
+
+        @Column(name = "ocorrido_em", nullable = false)
+        private OffsetDateTime ocorridoEm;
+
+        protected HistoricoCustodiaFerroviaria() {
+        }
+
+        private HistoricoCustodiaFerroviaria(
+                StatusOrdemFerroviariaCarga statusAnterior,
+                StatusOrdemFerroviariaCarga statusNovo,
+                String custodiaAnterior,
+                String custodiaNova,
+                String evento,
+                String motivo,
+                String responsavel,
+                OffsetDateTime ocorridoEm) {
+            this.statusAnterior = statusAnterior;
+            this.statusNovo = statusNovo;
+            this.custodiaAnterior = custodiaAnterior;
+            this.custodiaNova = custodiaNova;
+            this.evento = evento;
+            this.motivo = motivo;
+            this.responsavel = responsavel;
+            this.ocorridoEm = ocorridoEm;
+        }
+
+        public StatusOrdemFerroviariaCarga getStatusAnterior() { return statusAnterior; }
+        public StatusOrdemFerroviariaCarga getStatusNovo() { return statusNovo; }
+        public String getCustodiaAnterior() { return custodiaAnterior; }
+        public String getCustodiaNova() { return custodiaNova; }
+        public String getEvento() { return evento; }
+        public String getMotivo() { return motivo; }
+        public String getResponsavel() { return responsavel; }
+        public OffsetDateTime getOcorridoEm() { return ocorridoEm; }
+    }
 }

@@ -118,7 +118,7 @@ jobs:
       - name: Bloquear deploy quando houver falha nos testes
         shell: bash
         run: |
-          if [[ "${{ needs.backend.result }}" != "success" || "${{ needs.runtime-geral.result }}" != "success" ]]; then
+          if [[ "${{ needs.backend.result }}" != "success" || "${{ needs['runtime-geral'].result }}" != "success" ]]; then
             echo "Os testes do backend falharam. O deploy foi bloqueado." >&2
             exit 1
           fi

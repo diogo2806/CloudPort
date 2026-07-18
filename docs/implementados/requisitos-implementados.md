@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a proteção fail-closed dos jobs persistentes do Gate e a integração do motor de otimização ao replanejamento operacional real.
+Status: atualizado em 2026-07-18 com a conclusão do ASYNC90 e a proteção fail-closed dos jobs persistentes do Gate.
 
 ## Instruções obrigatórias para agentes de IA
 

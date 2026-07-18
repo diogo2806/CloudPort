@@ -2,15 +2,18 @@ package br.com.cloudport.servicoyard.scheduler.servico;
 
 import br.com.cloudport.servicoyard.scheduler.dto.DualCycleJobDto;
 import br.com.cloudport.servicoyard.scheduler.dto.EquipmentRouteDto;
+import br.com.cloudport.servicoyard.scheduler.dto.SchedulerAssignmentDto;
 import br.com.cloudport.servicoyard.scheduler.dto.SchedulerContainerDto;
 import br.com.cloudport.servicoyard.scheduler.dto.SchedulerPlanoOperacionalRequisicaoDto;
 import br.com.cloudport.servicoyard.scheduler.dto.SchedulerResultDto;
 import br.com.cloudport.servicoyard.scheduler.dto.VesselArrivalDto;
 import br.com.cloudport.servicoyard.scheduler.servico.DualCycleOptimizationService.ContainerComPosicao;
 import br.com.cloudport.servicoyard.scheduler.servico.EquipmentRouteOptimizerService.TarefaEquipamento;
+import br.com.cloudport.servicoyard.scheduler.servico.RealYardReplanningOptimizerService.ResultadoOtimizacaoReal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -20,14 +23,29 @@ public class PredictiveSchedulerService {
     private final DualCycleOptimizationService dualCycleOptimizer;
     private final EquipmentRouteOptimizerService routeOptimizer;
     private final VesselArrivalSchedulerService vesselScheduler;
+    private final RealYardReplanningOptimizerService realReplanningOptimizer;
 
     public PredictiveSchedulerService(
             DualCycleOptimizationService dualCycleOptimizer,
             EquipmentRouteOptimizerService routeOptimizer,
             VesselArrivalSchedulerService vesselScheduler) {
+        this(
+                dualCycleOptimizer,
+                routeOptimizer,
+                vesselScheduler,
+                new RealYardReplanningOptimizerService());
+    }
+
+    @Autowired
+    public PredictiveSchedulerService(
+            DualCycleOptimizationService dualCycleOptimizer,
+            EquipmentRouteOptimizerService routeOptimizer,
+            VesselArrivalSchedulerService vesselScheduler,
+            RealYardReplanningOptimizerService realReplanningOptimizer) {
         this.dualCycleOptimizer = dualCycleOptimizer;
         this.routeOptimizer = routeOptimizer;
         this.vesselScheduler = vesselScheduler;
+        this.realReplanningOptimizer = realReplanningOptimizer;
     }
 
     public SchedulerResultDto gerarPlanoOperacional(SchedulerPlanoOperacionalRequisicaoDto requisicao) {
@@ -35,10 +53,44 @@ public class PredictiveSchedulerService {
             throw new IllegalArgumentException("Os dados reais do navio devem ser informados.");
         }
         List<String> equipamentos = normalizarEquipamentos(requisicao.getEquipamentosDisponiveis());
+        ResultadoOtimizacaoReal resultadoReal = null;
+        if (!requisicao.getPosicoesCandidatas().isEmpty()) {
+            resultadoReal = realReplanningOptimizer.otimizar(requisicao);
+            List<String> equipamentosAtribuidos = resultadoReal.atribuicoes().stream()
+                    .map(SchedulerAssignmentDto::getEquipamentoId)
+                    .filter(StringUtils::hasText)
+                    .distinct()
+                    .toList();
+            if (!equipamentosAtribuidos.isEmpty()) {
+                equipamentos = equipamentosAtribuidos;
+            }
+        }
+
         List<ContainerComPosicao> importacao = converterContainers(requisicao.getContainersImportacao());
         List<ContainerComPosicao> exportacao = converterContainers(requisicao.getContainersExportacao());
         validarTotaisManifestados(requisicao.getNavio(), importacao, exportacao);
-        return gerarPlanoOperacional(requisicao.getNavio(), equipamentos, importacao, exportacao);
+        SchedulerResultDto resultado = gerarPlanoOperacional(
+                requisicao.getNavio(),
+                equipamentos,
+                importacao,
+                exportacao);
+        if (resultadoReal != null) {
+            resultado.setAtribuicoesReplanejamento(resultadoReal.atribuicoes());
+            resultado.setMemoriaCalculo(resultadoReal.memoriaCalculo());
+            resultado.setJustificativas(resultadoReal.justificativas());
+            resultado.setAssinaturaEntrada(resultadoReal.assinaturaEntrada());
+            resultado.setRehandlesEstimados(resultadoReal.rehandlesEstimados());
+            resultado.setDistanciaOriginal(resultadoReal.distanciaOriginal());
+            resultado.setDistanciaOtimizada(resultadoReal.distanciaOtimizada());
+            resultado.setDistanciaEconomizada(Math.max(
+                    0,
+                    resultadoReal.distanciaOriginal() - resultadoReal.distanciaOtimizada()));
+            resultado.setPontuacaoTotal(resultadoReal.pontuacaoTotal());
+            resultado.setObservacoes(resultado.getObservacoes()
+                    + ". Replanejamento real gerado com mapa, restricoes, reservas, equipamentos e memoria de calculo.");
+            resultado.calcularEstatisticas();
+        }
+        return resultado;
     }
 
     public SchedulerResultDto gerarPlanoOperacional(

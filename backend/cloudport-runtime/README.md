@@ -35,6 +35,7 @@ Cada artefato fornece `db/migration`. O build extrai essas migrações para name
 
 ```bash
 cd backend/cloudport-modules
+mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install
 mvn -B -Dspring-boot.repackage.skip=true \
   -pl :cloudport-runtime -am \
   -DskipTests install

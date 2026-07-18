@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão do BUS10, da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-18 com a conclusão dos BUS10 e BUS1040, da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -202,6 +202,11 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 11. O contêiner é validado e reservado no inventário canônico, com bloqueio pessimista, verificação de condição, estado, manutenção e holds, e liberação na conclusão ou no cancelamento.
 12. Cada apontamento exige `commandId`, persiste hash do conteúdo e reutiliza o resultado aplicado em repetições equivalentes, rejeitando reutilização incompatível.
 13. O portal lista apenas contêineres elegíveis do inventário canônico e preserva o mesmo `commandId` para retentativa após falha de comunicação.
+14. O BUS1040 persiste allocation de cargo lot com origem, destino, recurso, prioridade, restrições, quantidades e vínculo com a reserva de capacidade do Yard.
+15. A capacidade por posição considera simultaneamente o saldo confirmado e as reservas pendentes, evitando sobrealocação de quantidade, volume ou peso.
+16. A confirmação física debita a posição de origem e credita a posição de destino na mesma transação do Yard, com bloqueio pessimista e rejeição de saldo insuficiente.
+17. O saldo confirmado é persistido por cargo lot e posição, com carga inicial das reservas históricas já confirmadas.
+18. A API expõe consulta dos saldos por posição e os adaptadores HTTP e local propagam a origem da allocation para a transferência correta.
 
 ## Billing e portal CAP
 

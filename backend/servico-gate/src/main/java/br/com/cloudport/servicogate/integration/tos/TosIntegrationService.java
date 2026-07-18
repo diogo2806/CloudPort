@@ -6,12 +6,12 @@ import br.com.cloudport.servicogate.app.gestor.dto.TosSyncResponse;
 import br.com.cloudport.servicogate.integration.tos.model.TosCustomsReleaseResponse;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.enums.TipoOperacao;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -36,8 +36,10 @@ public class TosIntegrationService {
     public TosBookingInfo obterBookingInfo(String bookingNumber) {
         TosBookingInfo info = adapter.toBookingInfo(tosClient.buscarBooking(bookingNumber));
         if (info != null) {
-            LOGGER.info("event=tos.booking.sync booking={} liberado={} vessel={} voyage={}",
-                    info.getBookingNumber(), info.isLiberado(), info.getVessel(), info.getVoyage());
+            LOGGER.info("event=tos.booking.sync resource=booking identifier={} status=success liberado={} correlationId={}",
+                    TosObservabilidadeSegura.mascararIdentificador(info.getBookingNumber()),
+                    info.isLiberado(),
+                    TosObservabilidadeSegura.obterCorrelationId());
         }
         return info;
     }
@@ -48,9 +50,11 @@ public class TosIntegrationService {
                 tosClient.buscarStatusContainer(containerNumber),
                 obterLiberacaoAduaneira(containerNumber));
         if (status != null) {
-            LOGGER.info("event=tos.container.sync container={} status={} gateLiberado={} customsLiberado={} motivo={}",
-                    status.getContainerNumber(), status.getStatus(), status.isGateLiberado(),
-                    status.isLiberacaoAduaneira(), status.getMotivoRestricao());
+            LOGGER.info("event=tos.container.sync resource=container-status identifier={} status=success gateLiberado={} customsLiberado={} correlationId={}",
+                    TosObservabilidadeSegura.mascararIdentificador(status.getContainerNumber()),
+                    status.isGateLiberado(),
+                    status.isLiberacaoAduaneira(),
+                    TosObservabilidadeSegura.obterCorrelationId());
         }
         return status;
     }
@@ -67,7 +71,9 @@ public class TosIntegrationService {
         evict(TosCacheNames.BOOKING, containerNumber);
         evict(TosCacheNames.CONTAINER_STATUS, containerNumber);
         evict(TosCacheNames.CUSTOMS_RELEASE, containerNumber);
-        LOGGER.info("event=tos.cache.evict identifier={}", containerNumber);
+        LOGGER.info("event=tos.cache.evict resource=cache identifier={} status=success correlationId={}",
+                TosObservabilidadeSegura.mascararIdentificador(containerNumber),
+                TosObservabilidadeSegura.obterCorrelationId());
     }
 
     private void evict(String cacheName, String key) {
@@ -82,19 +88,26 @@ public class TosIntegrationService {
             return;
         }
         TosBookingInfo bookingInfo = obterBookingInfo(bookingNumber);
+        String identificadorMascarado = TosObservabilidadeSegura.mascararIdentificador(bookingNumber);
         if (bookingInfo == null) {
-            throw new TosIntegrationException(String.format("Booking %s não localizado no TOS", bookingNumber));
+            throw erroOperacional(
+                    "booking",
+                    identificadorMascarado,
+                    "TOS_BOOKING_NAO_LOCALIZADO",
+                    "Booking " + identificadorMascarado + " não localizado no TOS.");
         }
         if (!bookingInfo.isLiberado()) {
-            String motivo = Optional.ofNullable(bookingInfo.getMotivoRestricao())
-                    .filter(StringUtils::hasText)
-                    .orElse("Motivo não informado pelo TOS");
-            throw new TosIntegrationException(String.format(
-                    "TOS negou criação do agendamento para booking %s (%s): %s",
-                    bookingNumber, tipoOperacao, motivo));
+            throw erroOperacional(
+                    "booking",
+                    identificadorMascarado,
+                    "TOS_BOOKING_BLOQUEADO",
+                    "TOS negou a criação do agendamento para o booking " + identificadorMascarado + ".");
         }
-        LOGGER.info("event=tos.booking.validated booking={} tipoOperacao={} liberado={}",
-                bookingInfo.getBookingNumber(), tipoOperacao, bookingInfo.isLiberado());
+        LOGGER.info("event=tos.booking.validated resource=booking identifier={} status=success tipoOperacao={} liberado={} correlationId={}",
+                identificadorMascarado,
+                tipoOperacao,
+                bookingInfo.isLiberado(),
+                TosObservabilidadeSegura.obterCorrelationId());
     }
 
     public TosContainerStatus validarParaEntrada(Agendamento agendamento) {
@@ -102,27 +115,34 @@ public class TosIntegrationService {
         if (!StringUtils.hasText(identificador)) {
             return null;
         }
+        String identificadorMascarado = TosObservabilidadeSegura.mascararIdentificador(identificador);
         TosContainerStatus status = obterStatusContainer(identificador);
         if (status == null) {
-            throw new TosIntegrationException(String.format("Status do contêiner %s não localizado no TOS",
-                    identificador));
+            throw erroOperacional(
+                    "container-status",
+                    identificadorMascarado,
+                    "TOS_CONTAINER_NAO_LOCALIZADO",
+                    "Status do contêiner " + identificadorMascarado + " não localizado no TOS.");
         }
         if (!status.isGateLiberado()) {
-            String motivo = Optional.ofNullable(status.getMotivoRestricao())
-                    .filter(StringUtils::hasText)
-                    .orElse("TOS não informou motivo");
-            throw new TosIntegrationException(String.format(
-                    "TOS bloqueou o gate para o contêiner %s: %s", identificador, motivo));
+            throw erroOperacional(
+                    "container-status",
+                    identificadorMascarado,
+                    "TOS_GATE_BLOQUEADO",
+                    "TOS bloqueou a entrada para o contêiner " + identificadorMascarado + ".");
         }
-        if (!status.isLiberacaoAduaneira()) {
-            String motivo = Optional.ofNullable(status.getMotivoRestricao())
-                    .filter(StringUtils::hasText)
-                    .orElse("Contêiner sem liberação aduaneira no TOS");
-            throw new TosIntegrationException(String.format(
-                    "TOS indicou pendência aduaneira para o contêiner %s: %s", identificador, motivo));
+        if (!status.isLiberacaoAduaneIRA()) {
+            throw erroOperacional(
+                    "customs-release",
+                    identificadorMascarado,
+                    "TOS_PENDENCIA_ADUANEIRA",
+                    "TOS indicou pendência aduaneira para o contêiner " + identificadorMascarado + ".");
         }
-        LOGGER.info("event=tos.container.validated agendamento={} container={} status={} customsLiberado={}",
-                agendamento.getId(), status.getContainerNumber(), status.getStatus(), status.isLiberacaoAduaneira());
+        LOGGER.info("event=tos.container.validated resource=container-status identifier={} status=success agendamento={} customsLiberado={} correlationId={}",
+                identificadorMascarado,
+                agendamento.getId(),
+                status.isLiberacaoAduaneira(),
+                TosObservabilidadeSegura.obterCorrelationId());
         return status;
     }
 
@@ -134,9 +154,29 @@ public class TosIntegrationService {
         }
         TosBookingInfo bookingInfo = possuiIdentificador ? obterBookingInfo(identificador) : null;
         TosContainerStatus containerStatus = possuiIdentificador ? obterStatusContainer(identificador) : null;
-        LOGGER.info("event=tos.sync.completed agendamento={} booking={} container={}", agendamento.getId(),
-                bookingInfo != null ? bookingInfo.getBookingNumber() : null,
-                containerStatus != null ? containerStatus.getContainerNumber() : null);
+        LOGGER.info("event=tos.sync.completed resource=sync identifier={} status=success agendamento={} bookingPresente={} containerPresente={} correlationId={}",
+                TosObservabilidadeSegura.mascararIdentificador(identificador),
+                agendamento.getId(),
+                bookingInfo != null,
+                containerStatus != null,
+                TosObservabilidadeSegura.obterCorrelationId());
         return new TosSyncResponse(agendamento.getId(), bookingInfo, containerStatus);
+    }
+
+    private TosIntegrationException erroOperacional(String recurso,
+                                                     String identificadorMascarado,
+                                                     String codigoErro,
+                                                     String mensagem) {
+        String correlationId = TosObservabilidadeSegura.obterCorrelationId();
+        int status = HttpStatus.UNPROCESSABLE_ENTITY.value();
+        LOGGER.warn("event=tos.validation.error resource={} identifier={} status={} errorCode={} correlationId={}",
+                recurso, identificadorMascarado, status, codigoErro, correlationId);
+        return new TosIntegrationException(
+                mensagem,
+                status,
+                recurso,
+                identificadorMascarado,
+                codigoErro,
+                correlationId);
     }
 }

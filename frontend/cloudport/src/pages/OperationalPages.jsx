@@ -5,6 +5,7 @@ import { selectGateAppointments } from '../gateDataset.js';
 import { gateOperatorApi, selectGateOperatorVehicles } from '../gateOperatorApi.js';
 import { collectDatasetKeys, humanizeDatasetKey } from '../operationalDataset.js';
 import { GateVisualPage } from './GateVisualPage.jsx';
+import { YardInstructionCreateModal } from './yard/YardInstructionsPage.jsx';
 
 function displayValue(value) {
   if (value === undefined || value === null || value === '') return '—';
@@ -110,6 +111,8 @@ export function ShippingPage() {
 export function ControlRoomPage({ session }) {
   const iframeRef = useRef(null);
   const [error, setError] = useState('');
+  const [instructionOpen, setInstructionOpen] = useState(false);
+  const [instructionMessage, setInstructionMessage] = useState('');
   const url = getRuntimeConfig().navioControlRoomUrl;
   const targetOrigin = useMemo(() => { try { return url ? new URL(url, window.location.href).origin : ''; } catch { return ''; } }, [url]);
   const sendSession = useCallback(() => {
@@ -121,8 +124,9 @@ export function ControlRoomPage({ session }) {
     window.addEventListener('message', listener);
     return () => window.removeEventListener('message', listener);
   }, [sendSession, targetOrigin]);
-  if (!url || !targetOrigin) return <><PageHeader eyebrow="Navio" title="Control Room" description="Integração operacional Navio + Pátio." /><Message type="error">A URL do Control Room não foi configurada em assets/configuracao.json.</Message></>;
-  return <><PageHeader eyebrow="Navio" title="Control Room" description="Painel React incorporado com sessão única do portal." actions={<button className="secondary" onClick={sendSession}>Reenviar sessão</button>} /><Message type="error">{error}</Message><section className="iframe-panel"><iframe ref={iframeRef} src={url} title="Control Room Navio e Pátio" onLoad={sendSession} onError={() => setError('Não foi possível carregar o Control Room.')} /></section></>;
+  const actions = <div className="actions"><button type="button" onClick={() => setInstructionOpen(true)}>Nova instrução</button>{url && targetOrigin && <button className="secondary" onClick={sendSession}>Reenviar sessão</button>}</div>;
+  if (!url || !targetOrigin) return <><PageHeader eyebrow="Navio" title="Control Room" description="Integração operacional Navio + Pátio." actions={actions} /><Message type="error">A URL do Control Room não foi configurada em assets/configuracao.json.</Message><Message type="success">{instructionMessage}</Message><YardInstructionCreateModal open={instructionOpen} session={session} onClose={() => setInstructionOpen(false)} onCreated={() => setInstructionMessage('Instrução criada com sucesso.')} /></>;
+  return <><PageHeader eyebrow="Navio" title="Control Room" description="Painel React incorporado com sessão única do portal." actions={actions} /><Message type="error">{error}</Message><Message type="success">{instructionMessage}</Message><section className="iframe-panel"><iframe ref={iframeRef} src={url} title="Control Room Navio e Pátio" onLoad={sendSession} onError={() => setError('Não foi possível carregar o Control Room.')} /></section><YardInstructionCreateModal open={instructionOpen} session={session} onClose={() => setInstructionOpen(false)} onCreated={() => setInstructionMessage('Instrução criada com sucesso.')} /></>;
 }
 
 const loadGateAppointments = () => api.obterCentralGate().then(selectGateAppointments);

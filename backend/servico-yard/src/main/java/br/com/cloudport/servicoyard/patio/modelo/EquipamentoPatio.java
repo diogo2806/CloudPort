@@ -47,51 +47,16 @@ public class EquipamentoPatio {
         this.statusOperacional = statusOperacional;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getIdentificador() {
-        return identificador;
-    }
-
-    public void setIdentificador(String identificador) {
-        this.identificador = identificador;
-    }
-
-    public TipoEquipamento getTipoEquipamento() {
-        return tipoEquipamento;
-    }
-
-    public void setTipoEquipamento(TipoEquipamento tipoEquipamento) {
-        this.tipoEquipamento = tipoEquipamento;
-    }
-
-    public Integer getLinha() {
-        return linha;
-    }
-
-    public void setLinha(Integer linha) {
-        this.linha = linha;
-    }
-
-    public Integer getColuna() {
-        return coluna;
-    }
-
-    public void setColuna(Integer coluna) {
-        this.coluna = coluna;
-    }
-
-    public StatusEquipamento getStatusOperacional() {
-        return statusOperacional;
-    }
-
-    public void setStatusOperacional(StatusEquipamento statusOperacional) {
-        this.statusOperacional = statusOperacional;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getIdentificador() { return identificador; }
+    public void setIdentificador(String identificador) { this.identificador = identificador; }
+    public TipoEquipamento getTipoEquipamento() { return tipoEquipamento; }
+    public void setTipoEquipamento(TipoEquipamento tipoEquipamento) { this.tipoEquipamento = tipoEquipamento; }
+    public Integer getLinha() { return linha; }
+    public void setLinha(Integer linha) { this.linha = linha; }
+    public Integer getColuna() { return coluna; }
+    public void setColuna(Integer coluna) { this.coluna = coluna; }
+    public StatusEquipamento getStatusOperacional() { return statusOperacional; }
+    public void setStatusOperacional(StatusEquipamento statusOperacional) { this.statusOperacional = statusOperacional; }
 }

@@ -30,6 +30,7 @@ import {
 } from './pages/OperationalPages.jsx';
 import {
   YardAutomationPage,
+  YardInstructionsPage,
   YardKpiPage,
   YardMapPage,
   YardMovementsPage,
@@ -86,6 +87,7 @@ const FALLBACK_NAVIGATION = [
     { label: 'Inventário', path: '/home/patio/inventario', roles: [] },
     { label: 'Planejamento de recebimento', path: '/home/patio/planejamento-recebimento', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Lista de trabalho', path: '/home/patio/lista-trabalho', roles: [] },
+    { label: 'Instruções de trabalho', path: '/home/patio/instrucoes', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
     { label: 'Posições', path: '/home/patio/posicoes', roles: [] },
     { label: 'Movimentações', path: '/home/patio/movimentacoes', roles: [] },
     { label: 'Recursos', path: '/home/patio/recursos', roles: [] },
@@ -180,6 +182,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/patio/planejamento-recebimento') return <YardReceivingPlanPage navigate={navigate} />;
   if (path === '/home/patio/posicoes') return <YardPositionsPage navigate={navigate} />;
   if (path === '/home/patio/lista-trabalho') return <YardWorkListPage navigate={navigate} session={session} />;
+  if (path === '/home/patio/instrucoes') return <YardInstructionsPage navigate={navigate} session={session} />;
   if (path === '/home/patio/movimentacoes' || path === '/home/patio/movimentacao') return <YardMovementsPage navigate={navigate} />;
   if (path === '/home/patio/recursos') return <YardResourcesPage navigate={navigate} />;
   if (path === '/home/patio/dashboard-kpi') return <YardKpiPage navigate={navigate} />;

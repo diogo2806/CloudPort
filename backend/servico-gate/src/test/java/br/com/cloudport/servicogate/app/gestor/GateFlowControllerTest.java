@@ -10,7 +10,6 @@ import br.com.cloudport.servicogate.app.gestor.dto.GateDecisionDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.GateFlowRequest;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.enums.StatusGate;
-import br.com.cloudport.servicogate.app.gestor.GateFlowService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +32,9 @@ class GateFlowControllerTest {
 
     @MockBean
     private GateFlowService gateFlowService;
+
+    @MockBean
+    private GateOperationsService gateOperationsService;
 
     @Test
     @DisplayName("Deve bloquear chamadas sem autenticação no fluxo de entrada")
@@ -72,4 +74,3 @@ class GateFlowControllerTest {
                 .andExpect(jsonPath("$.mensagem").value("Entrada liberada"));
     }
 }
-

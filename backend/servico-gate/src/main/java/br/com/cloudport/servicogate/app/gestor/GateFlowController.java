@@ -6,7 +6,6 @@ import br.com.cloudport.servicogate.app.gestor.dto.GateEventDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.GateFlowRequest;
 import br.com.cloudport.servicogate.app.gestor.dto.ManualReleaseRequest;
 import br.com.cloudport.servicogate.app.gestor.dto.TosSyncResponse;
-import br.com.cloudport.servicogate.app.gestor.GateFlowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.validation.Valid;
@@ -24,9 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class GateFlowController {
 
     private final GateFlowService gateFlowService;
+    private final GateOperationsService gateOperationsService;
 
-    public GateFlowController(GateFlowService gateFlowService) {
+    public GateFlowController(GateFlowService gateFlowService,
+                              GateOperationsService gateOperationsService) {
         this.gateFlowService = gateFlowService;
+        this.gateOperationsService = gateOperationsService;
     }
 
     @PostMapping("/entrada")
@@ -34,6 +36,9 @@ public class GateFlowController {
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
     public ResponseEntity<GateDecisionDTO> registrarEntrada(@Valid @RequestBody GateFlowRequest request) {
         GateDecisionDTO decision = gateFlowService.registrarEntrada(request);
+        if (decision.isAutorizado()) {
+            gateOperationsService.registrarEntrada(request, decision.getGatePassId());
+        }
         return ResponseEntity.ok(decision);
     }
 
@@ -42,6 +47,9 @@ public class GateFlowController {
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
     public ResponseEntity<GateDecisionDTO> registrarSaida(@Valid @RequestBody GateFlowRequest request) {
         GateDecisionDTO decision = gateFlowService.registrarSaida(request);
+        if (decision.isAutorizado()) {
+            gateOperationsService.registrarSaida(request, decision.getGatePassId());
+        }
         return ResponseEntity.ok(decision);
     }
 
@@ -49,7 +57,7 @@ public class GateFlowController {
     @Operation(summary = "Registra liberação ou bloqueio manual para um agendamento")
     @PreAuthorize("hasRole('OPERADOR_GATE')")
     public ResponseEntity<GateEventDTO> liberarManual(@PathVariable("id") Long agendamentoId,
-                                                      @Valid @RequestBody ManualReleaseRequest request) {
+                                                       @Valid @RequestBody ManualReleaseRequest request) {
         GateEventDTO evento = gateFlowService.liberarManual(agendamentoId, request);
         return ResponseEntity.ok(evento);
     }

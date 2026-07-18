@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão do ASYNC90 e a proteção fail-closed dos jobs persistentes do Gate.
+Status: atualizado em 2026-07-18 com a conclusão do BUS1170 e a proteção fail-closed dos jobs persistentes do Gate.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -157,6 +157,11 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 3. Composição gráfica, ocupação de linhas, progresso e conflitos.
 4. Line-up ferroviário vertical.
 5. Locomotiva isolada tratada como visita e embarcada após custódia e checklist.
+6. Movimentos internos persistem visita, origem, destino, janela planejada e estados `PLANEJADO`, `AUTORIZADO`, `EM_EXECUCAO`, `CONCLUIDO` e `CANCELADO`.
+7. Rotas, linhas, trechos e switches são reservados na autorização e liberados atomicamente na conclusão ou no cancelamento.
+8. Sobreposições de visita ou recurso retornam conflito funcional e são protegidas por restrições de exclusão no PostgreSQL.
+9. A conclusão atualiza a posição ferroviária corrente da visita.
+10. A API permite planejar, autorizar, iniciar, concluir, cancelar, consultar e listar o histórico por visita.
 
 A persistência do replanejamento visual por vagão permanece no backlog.
 
@@ -198,9 +203,3 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 4. Navegação por teclado e atributos de acessibilidade.
 5. Ajuda contextual, central global de alertas e navegação dinâmica.
 6. Sessão JWT invalidada de forma consistente em respostas `401`.
-
-## Pendências não marcadas como implementadas
-
-Não há pendências no backlog técnico `docs/requisitos/requisito-tecnico.md`.
-
-Permanecem no backlog funcional a persistência do planejamento ferroviário visual, a comprovação do corte operacional e as evoluções registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.

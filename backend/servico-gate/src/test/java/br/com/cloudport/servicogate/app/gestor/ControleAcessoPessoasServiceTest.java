@@ -8,14 +8,19 @@ import br.com.cloudport.servicogate.model.PessoaAcesso;
 import br.com.cloudport.servicogate.model.enums.DirecaoMovimentacaoPessoa;
 import br.com.cloudport.servicogate.model.enums.SituacaoPessoaAcesso;
 import br.com.cloudport.servicogate.model.enums.TipoPessoaAcesso;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,6 +35,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ControleAcessoPessoasServiceTest {
 
+    private static final String MENSAGEM_CONFLITO_CONCORRENCIA =
+            "A transição de acesso já foi realizada por outra requisição. Atualize os dados e tente novamente.";
+
     @Mock
     private PessoaAcessoRepository pessoaAcessoRepository;
 
@@ -41,25 +49,15 @@ class ControleAcessoPessoasServiceTest {
 
     @Test
     void registrarEntrada_criaPessoaEHistorico() {
-        EntradaPessoaRequest request = new EntradaPessoaRequest(
-                "Maria da Silva",
-                "123.456.789-00",
-                TipoPessoaAcesso.VISITANTE,
-                "Empresa Exemplo",
-                "CR-100",
-                "Portaria principal",
-                "Reunião operacional",
-                "PORTAL_CLOUDPORT_REACT",
-                "corr-1",
-                "usuario-informado");
+        EntradaPessoaRequest request = novaEntrada();
 
         when(pessoaAcessoRepository.findByDocumentoNormalizado("12345678900")).thenReturn(Optional.empty());
-        when(pessoaAcessoRepository.save(any(PessoaAcesso.class))).thenAnswer(invocation -> {
+        when(pessoaAcessoRepository.saveAndFlush(any(PessoaAcesso.class))).thenAnswer(invocation -> {
             PessoaAcesso pessoa = invocation.getArgument(0);
             pessoa.setId(10L);
             return pessoa;
         });
-        when(movimentacaoRepository.save(any(MovimentacaoPessoaAcesso.class))).thenAnswer(invocation -> {
+        when(movimentacaoRepository.saveAndFlush(any(MovimentacaoPessoaAcesso.class))).thenAnswer(invocation -> {
             MovimentacaoPessoaAcesso movimentacao = invocation.getArgument(0);
             movimentacao.setId(20L);
             return movimentacao;
@@ -75,7 +73,7 @@ class ControleAcessoPessoasServiceTest {
         assertNotNull(resultado.registradoEm());
 
         ArgumentCaptor<PessoaAcesso> pessoaCaptor = ArgumentCaptor.forClass(PessoaAcesso.class);
-        verify(pessoaAcessoRepository).save(pessoaCaptor.capture());
+        verify(pessoaAcessoRepository).saveAndFlush(pessoaCaptor.capture());
         assertEquals(SituacaoPessoaAcesso.DENTRO, pessoaCaptor.getValue().getSituacao());
         assertEquals("12345678900", pessoaCaptor.getValue().getDocumentoNormalizado());
     }
@@ -98,8 +96,42 @@ class ControleAcessoPessoasServiceTest {
                 null);
 
         assertThrows(ResponseStatusException.class, () -> service.registrarEntrada(request));
-        verify(pessoaAcessoRepository, never()).save(any(PessoaAcesso.class));
-        verify(movimentacaoRepository, never()).save(any(MovimentacaoPessoaAcesso.class));
+        verify(pessoaAcessoRepository, never()).saveAndFlush(any(PessoaAcesso.class));
+        verify(movimentacaoRepository, never()).saveAndFlush(any(MovimentacaoPessoaAcesso.class));
+    }
+
+    @Test
+    void registrarEntrada_converteColisaoDoDocumentoEmConflito() {
+        when(pessoaAcessoRepository.findByDocumentoNormalizado("12345678900")).thenReturn(Optional.empty());
+        ConstraintViolationException causa = new ConstraintViolationException(
+                "documento duplicado",
+                new SQLException("duplicate key"),
+                "uk_pessoa_acesso_documento_normalizado");
+        when(pessoaAcessoRepository.saveAndFlush(any(PessoaAcesso.class)))
+                .thenThrow(new DataIntegrityViolationException("documento duplicado", causa));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.registrarEntrada(novaEntrada()));
+
+        assertEquals(409, exception.getRawStatusCode());
+        assertEquals(MENSAGEM_CONFLITO_CONCORRENCIA, exception.getReason());
+        verify(movimentacaoRepository, never()).saveAndFlush(any(MovimentacaoPessoaAcesso.class));
+    }
+
+    @Test
+    void registrarEntrada_converteLockConcorrenteEmConflito() {
+        when(pessoaAcessoRepository.findByDocumentoNormalizado("12345678900"))
+                .thenThrow(new PessimisticLockingFailureException("registro em uso"));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.registrarEntrada(novaEntrada()));
+
+        assertEquals(409, exception.getRawStatusCode());
+        assertEquals(MENSAGEM_CONFLITO_CONCORRENCIA, exception.getReason());
+        verify(pessoaAcessoRepository, never()).saveAndFlush(any(PessoaAcesso.class));
+        verify(movimentacaoRepository, never()).saveAndFlush(any(MovimentacaoPessoaAcesso.class));
     }
 
     @Test
@@ -107,8 +139,9 @@ class ControleAcessoPessoasServiceTest {
         PessoaAcesso pessoa = pessoaDentro();
         pessoa.setUltimoAcessoEm(LocalDateTime.now().minusMinutes(45));
         when(pessoaAcessoRepository.findByDocumentoNormalizado("12345678900")).thenReturn(Optional.of(pessoa));
-        when(pessoaAcessoRepository.save(any(PessoaAcesso.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(movimentacaoRepository.save(any(MovimentacaoPessoaAcesso.class))).thenAnswer(invocation -> {
+        when(pessoaAcessoRepository.saveAndFlush(any(PessoaAcesso.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(movimentacaoRepository.saveAndFlush(any(MovimentacaoPessoaAcesso.class))).thenAnswer(invocation -> {
             MovimentacaoPessoaAcesso movimentacao = invocation.getArgument(0);
             movimentacao.setId(30L);
             return movimentacao;
@@ -143,7 +176,43 @@ class ControleAcessoPessoasServiceTest {
                 null);
 
         assertThrows(ResponseStatusException.class, () -> service.registrarSaida(request));
-        verify(movimentacaoRepository, never()).save(any(MovimentacaoPessoaAcesso.class));
+        verify(movimentacaoRepository, never()).saveAndFlush(any(MovimentacaoPessoaAcesso.class));
+    }
+
+    @Test
+    void registrarSaida_converteFalhaDeVersaoEmConflito() {
+        PessoaAcesso pessoa = pessoaDentro();
+        when(pessoaAcessoRepository.findByDocumentoNormalizado("12345678900")).thenReturn(Optional.of(pessoa));
+        when(pessoaAcessoRepository.saveAndFlush(any(PessoaAcesso.class)))
+                .thenThrow(new ObjectOptimisticLockingFailureException(PessoaAcesso.class, pessoa.getId()));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.registrarSaida(new SaidaPessoaRequest(
+                        "12345678900",
+                        "Portaria principal",
+                        null,
+                        null,
+                        null,
+                        null)));
+
+        assertEquals(409, exception.getRawStatusCode());
+        assertEquals(MENSAGEM_CONFLITO_CONCORRENCIA, exception.getReason());
+        verify(movimentacaoRepository, never()).saveAndFlush(any(MovimentacaoPessoaAcesso.class));
+    }
+
+    private EntradaPessoaRequest novaEntrada() {
+        return new EntradaPessoaRequest(
+                "Maria da Silva",
+                "123.456.789-00",
+                TipoPessoaAcesso.VISITANTE,
+                "Empresa Exemplo",
+                "CR-100",
+                "Portaria principal",
+                "Reunião operacional",
+                "PORTAL_CLOUDPORT_REACT",
+                "corr-1",
+                "usuario-informado");
     }
 
     private PessoaAcesso pessoaDentro() {

@@ -17,6 +17,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,17 +37,33 @@ import org.springframework.web.server.ResponseStatusException;
 public class ControleAcessoPessoasService {
 
     private static final int LIMITE_MAXIMO_HISTORICO = 200;
+    private static final String CONSTRAINT_DOCUMENTO_UNICO = "uk_pessoa_acesso_documento_normalizado";
+    private static final String MENSAGEM_CONFLITO_CONCORRENCIA =
+            "A transição de acesso já foi realizada por outra requisição. Atualize os dados e tente novamente.";
 
     private final PessoaAcessoRepository pessoaAcessoRepository;
     private final MovimentacaoPessoaAcessoRepository movimentacaoRepository;
 
     public ControleAcessoPessoasService(PessoaAcessoRepository pessoaAcessoRepository,
-                                        MovimentacaoPessoaAcessoRepository movimentacaoRepository) {
+                                         MovimentacaoPessoaAcessoRepository movimentacaoRepository) {
         this.pessoaAcessoRepository = pessoaAcessoRepository;
         this.movimentacaoRepository = movimentacaoRepository;
     }
 
     public MovimentacaoPessoaDTO registrarEntrada(EntradaPessoaRequest request) {
+        try {
+            return registrarEntradaSerializada(request);
+        } catch (DataIntegrityViolationException exception) {
+            if (violouConstraint(exception, CONSTRAINT_DOCUMENTO_UNICO)) {
+                throw conflitoConcorrencia(exception);
+            }
+            throw exception;
+        } catch (OptimisticLockingFailureException | PessimisticLockingFailureException exception) {
+            throw conflitoConcorrencia(exception);
+        }
+    }
+
+    private MovimentacaoPessoaDTO registrarEntradaSerializada(EntradaPessoaRequest request) {
         String documentoNormalizado = normalizarDocumento(request.documento());
         PessoaAcesso pessoa = pessoaAcessoRepository.findByDocumentoNormalizado(documentoNormalizado)
                 .orElseGet(PessoaAcesso::new);
@@ -64,7 +84,7 @@ public class ControleAcessoPessoasService {
         pessoa.setSituacao(SituacaoPessoaAcesso.DENTRO);
         pessoa.setUltimoAcessoEm(registradoEm);
         pessoa.setUltimoPontoAcesso(textoObrigatorio(request.pontoAcesso(), "O ponto de acesso é obrigatório"));
-        PessoaAcesso pessoaSalva = pessoaAcessoRepository.save(pessoa);
+        PessoaAcesso pessoaSalva = pessoaAcessoRepository.saveAndFlush(pessoa);
 
         MovimentacaoPessoaAcesso movimentacao = novaMovimentacao(
                 pessoaSalva,
@@ -75,10 +95,18 @@ public class ControleAcessoPessoasService {
                 request.correlationId(),
                 registradoEm,
                 null);
-        return mapear(movimentacaoRepository.save(movimentacao));
+        return mapear(movimentacaoRepository.saveAndFlush(movimentacao));
     }
 
     public MovimentacaoPessoaDTO registrarSaida(SaidaPessoaRequest request) {
+        try {
+            return registrarSaidaSerializada(request);
+        } catch (OptimisticLockingFailureException | PessimisticLockingFailureException exception) {
+            throw conflitoConcorrencia(exception);
+        }
+    }
+
+    private MovimentacaoPessoaDTO registrarSaidaSerializada(SaidaPessoaRequest request) {
         String documentoNormalizado = normalizarDocumento(request.documento());
         PessoaAcesso pessoa = pessoaAcessoRepository.findByDocumentoNormalizado(documentoNormalizado)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -96,7 +124,7 @@ public class ControleAcessoPessoasService {
         pessoa.setSituacao(SituacaoPessoaAcesso.FORA);
         pessoa.setUltimoAcessoEm(registradoEm);
         pessoa.setUltimoPontoAcesso(textoObrigatorio(request.pontoAcesso(), "O ponto de acesso é obrigatório"));
-        PessoaAcesso pessoaSalva = pessoaAcessoRepository.save(pessoa);
+        PessoaAcesso pessoaSalva = pessoaAcessoRepository.saveAndFlush(pessoa);
 
         MovimentacaoPessoaAcesso movimentacao = novaMovimentacao(
                 pessoaSalva,
@@ -107,7 +135,7 @@ public class ControleAcessoPessoasService {
                 request.correlationId(),
                 registradoEm,
                 permanenciaMinutos);
-        return mapear(movimentacaoRepository.save(movimentacao));
+        return mapear(movimentacaoRepository.saveAndFlush(movimentacao));
     }
 
     @Transactional(readOnly = true)
@@ -155,13 +183,13 @@ public class ControleAcessoPessoasService {
     }
 
     private MovimentacaoPessoaAcesso novaMovimentacao(PessoaAcesso pessoa,
-                                                       DirecaoMovimentacaoPessoa direcao,
-                                                       String pontoAcesso,
-                                                       String motivo,
-                                                       String origemAcao,
-                                                       String correlationId,
-                                                       LocalDateTime registradoEm,
-                                                       Long permanenciaMinutos) {
+                                                        DirecaoMovimentacaoPessoa direcao,
+                                                        String pontoAcesso,
+                                                        String motivo,
+                                                        String origemAcao,
+                                                        String correlationId,
+                                                        LocalDateTime registradoEm,
+                                                        Long permanenciaMinutos) {
         MovimentacaoPessoaAcesso movimentacao = new MovimentacaoPessoaAcesso();
         movimentacao.setPessoa(pessoa);
         movimentacao.setDirecao(direcao);
@@ -193,6 +221,29 @@ public class ControleAcessoPessoasService {
                 movimentacao.getOrigemAcao(),
                 movimentacao.getCorrelationId(),
                 movimentacao.getPermanenciaMinutos());
+    }
+
+    private boolean violouConstraint(DataIntegrityViolationException exception, String constraintEsperada) {
+        Throwable causa = exception;
+        while (causa != null) {
+            if (causa instanceof ConstraintViolationException) {
+                String constraintEncontrada = ((ConstraintViolationException) causa).getConstraintName();
+                if (constraintEncontrada != null && constraintEsperada.equalsIgnoreCase(constraintEncontrada)) {
+                    return true;
+                }
+            }
+            String mensagem = causa.getMessage();
+            if (mensagem != null
+                    && mensagem.toLowerCase(Locale.ROOT).contains(constraintEsperada.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+            causa = causa.getCause();
+        }
+        return false;
+    }
+
+    private ResponseStatusException conflitoConcorrencia(Throwable causa) {
+        return new ResponseStatusException(HttpStatus.CONFLICT, MENSAGEM_CONFLITO_CONCORRENCIA, causa);
     }
 
     private String normalizarDocumento(String documento) {

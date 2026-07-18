@@ -351,10 +351,23 @@ public class AgrupadorRecebimentoPatioServico {
         }
         String semAcentos = Normalizer.normalize(valor, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "");
-        return semAcentos.trim()
+        String normalizado = semAcentos.trim()
                 .toUpperCase(Locale.ROOT)
-                .replaceAll("[^A-Z0-9]+", "_")
-                .replaceAll("^_+|_+$", "");
+                .replaceAll("[^A-Z0-9]+", "_");
+        return removerSublinhadosDasBordas(normalizado);
+    }
+
+    private String removerSublinhadosDasBordas(String valor) {
+        int inicio = 0;
+        int fim = valor.length();
+
+        while (inicio < fim && valor.charAt(inicio) == '_') {
+            inicio++;
+        }
+        while (fim > inicio && valor.charAt(fim - 1) == '_') {
+            fim--;
+        }
+        return valor.substring(inicio, fim);
     }
 
     private record ChaveAgrupamento(String categoria,

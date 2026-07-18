@@ -22,17 +22,25 @@ public class PublicadorEventoMovimentacaoTrem {
     private final RabbitTemplate rabbitTemplate;
     private final String exchange;
     private final String routingKey;
+    private final boolean rabbitEnabled;
 
     public PublicadorEventoMovimentacaoTrem(RabbitTemplate rabbitTemplate,
                                             @Value("${cloudport.rail.eventos.exchange}") String exchange,
-                                            @Value("${cloudport.rail.eventos.routing-movimentacao}") String routingKey) {
+                                            @Value("${cloudport.rail.eventos.routing-movimentacao}") String routingKey,
+                                            @Value("${cloudport.messaging.rabbit.enabled:false}") boolean rabbitEnabled) {
         this.rabbitTemplate = rabbitTemplate;
         this.exchange = exchange;
         this.routingKey = routingKey;
+        this.rabbitEnabled = rabbitEnabled;
     }
 
     public void publicar(EventoMovimentacaoTremConcluidaDto evento) {
         Assert.notNull(evento, "Evento da movimentação do trem não pode ser nulo");
+        if (!rabbitEnabled) {
+            LOGGER.debug("Evento da movimentação do trem não publicado porque o RabbitMQ está desabilitado.");
+            return;
+        }
+
         LOGGER.info("event=movimentacao_trem.publicada ordem={} visita={} conteiner={} tipo={}",
                 evento.getIdOrdemMovimentacao(), evento.getIdVisitaTrem(), evento.getCodigoConteiner(),
                 evento.getTipoMovimentacao());

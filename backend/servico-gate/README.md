@@ -31,7 +31,7 @@ Após a incorporação ao runtime monolítico, os contratos REST externos devem 
 
 Configure as variáveis `GATE_*`, `TOS_API_*` e `DOCUMENT_STORAGE_*` no ambiente de execução. Garanta que o banco configurado exista e esteja acessível.
 
-A recuperação periódica de OCR e a reconciliação noturna de barcode usam o controle canônico `cloudport.runtime.jobs-enabled`, exposto pela variável `CLOUDPORT_JOBS_ENABLED`. O runtime escritor deve usar `true`. Qualquer deployment legado ou de rollback em coexistência deve usar `CLOUDPORT_JOBS_ENABLED=false`; chamadas explícitas e submissões imediatas permanecem disponíveis, mas os agendamentos periódicos não são registrados.
+A recuperação periódica de OCR e a reconciliação noturna de barcode usam o controle canônico `cloudport.runtime.jobs-enabled`, exposto pela variável `CLOUDPORT_JOBS_ENABLED`. A ausência da variável mantém os jobs desabilitados. Somente o deployment responsável pelo processamento persistente deve configurar `CLOUDPORT_JOBS_ENABLED=true`; deployments standalone, legados ou de rollback permanecem fail-closed sem configuração adicional. Chamadas explícitas e submissões imediatas continuam disponíveis quando os agendamentos periódicos estão desabilitados.
 
 Quando houver mais de uma réplica com jobs habilitados, o ciclo de barcode é serializado por advisory lock no PostgreSQL. Cada alerta é reivindicado individualmente com token e lease persistidos, e reutiliza a mesma chave de idempotência em restart ou retry. `GATE_RECONCILIACAO_ALERTA_LEASE` define o prazo para recuperar uma reivindicação interrompida e usa `PT2M` por padrão.
 
@@ -50,7 +50,7 @@ mvn spring-boot:run
 
 A porta padrão é `8082`, podendo ser alterada por `GATE_SERVER_PORT`.
 
-A execução isolada é um mecanismo de compatibilidade e rollback. O roteamento de produção deve possuir uma única origem ativa para cada rota, evitando que o deployment legado e o monólito processem a mesma escrita. Durante coexistência com o runtime canônico, iniciar o Gate legado com `CLOUDPORT_JOBS_ENABLED=false`.
+A execução isolada é um mecanismo de compatibilidade e rollback. O roteamento de produção deve possuir uma única origem ativa para cada rota, evitando que o deployment legado e o monólito processem a mesma escrita. Durante coexistência com o runtime canônico, não configure `CLOUDPORT_JOBS_ENABLED` no Gate legado; o valor padrão `false` impede a execução concorrente. A variável deve ser definida como `true` somente no deployment que assumirá os jobs persistentes.
 
 ## Testes
 

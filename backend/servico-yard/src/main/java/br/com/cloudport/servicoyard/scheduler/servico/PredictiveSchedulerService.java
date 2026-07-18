@@ -86,9 +86,9 @@ public class PredictiveSchedulerService {
                     0,
                     resultadoReal.distanciaOriginal() - resultadoReal.distanciaOtimizada()));
             resultado.setPontuacaoTotal(resultadoReal.pontuacaoTotal());
+            resultado.setStatusGeral("OTIMIZADO_REAL");
             resultado.setObservacoes(resultado.getObservacoes()
                     + ". Replanejamento real gerado com mapa, restricoes, reservas, equipamentos e memoria de calculo.");
-            resultado.calcularEstatisticas();
         }
         return resultado;
     }

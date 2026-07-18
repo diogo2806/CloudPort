@@ -113,11 +113,11 @@ public class StuffUnstuffServico {
                 .orElseThrow(() -> naoEncontrada("Item da operação não encontrado."));
         LoteCarga lote = buscarLoteComBloqueio(item.getLote().getId());
         validarExecucaoNoLote(operacao.getTipo(), lote, request.quantidade(), request.volumeM3(), request.pesoKg());
-        aplicarSaldo(operacao.getTipo(), lote, request.quantidade(), request.volumeM3(), request.pesoKg());
-        registrarMovimentacao(operacao, lote, request);
         executarComEstadoValido(() -> item.registrarExecucao(
                 request.quantidade(), request.volumeM3(), request.pesoKg(),
                 request.codigoAvaria(), request.descricaoAvaria(), request.divergencia()));
+        aplicarSaldo(operacao.getTipo(), lote, request.quantidade(), request.volumeM3(), request.pesoKg());
+        registrarMovimentacao(operacao, lote, request);
         operacao.atualizarStatusExecucao();
         operacao.registrarEvento(TipoEventoStuffUnstuff.EXECUCAO_REGISTRADA, request.usuario(),
                 request.correlationId(), "Execução parcial registrada para o lote " + lote.getCodigo() + ".");
@@ -126,8 +126,9 @@ public class StuffUnstuffServico {
                     request.correlationId(), request.divergencia());
         }
         if (request.codigoAvaria() != null && !request.codigoAvaria().isBlank()) {
+            String descricaoAvaria = request.descricaoAvaria() == null ? "" : ": " + request.descricaoAvaria();
             operacao.registrarEvento(TipoEventoStuffUnstuff.AVARIA_REGISTRADA, request.usuario(),
-                    request.correlationId(), request.codigoAvaria() + ": " + request.descricaoAvaria());
+                    request.correlationId(), request.codigoAvaria() + descricaoAvaria);
         }
         loteRepositorio.save(lote);
         return mapear(operacaoRepositorio.save(operacao));
@@ -149,9 +150,12 @@ public class StuffUnstuffServico {
             throw conflito("Operação já está encerrada.");
         }
         for (ItemOperacaoStuffUnstuff item : operacao.getItens()) {
-            if (!item.possuiExecucao()) continue;
+            if (!item.possuiExecucao()) {
+                continue;
+            }
             LoteCarga lote = buscarLoteComBloqueio(item.getLote().getId());
             compensarSaldo(operacao.getTipo(), lote, item);
+            registrarMovimentacaoCompensacao(operacao, lote, item, request.usuario(), request.correlationId());
             loteRepositorio.save(lote);
         }
         executarComEstadoValido(() -> operacao.cancelar(request.motivo(), request.usuario(), request.correlationId()));
@@ -163,21 +167,26 @@ public class StuffUnstuffServico {
             validarDisponibilidade(lote, item.quantidadePlanejada(), item.volumePlanejadoM3(), item.pesoPlanejadoKg());
             return;
         }
-        BigDecimal capacidadeQuantidade = lote.getQuantidadePrevista().subtract(lote.getQuantidadeSaldo());
-        BigDecimal capacidadeVolume = lote.getVolumePrevistoM3().subtract(lote.getVolumeSaldoM3());
-        BigDecimal capacidadePeso = lote.getPesoPrevistoKg().subtract(lote.getPesoSaldoKg());
-        if (item.quantidadePlanejada().compareTo(capacidadeQuantidade) > 0
-                || item.volumePlanejadoM3().compareTo(capacidadeVolume) > 0
-                || item.pesoPlanejadoKg().compareTo(capacidadePeso) > 0) {
-            throw conflito("Planejamento de unstuff excede a capacidade prevista do cargo lot " + lote.getCodigo() + ".");
-        }
+        validarCapacidadeRecebimento(
+                lote,
+                item.quantidadePlanejada(),
+                item.volumePlanejadoM3(),
+                item.pesoPlanejadoKg(),
+                "Planejamento de unstuff excede a capacidade prevista do cargo lot ");
     }
 
     private void validarExecucaoNoLote(TipoOperacaoStuffUnstuff tipo, LoteCarga lote,
             BigDecimal quantidade, BigDecimal volume, BigDecimal peso) {
         if (tipo == TipoOperacaoStuffUnstuff.STUFF) {
             validarDisponibilidade(lote, quantidade, volume, peso);
+            return;
         }
+        validarCapacidadeRecebimento(
+                lote,
+                quantidade,
+                volume,
+                peso,
+                "Execução de unstuff excede a capacidade prevista do cargo lot ");
     }
 
     private void validarDisponibilidade(LoteCarga lote, BigDecimal quantidade, BigDecimal volume, BigDecimal peso) {
@@ -188,11 +197,30 @@ public class StuffUnstuffServico {
         }
     }
 
+    private void validarCapacidadeRecebimento(
+            LoteCarga lote,
+            BigDecimal quantidade,
+            BigDecimal volume,
+            BigDecimal peso,
+            String mensagem) {
+        BigDecimal capacidadeQuantidade = lote.getQuantidadePrevista().subtract(lote.getQuantidadeSaldo());
+        BigDecimal capacidadeVolume = lote.getVolumePrevistoM3().subtract(lote.getVolumeSaldoM3());
+        BigDecimal capacidadePeso = lote.getPesoPrevistoKg().subtract(lote.getPesoSaldoKg());
+        if (quantidade.compareTo(capacidadeQuantidade) > 0
+                || volume.compareTo(capacidadeVolume) > 0
+                || peso.compareTo(capacidadePeso) > 0) {
+            throw conflito(mensagem + lote.getCodigo() + ".");
+        }
+    }
+
     private void aplicarSaldo(TipoOperacaoStuffUnstuff tipo, LoteCarga lote,
             BigDecimal quantidade, BigDecimal volume, BigDecimal peso) {
         executarComEstadoValido(() -> {
-            if (tipo == TipoOperacaoStuffUnstuff.STUFF) lote.retirarSaldo(quantidade, volume, peso);
-            else lote.adicionarSaldo(quantidade, volume, peso);
+            if (tipo == TipoOperacaoStuffUnstuff.STUFF) {
+                lote.retirarSaldo(quantidade, volume, peso);
+            } else {
+                lote.adicionarSaldo(quantidade, volume, peso);
+            }
         });
     }
 
@@ -207,23 +235,66 @@ public class StuffUnstuffServico {
     }
 
     private void registrarMovimentacao(OperacaoStuffUnstuff operacao, LoteCarga lote, RegistrarExecucaoRequest request) {
-        MovimentacaoCarga movimentacao = new MovimentacaoCarga();
-        movimentacao.setTipo(operacao.getTipo() == TipoOperacaoStuffUnstuff.STUFF
-                ? TipoMovimentacaoCarga.CARGA_PARCIAL : TipoMovimentacaoCarga.DESCARGA_PARCIAL);
-        movimentacao.setQuantidade(request.quantidade());
-        movimentacao.setVolumeM3(request.volumeM3());
-        movimentacao.setPesoKg(request.pesoKg());
-        movimentacao.setOrigemTipo(operacao.getTipo() == TipoOperacaoStuffUnstuff.STUFF ? "CARGO_LOT" : "CONTEINER");
-        movimentacao.setOrigemId(operacao.getTipo() == TipoOperacaoStuffUnstuff.STUFF
-                ? lote.getId().toString() : operacao.getConteinerId());
-        movimentacao.setDestinoTipo(operacao.getTipo() == TipoOperacaoStuffUnstuff.STUFF ? "CONTEINER" : "CARGO_LOT");
-        movimentacao.setDestinoId(operacao.getTipo() == TipoOperacaoStuffUnstuff.STUFF
-                ? operacao.getConteinerId() : lote.getId().toString());
-        movimentacao.setArmazemId(operacao.getArmazemId());
-        movimentacao.setUsuario(request.usuario());
-        movimentacao.setCorrelationId(request.correlationId());
-        movimentacao.setObservacao("Operação " + operacao.getId() + " - " + operacao.getTipo());
+        MovimentacaoCarga movimentacao = novaMovimentacao(
+                operacao,
+                lote,
+                request.quantidade(),
+                request.volumeM3(),
+                request.pesoKg(),
+                request.usuario(),
+                request.correlationId(),
+                false);
         lote.registrarMovimentacao(movimentacao);
+    }
+
+    private void registrarMovimentacaoCompensacao(
+            OperacaoStuffUnstuff operacao,
+            LoteCarga lote,
+            ItemOperacaoStuffUnstuff item,
+            String usuario,
+            String correlationId) {
+        MovimentacaoCarga movimentacao = novaMovimentacao(
+                operacao,
+                lote,
+                item.getQuantidadeRealizada(),
+                item.getVolumeRealizadoM3(),
+                item.getPesoRealizadoKg(),
+                usuario,
+                correlationId,
+                true);
+        lote.registrarMovimentacao(movimentacao);
+    }
+
+    private MovimentacaoCarga novaMovimentacao(
+            OperacaoStuffUnstuff operacao,
+            LoteCarga lote,
+            BigDecimal quantidade,
+            BigDecimal volume,
+            BigDecimal peso,
+            String usuario,
+            String correlationId,
+            boolean compensacao) {
+        boolean cargaParaConteiner = operacao.getTipo() == TipoOperacaoStuffUnstuff.STUFF;
+        if (compensacao) {
+            cargaParaConteiner = !cargaParaConteiner;
+        }
+        MovimentacaoCarga movimentacao = new MovimentacaoCarga();
+        movimentacao.setTipo(cargaParaConteiner
+                ? TipoMovimentacaoCarga.CARGA_PARCIAL
+                : TipoMovimentacaoCarga.DESCARGA_PARCIAL);
+        movimentacao.setQuantidade(quantidade);
+        movimentacao.setVolumeM3(volume);
+        movimentacao.setPesoKg(peso);
+        movimentacao.setOrigemTipo(cargaParaConteiner ? "CARGO_LOT" : "CONTEINER");
+        movimentacao.setOrigemId(cargaParaConteiner ? lote.getId().toString() : operacao.getConteinerId());
+        movimentacao.setDestinoTipo(cargaParaConteiner ? "CONTEINER" : "CARGO_LOT");
+        movimentacao.setDestinoId(cargaParaConteiner ? operacao.getConteinerId() : lote.getId().toString());
+        movimentacao.setArmazemId(operacao.getArmazemId());
+        movimentacao.setUsuario(usuario.trim());
+        movimentacao.setCorrelationId(correlationId);
+        movimentacao.setObservacao((compensacao ? "Compensação do cancelamento da operação " : "Operação ")
+                + operacao.getId() + " - " + operacao.getTipo());
+        return movimentacao;
     }
 
     private OperacaoStuffUnstuff buscarOperacaoComBloqueio(UUID id) {
@@ -237,24 +308,55 @@ public class StuffUnstuffServico {
     }
 
     private OperacaoResposta mapear(OperacaoStuffUnstuff operacao) {
-        List<ItemOperacaoResposta> itens = operacao.getItens().stream().map(this::mapearItem).collect(Collectors.toList());
-        List<EventoOperacaoResposta> historico = operacao.getHistorico().stream().map(this::mapearEvento).collect(Collectors.toList());
-        return new OperacaoResposta(operacao.getId(), operacao.getTipo(), operacao.getStatus(), operacao.getConteinerId(),
-                operacao.getArmazemId(), operacao.getPosicaoOperacao(), operacao.getEquipeRecurso(), operacao.getLacreInicial(),
-                operacao.getLacreFinal(), operacao.getMotivoCancelamento(), operacao.getCriadoEm(), operacao.getIniciadoEm(),
-                operacao.getConcluidoEm(), operacao.getCanceladoEm(), itens, historico);
+        List<ItemOperacaoResposta> itens = operacao.getItens().stream()
+                .map(this::mapearItem)
+                .collect(Collectors.toList());
+        List<EventoOperacaoResposta> historico = operacao.getHistorico().stream()
+                .map(this::mapearEvento)
+                .collect(Collectors.toList());
+        return new OperacaoResposta(
+                operacao.getId(),
+                operacao.getTipo(),
+                operacao.getStatus(),
+                operacao.getConteinerId(),
+                operacao.getArmazemId(),
+                operacao.getPosicaoOperacao(),
+                operacao.getEquipeRecurso(),
+                operacao.getLacreInicial(),
+                operacao.getLacreFinal(),
+                operacao.getMotivoCancelamento(),
+                operacao.getCriadoEm(),
+                operacao.getIniciadoEm(),
+                operacao.getConcluidoEm(),
+                operacao.getCanceladoEm(),
+                itens,
+                historico);
     }
 
     private ItemOperacaoResposta mapearItem(ItemOperacaoStuffUnstuff item) {
-        return new ItemOperacaoResposta(item.getId(), item.getLote().getId(), item.getLote().getCodigo(),
-                item.getQuantidadePlanejada(), item.getQuantidadeRealizada(), item.getVolumePlanejadoM3(),
-                item.getVolumeRealizadoM3(), item.getPesoPlanejadoKg(), item.getPesoRealizadoKg(),
-                item.getCodigoAvaria(), item.getDescricaoAvaria(), item.getDivergencia());
+        return new ItemOperacaoResposta(
+                item.getId(),
+                item.getLote().getId(),
+                item.getLote().getCodigo(),
+                item.getQuantidadePlanejada(),
+                item.getQuantidadeRealizada(),
+                item.getVolumePlanejadoM3(),
+                item.getVolumeRealizadoM3(),
+                item.getPesoPlanejadoKg(),
+                item.getPesoRealizadoKg(),
+                item.getCodigoAvaria(),
+                item.getDescricaoAvaria(),
+                item.getDivergencia());
     }
 
     private EventoOperacaoResposta mapearEvento(EventoOperacaoStuffUnstuff evento) {
-        return new EventoOperacaoResposta(evento.getId(), evento.getTipo(), evento.getUsuario(),
-                evento.getCorrelationId(), evento.getDescricao(), evento.getOcorridoEm());
+        return new EventoOperacaoResposta(
+                evento.getId(),
+                evento.getTipo(),
+                evento.getUsuario(),
+                evento.getCorrelationId(),
+                evento.getDescricao(),
+                evento.getOcorridoEm());
     }
 
     private void executarComEstadoValido(Runnable comando) {

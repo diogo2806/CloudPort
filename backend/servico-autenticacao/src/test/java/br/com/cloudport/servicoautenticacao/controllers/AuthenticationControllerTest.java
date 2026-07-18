@@ -10,6 +10,7 @@ import br.com.cloudport.servicoautenticacao.repositories.PapelRepositorio;
 import br.com.cloudport.servicoautenticacao.repositories.UsuarioPapelRepositorio;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -79,6 +80,28 @@ class AuthenticationControllerTest {
                 .andExpect(jsonPath("$.perfil").value("ROLE_ADMIN"))
                 .andExpect(jsonPath("$.token").value("token"))
                 .andExpect(jsonPath("$.roles[0]").value("ROLE_ADMIN"));
+    }
+
+    @Test
+    void login_rootPriorizaPerfilRoot() throws Exception {
+        Set<UsuarioPapel> papeis = new HashSet<>();
+        papeis.add(new UsuarioPapel(new Papel("ROLE_ADMIN_PORTO")));
+        papeis.add(new UsuarioPapel(new Papel("ROLE_ROOT")));
+        Usuario usuario = new Usuario("root@cloudport.local", "pass123", papeis);
+
+        Authentication autenticacao = new UsernamePasswordAuthenticationToken(usuario, null, Collections.emptyList());
+        when(authenticationManager.authenticate(any())).thenReturn(autenticacao);
+        when(tokenService.generateToken(usuario)).thenReturn("token-root");
+
+        AuthenticationDTO dto = new AuthenticationDTO("root@cloudport.local", "pass123");
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.perfil").value("ROLE_ROOT"))
+                .andExpect(jsonPath("$.roles").isArray())
+                .andExpect(jsonPath("$.roles.length()").value(2));
     }
 
     @Test

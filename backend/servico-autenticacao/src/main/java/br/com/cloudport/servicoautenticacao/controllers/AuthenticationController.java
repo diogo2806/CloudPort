@@ -33,12 +33,13 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/auth")
 public class AuthenticationController {
+    private static final String PAPEL_ROOT = "ROLE_ROOT";
+
     private final AuthenticationManager authenticationManager;
     private final UsuarioRepositorio usuarioRepositorio;
     private final PapelRepositorio papelRepositorio;
     private final TokenService tokenService;
     private final UsuarioPapelRepositorio usuarioPapelRepositorio;
-
 
     public AuthenticationController(AuthenticationManager authenticationManager,
                                      UsuarioRepositorio usuarioRepositorio,
@@ -75,7 +76,9 @@ public class AuthenticationController {
                                  .map(nomePapel -> nomePapel.startsWith("ROLE_") ? nomePapel : "ROLE_" + nomePapel.toUpperCase())
                                  .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        String perfil = papeis.stream().findFirst().orElse("");
+        String perfil = papeis.contains(PAPEL_ROOT)
+                ? PAPEL_ROOT
+                : papeis.stream().findFirst().orElse("");
         String nome = StringUtils.hasText(usuario.getNome()) ? usuario.getNome() : usuario.getLogin();
 
         return ResponseEntity.ok(new LoginResponseDTO(

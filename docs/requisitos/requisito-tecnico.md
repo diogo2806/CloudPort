@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS10, BUS1000, BUS1010, BUS1040, BUS1050, BUS1060, BUS1090, BUS1100, BUS1110, BUS1120, BUS1150, BUS1160, BUS1170, DATA1180 e INT1140 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão dos BUS10, BUS1000, BUS1010, BUS1020, BUS1040, BUS1050, BUS1060, BUS1090, BUS1100, BUS1110, BUS1120, BUS1150, BUS1160, BUS1170, DATA1180 e INT1140 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -8,17 +8,9 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| BUS1020 | Implementar transload entre unidades com rastreabilidade e atualização atômica. | Origem, destino, lotes, quantidades, lacres, divergências e avarias são persistidos sem saldo negativo ou atualização parcial. | ⬜ Pendente |
 | BUS1030 | Integrar Gate à carga geral para retirada e entrega parcial. | O Gate reserva quantidade por BL, delivery order e cargo lot e só confirma o estoque após o estágio físico correspondente. | ⬜ Pendente |
 | BUS1070 | Implementar ciclo completo de avaria da carga. | Avarias possuem quantidade afetada, evidências, responsável, bloqueio, inspeção, reparo ou baixa e saldo segregado. | ⬜ Pendente |
 | BUS1080 | Implementar identificação e inventário físico reconciliável de cargo lots. | Código de barras ou QR identifica lote e embalagem; contagens e divergências geram ajuste motivado sem sobrescrever diretamente o saldo lógico. | ⬜ Pendente |
-
-### BUS1020 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/CargaGeralServico.java` | `transferirEntreLotes()` | Consolidação e desconsolidação não registram unidades de transporte de origem e destino nem operação recuperável. | Criar novo método sugerido: `executarTransload()` com bloqueio dos lotes e unidades. |
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/dto/CargaGeralDTOs.java` | `RegistrarMovimentacaoRequest` | O contrato não representa múltiplos lotes, unidades, lacres, conferência e divergências. | Criar DTO específico de transload. |
 
 ### BUS1030 — arquivos e métodos
 

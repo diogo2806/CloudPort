@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão dos BUS10 e BUS1040, da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-18 com a conclusão dos BUS10, BUS1040 e BUS1080, da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -207,6 +207,12 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 16. A confirmação física debita a posição de origem e credita a posição de destino na mesma transação do Yard, com bloqueio pessimista e rejeição de saldo insuficiente.
 17. O saldo confirmado é persistido por cargo lot e posição, com carga inicial das reservas históricas já confirmadas.
 18. A API expõe consulta dos saldos por posição e os adaptadores HTTP e local propagam a origem da allocation para a transferência correta.
+19. O BUS1080 mantém identificação física ativa por código de barras ou QR, vinculada ao cargo lot e à referência da embalagem.
+20. Sessões de inventário são abertas por posição e preservam usuário, instante, estado e contagens idempotentes por `commandId`.
+21. Cada contagem registra o saldo lógico observado e os valores físicos de quantidade, volume e peso sem alterar o estoque durante a conferência.
+22. Divergências ficam pendentes até decisão explícita; aprovação exige motivo e gera movimentação auditável, enquanto rejeição preserva o saldo lógico.
+23. O endpoint comum de movimentação rejeita `AJUSTE_INVENTARIO`, impedindo ajuste fora da sessão de contagem e aprovação.
+24. O portal oferece leitura por scanner, fila de sessões, comparação lógico versus físico, tratamento da divergência, conclusão e manual contextual na rota `/home/carga-geral/inventario-fisico`.
 
 ## Billing e portal CAP
 

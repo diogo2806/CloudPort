@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após auditoria da branch main.
+Status: atualizado em 2026-07-18 com a conclusão do BUS1170.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -142,7 +142,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | BUS1090 | Persistir o replanejamento visual entre vagões. | Vagão, posição, ordem e manifesto são atualizados atomicamente com versão, validação e auditoria. | ⬜ Pendente |
 | BUS1150 | Registrar execução da sequência de guindastes. | Cada movimento possui guindaste, ordem, janela, início, conclusão, exceção e quantidade realizada. | ⬜ Pendente |
 | BUS1160 | Implementar operação persistida de tampas de porão. | Tarefas de abrir, remover, posicionar e fechar controlam dependências e bloqueiam movimentos incompatíveis. | ⬜ Pendente |
-| BUS1170 | Implementar movimentos ferroviários internos. | Rotas, linhas, switches e trechos são reservados e liberados transacionalmente com detecção de conflito. | ⬜ Pendente |
 | DATA1180 | Reconciliar BAPLIE, plano, inventário e execução física. | Divergências são persistidas, classificadas, resolvidas e bloqueiam publicação ou conclusão quando críticas. | ⬜ Pendente |
 
 ### BUS1090 — arquivos e métodos
@@ -166,13 +165,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/modelo/SlotNavio.java` | geometria do slot | Não existe ciclo operacional de tampas e dependências. | Criar entidades de tampa, posição, tarefa e dependência. |
 | `frontend/cloudport/src/pages/VesselPlannerWorkspace.jsx` | overlay de tampas | O overlay não bloqueia transacionalmente movimentos incompatíveis. | Integrar ao estado persistido e impedir início incompatível. |
-
-### BUS1170 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/modelo/VisitaTrem.java` | posição e estado | Não representa autorização com rota e ocupação temporal de trechos e switches. | Criar novo agregado sugerido: `MovimentoFerroviarioInterno`. |
-| `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/servico/VisitaTremServico.java` | atualização da visita | Alterar posição não reserva nem libera todos os recursos ferroviários. | Criar comandos de planejar, autorizar, iniciar, concluir e cancelar. |
 
 ### DATA1180 — arquivos e métodos
 

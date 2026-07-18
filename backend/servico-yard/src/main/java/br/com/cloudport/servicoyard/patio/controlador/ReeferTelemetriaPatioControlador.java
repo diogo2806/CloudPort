@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/yard/patio/reefers/telemetria")
-@PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_PATIO','SERVICE_NAVIO')")
 public class ReeferTelemetriaPatioControlador {
 
     private final ReeferTelemetriaPatioServico servico;
@@ -30,6 +29,7 @@ public class ReeferTelemetriaPatioControlador {
     }
 
     @PutMapping("/{conteinerId}")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO','PLANEJADOR','OPERADOR_PATIO','SERVICE_NAVIO')")
     public ReeferTelemetriaPatioDto registrar(@PathVariable Long conteinerId,
                                                @Valid @RequestBody ReeferTelemetriaPatioRequisicaoDto dto) {
         return servico.registrar(conteinerId, dto);

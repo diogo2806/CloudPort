@@ -5,7 +5,6 @@ import br.com.cloudport.servicogate.app.gestor.dto.GateEventDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.ManualReleaseAction;
 import br.com.cloudport.servicogate.app.gestor.dto.ManualReleaseRequest;
 import br.com.cloudport.servicogate.security.TransportadoraSynchronizationFilter;
-import br.com.cloudport.servicogate.app.gestor.GateFlowService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +39,9 @@ class GateFlowControllerSecurityTest {
 
     @MockBean
     private GateFlowService gateFlowService;
+
+    @MockBean
+    private GateOperationsService gateOperationsService;
 
     @MockBean
     private TransportadoraSynchronizationFilter transportadoraSynchronizationFilter;

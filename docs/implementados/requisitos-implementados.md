@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão do ASYNC90 e a proteção fail-closed dos jobs persistentes do Gate.
+Status: atualizado em 2026-07-18 com a conclusão do DATA1180 e a reconciliação auditável entre BAPLIE, plano, inventário e execução.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -70,6 +70,17 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 12. Peso, centros de gravidade, GM, calado, trim, banda, força cortante e momento fletor.
 13. Aprovações versionadas e invalidadas quando o plano muda.
 14. BAPLIE com posição, operação, VGM, reefer, perigosos e OOG.
+
+## Reconciliação BAPLIE, plano e execução — DATA1180
+
+1. Cada execução da reconciliação gera um agregado persistido, versionado e vinculado ao plano de estiva, Bay Plan e visita de navio.
+2. A comparação considera unidades e atributos provenientes do BAPLIE, slots do plano, inventário canônico, ordens executadas e posição física registrada no navio.
+3. Divergências de unidade, slot, peso, porto de descarga, perigoso, reefer, execução e posição física são armazenadas com os valores e as fontes confrontadas.
+4. Peso utiliza tolerância operacional; unidade, slot, porto, perigoso, reefer e posição física incompatíveis são classificados como críticos.
+5. A validação e aprovação do plano exigem reconciliação da versão atual e ausência de divergências críticas abertas.
+6. Endpoints específicos permitem executar, consultar e resolver divergências, além de validar publicação e conclusão.
+7. A resolução registra decisão, motivo, responsável e instante, sem alterar silenciosamente BAPLIE, plano, inventário ou execução.
+8. O Vessel Planner apresenta a fila consolidada, totais, bloqueios e formulário de resolução auditável.
 
 ## Operações administrativas de Navio
 
@@ -201,6 +212,6 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 
 ## Pendências não marcadas como implementadas
 
-Não há pendências no backlog técnico `docs/requisitos/requisito-tecnico.md`.
+Os itens técnicos ainda pendentes permanecem registrados em `docs/requisitos/requisito-tecnico.md`.
 
-Permanecem no backlog funcional a persistência do planejamento ferroviário visual, a comprovação do corte operacional e as evoluções registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.
+Também permanecem no backlog funcional a persistência do planejamento ferroviário visual, a comprovação do corte operacional e as evoluções registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.

@@ -24,7 +24,7 @@ public class GateQueueEntry extends AbstractAuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "gate_pass_id", nullable = false)
     private GatePass gatePass;
 

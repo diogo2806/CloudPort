@@ -85,7 +85,7 @@ public class CasoLostFoundServico {
             throw new IllegalStateException("O caso deve estar associado a uma unidade canônica");
         }
         UnidadeInventario unidade = caso.getUnidade();
-        unidade.setEstadoCicloVida(UnidadeInventario.EstadoCicloVida.ATIVA);
+        unidade.setEstado(UnidadeInventario.EstadoUnidade.ATIVA);
         unidade.setCondicao(UnidadeInventario.CondicaoEquipamento.OPERACIONAL);
         unidadeRepositorio.save(unidade);
         caso.setDecisaoFinal(obrigatorio(decisaoFinal, "Decisão final"));
@@ -98,7 +98,7 @@ public class CasoLostFoundServico {
         CasoLostFound caso = obter(id);
         exigirAtivo(caso);
         if (caso.getUnidade() != null) {
-            caso.getUnidade().setEstadoCicloVida(UnidadeInventario.EstadoCicloVida.INATIVA);
+            caso.getUnidade().setEstado(UnidadeInventario.EstadoUnidade.INATIVA);
             unidadeRepositorio.save(caso.getUnidade());
         }
         caso.setDecisaoFinal(obrigatorio(decisaoFinal, "Decisão de baixa"));

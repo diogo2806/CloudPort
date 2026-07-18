@@ -8,6 +8,7 @@ import {
   YARD_MAP_STATE_COLORS,
   YARD_MAP_STATE_LABELS
 } from './yardGoogleMaps.js';
+import { buildEquipmentMapEntries } from './yardLiveMap.js';
 import './GoogleYardMap.css';
 
 function sameStack(left, right) {
@@ -31,6 +32,32 @@ function createInfoContent(entry) {
   const occupation = document.createElement('small');
   occupation.textContent = `${entry.occupiedLayers}/${entry.totalLayers} camada(s) ocupada(s)`;
   root.append(title, state, occupation);
+  return root;
+}
+
+function createEquipmentInfoContent(entry) {
+  const root = document.createElement('div');
+  root.className = 'yard-google-info yard-google-equipment-info';
+  const title = document.createElement('strong');
+  title.textContent = `${entry.type} · ${entry.id}`;
+  const state = document.createElement('span');
+  state.textContent = entry.status;
+  const position = document.createElement('small');
+  position.textContent = entry.nearestStack
+    ? `${entry.nearestStack.bloco} · L${entry.nearestStack.linha}/C${entry.nearestStack.coluna}`
+    : 'Posição GPS';
+  root.append(title, state, position);
+  if (entry.operator) {
+    const operator = document.createElement('small');
+    operator.textContent = `Operador: ${entry.operator}`;
+    root.append(operator);
+  }
+  if (entry.updatedAt) {
+    const updatedAt = document.createElement('small');
+    const date = new Date(entry.updatedAt);
+    updatedAt.textContent = `Atualização: ${Number.isNaN(date.getTime()) ? entry.updatedAt : date.toLocaleString('pt-BR')}`;
+    root.append(updatedAt);
+  }
   return root;
 }
 
@@ -66,7 +93,7 @@ function createLabelOverlay(maps, map, entry, selected, onActivate) {
   return overlay;
 }
 
-export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [] }) {
+export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [], equipment = [] }) {
   const mapElementRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const fittedLayoutRef = useRef('');
@@ -75,6 +102,7 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [
   const [mapError, setMapError] = useState('');
   const [mapContext, setMapContext] = useState(null);
   const layout = useMemo(() => config ? buildYardMapLayout(blocks, config) : [], [blocks, config]);
+  const equipmentEntries = useMemo(() => buildEquipmentMapEntries(equipment, layout), [equipment, layout]);
 
   useEffect(() => {
     let active = true;
@@ -178,7 +206,34 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [
       overlays.push(polyline);
     });
 
-    const layoutSignature = layout.map((entry) => entry.key).join('|');
+    equipmentEntries.forEach((entry) => {
+      bounds.extend(entry.position);
+      const marker = new maps.Marker({
+        map,
+        position: entry.position,
+        title: `${entry.type} ${entry.id} · ${entry.status}`,
+        label: { text: entry.id.slice(-4), color: '#ffffff', fontSize: '10px', fontWeight: '700' },
+        icon: {
+          path: maps.SymbolPath.CIRCLE,
+          scale: 13,
+          fillColor: entry.status.includes('FALHA') || entry.status.includes('PARADO') ? '#dc2626' : '#0f4c81',
+          fillOpacity: 0.95,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        },
+        animation: maps.Animation?.DROP,
+        zIndex: 80
+      });
+      listeners.push(marker.addListener('click', () => {
+        if (entry.nearestStack) onSelectStack(entry.nearestStack);
+        infoWindow.setContent(createEquipmentInfoContent(entry));
+        infoWindow.setPosition(entry.position);
+        infoWindow.open({ map });
+      }));
+      overlays.push(marker);
+    });
+
+    const layoutSignature = `${layout.map((entry) => entry.key).join('|')}::${equipmentEntries.map((entry) => entry.id).join('|')}`;
     if (fittedLayoutRef.current !== layoutSignature) {
       fittedLayoutRef.current = layoutSignature;
       map.fitBounds(bounds, 48);
@@ -192,7 +247,7 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [
       listeners.forEach((listener) => maps.event.removeListener(listener));
       overlays.forEach((overlay) => overlay.setMap(null));
     };
-  }, [mapContext, layout, selectedStack, onSelectStack, config, routes]);
+  }, [mapContext, layout, selectedStack, onSelectStack, config, routes, equipmentEntries]);
 
   if (configError) return <Message type="error">{configError}</Message>;
   if (!config) return <Loading label="Carregando configuração geográfica do pátio..." />;
@@ -211,6 +266,7 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [
     <div className="yard-google-map-legend" aria-label="Legenda do mapa">
       {Object.entries(YARD_MAP_STATE_LABELS).map(([state, label]) => <span key={state}><i className={state} />{label}</span>)}
       {!!routes.length && <span><i className="route" />Rotas planejadas</span>}
+      {!!equipmentEntries.length && <span><i className="equipment" />CHE em tempo real</span>}
     </div>
   </div>;
 }

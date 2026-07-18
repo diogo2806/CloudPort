@@ -6,6 +6,7 @@ import { OperationalYardViews } from './OperationalYardViews.jsx';
 import { YardAllocationEditor } from './YardAllocationEditor.jsx';
 import { yardOperationalApi } from './yardOperationalApi.js';
 import { YardReeferPanel } from './YardReeferPanel.jsx';
+import { mergeYardEquipment, yardRestrictionSummary } from './yardLiveMap.js';
 import { buildStacks, DetailGrid, FilterField, normalized, Pagination, positionKey, usePagination, useRemote, YardPageHeader } from './YardShared.jsx';
 
 const FINAL_ORDER_STATUSES = new Set(['CONCLUIDA', 'CANCELADA']);
@@ -46,7 +47,10 @@ export function YardMapPage({ navigate }) {
 
   const map = remote.data?.map ?? {};
   const containers = remote.data?.allContainers ?? [];
-  const equipment = map.equipamentos ?? [];
+  const equipment = useMemo(
+    () => mergeYardEquipment(map.equipamentos, remote.data?.telemetry),
+    [map.equipamentos, remote.data?.telemetry]
+  );
   const enrichedPositions = useMemo(() => {
     const containersByPosition = new Map(containers.map((container) => [positionKey(container), container]));
     return (remote.data?.positions ?? []).map((position) => {
@@ -61,6 +65,7 @@ export function YardMapPage({ navigate }) {
     });
   }, [remote.data?.positions, containers]);
   const stacks = useMemo(() => buildStacks(enrichedPositions, remote.data?.orders), [enrichedPositions, remote.data?.orders]);
+  const restrictions = useMemo(() => yardRestrictionSummary(stacks), [stacks]);
   const routes = useMemo(() => {
     const containersByCode = new Map(containers.map((container) => [sanitizeText(container.codigo), container]));
     return (remote.data?.orders ?? [])
@@ -94,18 +99,20 @@ export function YardMapPage({ navigate }) {
       <FilterField label="Equipamento"><select value={filters.tipoEquipamento} onChange={(event) => setFilters((current) => ({ ...current, tipoEquipamento: event.target.value }))}><option value="">Todos</option>{optionList('tiposEquipamentoDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
     </div></Section>
     {remote.loading ? <Loading label="Carregando mapa, rotas e telemetria..." /> : <>
-      <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label="Rotas ativas" value={routes.length} /></div>
-      <Section title="Pátio georreferenciado" description="O Google Maps desenha pilhas, áreas bloqueadas e interditadas e as rotas planejadas entre a posição atual e o destino da work instruction.">
-        <GoogleYardMap blocks={stacks} selectedStack={selectedStack} onSelectStack={setSelectedStack} routes={routes} />
+      <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label="CHEs em tempo real" value={equipment.length} detail={`${routes.length} rota(s) ativa(s)`} /><MetricCard label="Pilhas bloqueadas" value={restrictions.blocked} detail={`${restrictions.interdicted} interditada(s)`} /></div>
+      <Section title="Pátio georreferenciado" description="O Google Maps desenha pilhas, áreas bloqueadas e interditadas, rotas planejadas e a posição atual dos CHEs.">
+        <GoogleYardMap blocks={stacks} selectedStack={selectedStack} onSelectStack={setSelectedStack} routes={routes} equipment={equipment} />
         {!!routes.length && <div className="yard-route-summary">{routes.slice(0, 20).map((route) => <span key={route.id}>WI #{route.id} · {sanitizeText(route.codigoConteiner)} · L{route.origem.linha}/C{route.origem.coluna} → L{route.destino.linha}/C{route.destino.coluna}</span>)}</div>}
       </Section>
-      <Section title="Console operacional do pátio" description="Arraste um contêiner para uma posição livre. O sistema monta uma simulação e só persiste após confirmação motivada.">
+      <Section title="Console operacional do pátio" description="A seleção é sincronizada com o mapa. Arraste um contêiner para uma posição livre; o sistema simula e só persiste após confirmação motivada.">
         <OperationalYardViews
           blocks={stacks}
           movements={remote.data?.movements}
-          telemetry={remote.data?.telemetry}
+          telemetry={equipment}
           alerts={map.alertas}
           filters={filters}
+          selectedStack={selectedStack}
+          onSelectStack={setSelectedStack}
           onApplyFilters={(workspaceFilters) => setFilters((current) => ({ ...current, ...workspaceFilters }))}
           canOperate={canOperate}
           onReload={remote.reload}

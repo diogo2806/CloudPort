@@ -60,6 +60,14 @@
 .yard-google-map-legend i.reserved { background: #d97706; }
 .yard-google-map-legend i.blocked { background: #dc2626; }
 .yard-google-map-legend i.interdicted { background: #7c3aed; }
+.yard-google-map-legend i.equipment {
+  width: 14px;
+  height: 14px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #0f4c81;
+  box-shadow: 0 0 0 1px #0f4c81;
+}
 
 .yard-google-stack-label {
   position: absolute;
@@ -113,6 +121,10 @@
 
 .yard-google-info small {
   color: #64748b;
+}
+
+.yard-google-equipment-info span {
+  color: #0f4c81;
 }
 
 .yard-google-map-not-configured {

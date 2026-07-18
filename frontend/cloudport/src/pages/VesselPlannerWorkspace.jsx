@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { formatError } from '../api.js';
 import {
   VESSEL_LEGEND_MODES,
   VESSEL_VIEW_MODES,
@@ -19,6 +20,7 @@ import {
   uniqueCoordinates
 } from '../vessel-planner-model.js';
 import { dominantLegendForSlots, findSynchronizedSlot, selectionCoordinates } from '../vessel-planner-phase1.js';
+import { hatchCoverApi } from '../vessel-planner-hatch-api.js';
 import '../vessel-planner-phase1.css';
 
 const DRAG_TYPE = 'application/x-cloudport-vessel-container';
@@ -50,17 +52,37 @@ function writeDragPayload(event, payload) {
   event.dataTransfer.setData('text/plain', serialized);
 }
 
+function hatchCode(value) {
+  return String(value ?? '').trim().toUpperCase();
+}
+
+function movementBlockReason(slot, cover) {
+  if (!slot?.codigoHatchCover) return '';
+  const code = hatchCode(slot.codigoHatchCover);
+  if (!cover) return `Tampa ${code} sem planejamento persistido.`;
+  if (cover.bloqueioAtivo) return `Tampa ${code} em operação.`;
+  if (slot.sobreHatchCover) {
+    return ['FECHADA', 'POSICIONADA'].includes(cover.posicao)
+      ? ''
+      : `Tampa ${code} deve estar posicionada ou fechada.`;
+  }
+  return cover.posicao === 'REMOVIDA' ? '' : `Tampa ${code} deve estar removida.`;
+}
+
 function SlotGlyph({ slot, selected, context, canEdit, onSelect, onMove }) {
   const occupied = Boolean(slot?.codigoContainer);
   const legendValue = legendValueForSlot(slot, context.legendMode, context.containerIndex);
   const warnings = buildSlotWarnings(slot, { violations: context.violationIndex }, context.stackSummaries[stackPositionKey(slot)]);
   const restow = context.restowIndex[slotPositionKey(slot)];
   const crane = context.craneIndex[slotPositionKey(slot)]?.[0];
+  const cover = context.hatchIndex[hatchCode(slot.codigoHatchCover)];
+  const hatchReason = occupied ? movementBlockReason(slot, cover) : '';
   const canDrop = canEdit && !occupied && !slot.restrito;
   const classes = [
     'vessel-visual-slot', occupied ? 'occupied' : 'empty', slot.restrito ? 'restricted' : '', selected ? 'selected' : '',
-    occupied ? `legend-tone-${toneIndex(legendValue)}` : '', warnings.length ? 'has-warning' : ''
+    occupied ? `legend-tone-${toneIndex(legendValue)}` : '', warnings.length ? 'has-warning' : '', hatchReason ? 'hatch-blocked' : ''
   ].filter(Boolean).join(' ');
+  const title = [...warnings.map((warning) => warning.message), hatchReason].filter(Boolean).join('\n') || `${formatSlotPosition(slot)} · ${legendValue}`;
 
   return <button
     type="button"
@@ -77,13 +99,13 @@ function SlotGlyph({ slot, selected, context, canEdit, onSelect, onMove }) {
     onClick={() => onSelect(slot)}
     aria-pressed={selected}
     aria-label={`${formatSlotPosition(slot)}, ${occupied ? `contêiner ${slot.codigoContainer}` : 'livre'}, ${legendValue}`}
-    title={warnings.map((warning) => warning.message).join('\n') || `${formatSlotPosition(slot)} · ${legendValue}`}
+    title={title}
   >
     <span className="slot-coordinate">B{slot.bay} · R{slot.rowBay} · T{slot.tier}</span>
     <strong>{occupied ? slot.codigoContainer : slot.restrito ? 'Restrito' : 'Livre'}</strong>
     <small>{occupied ? `${legendValue} · ${displayWeight(slot.pesoVgmKg ?? slot.pesoKg)}` : slot.tipoSlot || 'NORMAL'}</small>
     <span className="slot-badges" aria-hidden="true">
-      {slot.reefer && <i>RF</i>}{slot.perigoso && <i>IMO</i>}{restow && <i>R</i>}{crane && <i>Q{crane.guindasteId}</i>}{warnings.length > 0 && <i className="warning-badge">!{warnings.length}</i>}
+      {slot.reefer && <i>RF</i>}{slot.perigoso && <i>IMO</i>}{restow && <i>R</i>}{crane && <i>Q{crane.guindasteId}</i>}{slot.codigoHatchCover && <i>HC</i>}{hatchReason && <i className="warning-badge">T</i>}{warnings.length > 0 && <i className="warning-badge">!{warnings.length}</i>}
     </span>
   </button>;
 }
@@ -94,10 +116,11 @@ function AggregateCell({ slots, selectedSlotId, active, context, title, children
   const representative = findSynchronizedSlot(slots, context.coordinates, { preferOccupied: true });
   const selected = slots.some((slot) => String(slot.id) === String(selectedSlotId));
   const restricted = slots.length > 0 && slots.every((slot) => slot.restrito);
+  const hatchBlocked = occupied.some((slot) => movementBlockReason(slot, context.hatchIndex[hatchCode(slot.codigoHatchCover)]));
   return <button
     type="button"
     className={[
-      'vessel-phase1-aggregate', occupied.length ? 'occupied' : 'empty', restricted ? 'restricted' : '', selected ? 'selected' : '', active ? 'active-coordinate' : '',
+      'vessel-phase1-aggregate', occupied.length ? 'occupied' : 'empty', restricted ? 'restricted' : '', selected ? 'selected' : '', active ? 'active-coordinate' : '', hatchBlocked ? 'hatch-blocked' : '',
       dominant ? `legend-tone-${dominant.tone}` : ''
     ].filter(Boolean).join(' ')}
     onClick={() => representative && onSelect(representative)}
@@ -109,7 +132,7 @@ function AggregateCell({ slots, selectedSlotId, active, context, title, children
       if (payload) onMove(payload, target);
     }}
     aria-pressed={selected}
-    title={`${title}${dominant ? ` · ${dominant.value}` : ''}`}
+    title={`${title}${dominant ? ` · ${dominant.value}` : ''}${hatchBlocked ? ' · operação bloqueada por tampa' : ''}`}
   >
     {children}
     {dominant && <span className="aggregate-legend"><i className={`legend-tone-${dominant.tone}`} />{dominant.value}</span>}
@@ -142,7 +165,10 @@ function ProfileView({ slots, context, selectedSlotId, canEdit, onSelect, onMove
         })}
       </div>)}
       <div className="profile-hatch-label">Tampas</div>
-      {bays.map((bay) => <div key={`hatch-${bay}`} className="profile-hatch-cell">{Array.from(new Set(slots.filter((slot) => slot.bay === bay).map((slot) => slot.codigoHatchCover).filter(Boolean))).join(', ') || 'Convés aberto'}</div>)}
+      {bays.map((bay) => <div key={`hatch-${bay}`} className="profile-hatch-cell">{Array.from(new Set(slots.filter((slot) => slot.bay === bay).map((slot) => slot.codigoHatchCover).filter(Boolean))).map((code) => {
+        const cover = context.hatchIndex[hatchCode(code)];
+        return `${code}: ${cover?.posicao || 'não planejada'}`;
+      }).join(', ') || 'Convés aberto'}</div>)}
     </div></div>
     <div className="vessel-silhouette" aria-hidden="true"><span className="bow" /><span className="hull" /><span className="stern" /></div>
   </section>;
@@ -220,9 +246,12 @@ function LegendPanel({ mode, setMode, legend }) {
 function Inspector({ slot, context, onClear }) {
   if (!slot) return <aside className="vessel-slot-inspector empty"><span className="view-kicker">Seleção sincronizada</span><h3>Nenhum slot selecionado</h3><p>Selecione uma célula nas vistas profile, top, section ou tier.</p></aside>;
   const metadata = context.containerIndex[String(slot.codigoContainer ?? '').toUpperCase()] ?? {};
+  const cover = context.hatchIndex[hatchCode(slot.codigoHatchCover)];
+  const hatchReason = movementBlockReason(slot, cover);
   return <aside className="vessel-slot-inspector"><div className="inspector-heading"><div><span className="view-kicker">Slot selecionado</span><h3>{formatSlotPosition(slot)}</h3></div><button type="button" className="icon-button" onClick={onClear}>×</button></div>
-    <div className="inspector-status-row"><span className={slot.codigoContainer ? 'status-pill occupied' : 'status-pill empty'}>{slot.codigoContainer ? 'Ocupado' : 'Livre'}</span>{slot.restrito && <span className="status-pill danger">Restrito</span>}</div>
-    <dl className="slot-inspector-grid"><div><dt>Contêiner</dt><dd>{slot.codigoContainer || '—'}</dd></div><div><dt>POD</dt><dd>{slot.portoDescarga || metadata.portoDescarga || '—'}</dd></div><div><dt>Peso</dt><dd>{displayWeight(slot.pesoVgmKg ?? slot.pesoKg ?? metadata.pesoVgmKg ?? metadata.pesoKg)}</dd></div><div><dt>IMO</dt><dd>{slot.perigoso || metadata.perigoso ? slot.classeImo || metadata.classeImo || 'N/I' : 'Não perigoso'}</dd></div><div><dt>Reefer</dt><dd>{slot.reefer || metadata.reefer ? 'Sim' : 'Não'}</dd></div><div><dt>Operador</dt><dd>{legendValueForSlot(slot, 'OPERATOR', context.containerIndex)}</dd></div></dl>
+    <div className="inspector-status-row"><span className={slot.codigoContainer ? 'status-pill occupied' : 'status-pill empty'}>{slot.codigoContainer ? 'Ocupado' : 'Livre'}</span>{slot.restrito && <span className="status-pill danger">Restrito</span>}{hatchReason && <span className="status-pill danger">Bloqueado por tampa</span>}</div>
+    <dl className="slot-inspector-grid"><div><dt>Contêiner</dt><dd>{slot.codigoContainer || '—'}</dd></div><div><dt>POD</dt><dd>{slot.portoDescarga || metadata.portoDescarga || '—'}</dd></div><div><dt>Peso</dt><dd>{displayWeight(slot.pesoVgmKg ?? slot.pesoKg ?? metadata.pesoVgmKg ?? metadata.pesoKg)}</dd></div><div><dt>IMO</dt><dd>{slot.perigoso || metadata.perigoso ? slot.classeImo || metadata.classeImo || 'N/I' : 'Não perigoso'}</dd></div><div><dt>Reefer</dt><dd>{slot.reefer || metadata.reefer ? 'Sim' : 'Não'}</dd></div><div><dt>Tampa</dt><dd>{slot.codigoHatchCover ? `${slot.codigoHatchCover} · ${cover?.posicao || 'não planejada'}` : 'Não aplicável'}</dd></div></dl>
+    {hatchReason && <p className="hatch-block-reason">{hatchReason}</p>}
   </aside>;
 }
 
@@ -230,11 +259,36 @@ function UnallocatedTray({ containers, canEdit }) {
   return <section className="unallocated-tray"><header><div><span className="view-kicker">Load list</span><h3>Não alocados</h3></div><small>Arraste para um slot livre</small></header><div>{containers.map((container) => <article key={container.codigoContainer} draggable={canEdit} onDragStart={(event) => writeDragPayload(event, { kind: 'container', container })} className={canEdit ? 'draggable' : ''}><strong>{container.codigoContainer}</strong><span>{container.isoCode || 'ISO N/I'} · {displayWeight(container.pesoVgmKg ?? container.pesoKg)}</span><small>{container.portoDescarga || 'POD N/I'}{container.reefer ? ' · Reefer' : ''}</small></article>)}{!containers.length && <div className="visual-empty">Todos os contêineres estão alocados.</div>}</div></section>;
 }
 
-function TechnicalSummary({ stability, restow, sequencing, onSelect, slots }) {
+function HatchCoverPanel({ covers, resources, setResource, canCommand, busy, error, message, onSynchronize, onStart, onConfirm }) {
+  return <section className="hatch-cover-panel">
+    <header><div><span className="view-kicker">Hatch covers</span><h3>Operação de tampas de porão</h3></div><button type="button" className="secondary" disabled={!canCommand || Boolean(busy)} onClick={onSynchronize}>{busy === 'sync' ? 'Sincronizando...' : 'Sincronizar geometria'}</button></header>
+    {error && <p className="hatch-operation-message error">{error}</p>}
+    {message && <p className="hatch-operation-message success">{message}</p>}
+    {!covers.length && <div className="visual-empty">Nenhuma tampa persistida para este plano.</div>}
+    <div className="hatch-cover-grid">{covers.map((cover) => <article key={cover.id} className={cover.bloqueioAtivo ? 'active' : ''}>
+      <div className="hatch-cover-heading"><div><strong>{cover.codigo}</strong><small>Bays {cover.bayInicial}–{cover.bayFinal}</small></div><span className={`hatch-position ${String(cover.posicao).toLowerCase()}`}>{cover.posicao}</span></div>
+      <div className="hatch-task-list">{(cover.tarefas ?? []).map((task) => <div key={task.id} className={`hatch-task ${String(task.status).toLowerCase()}`}>
+        <div><strong>{task.ordemOperacional}. {task.tipo}</strong><small>{task.momentoSequencia} movimento #{task.ordemMovimentoReferencia ?? 'N/I'} · {task.status}</small></div>
+        {task.status === 'LIBERADA' && <div className="hatch-task-command"><input aria-label={`Recurso para ${task.tipo} ${cover.codigo}`} placeholder="Recurso/equipamento" value={resources[task.id] ?? ''} onChange={(event) => setResource(task.id, event.target.value)} /><button type="button" disabled={!canCommand || Boolean(busy) || !(resources[task.id] ?? '').trim()} onClick={() => onStart(task, resources[task.id])}>Iniciar</button></div>}
+        {task.status === 'EM_EXECUCAO' && <button type="button" disabled={!canCommand || Boolean(busy)} onClick={() => onConfirm(task)}>Confirmar</button>}
+      </div>)}</div>
+    </article>)}</div>
+  </section>;
+}
+
+function TechnicalSummary({ stability, restow, sequencing, onSelect, slots, hatchIndex, canCommand, busy, onStartMovement }) {
   const restows = Array.isArray(restow?.movimentos) ? restow.movimentos : [];
   const operations = Array.isArray(sequencing?.sequencia) ? sequencing.sequencia : [];
   const byPosition = Object.fromEntries(slots.map((slot) => [slotPositionKey(slot), slot]));
-  return <section className="vessel-phase1-technical"><article><span>Estabilidade</span><strong>{stability ? stability.aprovado ? 'Aprovada' : 'Com restrições' : 'Não calculada'}</strong></article><article><span>Restows</span><strong>{restows.length}</strong></article><article><span>Operações de guindaste</span><strong>{operations.length}</strong></article>{operations.slice(0, 6).map((operation) => <button key={`${operation.guindasteId}:${operation.ordem}`} type="button" onClick={() => onSelect(byPosition[`${operation.bay}:${operation.rowBay}:${operation.tier}`])}>Q{operation.guindasteId} #{operation.ordem} · B{operation.bay} R{operation.rowBay} T{operation.tier}</button>)}</section>;
+  return <section className="vessel-phase1-technical"><article><span>Estabilidade</span><strong>{stability ? stability.aprovado ? 'Aprovada' : 'Com restrições' : 'Não calculada'}</strong></article><article><span>Restows</span><strong>{restows.length}</strong></article><article><span>Operações de guindaste</span><strong>{operations.length}</strong></article>{operations.slice(0, 8).map((operation) => {
+    const slot = byPosition[`${operation.bay}:${operation.rowBay}:${operation.tier}`];
+    const reason = movementBlockReason(slot, hatchIndex[hatchCode(operation.codigoHatchCover ?? slot?.codigoHatchCover)]) || operation.motivoBloqueio || '';
+    return <div className={reason ? 'crane-operation blocked' : 'crane-operation'} key={`${operation.guindasteId}:${operation.ordem}`}>
+      <button type="button" onClick={() => onSelect(slot)}>Q{operation.guindasteId} #{operation.ordem} · B{operation.bay} R{operation.rowBay} T{operation.tier}</button>
+      <button type="button" className="secondary" disabled={!canCommand || Boolean(busy) || Boolean(reason) || !operation.slotId} onClick={() => onStartMovement(operation)}>{reason ? 'Bloqueado' : busy === `movement-${operation.ordem}` ? 'Iniciando...' : 'Iniciar'}</button>
+      {reason && <small>{reason}</small>}
+    </div>;
+  })}</section>;
 }
 
 export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, sequencing, selectedSlotId, onSelectSlot, onMoveContainer, canEdit, busy }) {
@@ -251,9 +305,23 @@ export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, seque
   const [viewMode, setViewMode] = useState('MULTI');
   const [legendMode, setLegendMode] = useState('POD');
   const [coordinates, setCoordinates] = useState(() => selectionCoordinates(slots[0]));
+  const [hatchCovers, setHatchCovers] = useState([]);
+  const [hatchBusy, setHatchBusy] = useState('');
+  const [hatchError, setHatchError] = useState('');
+  const [hatchMessage, setHatchMessage] = useState('');
+  const [taskResources, setTaskResources] = useState({});
   const allocated = useMemo(() => new Set(slots.map((slot) => slot.codigoContainer).filter(Boolean)), [slots]);
   const unallocated = useMemo(() => (Array.isArray(bayPlan?.containers) ? bayPlan.containers : []).filter((container) => !allocated.has(container.codigoContainer)), [allocated, bayPlan]);
   const legend = useMemo(() => buildLegend(slots, legendMode, containerIndex), [slots, legendMode, containerIndex]);
+  const hatchIndex = useMemo(() => Object.fromEntries(hatchCovers.map((cover) => [hatchCode(cover.codigo), cover])), [hatchCovers]);
+
+  async function reloadHatches({ synchronizeWhenEmpty = false } = {}) {
+    if (!plan?.id) return [];
+    let covers = await hatchCoverApi.list(plan.id);
+    if (synchronizeWhenEmpty && canEdit && !covers.length) covers = await hatchCoverApi.synchronize(plan.id);
+    setHatchCovers(Array.isArray(covers) ? covers : []);
+    return covers;
+  }
 
   function selectSlot(slot) {
     if (!slot) return;
@@ -277,12 +345,62 @@ export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, seque
     if (!selectedSlot) selectSlot(findSynchronizedSlot(slots, coordinates, { preferOccupied: true }));
   }, [slots]);
 
-  const context = { legendMode, containerIndex, stackSummaries, violationIndex, restowIndex, craneIndex, coordinates };
+  useEffect(() => {
+    let active = true;
+    setHatchError('');
+    setHatchMessage('');
+    if (!plan?.id) {
+      setHatchCovers([]);
+      return undefined;
+    }
+    hatchCoverApi.list(plan.id)
+      .then(async (covers) => {
+        let result = covers;
+        if (active && canEdit && Array.isArray(covers) && !covers.length) result = await hatchCoverApi.synchronize(plan.id);
+        if (active) setHatchCovers(Array.isArray(result) ? result : []);
+      })
+      .catch((reason) => { if (active) setHatchError(formatError(reason)); });
+    return () => { active = false; };
+  }, [plan?.id, canEdit]);
+
+  const context = { legendMode, containerIndex, stackSummaries, violationIndex, restowIndex, craneIndex, coordinates, hatchIndex };
 
   async function move(payload, target) {
     if (!canEdit || busy || !target || target.codigoContainer || target.restrito) return;
     await onMoveContainer(payload, target);
     selectSlot(target);
+  }
+
+  async function runHatch(name, action, successMessage) {
+    if (hatchBusy) return;
+    setHatchBusy(name);
+    setHatchError('');
+    setHatchMessage('');
+    try {
+      await action();
+      await reloadHatches();
+      setHatchMessage(successMessage);
+    } catch (reason) {
+      setHatchError(formatError(reason));
+    } finally {
+      setHatchBusy('');
+    }
+  }
+
+  function synchronizeHatches() {
+    return runHatch('sync', () => hatchCoverApi.synchronize(plan.id), 'Geometria e tarefas de tampa sincronizadas.');
+  }
+
+  function startHatchTask(task, resource) {
+    return runHatch(`task-${task.id}`, () => hatchCoverApi.startTask(plan.id, task.id, resource), `${task.tipo} iniciado.`);
+  }
+
+  function confirmHatchTask(task) {
+    return runHatch(`task-${task.id}`, () => hatchCoverApi.confirmTask(plan.id, task.id), `${task.tipo} confirmado e dependência seguinte liberada.`);
+  }
+
+  function startMovement(operation) {
+    return runHatch(`movement-${operation.ordem}`, () => hatchCoverApi.startMovement(plan.id, operation), `Movimento #${operation.ordem} iniciado.`);
   }
 
   function renderView(mode) {
@@ -301,6 +419,7 @@ export function VesselPlannerWorkspace({ plan, bayPlan, stability, restow, seque
     <LegendPanel mode={legendMode} setMode={setLegendMode} legend={legend} />
     <div className="vessel-workspace-layout"><main className="vessel-main-canvas">{viewMode === 'MULTI' ? <div className="multi-view-grid"><div>{renderView('PROFILE')}</div><div>{renderView('TOP')}</div><div>{renderView('SECTION')}</div><div>{renderView('TIER')}</div></div> : renderView(viewMode)}</main><Inspector slot={selectedSlot} context={context} onClear={() => onSelectSlot(null)} /></div>
     <UnallocatedTray containers={unallocated} canEdit={canEdit && !busy} />
-    <TechnicalSummary stability={stability} restow={restow} sequencing={sequencing} onSelect={selectSlot} slots={slots} />
+    <HatchCoverPanel covers={hatchCovers} resources={taskResources} setResource={(taskId, value) => setTaskResources((current) => ({ ...current, [taskId]: value }))} canCommand={canEdit} busy={hatchBusy} error={hatchError} message={hatchMessage} onSynchronize={synchronizeHatches} onStart={startHatchTask} onConfirm={confirmHatchTask} />
+    <TechnicalSummary stability={stability} restow={restow} sequencing={sequencing} onSelect={selectSlot} slots={slots} hatchIndex={hatchIndex} canCommand={canEdit} busy={hatchBusy} onStartMovement={startMovement} />
   </div>;
 }

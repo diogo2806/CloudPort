@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  agruparEscalasPorBerco,
   calcularConflitosBerco,
   calcularFaseSimulada,
+  calcularPosicaoVerticalTimeline,
   construirSimulacao,
   normalizarEscalasLineUp
 } from './vesselLineUp.js';
@@ -58,4 +60,34 @@ test('constrói indicadores de progresso para a operação simulada', () => {
   const [simulada] = construirSimulacao(escalas, '2026-07-18T14:00:00');
   assert.equal(simulada.faseSimulada, 'OPERANDO');
   assert.equal(simulada.progressoOperacao, 50);
+});
+
+test('calcula posição de cima para baixo no line-up vertical', () => {
+  const [escala] = normalizarEscalasLineUp([{
+    id: 1,
+    chegadaPrevista: '2026-07-18T06:00:00',
+    atracacaoPrevista: '2026-07-18T08:00:00',
+    partidaPrevista: '2026-07-18T14:00:00',
+    bercoPrevisto: 'B01'
+  }]);
+  const janela = {
+    inicio: new Date('2026-07-18T06:00:00'),
+    fim: new Date('2026-07-18T18:00:00')
+  };
+
+  const posicao = calcularPosicaoVerticalTimeline(escala, janela);
+  assert.ok(Math.abs(Number.parseFloat(posicao.top) - 16.6667) < 0.01);
+  assert.ok(Math.abs(Number.parseFloat(posicao.height) - 50) < 0.01);
+});
+
+test('distribui navios sobrepostos em faixas distintas no mesmo berço', () => {
+  const escalas = normalizarEscalasLineUp([
+    { id: 1, chegadaPrevista: '2026-07-18T06:00:00', atracacaoPrevista: '2026-07-18T08:00:00', partidaPrevista: '2026-07-18T20:00:00', bercoPrevisto: 'B01' },
+    { id: 2, chegadaPrevista: '2026-07-18T10:00:00', atracacaoPrevista: '2026-07-18T12:00:00', partidaPrevista: '2026-07-18T22:00:00', bercoPrevisto: 'B01' },
+    { id: 3, chegadaPrevista: '2026-07-18T22:00:00', atracacaoPrevista: '2026-07-18T23:00:00', partidaPrevista: '2026-07-19T05:00:00', bercoPrevisto: 'B01' }
+  ]);
+
+  const [grupo] = agruparEscalasPorBerco(escalas);
+  assert.equal(grupo.totalFaixas, 2);
+  assert.deepEqual(grupo.itens.map((escala) => escala.faixa), [0, 1, 0]);
 });

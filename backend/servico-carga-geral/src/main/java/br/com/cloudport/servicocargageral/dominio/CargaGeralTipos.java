@@ -64,6 +64,8 @@ public final class CargaGeralTipos {
 
     public enum TipoEventoStuffUnstuff {
         CRIADA,
+        PLANO_VERSIONADO,
+        PLANO_LIBERADO,
         INICIADA,
         EXECUCAO_REGISTRADA,
         DIVERGENCIA_REGISTRADA,

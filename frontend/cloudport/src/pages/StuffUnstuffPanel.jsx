@@ -3,6 +3,15 @@ import { formatError, readSession } from '../api.js';
 import { DataTable, EmptyState, Message, Section, StatusBadge } from '../components.jsx';
 import { generalCargoApi } from '../generalCargoApi.js';
 
+function newCommandId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = character === 'x' ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
 function blankOperation() {
   return {
     tipo: 'STUFF', conteinerId: '', armazemId: '', posicaoOperacao: '', equipeRecurso: '', lacreInicial: ''
@@ -13,9 +22,10 @@ function blankPlannedItem() {
   return { loteId: '', quantidadePlanejada: '', volumePlanejadoM3: '', pesoPlanejadoKg: '' };
 }
 
-function blankExecution() {
+function blankExecution(itemId = '') {
   return {
-    itemId: '', quantidade: '', volumeM3: '', pesoKg: '', codigoAvaria: '', descricaoAvaria: '', divergencia: ''
+    commandId: newCommandId(), itemId, quantidade: '', volumeM3: '', pesoKg: '',
+    codigoAvaria: '', descricaoAvaria: '', divergencia: ''
   };
 }
 
@@ -30,14 +40,14 @@ function currentUser() {
   return session?.nome || session?.email || 'operador';
 }
 
-export function StuffUnstuffPanel({ lotes = [], onChanged }) {
+export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
   const [operacoes, setOperacoes] = useState([]);
   const [selectedOperationId, setSelectedOperationId] = useState('');
   const [selectedOperation, setSelectedOperation] = useState(null);
   const [operation, setOperation] = useState(blankOperation);
   const [plannedItem, setPlannedItem] = useState(blankPlannedItem);
   const [plannedItems, setPlannedItems] = useState([]);
-  const [execution, setExecution] = useState(blankExecution);
+  const [execution, setExecution] = useState(() => blankExecution());
   const [finalSeal, setFinalSeal] = useState('');
   const [conclusionNote, setConclusionNote] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -63,7 +73,7 @@ export function StuffUnstuffPanel({ lotes = [], onChanged }) {
     try {
       const result = await generalCargoApi.obterOperacaoStuffUnstuff(id);
       setSelectedOperation(result);
-      setExecution((current) => ({ ...current, itemId: result?.itens?.[0]?.id || '' }));
+      setExecution(blankExecution(result?.itens?.[0]?.id || ''));
     } catch (reason) {
       setError(formatError(reason));
     }
@@ -119,7 +129,7 @@ export function StuffUnstuffPanel({ lotes = [], onChanged }) {
       ...operation,
       usuario: currentUser(),
       itens: plannedItems.map(({ loteCodigo, ...item }) => item)
-    }), 'Operação de stuff/unstuff criada.');
+    }), 'Operação de stuff/unstuff criada e contêiner reservado.');
     if (created) {
       setOperation(blankOperation());
       setPlannedItems([]);
@@ -134,11 +144,13 @@ export function StuffUnstuffPanel({ lotes = [], onChanged }) {
 
   async function registerExecution(event) {
     event.preventDefault();
-    await execute('execute', () => generalCargoApi.registrarExecucaoStuffUnstuff(selectedOperationId, {
+    const result = await execute('execute', () => generalCargoApi.registrarExecucaoStuffUnstuff(selectedOperationId, {
       ...execution,
       usuario: currentUser()
     }), 'Execução parcial registrada.');
-    setExecution((current) => ({ ...blankExecution(), itemId: current.itemId }));
+    if (result) {
+      setExecution(blankExecution(execution.itemId));
+    }
   }
 
   async function concludeOperation(event) {
@@ -147,7 +159,7 @@ export function StuffUnstuffPanel({ lotes = [], onChanged }) {
       lacreFinal: finalSeal || null,
       observacao: conclusionNote || null,
       usuario: currentUser()
-    }), 'Operação concluída.');
+    }), 'Operação concluída e contêiner liberado.');
     setFinalSeal('');
     setConclusionNote('');
   }
@@ -157,7 +169,7 @@ export function StuffUnstuffPanel({ lotes = [], onChanged }) {
     await execute('cancel', () => generalCargoApi.cancelarOperacaoStuffUnstuff(selectedOperationId, {
       motivo: cancelReason,
       usuario: currentUser()
-    }), 'Operação cancelada e saldos compensados.');
+    }), 'Operação cancelada, saldos compensados e contêiner liberado.');
     setCancelReason('');
   }
 
@@ -165,20 +177,22 @@ export function StuffUnstuffPanel({ lotes = [], onChanged }) {
 
   return <Section
     title="Operações de stuff e unstuff"
-    description="Crie a ordem por contêiner, planeje múltiplos cargo lots, acompanhe o realizado e encerre com trilha operacional."
+    description="Selecione um contêiner elegível do inventário canônico, planeje os cargo lots e registre apontamentos idempotentes."
   >
     <Message type="error">{error}</Message>
     <Message type="success" onClose={() => setSuccess('')}>{success}</Message>
 
     <form className="planner-selection-grid" onSubmit={createOperation}>
       <label className="field"><span>Operação</span><select value={operation.tipo} onChange={(event) => setOperation((current) => ({ ...current, tipo: event.target.value }))}><option>STUFF</option><option>UNSTUFF</option></select></label>
-      <label className="field"><span>Contêiner</span><input required maxLength="80" value={operation.conteinerId} onChange={(event) => setOperation((current) => ({ ...current, conteinerId: event.target.value }))} /></label>
+      <label className="field"><span>Contêiner canônico</span><select required value={operation.conteinerId} onChange={(event) => setOperation((current) => ({ ...current, conteinerId: event.target.value }))}><option value="">Selecione</option>{conteineres.map((conteiner) => <option key={conteiner.unidadeId} value={conteiner.identificacao}>{conteiner.identificacao} | {conteiner.estado} | {conteiner.posicaoAtual || 'sem posição'}</option>)}</select></label>
       <label className="field"><span>Armazém</span><input maxLength="80" value={operation.armazemId} onChange={(event) => setOperation((current) => ({ ...current, armazemId: event.target.value }))} /></label>
       <label className="field"><span>Local da operação</span><input maxLength="120" value={operation.posicaoOperacao} onChange={(event) => setOperation((current) => ({ ...current, posicaoOperacao: event.target.value }))} /></label>
       <label className="field"><span>Equipe ou recurso</span><input maxLength="120" value={operation.equipeRecurso} onChange={(event) => setOperation((current) => ({ ...current, equipeRecurso: event.target.value }))} /></label>
       <label className="field"><span>Lacre inicial</span><input maxLength="80" value={operation.lacreInicial} onChange={(event) => setOperation((current) => ({ ...current, lacreInicial: event.target.value }))} /></label>
-      <div className="field"><span>Ação</span><button type="submit" disabled={busy === 'create' || !plannedItems.length}>{busy === 'create' ? 'Criando...' : 'Criar operação'}</button></div>
+      <div className="field"><span>Ação</span><button type="submit" disabled={busy === 'create' || !plannedItems.length || !operation.conteinerId}>{busy === 'create' ? 'Criando...' : 'Criar operação'}</button></div>
     </form>
+
+    {!conteineres.length && <EmptyState title="Nenhum contêiner elegível no inventário" />}
 
     <form className="planner-selection-grid" onSubmit={addPlannedItem}>
       <label className="field"><span>Cargo lot</span><select required value={plannedItem.loteId} onChange={(event) => setPlannedItem((current) => ({ ...current, loteId: event.target.value }))}><option value="">Selecione</option>{availableLots.map((lot) => <option key={lot.id} value={lot.id}>{lot.codigo} | saldo {lot.quantidadeSaldo}</option>)}</select></label>
@@ -232,11 +246,12 @@ export function StuffUnstuffPanel({ lotes = [], onChanged }) {
         { key: 'pesoRealizadoKg', label: 'Peso realizado' },
         { key: 'codigoAvaria', label: 'Avaria' },
         { key: 'divergencia', label: 'Divergência' },
-        { key: 'acao', label: 'Ação', exportable: false, render: (row) => <button type="button" className="secondary small" disabled={terminal} onClick={() => setExecution((current) => ({ ...current, itemId: row.id }))}>Apontar</button> }
+        { key: 'acao', label: 'Ação', exportable: false, render: (row) => <button type="button" className="secondary small" disabled={terminal} onClick={() => setExecution(blankExecution(row.id))}>Apontar</button> }
       ]} />
 
       <form className="planner-selection-grid" onSubmit={registerExecution}>
-        <label className="field"><span>Item</span><select required disabled={terminal} value={execution.itemId} onChange={(event) => setExecution((current) => ({ ...current, itemId: event.target.value }))}>{(selectedOperation.itens ?? []).map((item) => <option key={item.id} value={item.id}>{item.loteCodigo}</option>)}</select></label>
+        <label className="field"><span>Command ID</span><input readOnly value={execution.commandId} /></label>
+        <label className="field"><span>Item</span><select required disabled={terminal} value={execution.itemId} onChange={(event) => setExecution(blankExecution(event.target.value))}>{(selectedOperation.itens ?? []).map((item) => <option key={item.id} value={item.id}>{item.loteCodigo}</option>)}</select></label>
         <label className="field"><span>Quantidade realizada</span><input required disabled={terminal} type="number" min="0.001" step="0.001" value={execution.quantidade} onChange={(event) => setExecution((current) => ({ ...current, quantidade: event.target.value }))} /></label>
         <label className="field"><span>Volume realizado m³</span><input required disabled={terminal} type="number" min="0" step="0.001" value={execution.volumeM3} onChange={(event) => setExecution((current) => ({ ...current, volumeM3: event.target.value }))} /></label>
         <label className="field"><span>Peso realizado kg</span><input required disabled={terminal} type="number" min="0" step="0.001" value={execution.pesoKg} onChange={(event) => setExecution((current) => ({ ...current, pesoKg: event.target.value }))} /></label>

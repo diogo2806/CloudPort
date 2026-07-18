@@ -1,9 +1,7 @@
 package br.com.cloudport.runtime.integracao;
 
 import br.com.cloudport.servicocargageral.integracao.inventario.InventarioConteinerCliente;
-import br.com.cloudport.servicoyard.inventario.dto.ReservaConteinerCargaGeralDTOs.LiberarConteinerRequest;
-import br.com.cloudport.servicoyard.inventario.dto.ReservaConteinerCargaGeralDTOs.ReservarConteinerRequest;
-import br.com.cloudport.servicoyard.inventario.dto.ReservaConteinerCargaGeralDTOs.ResultadoReserva;
+import br.com.cloudport.servicoyard.inventario.dto.ReservaConteinerCargaGeralDTOs;
 import br.com.cloudport.servicoyard.inventario.servico.ReservaConteinerCargaGeralServico;
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +31,7 @@ public class InventarioConteinerLocalAdapter extends InventarioConteinerCliente 
     public ConteinerInventarioResposta reservar(String identificacao, UUID operacaoId, String usuario) {
         return converter(servico.reservar(
                 identificacao,
-                new ReservarConteinerRequest(operacaoId, usuario)));
+                new ReservaConteinerCargaGeralDTOs.ReservarConteinerRequest(operacaoId, usuario)));
     }
 
     @Override
@@ -44,11 +42,14 @@ public class InventarioConteinerLocalAdapter extends InventarioConteinerCliente 
             String resultado) {
         return converter(servico.liberar(
                 operacaoId,
-                new LiberarConteinerRequest(usuario, motivo, ResultadoReserva.valueOf(resultado))));
+                new ReservaConteinerCargaGeralDTOs.LiberarConteinerRequest(
+                        usuario,
+                        motivo,
+                        ReservaConteinerCargaGeralDTOs.ResultadoReserva.valueOf(resultado))));
     }
 
     private ConteinerInventarioResposta converter(
-            br.com.cloudport.servicoyard.inventario.dto.ReservaConteinerCargaGeralDTOs.ConteinerInventarioResposta origem) {
+            ReservaConteinerCargaGeralDTOs.ConteinerInventarioResposta origem) {
         return new ConteinerInventarioResposta(
                 origem.unidadeId(),
                 origem.identificacao(),

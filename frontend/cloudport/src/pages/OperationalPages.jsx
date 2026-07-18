@@ -3,6 +3,7 @@ import { api, formatError, getRuntimeConfig, normalizePage } from '../api.js';
 import { DataTable, EmptyState, JsonDetails, Loading, Message, MetricCard, PageHeader, Section, StatusBadge } from '../components.jsx';
 import { selectGateAppointments } from '../gateDataset.js';
 import { gateOperatorApi, selectGateOperatorVehicles } from '../gateOperatorApi.js';
+import { GateVisualPage } from './GateVisualPage.jsx';
 
 function displayValue(value) {
   if (value === undefined || value === null || value === '') return '—';
@@ -45,7 +46,7 @@ function useLoader(loader, dependencies = []) {
 export function HomeDashboard({ navigate }) {
   const visibility = useLoader(() => api.obterDashboardVisibilidade(), []);
   const cards = [
-    { title: 'Gate', description: 'Agendamentos, janelas, operação e relatórios.', route: '/home/gate/agendamentos' },
+    { title: 'Gate', description: 'Agendamentos, janelas, operação e relatórios.', route: '/home/gate/dashboard' },
     { title: 'Ferrovia', description: 'Visitas, manifestos e listas de trabalho.', route: '/home/ferrovia/visitas' },
     { title: 'Pátio', description: 'Mapa, posições, movimentos, recursos e automação.', route: '/home/patio/mapa' },
     { title: 'Navio', description: 'Control Room integrado Navio + Pátio.', route: '/home/navio/control-room' },
@@ -80,29 +81,7 @@ export function GenericDatasetPage({ eyebrow, title, description, loader, prefer
 }
 
 export function GateDashboardPage() {
-  const central = useLoader(() => api.obterCentralGate(), []);
-  const appointments = selectGateAppointments(central.data);
-  return <>
-    <PageHeader eyebrow="Gate" title="Central de ação" description="Acompanhamento dos próximos agendamentos e ações disponíveis." actions={<button className="secondary" onClick={central.reload}>Atualizar</button>} />
-    <Message type="error">{central.error}</Message>
-    {central.loading ? <Loading /> : <>
-      <div className="metrics-grid">
-        <MetricCard label="Agendamentos" value={appointments.length} />
-        <MetricCard label="Transportadora" value={central.data?.usuario?.transportadoraNome || 'Todas'} />
-        <MetricCard label="Situação do pátio" value={central.data?.situacaoPatio?.status || '—'} detail={central.data?.situacaoPatio?.descricao} />
-        <MetricCard label="Atualizado em" value={central.data?.situacaoPatio?.verificadoEm ? new Date(central.data.situacaoPatio.verificadoEm).toLocaleString('pt-BR') : '—'} />
-      </div>
-      <Section title="Agendamentos prioritários"><DataTable rows={appointments} columns={[
-        { key: 'codigo', label: 'Código' },
-        { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> },
-        { key: 'tipoOperacaoDescricao', label: 'Operação' },
-        { key: 'horarioPrevistoChegada', label: 'Chegada', render: (row) => displayValue(row.horarioPrevistoChegada) },
-        { key: 'placaVeiculo', label: 'Placa' },
-        { key: 'transportadoraNome', label: 'Transportadora' },
-        { key: 'acaoPrincipal', label: 'Ação', render: (row) => row.acaoPrincipal?.titulo || '—' }
-      ]} emptyTitle="Nenhum agendamento prioritário" /></Section>
-    </>}
-  </>;
+  return <GateVisualPage />;
 }
 
 export function RailVisitsPage() {

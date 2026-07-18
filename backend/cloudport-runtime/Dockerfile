@@ -8,13 +8,24 @@ WORKDIR /workspace
 COPY backend/ .
 
 WORKDIR /workspace/cloudport-modules
-RUN mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install \
-    && mvn -B -Dspring-boot.repackage.skip=true \
+
+# Instala o agregador necessário para resolver os módulos do runtime.
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install
+
+# Barreira obrigatória do build: compila e executa todos os testes do backend.
+# Qualquer falha retorna código diferente de zero e impede a criação da imagem.
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B \
+        -Dmaven.test.skip=false \
+        -DskipTests=false \
+        -Dspring-boot.repackage.skip=true \
         -pl :cloudport-runtime -am \
-        -DskipTests install \
-    && mvn -B -pl :cloudport-runtime -DskipTests clean package \
-    && mvn -B -pl :cloudport-runtime \
-        -Dtest=FlywayMigrationPackagingUniquenessTest test
+        clean install
+
+# Os testes já foram aprovados acima; esta etapa gera somente o JAR executável final.
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -pl :cloudport-runtime -DskipTests package
 
 FROM eclipse-temurin:17-jre
 

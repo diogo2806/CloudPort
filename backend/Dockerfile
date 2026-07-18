@@ -8,12 +8,24 @@ WORKDIR /workspace
 COPY . .
 
 WORKDIR /workspace/cloudport-modules
+
+# Instala o agregador necessário para resolver os módulos do runtime.
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -N -f ../cloudport-navio-modules/pom.xml install \
-    && mvn -B -Dspring-boot.repackage.skip=true \
+    mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install
+
+# Barreira obrigatória do deploy: compila e executa todos os testes do backend.
+# Qualquer falha retorna código diferente de zero e interrompe o build do EasyPanel.
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B \
+        -Dmaven.test.skip=false \
+        -DskipTests=false \
+        -Dspring-boot.repackage.skip=true \
         -pl :cloudport-runtime -am \
-        clean install \
-    && mvn -B -pl :cloudport-runtime -DskipTests package
+        clean install
+
+# Os testes já foram aprovados acima; esta etapa gera somente o JAR executável final.
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -pl :cloudport-runtime -DskipTests package
 
 FROM eclipse-temurin:17-jre
 

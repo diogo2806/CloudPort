@@ -36,6 +36,14 @@ class InterceptadorAutorizacaoWebSocketTest {
     }
 
     @Test
+    void devePermitirConnectDeOutroModuloSemCanalYard() {
+        Message<byte[]> mensagem = mensagem(StompCommand.CONNECT, null, null, null);
+
+        assertThatCode(() -> interceptador.preSend(mensagem, canalMensagens))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     void devePermitirAssinaturaDoPatioParaOperadorGate() {
         Authentication authentication = autenticacao("OPERADOR_GATE");
         Message<byte[]> mensagem = mensagem(
@@ -59,6 +67,30 @@ class InterceptadorAutorizacaoWebSocketTest {
 
         assertThatThrownBy(() -> interceptador.preSend(mensagem, canalMensagens))
                 .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void deveBloquearTopicoDoPatioPorEndpointDeOutroModulo() {
+        Message<byte[]> mensagem = mensagem(
+                StompCommand.SUBSCRIBE,
+                null,
+                autenticacao("ADMIN_PORTO"),
+                "/topico/patio");
+
+        assertThatThrownBy(() -> interceptador.preSend(mensagem, canalMensagens))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void devePermitirTopicoDeOutroModuloSemCanalYard() {
+        Message<byte[]> mensagem = mensagem(
+                StompCommand.SUBSCRIBE,
+                null,
+                autenticacao("ADMIN_PORTO"),
+                "/topic/dashboard");
+
+        assertThatCode(() -> interceptador.preSend(mensagem, canalMensagens))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -119,7 +151,9 @@ class InterceptadorAutorizacaoWebSocketTest {
                                              String destination) {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(command);
         Map<String, Object> atributos = new HashMap<>();
-        atributos.put(InterceptadorHandshakeWebSocket.ATRIBUTO_CANAL, canal.name());
+        if (canal != null) {
+            atributos.put(InterceptadorHandshakeWebSocket.ATRIBUTO_CANAL, canal.name());
+        }
         if (authentication != null) {
             atributos.put(InterceptadorHandshakeWebSocket.ATRIBUTO_PRINCIPAL, authentication);
             accessor.setUser(authentication);

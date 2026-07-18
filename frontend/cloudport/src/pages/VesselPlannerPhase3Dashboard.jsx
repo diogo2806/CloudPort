@@ -130,6 +130,7 @@ export function VesselPlannerPhase3Dashboard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const selectionControlled = controlledSelectedSlotId !== undefined && controlledSelectedSlotId !== null;
   const overlayMode = resolveControlledValue(controlledOverlayMode, localOverlayMode);
   const selectedSlotId = resolveControlledValue(controlledSelectedSlotId, localSelectedSlotId);
   const slots = useMemo(() => normalizeSlots(plan), [plan]);
@@ -175,15 +176,15 @@ export function VesselPlannerPhase3Dashboard({
   useEffect(() => {
     setStability(plan?.estabilidade ?? null);
     setRestow(null);
-    if (controlledSelectedSlotId === undefined || controlledSelectedSlotId === null) setLocalSelectedSlotId('');
+    if (!selectionControlled) setLocalSelectedSlotId('');
     loadTechnicalData();
-  }, [plan?.id, controlledSelectedSlotId, loadTechnicalData]);
+  }, [plan?.id, loadTechnicalData, selectionControlled]);
 
   useEffect(() => {
-    if ((controlledSelectedSlotId === undefined || controlledSelectedSlotId === null) && !localSelectedSlotId && slots.length) {
+    if (!selectionControlled && !localSelectedSlotId && slots.length) {
       setLocalSelectedSlotId(String(slots.find((slot) => slot.codigoContainer)?.id ?? slots[0].id));
     }
-  }, [slots, controlledSelectedSlotId, localSelectedSlotId]);
+  }, [slots, selectionControlled, localSelectedSlotId]);
 
   if (!plan?.id || !slots.length) return null;
 

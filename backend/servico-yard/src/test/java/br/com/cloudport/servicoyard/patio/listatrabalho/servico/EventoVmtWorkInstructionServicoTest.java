@@ -51,7 +51,8 @@ class EventoVmtWorkInstructionServicoTest {
     void deveAceitarInstrucaoUmaUnicaVez() {
         OrdemTrabalhoPatio ordem = ordemEmExecucao(StatusConfirmacaoVmt.PENDENTE);
         LocalDateTime timestamp = LocalDateTime.of(2026, 7, 18, 10, 0);
-        prepararPersistencia(ordem);
+        prepararConsulta(ordem);
+        prepararPersistencia();
 
         servico.processar(10L, request("vmt-aceite-1", TipoEventoVmt.ACEITE,
                 StatusConfirmacaoVmt.PENDENTE, timestamp));
@@ -80,13 +81,14 @@ class EventoVmtWorkInstructionServicoTest {
     @Test
     void deveRejeitarInicioSemAceite() {
         OrdemTrabalhoPatio ordem = ordemEmExecucao(StatusConfirmacaoVmt.PENDENTE);
-        prepararPersistencia(ordem);
+        prepararConsulta(ordem);
 
         ResponseStatusException excecao = assertThrows(ResponseStatusException.class,
                 () -> servico.processar(10L, request("vmt-inicio-fora-sequencia", TipoEventoVmt.INICIO,
                         StatusConfirmacaoVmt.PENDENTE, LocalDateTime.now())));
 
         assertEquals(HttpStatus.CONFLICT, excecao.getStatus());
+        verify(ordemRepositorio, never()).saveAndFlush(any(OrdemTrabalhoPatio.class));
         verify(eventoRepositorio, never()).saveAndFlush(any(EventoVmtWorkInstruction.class));
     }
 
@@ -94,7 +96,8 @@ class EventoVmtWorkInstructionServicoTest {
     void deveConcluirInstrucaoSomentePeloEventoVmtOrdenado() {
         OrdemTrabalhoPatio ordem = ordemEmExecucao(StatusConfirmacaoVmt.EM_EXECUCAO);
         LocalDateTime timestamp = LocalDateTime.of(2026, 7, 18, 10, 15);
-        prepararPersistencia(ordem);
+        prepararConsulta(ordem);
+        prepararPersistencia();
 
         servico.processar(10L, request("vmt-conclusao-1", TipoEventoVmt.CONCLUSAO,
                 StatusConfirmacaoVmt.EM_EXECUCAO, timestamp));
@@ -105,12 +108,15 @@ class EventoVmtWorkInstructionServicoTest {
         assertEquals(timestamp, ordem.getConcluidoEm());
     }
 
-    private void prepararPersistencia(OrdemTrabalhoPatio ordem) {
+    private void prepararConsulta(OrdemTrabalhoPatio ordem) {
         when(eventoRepositorio.findByEventId(any(String.class))).thenReturn(Optional.empty());
         when(ordemRepositorio.findOneById(10L)).thenReturn(Optional.of(ordem));
         when(eventoRepositorio
                 .findFirstByOrdemTrabalhoPatioIdOrderByOcorridoEmDescProcessadoEmDesc(10L))
                 .thenReturn(Optional.empty());
+    }
+
+    private void prepararPersistencia() {
         when(ordemRepositorio.saveAndFlush(any(OrdemTrabalhoPatio.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(eventoRepositorio.saveAndFlush(any(EventoVmtWorkInstruction.class)))

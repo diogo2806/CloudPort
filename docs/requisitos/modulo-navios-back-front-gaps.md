@@ -1,6 +1,6 @@
 # Requisitos pendentes - CloudPort
 
-Status: atualizado em 2026-07-18 após as implementações de ERR10 e ERR30 incorporadas à `main`.
+Status: atualizado em 2026-07-18 após as implementações de ERR10, ERR20, ERR30 e ERR40 incorporadas à `main`.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -30,13 +30,15 @@ A lista detalhada está em `docs/implementados/requisitos-implementados.md`. Nã
 6. Gate operacional e visual com múltiplos gates, pistas, filas, appointments, truck visits, inspeções, imagens, documentos, EIR, SLA, trouble transactions e controle de pessoas.
 7. Serialização do acesso de pessoas por documento e tradução de disputas concorrentes para `409 Conflict`.
 8. Tradução das rejeições transacionais de truck visits para respostas operacionais `409` ou `422`, com SQLStates de domínio e rollback integral.
-9. Ferrovia com visita, manifesto, ordens, composição gráfica, linhas, conflitos, conclusão, partida e transferência de locomotiva para navio.
-10. Carga geral, carga de projeto e break-bulk com Bill of Lading, itens, cargo lots, referências, estoque e movimentações.
-11. Billing e portal CAP.
-12. Grade operacional compartilhada, exportação CSV/Excel protegida contra fórmulas, inspector, filtros, layouts salvos e ajuda contextual.
-13. Central global de alertas e line-ups internos e públicos.
-14. Processamento EDI assíncrono e idempotente, eventos internos seletivos e contratos versionados.
-15. Dockerfiles e parâmetros de implantação do frontend e backend no EasyPanel.
+9. Serialização da geração de faturas e do registro de pagamentos, impedindo cobrança repetida e pagamento acima do saldo.
+10. Tradução das colisões concorrentes nos cadastros únicos de carga geral para `409 Conflict`, sem exposição de SQL ou constraints.
+11. Ferrovia com visita, manifesto, ordens, composição gráfica, linhas, conflitos, conclusão, partida e transferência de locomotiva para navio.
+12. Carga geral, carga de projeto e break-bulk com Bill of Lading, itens, cargo lots, referências, estoque e movimentações.
+13. Billing e portal CAP.
+14. Grade operacional compartilhada, exportação CSV/Excel protegida contra fórmulas, inspector, filtros, layouts salvos e ajuda contextual.
+15. Central global de alertas e line-ups internos e públicos.
+16. Processamento EDI assíncrono e idempotente, eventos internos seletivos e contratos versionados.
+17. Dockerfiles e parâmetros de implantação do frontend e backend no EasyPanel.
 
 ## P0 - Pendências obrigatórias
 
@@ -81,11 +83,9 @@ Critério de aceite: ao recarregar a página, o planejamento confirmado permanec
 
 As pendências técnicas comprovadas não devem ser duplicadas aqui. Implementar e encerrar os itens mantidos em `docs/requisitos/requisito-tecnico.md`:
 
-1. `ERR20`: concorrência na geração de faturas e pagamentos;
-2. `ERR40`: concorrência nos cadastros únicos de carga geral;
-3. `SEC70`: sanitização dos logs e exceções do TOS;
-4. `SEC80`: segurança da execução standalone de carga geral;
-5. `SEC90`: autenticação e autorização dos WebSockets operacionais do Yard.
+1. `SEC70`: sanitização dos logs e exceções do TOS;
+2. `SEC80`: segurança da execução standalone de carga geral;
+3. `SEC90`: autenticação e autorização dos WebSockets operacionais do Yard.
 
 Critério de aceite: cada item deve sair do backlog técnico somente após alteração verificável no código e no contrato HTTP ou WebSocket correspondente.
 

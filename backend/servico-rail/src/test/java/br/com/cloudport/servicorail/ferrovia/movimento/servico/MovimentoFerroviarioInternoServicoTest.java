@@ -60,8 +60,6 @@ class MovimentoFerroviarioInternoServicoTest {
     @Test
     void devePlanejarAutorizarIniciarEConcluirLiberandoRecursos() {
         VisitaTrem visita = visita();
-        when(visitaTremRepositorio.findById(1L)).thenReturn(Optional.of(visita));
-
         MovimentoFerroviarioInterno movimento = movimentoPlanejado(visita);
         when(movimentoRepositorio.findOneById(10L)).thenReturn(Optional.of(movimento));
         when(movimentoRepositorio

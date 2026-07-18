@@ -37,8 +37,49 @@
 .vessel-phase1-technical article span { color: #718397; font-size: 9px; font-weight: 800; text-transform: uppercase; }
 .vessel-phase1-technical article strong { color: #27445d; }
 .vessel-phase1-technical button { padding: 8px; border: 1px solid #d5e1ea; background: #f8fbfd; color: #31536e; font-size: 10px; box-shadow: none; }
+
+.crane-execution-panel { display: grid; gap: 12px; padding: 16px; border: 1px solid #d7e3ec; border-radius: 14px; background: #fff; }
+.crane-execution-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.crane-execution-heading h3 { margin: 2px 0 0; color: #27445d; }
+.crane-execution-message { padding: 10px 12px; border-radius: 8px; font-size: 12px; }
+.crane-execution-message.error { border: 1px solid #e1a6a6; background: #fff0f0; color: #8c2f2f; }
+.crane-execution-message.success { border: 1px solid #9fc9ae; background: #effaf2; color: #27643d; }
+.crane-execution-summary { display: grid; grid-template-columns: repeat(6, minmax(100px, 1fr)); gap: 8px; }
+.crane-execution-summary article { display: grid; gap: 4px; padding: 10px; border-radius: 9px; background: #f6f9fb; }
+.crane-execution-summary span { color: #718397; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.crane-execution-summary strong { color: #27445d; }
+.crane-execution-progress { width: 100%; height: 12px; }
+.crane-execution-timeline { display: grid; gap: 8px; }
+.crane-execution-movement { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 12px; border: 1px solid #d7e3ec; border-radius: 10px; background: #f9fbfd; }
+.crane-execution-movement.status-em_execucao { border-color: #7eb3d5; background: #eef7fd; }
+.crane-execution-movement.status-concluido { border-color: #9fc9ae; background: #f1faf4; }
+.crane-execution-movement.status-falha { border-color: #e1a6a6; background: #fff3f3; }
+.crane-movement-order { display: grid; place-items: center; gap: 3px; padding: 8px; border-radius: 8px; background: #e9f1f7; }
+.crane-movement-order span { color: #526f87; font-size: 11px; font-weight: 800; }
+.crane-movement-order strong { color: #1f506f; font-size: 18px; }
+.crane-movement-content { display: grid; gap: 4px; min-width: 0; }
+.crane-movement-content p, .crane-movement-content small { margin: 0; color: #5b7083; }
+.crane-movement-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.crane-movement-title span { color: #637b90; font-size: 10px; font-weight: 800; }
+.crane-movement-note { padding: 6px 8px; border-radius: 6px; background: #fff7e7; }
+.crane-movement-exception { padding: 6px 8px; border-radius: 6px; background: #ffe8e8; color: #8c2f2f !important; }
+.crane-movement-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.crane-movement-actions button { padding: 7px 9px; font-size: 10px; }
+.crane-reconcile-action { display: flex; justify-content: flex-end; }
+.crane-reconciled { display: grid; gap: 3px; padding: 10px 12px; border-radius: 8px; background: #effaf2; color: #27643d; }
+
+@media (max-width: 980px) {
+  .crane-execution-summary { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
+  .crane-execution-movement { grid-template-columns: 64px minmax(0, 1fr); }
+  .crane-movement-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
 @media (max-width: 760px) {
   .vessel-phase1-selection { grid-template-columns: 1fr; }
   .vessel-phase1-selection small { white-space: normal; }
   .vessel-phase1-technical { grid-template-columns: 1fr; }
+  .crane-execution-heading { align-items: flex-start; flex-direction: column; }
+  .crane-execution-summary { grid-template-columns: 1fr 1fr; }
+  .crane-execution-movement { grid-template-columns: 1fr; }
+  .crane-movement-order { grid-template-columns: auto auto; justify-content: start; }
+  .crane-movement-actions { grid-column: auto; }
 }

@@ -1,9 +1,16 @@
 package br.com.cloudport.servicogate.app.gestor;
 
-import br.com.cloudport.servicogate.config.SecurityConfig;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import br.com.cloudport.servicogate.app.gestor.dto.GateEventDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.ManualReleaseAction;
 import br.com.cloudport.servicogate.app.gestor.dto.ManualReleaseRequest;
+import br.com.cloudport.servicogate.config.SecurityConfig;
 import br.com.cloudport.servicogate.security.TransportadoraSynchronizationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -16,17 +23,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 @WebMvcTest(controllers = GateFlowController.class)
 @Import(SecurityConfig.class)
 @TestPropertySource(properties = {
-        "cloudport.security.jwt.secret=test-secret",
+        "cloudport.security.jwt.secret=test-secret-test-secret-test-secret-1234",
         "cloudport.security.cors.allowed-origins=http://localhost:4200"
 })
 class GateFlowControllerSecurityTest {
@@ -39,6 +39,9 @@ class GateFlowControllerSecurityTest {
 
     @MockBean
     private GateFlowService gateFlowService;
+
+    @MockBean
+    private GateFlowOrchestrator gateFlowOrchestrator;
 
     @MockBean
     private GateOperationsService gateOperationsService;

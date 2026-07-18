@@ -3,7 +3,9 @@ import test from 'node:test';
 import {
   applyGridFilters,
   buildGridCsv,
+  buildGridExcel,
   moveColumn,
+  neutralizeSpreadsheetFormula,
   paginateGridRows,
   reconcileColumnLayout,
   resolveRowKey,
@@ -44,4 +46,25 @@ test('gera CSV compatível com Excel e resolve chaves estáveis', () => {
   assert.match(csv, /^\uFEFF"Código";"Status";"Peso"/);
   assert.match(csv, /"CNT-Á01"/);
   assert.equal(resolveRowKey(rows[0], 0, 'id'), '1');
+});
+
+test('neutraliza fórmulas em CSV e Excel mesmo após espaços ou controles', () => {
+  const dangerousRows = [{ codigo: '=1+1', status: '  +CMD', peso: '\t@SOMA(1;1)' }];
+  const csv = buildGridCsv(dangerousRows, columns);
+  const excel = buildGridExcel(dangerousRows, columns);
+
+  assert.equal(neutralizeSpreadsheetFormula('-10'), "'-10");
+  assert.match(csv, /"'=1\+1"/);
+  assert.match(csv, /"'  \+CMD"/);
+  assert.match(csv, /"'\t@SOMA\(1;1\)"/);
+  assert.match(excel, /ss:Type="String">&apos;=1\+1</);
+  assert.doesNotMatch(excel, /<Data ss:Type="Formula"/);
+});
+
+test('gera planilha Excel XML com cabeçalho e valores escapados', () => {
+  const excel = buildGridExcel([{ codigo: '<CNT&01>', status: 'LIBERADO', peso: 10 }], columns);
+
+  assert.match(excel, /<Worksheet ss:Name="Registros">/);
+  assert.match(excel, /<Font ss:Bold="1"\/>/);
+  assert.match(excel, /&lt;CNT&amp;01&gt;/);
 });

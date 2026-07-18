@@ -88,6 +88,28 @@ public class OrdemTrabalhoPatio {
     @Column(name = "chave_idempotencia", length = 120, unique = true)
     private String chaveIdempotencia;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_confirmacao_vmt", nullable = false, length = 30)
+    private StatusConfirmacaoVmt statusConfirmacaoVmt = StatusConfirmacaoVmt.PENDENTE;
+
+    @Column(name = "vmt_aceito_em")
+    private LocalDateTime vmtAceitoEm;
+
+    @Column(name = "vmt_iniciado_em")
+    private LocalDateTime vmtIniciadoEm;
+
+    @Column(name = "vmt_falha_em")
+    private LocalDateTime vmtFalhaEm;
+
+    @Column(name = "vmt_concluido_em")
+    private LocalDateTime vmtConcluidoEm;
+
+    @Column(name = "ultimo_evento_vmt_id", length = 120)
+    private String ultimoEventoVmtId;
+
+    @Column(name = "resultado_vmt", length = 1000)
+    private String resultadoVmt;
+
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
 
@@ -126,6 +148,16 @@ public class OrdemTrabalhoPatio {
         this.atualizadoEm = atualizadoEm;
     }
 
+    private void reiniciarConfirmacaoVmt() {
+        statusConfirmacaoVmt = StatusConfirmacaoVmt.PENDENTE;
+        vmtAceitoEm = null;
+        vmtIniciadoEm = null;
+        vmtFalhaEm = null;
+        vmtConcluidoEm = null;
+        ultimoEventoVmtId = null;
+        resultadoVmt = null;
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public ConteinerPatio getConteiner() { return conteiner; }
@@ -145,7 +177,14 @@ public class OrdemTrabalhoPatio {
     public TipoMovimentoPatio getTipoMovimento() { return tipoMovimento; }
     public void setTipoMovimento(TipoMovimentoPatio tipoMovimento) { this.tipoMovimento = tipoMovimento; }
     public StatusOrdemTrabalhoPatio getStatusOrdem() { return statusOrdem; }
-    public void setStatusOrdem(StatusOrdemTrabalhoPatio statusOrdem) { this.statusOrdem = statusOrdem; }
+    public void setStatusOrdem(StatusOrdemTrabalhoPatio statusOrdem) {
+        if (statusOrdem == StatusOrdemTrabalhoPatio.PENDENTE
+                && this.statusOrdem != null
+                && this.statusOrdem != StatusOrdemTrabalhoPatio.PENDENTE) {
+            reiniciarConfirmacaoVmt();
+        }
+        this.statusOrdem = statusOrdem;
+    }
     public StatusConteiner getStatusConteinerDestino() { return statusConteinerDestino; }
     public void setStatusConteinerDestino(StatusConteiner statusConteinerDestino) { this.statusConteinerDestino = statusConteinerDestino; }
     public Long getVisitaNavioId() { return visitaNavioId; }
@@ -168,6 +207,20 @@ public class OrdemTrabalhoPatio {
     public void setWorkQueueId(Long workQueueId) { this.workQueueId = workQueueId; }
     public String getChaveIdempotencia() { return chaveIdempotencia; }
     public void setChaveIdempotencia(String chaveIdempotencia) { this.chaveIdempotencia = chaveIdempotencia; }
+    public StatusConfirmacaoVmt getStatusConfirmacaoVmt() { return statusConfirmacaoVmt; }
+    public void setStatusConfirmacaoVmt(StatusConfirmacaoVmt statusConfirmacaoVmt) { this.statusConfirmacaoVmt = statusConfirmacaoVmt; }
+    public LocalDateTime getVmtAceitoEm() { return vmtAceitoEm; }
+    public void setVmtAceitoEm(LocalDateTime vmtAceitoEm) { this.vmtAceitoEm = vmtAceitoEm; }
+    public LocalDateTime getVmtIniciadoEm() { return vmtIniciadoEm; }
+    public void setVmtIniciadoEm(LocalDateTime vmtIniciadoEm) { this.vmtIniciadoEm = vmtIniciadoEm; }
+    public LocalDateTime getVmtFalhaEm() { return vmtFalhaEm; }
+    public void setVmtFalhaEm(LocalDateTime vmtFalhaEm) { this.vmtFalhaEm = vmtFalhaEm; }
+    public LocalDateTime getVmtConcluidoEm() { return vmtConcluidoEm; }
+    public void setVmtConcluidoEm(LocalDateTime vmtConcluidoEm) { this.vmtConcluidoEm = vmtConcluidoEm; }
+    public String getUltimoEventoVmtId() { return ultimoEventoVmtId; }
+    public void setUltimoEventoVmtId(String ultimoEventoVmtId) { this.ultimoEventoVmtId = ultimoEventoVmtId; }
+    public String getResultadoVmt() { return resultadoVmt; }
+    public void setResultadoVmt(String resultadoVmt) { this.resultadoVmt = resultadoVmt; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
     public LocalDateTime getAtualizadoEm() { return atualizadoEm; }

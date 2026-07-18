@@ -4,7 +4,9 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPati
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import java.util.List;
 import java.util.Optional;
+import javax.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 
 public interface OrdemTrabalhoPatioRepositorio extends JpaRepository<OrdemTrabalhoPatio, Long> {
 
@@ -24,10 +26,10 @@ public interface OrdemTrabalhoPatioRepositorio extends JpaRepository<OrdemTrabal
             List<StatusOrdemTrabalhoPatio> status);
 
     boolean existsByCodigoConteinerIgnoreCaseAndStatusOrdemIn(String codigoConteiner,
-                                                               List<StatusOrdemTrabalhoPatio> status);
+                                                                List<StatusOrdemTrabalhoPatio> status);
 
     boolean existsByItemOperacaoNavioIdAndStatusOrdemIn(Long itemOperacaoNavioId,
-                                                         List<StatusOrdemTrabalhoPatio> status);
+                                                          List<StatusOrdemTrabalhoPatio> status);
 
     boolean existsByLinhaDestinoAndColunaDestinoAndCamadaDestinoIgnoreCaseAndStatusOrdemIn(
             Integer linhaDestino,
@@ -47,4 +49,7 @@ public interface OrdemTrabalhoPatioRepositorio extends JpaRepository<OrdemTrabal
             List<StatusOrdemTrabalhoPatio> status);
 
     Optional<OrdemTrabalhoPatio> findByIdAndStatusOrdemIn(Long id, List<StatusOrdemTrabalhoPatio> status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<OrdemTrabalhoPatio> findOneById(Long id);
 }

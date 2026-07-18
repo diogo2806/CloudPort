@@ -14,6 +14,7 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueueOperaca
 import java.util.List;
 import java.util.Map;
 import javax.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/yard/patio")
@@ -86,7 +88,8 @@ public class WorkQueueOperacaoControlador {
     @PreAuthorize(AUTORIZACAO_OPERACAO_PATIO)
     public OrdemTrabalhoPatioRespostaDto concluir(@PathVariable Long id,
                                                     @Valid @RequestBody ComandoWorkInstructionDto dto) {
-        return publicar(servico.concluir(id, dto), "WORK_INSTRUCTION_CONCLUIDA", dto.getCorrelationId());
+        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "A conclusao da work instruction exige um evento VMT CONCLUSAO idempotente e persistido.");
     }
 
     @PostMapping("/work-instructions/{id}/reset")

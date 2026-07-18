@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão do BUS1090 e a persistência do replanejamento ferroviário entre vagões.
+Status: atualizado em 2026-07-18 com a conclusão integral da seção Navio e ferrovia, incluindo BUS1150, BUS1160, BUS1170 e DATA1180.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -70,6 +70,19 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 12. Peso, centros de gravidade, GM, calado, trim, banda, força cortante e momento fletor.
 13. Aprovações versionadas e invalidadas quando o plano muda.
 14. BAPLIE com posição, operação, VGM, reefer, perigosos e OOG.
+
+## Execução operacional do Vessel Planner — BUS1150, BUS1160 e DATA1180
+
+1. A execução da sequência de guindastes é persistida por movimento, com guindaste, ordem, janela, início, conclusão, falha, replanejamento, reconciliação e quantidade realizada.
+2. A linha do tempo operacional apresenta progresso, exceções e resultado real sem substituir o plano aprovado.
+3. Tampas de porão possuem entidades de tampa, posição, tarefa e dependência com operações de abrir, remover, posicionar e fechar.
+4. Dependências incompletas e estados incompatíveis impedem o início de movimentos de guindaste relacionados.
+5. A reconciliação BAPLIE gera agregado persistido e versionado vinculado ao plano, Bay Plan e visita de navio.
+6. A comparação considera BAPLIE, slots planejados, inventário canônico, execução e posição física.
+7. Divergências registram tipo, severidade, campo, fontes, valores confrontados e estado de resolução.
+8. Divergências críticas abertas bloqueiam a validação e aprovação da versão atual do plano.
+9. A resolução registra decisão, motivo, responsável e instante sem sobrescrever silenciosamente os dados de origem.
+10. O Vessel Planner apresenta fila consolidada de divergências e comandos auditáveis de execução, consulta e resolução.
 
 ## Operações administrativas de Navio
 
@@ -161,6 +174,11 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 7. Manifesto, posição do vagão e ordem ferroviária são atualizados na mesma transação com bloqueio pessimista e controle otimista de versão.
 8. Capacidade, compatibilidade, estado da operação e concorrência são revalidados antes da confirmação.
 9. Cada replanejamento registra origem, destino, posições, ordem do manifesto, usuário, motivo e versões anterior e atual.
+10. Movimentos internos persistem visita, origem, destino, janela planejada e estados `PLANEJADO`, `AUTORIZADO`, `EM_EXECUCAO`, `CONCLUIDO` e `CANCELADO`.
+11. Rotas, linhas, trechos e switches são reservados na autorização e liberados atomicamente na conclusão ou no cancelamento.
+12. Sobreposições de visita ou recurso retornam conflito funcional e são protegidas por restrições de exclusão no PostgreSQL.
+13. A conclusão atualiza a posição ferroviária corrente da visita.
+14. A API permite planejar, autorizar, iniciar, concluir, cancelar, consultar e listar o histórico por visita.
 
 ## Carga Geral e carga siderúrgica
 
@@ -200,9 +218,3 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 4. Navegação por teclado e atributos de acessibilidade.
 5. Ajuda contextual, central global de alertas e navegação dinâmica.
 6. Sessão JWT invalidada de forma consistente em respostas `401`.
-
-## Pendências não marcadas como implementadas
-
-As pendências técnicas restantes permanecem em `docs/requisitos/requisito-tecnico.md`. O BUS1090 foi concluído e não deve ser reaberto sem regressão comprovada ou novo critério funcional.
-
-Permanecem no backlog funcional a comprovação do corte operacional e as evoluções registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.

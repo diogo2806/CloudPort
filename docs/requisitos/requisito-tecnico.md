@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS1090 e BUS1170 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão da seção Navio e ferrovia na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -134,33 +134,3 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio` | work instructions | Não há contrato comprovado que use confirmação real de VMT com deduplicação e sequência. | Criar porta de eventos com `eventId`, `instructionId`, estado esperado, timestamp e resultado. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/controlroom` | conclusão operacional | A instrução pode ser concluída sem confirmação idempotente do equipamento. | Integrar aceite, início, falha e conclusão do VMT ao ciclo persistido. |
-
-## 3. Navio e ferrovia
-
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| BUS1150 | Registrar execução da sequência de guindastes. | Cada movimento possui guindaste, ordem, janela, início, conclusão, exceção e quantidade realizada. | ⬜ Pendente |
-| BUS1160 | Implementar operação persistida de tampas de porão. | Tarefas de abrir, remover, posicionar e fechar controlam dependências e bloqueiam movimentos incompatíveis. | ⬜ Pendente |
-| DATA1180 | Reconciliar BAPLIE, plano, inventário e execução física. | Divergências são persistidas, classificadas, resolvidas e bloqueiam publicação ou conclusão quando críticas. | ⬜ Pendente |
-
-### BUS1150 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-navio/src/main/java/br/com/cloudport/serviconavio` | sequência de guindastes | Existe planejamento, mas não agregado de execução por movimento. | Criar novo agregado sugerido: `ExecucaoSequenciaGuindaste`. |
-| `frontend/cloudport/src/pages/VesselPlannerWorkspace.jsx` | plano visual | Não apresenta linha do tempo persistida de execução real. | Exibir progresso, exceções e reconciliação. |
-
-### BUS1160 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/modelo/SlotNavio.java` | geometria do slot | Não existe ciclo operacional de tampas e dependências. | Criar entidades de tampa, posição, tarefa e dependência. |
-| `frontend/cloudport/src/pages/VesselPlannerWorkspace.jsx` | overlay de tampas | O overlay não bloqueia transacionalmente movimentos incompatíveis. | Integrar ao estado persistido e impedir início incompatível. |
-
-### DATA1180 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/parser/BaplieParser.java` | importação BAPLIE | Produz dados de plano, mas não reconcilia persistentemente inventário e execução. | Criar novo serviço sugerido: `ReconciliacaoBaplieExecucaoServico.reconciliar()`. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/modelo/SlotNavio.java` | ocupação planejada | Não mantém divergência por fonte nem decisão de resolução. | Persistir severidade, valores por origem, decisão e usuário. |
-| `frontend/cloudport/src/pages/VesselPlannerWorkspace.jsx` | plano visual | Não possui fila consolidada de divergências. | Exibir divergências e bloquear publicação ou conclusão conforme severidade. |

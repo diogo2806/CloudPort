@@ -49,3 +49,10 @@ jobs:
           mvn -B -pl :cloudport-runtime -DskipTests clean package
           mvn -B -pl :cloudport-runtime \
             -Dtest=FlywayMigrationPackagingUniquenessTest,FlywayMigrationExecutionTest test
+      - name: Publicar relatório da auditoria Flyway
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flyway-audit-report
+          path: backend/cloudport-runtime/target/flyway-audit-report.txt
+          if-no-files-found: error

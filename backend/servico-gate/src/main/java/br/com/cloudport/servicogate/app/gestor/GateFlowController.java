@@ -36,7 +36,9 @@ public class GateFlowController {
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
     public ResponseEntity<GateDecisionDTO> registrarEntrada(@Valid @RequestBody GateFlowRequest request) {
         GateDecisionDTO decision = gateFlowService.registrarEntrada(request);
-        gateOperationsService.registrarEntrada(request, decision.getGatePassId());
+        if (decision.isAutorizado()) {
+            gateOperationsService.registrarEntrada(request, decision.getGatePassId());
+        }
         return ResponseEntity.ok(decision);
     }
 
@@ -45,7 +47,9 @@ public class GateFlowController {
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE')")
     public ResponseEntity<GateDecisionDTO> registrarSaida(@Valid @RequestBody GateFlowRequest request) {
         GateDecisionDTO decision = gateFlowService.registrarSaida(request);
-        gateOperationsService.registrarSaida(request, decision.getGatePassId());
+        if (decision.isAutorizado()) {
+            gateOperationsService.registrarSaida(request, decision.getGatePassId());
+        }
         return ResponseEntity.ok(decision);
     }
 

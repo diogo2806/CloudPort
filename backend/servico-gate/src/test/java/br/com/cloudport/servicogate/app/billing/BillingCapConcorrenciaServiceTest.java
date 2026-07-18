@@ -3,6 +3,7 @@ package br.com.cloudport.servicogate.app.billing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,8 +41,8 @@ class BillingCapConcorrenciaServiceTest {
     @BeforeEach
     void setUp() {
         service = new BillingCapConcorrenciaServiceTeste(jdbcTemplate, transportadoraRepository);
-        when(jdbcTemplate.queryForList(any(String.class), any(SqlParameterSource.class)))
-                .thenReturn(List.of(Map.of("id", 1L)));
+        when(jdbcTemplate.queryForList(anyString(), any(SqlParameterSource.class)))
+                .thenReturn(List.of(Map.<String, Object>of("id", 1L)));
     }
 
     @Test

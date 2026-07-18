@@ -5,7 +5,9 @@ import br.com.cloudport.servicorail.ferrovia.modelo.VisitaTrem;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import javax.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,9 +20,9 @@ public interface VisitaTremRepositorio extends JpaRepository<VisitaTrem, Long> {
             + "AND v.horaChegadaPrevista <= :limite) "
             + "ORDER BY v.horaChegadaPrevista ASC, v.id ASC")
     List<VisitaTrem> buscarVisitasPlanejadasOuAtivas(@Param("inicio") LocalDateTime inicio,
-                                                     @Param("referenciaAtiva") LocalDateTime referenciaAtiva,
-                                                     @Param("limite") LocalDateTime limite,
-                                                     @Param("statusFinalizado") StatusVisitaTrem statusFinalizado);
+                                                      @Param("referenciaAtiva") LocalDateTime referenciaAtiva,
+                                                      @Param("limite") LocalDateTime limite,
+                                                      @Param("statusFinalizado") StatusVisitaTrem statusFinalizado);
 
     @Query("SELECT DISTINCT v FROM VisitaTrem v "
             + "LEFT JOIN FETCH v.listaDescarga "
@@ -28,6 +30,9 @@ public interface VisitaTremRepositorio extends JpaRepository<VisitaTrem, Long> {
             + "LEFT JOIN FETCH v.listaVagoes "
             + "WHERE v.id = :id")
     Optional<VisitaTrem> buscarPorIdComListas(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<VisitaTrem> findOneById(Long id);
 
     Optional<VisitaTrem> findByIdentificadorTremIgnoreCase(String identificadorTrem);
 }

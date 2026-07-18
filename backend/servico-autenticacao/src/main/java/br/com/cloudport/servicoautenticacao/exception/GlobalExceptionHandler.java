@@ -15,12 +15,20 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private static final String HEADER = "X-Correlation-Id";
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> status(ResponseStatusException ex, HttpServletRequest request) {
+        HttpStatus status = ex.getStatus();
+        String mensagem = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
+        return resposta(status, status.name(), mensagem, null, request, ex);
+    }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> estado(IllegalStateException ex, HttpServletRequest request) {
@@ -44,7 +52,7 @@ public class GlobalExceptionHandler {
             String campo = "senha".equals(error.getField()) ? "password" : error.getField();
             campos.putIfAbsent(campo, error.getDefaultMessage());
         }
-        return resposta(HttpStatus.BAD_REQUEST, "DADOS_INVALIDOS", "Os dados enviados nao atendem ao contrato da API.", campos, request, ex);
+        return resposta(HttpStatus.BAD_REQUEST, "DADOS_INVALIDOS", "Erro de validação dos dados enviados.", campos, request, ex);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -59,16 +67,30 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<Map<String, Object>> resposta(HttpStatus status, String codigo, String mensagem,
-                                                          Object campos, HttpServletRequest request, Exception ex) {
+                                                           Object campos, HttpServletRequest request, Exception ex) {
         String correlationId = request.getHeader(HEADER);
-        if (correlationId == null || correlationId.trim().isEmpty()) correlationId = UUID.randomUUID().toString();
+        if (correlationId == null || correlationId.trim().isEmpty()) {
+            correlationId = UUID.randomUUID().toString();
+        }
+
         Map<String, Object> detalhes = new LinkedHashMap<>();
         detalhes.put("rota", request.getMethod() + " " + request.getRequestURI());
-        if (campos != null) detalhes.put("campos", campos);
+        if (campos != null) {
+            detalhes.put("campos", campos);
+        }
+
         Map<String, Object> corpo = new LinkedHashMap<>();
-        corpo.put("codigo", codigo); corpo.put("mensagem", mensagem); corpo.put("detalhes", detalhes);
-        corpo.put("correlationId", correlationId); corpo.put("timestamp", Instant.now().toString());
-        HttpHeaders headers = new HttpHeaders(); headers.set(HEADER, correlationId);
+        corpo.put("codigo", codigo);
+        corpo.put("mensagem", mensagem);
+        corpo.put("detalhes", detalhes);
+        if (campos != null) {
+            corpo.put("erros", campos);
+        }
+        corpo.put("correlationId", correlationId);
+        corpo.put("timestamp", Instant.now().toString());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HEADER, correlationId);
         return new ResponseEntity<>(corpo, headers, status);
     }
 }

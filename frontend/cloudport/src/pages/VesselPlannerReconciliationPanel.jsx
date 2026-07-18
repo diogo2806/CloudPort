@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { formatError } from '../api.js';
+import { formatError, hasAnyRole, readSession } from '../api.js';
 import { vesselPlannerReconciliacaoApi } from '../vessel-planner-reconciliacao-api.js';
 
 const DECISOES = [
@@ -28,6 +28,7 @@ export function VesselPlannerReconciliationPanel({ planId, planStatus, canComman
   const [selectedId, setSelectedId] = useState('');
   const [decisao, setDecisao] = useState('CORRECAO_EXTERNA');
   const [motivo, setMotivo] = useState('');
+  const canReconcile = canCommand || hasAnyRole(readSession(), 'ADMIN_PORTO', 'PLANEJADOR');
 
   const divergencias = useMemo(
     () => Array.isArray(reconciliacao?.divergencias) ? reconciliacao.divergencias : [],
@@ -64,7 +65,7 @@ export function VesselPlannerReconciliationPanel({ planId, planStatus, canComman
   }, [planId, planStatus]);
 
   async function executarReconciliacao() {
-    if (!planId || !canCommand || busy || loading) return;
+    if (!planId || !canReconcile || busy || loading) return;
     setLoading(true);
     setError('');
     try {
@@ -81,7 +82,7 @@ export function VesselPlannerReconciliationPanel({ planId, planStatus, canComman
 
   async function resolver(event) {
     event.preventDefault();
-    if (!selecionada || !motivo.trim() || !canCommand || busy || loading) return;
+    if (!selecionada || !motivo.trim() || !canReconcile || busy || loading) return;
     setLoading(true);
     setError('');
     try {
@@ -105,7 +106,7 @@ export function VesselPlannerReconciliationPanel({ planId, planStatus, canComman
   return <section className="vessel-view-card" aria-label="Reconciliação BAPLIE e execução">
     <header>
       <div><span className="view-kicker">DATA1180</span><h3>Reconciliação BAPLIE e execução</h3></div>
-      <button type="button" onClick={executarReconciliacao} disabled={!canCommand || busy || loading}>
+      <button type="button" onClick={executarReconciliacao} disabled={!canReconcile || busy || loading}>
         {loading ? 'Processando...' : reconciliacao ? 'Reconciliar novamente' : 'Executar reconciliação'}
       </button>
     </header>
@@ -161,9 +162,9 @@ export function VesselPlannerReconciliationPanel({ planId, planStatus, canComman
               <div><dt>Detectada</dt><dd>{dataHora(selecionada.detectadaEm)}</dd></div>
             </dl>
             <form onSubmit={resolver}>
-              <label className="field"><span>Decisão auditável</span><select value={decisao} onChange={(event) => setDecisao(event.target.value)} disabled={!canCommand || loading}>{DECISOES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-              <label className="field"><span>Motivo</span><textarea value={motivo} onChange={(event) => setMotivo(event.target.value)} maxLength="1000" rows="4" disabled={!canCommand || loading} /></label>
-              <button disabled={!canCommand || loading || busy || !motivo.trim()}>Resolver sem alterar fontes</button>
+              <label className="field"><span>Decisão auditável</span><select value={decisao} onChange={(event) => setDecisao(event.target.value)} disabled={!canReconcile || loading}>{DECISOES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              <label className="field"><span>Motivo</span><textarea value={motivo} onChange={(event) => setMotivo(event.target.value)} maxLength="1000" rows="4" disabled={!canReconcile || loading} /></label>
+              <button disabled={!canReconcile || loading || busy || !motivo.trim()}>Resolver sem alterar fontes</button>
             </form>
           </> : <div className="visual-empty">Não há divergências abertas.</div>}
         </aside>

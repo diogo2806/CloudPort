@@ -1,22 +1,33 @@
-INSERT INTO configuracao_navegacao (
+UPDATE configuracoes_navegacao
+SET ordem = ordem + 1
+WHERE ordem >= 1;
+
+INSERT INTO configuracoes_navegacao (
     identificador,
     rotulo,
-    grupo,
     rota,
-    ordem,
+    grupo,
+    roles_permitidos,
     desabilitado,
-    roles_permitidos
-)
-SELECT
-    'central-alertas',
-    'Central de alertas',
-    'Visão geral',
-    ARRAY['alertas'],
-    20,
+    mensagem_em_breve,
+    ordem,
+    padrao
+) VALUES (
+    'alertas',
+    'Central de Alertas',
+    'alertas',
+    'VISAO_GERAL',
+    'ROLE_ADMIN_PORTO,ROLE_PLANEJADOR,ROLE_OPERADOR_GATE,ROLE_OPERADOR_PATIO',
     FALSE,
-    ARRAY[]::VARCHAR[]
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM configuracao_navegacao
-    WHERE identificador = 'central-alertas'
-);
+    NULL,
+    1,
+    FALSE
+)
+ON CONFLICT (identificador) DO UPDATE SET
+    rotulo = EXCLUDED.rotulo,
+    rota = EXCLUDED.rota,
+    grupo = EXCLUDED.grupo,
+    roles_permitidos = EXCLUDED.roles_permitidos,
+    desabilitado = EXCLUDED.desabilitado,
+    mensagem_em_breve = EXCLUDED.mensagem_em_breve,
+    ordem = EXCLUDED.ordem;

@@ -1,6 +1,6 @@
 # Requisitos pendentes - CloudPort
 
-Status: atualizado em 2026-07-18 após a integração do motor de otimização ao replanejamento operacional real.
+Status: atualizado em 2026-07-18 após a conclusão do replanejamento ferroviário persistido entre vagões.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -42,23 +42,11 @@ A lista detalhada está em `docs/implementados/requisitos-implementados.md`. Nã
 18. Edição de visita e item, conclusão/publicação, invalidação, cancelamento e nova versão de plano, cancelamentos administrativos de visita, item e ordem, compensações e histórico auditável no portal.
 19. Sanitização de logs do TOS, segurança standalone da carga geral e autorização dos WebSockets operacionais do Yard.
 20. Replanejamento real integrado ao motor de otimização, com mapa e reservas do Yard, restrições de carga, CHEs e work queues, dual-cycling, memória de cálculo, proposta reproduzível, simulação e aplicação revalidada transacionalmente.
+21. Replanejamento visual persistido de contêineres entre vagões, com drag-and-drop confirmado por motivo, lock e versão da composição, atualização atômica do manifesto e da ordem ferroviária, auditoria e conflito funcional para alterações concorrentes.
 
 ## P0 - Pendências obrigatórias
 
-### 1. Persistência do planejamento ferroviário visual
-
-A composição gráfica e o drag-and-drop de vagões foram entregues como simulação no frontend. Falta:
-
-1. endpoint específico para replanejar contêiner entre vagões;
-2. controle de versão ou lock da composição;
-3. validação de capacidade, comprimento, peso, bloqueio e compatibilidade do vagão;
-4. atualização das ordens e do manifesto na mesma transação;
-5. auditoria de origem, destino, usuário e motivo;
-6. tratamento de conflito quando outro operador altera a composição.
-
-Critério de aceite: ao recarregar a página, o planejamento confirmado permanece no backend e não produz divergência entre manifesto, vagão e ordem de trabalho.
-
-### 2. Corte operacional do monólito modular
+### 1. Corte operacional do monólito modular
 
 O código e as imagens do runtime canônico estão prontos, mas ainda falta comprovar o corte de ambiente:
 

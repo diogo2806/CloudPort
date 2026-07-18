@@ -8,6 +8,7 @@ import { BillingPage, CapPage } from './pages/BillingCapPages.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
 import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
+import { GateOperationsPage } from './pages/GateOperationsPage.jsx';
 import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
 import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
@@ -48,6 +49,7 @@ const FALLBACK_NAVIGATION = [
     { label: 'Usuários', path: '/home/lista-de-usuarios', roles: ['ADMIN_PORTO'] }
   ] },
   { group: 'Gate', items: [
+    { label: 'Operação completa', path: '/home/gate/operacao', roles: ['ADMIN_PORTO', 'OPERADOR_GATE', 'PLANEJADOR'] },
     { label: 'Agendamentos', path: '/home/gate/agendamentos', roles: [] },
     { label: 'Janelas', path: '/home/gate/janelas', roles: [] },
     { label: 'Central de ação', path: '/home/gate/dashboard', roles: [] },
@@ -164,6 +166,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
   if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
   if (path === '/home/gate' || path === '/home/gate/dashboard') return <GateDashboardPage />;
+  if (path === '/home/gate/operacao') return <GateOperationsPage session={session} />;
   if (path === '/home/gate/pessoas') return <GatePeopleAccessPage />;
   if (path === '/home/gate/embarque-direto') return <GateDirectVesselPage session={session} />;
   if (path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDirectVesselReleasePage />;

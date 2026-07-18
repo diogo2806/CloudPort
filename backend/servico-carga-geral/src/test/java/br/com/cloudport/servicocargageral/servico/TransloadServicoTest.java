@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
@@ -94,7 +95,7 @@ class TransloadServicoTest {
     }
 
     @Test
-    void deveCompensarReservaDaOrigemQuandoReservaDoDestinoFalhar() {
+    void deveManterOperacaoRecuperavelQuandoReservaFalhar() {
         ExecutarTransloadRequest request = requestPadrao();
         OperacaoTransload operacao = operacaoEmExecucao(request);
         when(transacaoServico.iniciar(request)).thenReturn(operacao);
@@ -106,16 +107,35 @@ class TransloadServicoTest {
 
         assertThrows(IllegalStateException.class, () -> servico.executarTransload(request));
 
+        verify(transacaoServico, never()).aplicar(operacao.getId(), request);
+        verify(transacaoServico, never()).cancelar(eq(operacao.getId()), anyString());
+        verify(inventarioConteinerCliente, never()).liberar(
+                eq(operacao.getReservaOrigemId()),
+                anyString(),
+                anyString(),
+                anyString());
+    }
+
+    @Test
+    void deveCompensarAsDuasReservasQuandoAplicacaoAtomicaFalhar() {
+        ExecutarTransloadRequest request = requestPadrao();
+        OperacaoTransload operacao = operacaoEmExecucao(request);
+        when(transacaoServico.iniciar(request)).thenReturn(operacao);
+        when(transacaoServico.aplicar(operacao.getId(), request))
+                .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Saldo insuficiente"));
+
+        assertThrows(ResponseStatusException.class, () -> servico.executarTransload(request));
+
         verify(inventarioConteinerCliente).liberar(
                 operacao.getReservaOrigemId(),
                 request.usuario(),
                 "Transload cancelado antes da atualização atômica",
                 "CANCELADA");
-        verify(inventarioConteinerCliente, never()).liberar(
-                eq(operacao.getReservaDestinoId()),
-                anyString(),
-                anyString(),
-                anyString());
+        verify(inventarioConteinerCliente).liberar(
+                operacao.getReservaDestinoId(),
+                request.usuario(),
+                "Transload cancelado antes da atualização atômica",
+                "CANCELADA");
         verify(transacaoServico).cancelar(eq(operacao.getId()), anyString());
     }
 
@@ -148,6 +168,7 @@ class TransloadServicoTest {
 
     private OperacaoTransload operacaoEmExecucao(ExecutarTransloadRequest request) {
         OperacaoTransload operacao = new OperacaoTransload();
+        ReflectionTestUtils.setField(operacao, "id", UUID.randomUUID());
         operacao.setCommandId(request.commandId());
         operacao.setUnidadeOrigem(request.unidadeOrigem());
         operacao.setUnidadeDestino(request.unidadeDestino());

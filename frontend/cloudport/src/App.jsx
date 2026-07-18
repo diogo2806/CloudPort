@@ -7,6 +7,7 @@ import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.j
 import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
 import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
+import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
@@ -57,6 +58,7 @@ const FALLBACK_NAVIGATION = [
   ] },
   { group: 'Pátio', items: [
     { label: 'Mapa', path: '/home/patio/mapa', roles: [] },
+    { label: 'Inventário', path: '/home/patio/inventario', roles: [] },
     { label: 'Planejamento de recebimento', path: '/home/patio/planejamento-recebimento', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Lista de trabalho', path: '/home/patio/lista-trabalho', roles: [] },
     { label: 'Posições', path: '/home/patio/posicoes', roles: [] },
@@ -149,11 +151,13 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/gate/pessoas') return <GatePeopleAccessPage />;
   if (path === '/home/gate/embarque-direto') return <GateDirectVesselPage session={session} />;
   if (path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDirectVesselReleasePage />;
+  if (path === '/home/gate/relatorios') return <GateReportsPage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
   if (path === '/home/ferrovia/lista-trabalho') return <RailWorkListPage session={session} />;
   if (path === '/home/ferrovia/locomotivas') return <RailLocomotiveTransfersPage />;
   if (path === '/home/patio' || path === '/home/patio/mapa') return <YardMapPage navigate={navigate} />;
+  if (path === '/home/patio/inventario') return <YardInventoryPage />;
   if (path === '/home/patio/planejamento-recebimento') return <YardReceivingPlanPage navigate={navigate} />;
   if (path === '/home/patio/posicoes') return <YardPositionsPage navigate={navigate} />;
   if (path === '/home/patio/lista-trabalho') return <YardWorkListPage navigate={navigate} session={session} />;

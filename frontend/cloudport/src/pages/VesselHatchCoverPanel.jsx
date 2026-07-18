@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatError, request, sanitizeText } from '../api.js';
 import '../vessel-hatch-covers.css';
 
@@ -33,13 +33,29 @@ function taskDescription(task) {
   return `${OPERATION_LABELS[task.tipo] ?? task.tipo} · ${task.status} · ${task.recurso}${dependencies}`;
 }
 
-export function VesselHatchCoverPanel({ planId, canEdit, busy }) {
+export function VesselHatchCoverPanel({
+  planId,
+  canEdit,
+  busy,
+  selectedCoverCode = '',
+  onSelectCover,
+  onCoversChange
+}) {
   const [covers, setCovers] = useState([]);
   const [resource, setResource] = useState('EQUIPE_TAMPA');
   const [loading, setLoading] = useState(false);
   const [command, setCommand] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const coversChangeRef = useRef(onCoversChange);
+
+  useEffect(() => {
+    coversChangeRef.current = onCoversChange;
+  }, [onCoversChange]);
+
+  useEffect(() => {
+    coversChangeRef.current?.(covers);
+  }, [covers]);
 
   async function load() {
     if (!planId) return;
@@ -135,7 +151,7 @@ export function VesselHatchCoverPanel({ planId, canEdit, busy }) {
 
   return <section className="hatch-cover-panel" aria-label="Operação de tampas de porão">
     <header>
-      <div><span className="view-kicker">Hatch covers</span><h3>Tampas de porão</h3><p>O estado persistido bloqueia movimentos incompatíveis no porão e sobre a tampa.</p></div>
+      <div><span className="view-kicker">Hatch covers</span><h3>Tampas de porão</h3><p>O estado persistido é sincronizado com os slots e bloqueia movimentos incompatíveis.</p></div>
       <div className="hatch-cover-controls">
         <label>Recurso<input value={resource} maxLength="120" onChange={(event) => setResource(event.target.value)} disabled={!canEdit || Boolean(command)} /></label>
         <button type="button" className="secondary" onClick={load} disabled={loading || Boolean(command)}>{loading ? 'Carregando...' : 'Atualizar'}</button>
@@ -153,8 +169,14 @@ export function VesselHatchCoverPanel({ planId, canEdit, busy }) {
       {covers.map((cover) => {
         const task = currentTask(cover);
         const operations = task ? [] : (OPERATIONS_BY_STATE[cover.estado] ?? []);
-        return <article key={cover.id} className={`hatch-cover-card state-${String(cover.estado).toLowerCase()}`}>
-          <div className="hatch-cover-heading"><div><strong>{cover.codigo}</strong><small>{cover.posicaoAtual?.referencia || 'Posição não informada'}</small></div><span>{cover.estado}</span></div>
+        const selected = String(selectedCoverCode).toUpperCase() === String(cover.codigo).toUpperCase();
+        return <article key={cover.id} className={`hatch-cover-card state-${String(cover.estado).toLowerCase()}${selected ? ' selected-cover' : ''}`}>
+          <div className="hatch-cover-heading">
+            <button type="button" className="hatch-cover-select" onClick={() => onSelectCover?.(cover)} aria-pressed={selected}>
+              <strong>{cover.codigo}</strong><small>{cover.posicaoAtual?.referencia || 'Posição não informada'}</small>
+            </button>
+            <span>{cover.estado}</span>
+          </div>
           <p>{taskDescription(task)}</p>
           <div className="hatch-cover-actions">
             {task?.status === 'PLANEJADA' && <button type="button" onClick={() => startTask(cover, task)} disabled={!canEdit || busy || Boolean(command)}>{command === `start-${task.id}` ? 'Iniciando...' : 'Iniciar'}</button>}

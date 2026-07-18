@@ -12,6 +12,7 @@ import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage
 import { GateOperationsPage } from './pages/GateOperationsPage.jsx';
 import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
 import { GeneralCargoPage } from './pages/GeneralCargoPage.jsx';
+import { GeneralCargoPhysicalInventoryPage } from './pages/GeneralCargoPhysicalInventoryPage.jsx';
 import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
 import { LostFoundPage } from './pages/LostFoundPage.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
@@ -58,6 +59,7 @@ const FALLBACK_NAVIGATION = [
   ] },
   { group: 'Carga geral', items: [
     { label: 'Bill of Lading e cargo lots', path: '/home/carga-geral', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
+    { label: 'Inventário físico', path: '/home/carga-geral/inventario-fisico', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
     { label: 'Stuff e unstuff', path: '/home/carga-geral/stuff-unstuff', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] }
   ] },
   { group: 'Gate', items: [
@@ -163,6 +165,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/privacidade') return <PrivacyPage />;
   if (path === '/home/lista-de-usuarios') return <UsersPage />;
   if (path === '/home/carga-geral') return <GeneralCargoPage />;
+  if (path === '/home/carga-geral/inventario-fisico') return <GeneralCargoPhysicalInventoryPage />;
   if (path === '/home/carga-geral/stuff-unstuff') return <StuffUnstuffPage />;
   if (path === '/home/billing') return <BillingPage />;
   if (path === '/home/cap') return <CapPage />;

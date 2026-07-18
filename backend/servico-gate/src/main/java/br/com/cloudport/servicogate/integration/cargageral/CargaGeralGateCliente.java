@@ -13,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
         name = "cloudport.modulo.gate-carga-geral.integracao",
         havingValue = "http",
         matchIfMissing = true)
-public class CargaGeralGateCliente {
+public class CargaGeralGateCliente implements CargaGeralGatePorta {
 
     private final RestTemplate restTemplate;
     private final String baseUrl;
@@ -25,14 +25,39 @@ public class CargaGeralGateCliente {
         this.baseUrl = removerBarraFinal(baseUrl);
     }
 
-    public void confirmar(UUID reservaId, UUID commandId, String estagio, String usuario) {
+    @Override
+    public ReservaGateResposta reservar(ReservarGateRequest request) {
+        return restTemplate.postForObject(
+                baseUrl + "/api/carga-geral/operacoes-intermodais/gate/reservas",
+                request,
+                ReservaGateResposta.class);
+    }
+
+    @Override
+    public ReservaGateResposta confirmar(UUID reservaId, UUID commandId, String estagio, String usuario) {
         if (reservaId == null) {
-            return;
+            return null;
         }
-        restTemplate.postForObject(
+        return restTemplate.postForObject(
                 baseUrl + "/api/carga-geral/operacoes-intermodais/gate/reservas/{reservaId}/confirmar",
                 new ConfirmarGateCargaRequest(commandId, estagio, usuario),
-                Object.class,
+                ReservaGateResposta.class,
+                reservaId);
+    }
+
+    @Override
+    public ReservaGateResposta compensar(
+            UUID reservaId,
+            UUID commandId,
+            String motivo,
+            String usuario) {
+        if (reservaId == null) {
+            return null;
+        }
+        return restTemplate.postForObject(
+                baseUrl + "/api/carga-geral/operacoes-intermodais/gate/reservas/{reservaId}/compensar",
+                new CompensarGateCargaRequest(commandId, motivo, usuario),
+                ReservaGateResposta.class,
                 reservaId);
     }
 
@@ -44,5 +69,8 @@ public class CargaGeralGateCliente {
     }
 
     public record ConfirmarGateCargaRequest(UUID commandId, String estagio, String usuario) {
+    }
+
+    public record CompensarGateCargaRequest(UUID commandId, String motivo, String usuario) {
     }
 }

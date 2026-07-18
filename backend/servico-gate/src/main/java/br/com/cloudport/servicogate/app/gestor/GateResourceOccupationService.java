@@ -32,6 +32,11 @@ public class GateResourceOccupationService {
                                                         GatePass gatePass,
                                                         String chassis,
                                                         List<String> unidades) {
+        List<GateResourceOccupation> ocupacoesAtivas = repository.findByGatePassIdAndAtivoTrue(gatePass.getId());
+        if (!ocupacoesAtivas.isEmpty()) {
+            return ocupacoesAtivas;
+        }
+
         Map<GateResourceType, List<String>> recursos = montarRecursos(agendamento, chassis, unidades);
         validarConflitos(recursos, gatePass.getId());
 

@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1090, BUS1100 e BUS1170 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1050, BUS1090, BUS1100, BUS1170 e DATA1180 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -13,7 +13,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | BUS1020 | Implementar transload entre unidades com rastreabilidade e atualização atômica. | Origem, destino, lotes, quantidades, lacres, divergências e avarias são persistidos sem saldo negativo ou atualização parcial. | ⬜ Pendente |
 | BUS1030 | Integrar Gate à carga geral para retirada e entrega parcial. | O Gate reserva quantidade por BL, delivery order e cargo lot e só confirma o estoque após o estágio físico correspondente. | ⬜ Pendente |
 | BUS1040 | Implementar planejamento de pátio e armazém para cargo lots. | Allocation, capacidade, restrições, origem, destino, recurso e saldo por posição são persistidos e confirmados pela execução. | ⬜ Pendente |
-| BUS1050 | Implementar plano de carga e descarga de cargo lots por visita de navio. | BL, lote, porão ou área, sequência, equipamento e quantidades planejadas e realizadas são conciliados transacionalmente. | ⬜ Pendente |
 | BUS1060 | Implementar plano de carga e descarga de cargo lots por visita ferroviária. | Lotes são planejados e executados por vagão e posição, com capacidade, incompatibilidades, sequência e custódia persistida. | ⬜ Pendente |
 | BUS1070 | Implementar ciclo completo de avaria da carga. | Avarias possuem quantidade afetada, evidências, responsável, bloqueio, inspeção, reparo ou baixa e saldo segregado. | ⬜ Pendente |
 | BUS1080 | Implementar identificação e inventário físico reconciliável de cargo lots. | Código de barras ou QR identifica lote e embalagem; contagens e divergências geram ajuste motivado sem sobrescrever diretamente o saldo lógico. | ⬜ Pendente |
@@ -53,13 +52,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/dominio/LoteCarga.java` | `armazemId` e `posicaoArmazenagem` | Mantém somente a localização corrente. | Criar allocation e instrução com origem, destino, recurso, prioridade, estado e quantidades. |
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/BayPlanServico.java` | planejamento do Yard | O planejamento é orientado a unidades conteinerizadas. | Criar adaptador para reservar capacidade e confirmar movimentos de cargo lot. |
-
-### BUS1050 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-navio/src/main/java/br/com/cloudport/serviconavio/estiva/controlador/PlanoEstivaControlador.java` | plano de estiva | Trata unidades e slots, sem itens de cargo lot e quantidades operadas. | Criar contrato de plano de carga geral por visita, BL, lote, porão ou área. |
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/CargaGeralServico.java` | `visitaNavioId` | O vínculo com navio é apenas identificador informado na movimentação. | Implementar comandos idempotentes de planejamento, carga, descarga, reconciliação e cancelamento. |
 
 ### BUS1060 — arquivos e métodos
 
@@ -125,7 +117,6 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | BUS1150 | Registrar execução da sequência de guindastes. | Cada movimento possui guindaste, ordem, janela, início, conclusão, exceção e quantidade realizada. | ⬜ Pendente |
 | BUS1160 | Implementar operação persistida de tampas de porão. | Tarefas de abrir, remover, posicionar e fechar controlam dependências e bloqueiam movimentos incompatíveis. | ⬜ Pendente |
-| DATA1180 | Reconciliar BAPLIE, plano, inventário e execução física. | Divergências são persistidas, classificadas, resolvidas e bloqueiam publicação ou conclusão quando críticas. | ⬜ Pendente |
 
 ### BUS1150 — arquivos e métodos
 
@@ -140,11 +131,3 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 |---|---|---|---|
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/modelo/SlotNavio.java` | geometria do slot | Não existe ciclo operacional de tampas e dependências. | Criar entidades de tampa, posição, tarefa e dependência. |
 | `frontend/cloudport/src/pages/VesselPlannerWorkspace.jsx` | overlay de tampas | O overlay não bloqueia transacionalmente movimentos incompatíveis. | Integrar ao estado persistido e impedir início incompatível. |
-
-### DATA1180 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/parser/BaplieParser.java` | importação BAPLIE | Produz dados de plano, mas não reconcilia persistentemente inventário e execução. | Criar novo serviço sugerido: `ReconciliacaoBaplieExecucaoServico.reconciliar()`. |
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/modelo/SlotNavio.java` | ocupação planejada | Não mantém divergência por fonte nem decisão de resolução. | Persistir severidade, valores por origem, decisão e usuário. |
-| `frontend/cloudport/src/pages/VesselPlannerWorkspace.jsx` | plano visual | Não possui fila consolidada de divergências. | Exibir divergências e bloquear publicação ou conclusão conforme severidade. |

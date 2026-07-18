@@ -28,10 +28,10 @@ export CLOUDPORT_PUBLIC_PORT="$CANONICAL_PORT"
 export CLOUDPORT_OBSERVER_PORT="$OBSERVER_PORT"
 export CLOUDPORT_ROLLBACK_PROBE_PORT="$ROLLBACK_PORT"
 export CLOUDPORT_NETWORK_NAME="${CLOUDPORT_NETWORK_NAME:-${PROJECT_NAME}-network}"
-export CLOUDPORT_RUNTIME_REVISION="${CLOUDPORT_RUNTIME_REVISION:-${GITHUB_SHA:-local-proof}}"
-export CLOUDPORT_WRITES_ENABLED="true"
-export CLOUDPORT_JOBS_ENABLED="true"
-export CLOUDPORT_CONSUMERS_ENABLED="true"
+export CLOUDPORT_RUNTIME_REVISAO="${CLOUDPORT_RUNTIME_REVISAO:-${GITHUB_SHA:-local-proof}}"
+export CLOUDPORT_RUNTIME_CUTOVER_WRITES_ENABLED="true"
+export CLOUDPORT_RUNTIME_JOBS_ENABLED="true"
+export CLOUDPORT_RUNTIME_CONSUMERS_ENABLED="true"
 export RABBITMQ_ENABLED="true"
 
 COMPOSE=(docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$SMOKE_COMPOSE")
@@ -173,7 +173,7 @@ OBSERVER_URL="http://localhost:${OBSERVER_PORT}"
 stage "comprovando health, readiness, prometheus e autenticação"
 curl -fsS "$CANONICAL_URL/actuator/health" > "$EVIDENCE_DIR/health.json"
 curl -fsS "$CANONICAL_URL/actuator/health/readiness" > "$EVIDENCE_DIR/readiness.json"
-curl -fsS "$CANONICAL_URL/actuator/prometheus" > "$EVIDENCE_DIR/prometheus.txt"
+curl -fsS -H "Authorization: Bearer $TOKEN" "$CANONICAL_URL/actuator/prometheus" > "$EVIDENCE_DIR/prometheus.txt"
 unauthorized_status="$(curl -sS -o "$EVIDENCE_DIR/unauthorized.json" -w '%{http_code}' "$CANONICAL_URL/navios")"
 assert_http 401 "$unauthorized_status" "proteção sem token"
 
@@ -317,7 +317,7 @@ assert_http 200 "$return_status" "retorno ao runtime canônico"
 
 stage "gerando evidência consolidada"
 "${COMPOSE[@]}" ps > "$EVIDENCE_DIR/compose-final.txt"
-python3 - "$EVIDENCE_DIR" "$NAVIO_ID" "$CLOUDPORT_RUNTIME_REVISION" <<'PY'
+python3 - "$EVIDENCE_DIR" "$NAVIO_ID" "$CLOUDPORT_RUNTIME_REVISAO" <<'PY'
 import datetime
 import json
 import pathlib

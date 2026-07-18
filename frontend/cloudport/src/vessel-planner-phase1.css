@@ -1,0 +1,44 @@
+.vessel-phase1-selection {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid #cbdce9;
+  border-radius: 12px;
+  background: #eef6fb;
+}
+.vessel-phase1-selection span { color: #61788d; font-size: 10px; font-weight: 850; text-transform: uppercase; }
+.vessel-phase1-selection strong { color: #1261a0; font-size: 13px; }
+.vessel-phase1-selection small { overflow: hidden; color: #536b80; text-overflow: ellipsis; white-space: nowrap; }
+.vessel-phase1-aggregate {
+  min-height: 66px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 5px;
+  border: 1px solid #cbd8e3;
+  border-radius: 8px;
+  background: #f8fbfd;
+  color: #29445d;
+  box-shadow: none;
+}
+.vessel-phase1-aggregate.empty { border-style: dashed; color: #9aa7b4; }
+.vessel-phase1-aggregate.restricted { border-color: #d5a75c; background: #fff7e7 !important; }
+.vessel-phase1-aggregate.selected { outline: 3px solid rgba(18, 97, 160, .24); border-color: #1261a0; z-index: 2; }
+.vessel-phase1-aggregate.active-coordinate { box-shadow: inset 0 0 0 2px rgba(18, 97, 160, .18); }
+.vessel-phase1-aggregate > strong { font-size: 12px; }
+.vessel-phase1-aggregate > small { color: #62788c; font-size: 8px; }
+.aggregate-legend { max-width: 100%; display: flex; align-items: center; gap: 4px; overflow: hidden; color: #536a7e; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.aggregate-legend i { flex: 0 0 auto; width: 9px; height: 9px; border: 1px solid rgba(28, 54, 75, .18); border-radius: 3px; }
+.vessel-phase1-technical { display: grid; grid-template-columns: repeat(3, minmax(150px, 1fr)); gap: 8px; padding: 12px; border: 1px solid #d9e4ed; border-radius: 12px; background: #fff; }
+.vessel-phase1-technical article { display: grid; gap: 4px; padding: 10px; border-radius: 9px; background: #f6f9fb; }
+.vessel-phase1-technical article span { color: #718397; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.vessel-phase1-technical article strong { color: #27445d; }
+.vessel-phase1-technical button { padding: 8px; border: 1px solid #d5e1ea; background: #f8fbfd; color: #31536e; font-size: 10px; box-shadow: none; }
+@media (max-width: 760px) {
+  .vessel-phase1-selection { grid-template-columns: 1fr; }
+  .vessel-phase1-selection small { white-space: normal; }
+  .vessel-phase1-technical { grid-template-columns: 1fr; }
+}

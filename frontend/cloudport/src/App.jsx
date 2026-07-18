@@ -10,6 +10,7 @@ import { ControlRoomEquipamentosPage } from './pages/ControlRoomEquipamentosPage
 import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
 import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
+import { GeneralCargoPage } from './pages/GeneralCargoPage.jsx';
 import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
@@ -84,6 +85,9 @@ const FALLBACK_NAVIGATION = [
     { label: 'Indicadores', path: '/home/patio/dashboard-kpi', roles: [] },
     { label: 'Automação', path: '/home/patio/automacao', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }
   ] },
+  { group: 'Carga geral', items: [
+    { label: 'Carga geral e break-bulk', path: '/home/carga-geral', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO', 'OPERADOR_GATE'] }
+  ] },
   { group: 'Navio e embarque', items: [
     { label: 'Line-up de navios', path: '/home/navio/line-up', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
     { label: 'Control Room', path: '/home/navio/control-room', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
@@ -152,6 +156,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/lista-de-usuarios') return <UsersPage />;
   if (path === '/home/billing') return <BillingPage />;
   if (path === '/home/cap') return <CapPage />;
+  if (path === '/home/carga-geral') return <GeneralCargoPage />;
   if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
   if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
   if (path === '/home/gate' || path === '/home/gate/dashboard' || path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDashboardPage />;

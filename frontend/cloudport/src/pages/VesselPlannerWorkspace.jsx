@@ -138,7 +138,7 @@ function SlotGlyph({
   </button>;
 }
 
-function ProfileView({ slots, context, activeBay, onSetActiveBay, selectedSlotId, onSelect, onMove, canEdit }) {
+function ProfileView({ slots, activeBay, onSetActiveBay, selectedSlotId, onSelect, onMove, canEdit }) {
   const bays = uniqueCoordinates(slots, 'bay');
   const tiers = uniqueCoordinates(slots, 'tier').sort((left, right) => right - left);
   const groups = useMemo(() => {
@@ -199,7 +199,6 @@ function ProfileView({ slots, context, activeBay, onSetActiveBay, selectedSlotId
       </div>
     </div>
     <div className="vessel-silhouette" aria-hidden="true"><span className="bow" /><span className="hull" /><span className="stern" /></div>
-    {context}
   </div>;
 }
 
@@ -257,11 +256,10 @@ function TopView({ slots, context, activeBay, activeRow, onSetActiveBay, onSetAc
         </div>)}
       </div>
     </div>
-    {context.footer}
   </div>;
 }
 
-function ExactSlotGrid({ slots, columns, rows, slotAt, context, selectedSlotId, onSelect, onMove, canEdit, ariaLabel }) {
+function ExactSlotGrid({ columns, rows, slotAt, context, selectedSlotId, onSelect, onMove, canEdit, ariaLabel }) {
   return <div className="exact-slot-scroll">
     <div className="exact-slot-grid" style={{ gridTemplateColumns: `64px repeat(${Math.max(1, columns.length)}, minmax(92px, 1fr))` }} aria-label={ariaLabel}>
       <div className="exact-axis-corner">Tier/Row</div>
@@ -303,7 +301,6 @@ function SectionView({ slots, context, activeBay, selectedSlotId, onSelect, onMo
   return <div className="vessel-view-card section-view" aria-label={`Seção do bay ${activeBay}`}>
     <header><div><span className="view-kicker">Section view</span><h3>Seção do bay {activeBay ?? '—'}</h3></div><small>Rows, tiers, tampas e restrições por slot</small></header>
     {sectionSlots.length ? <ExactSlotGrid
-      slots={sectionSlots}
       columns={rows}
       rows={tiers}
       slotAt={(tier, row) => byPosition[`${tier}:${row}`]}
@@ -333,7 +330,6 @@ function TierView({ slots, context, activeTier, selectedSlotId, onSelect, onMove
   return <div className="vessel-view-card tier-view" aria-label={`Vista do tier ${activeTier}`}>
     <header><div><span className="view-kicker">Tier view</span><h3>Tier {activeTier ?? '—'}</h3></div><small>Distribuição longitudinal e transversal</small></header>
     {tierSlots.length ? <ExactSlotGrid
-      slots={tierSlots}
       columns={rows}
       rows={bays}
       slotAt={(bay, row) => byPosition[`${bay}:${row}`]}
@@ -528,8 +524,8 @@ export function VesselPlannerWorkspace({
   }
 
   function renderView(mode) {
-    if (mode === 'PROFILE') return <ProfileView slots={slots} context={visualContext} activeBay={activeBay} onSetActiveBay={setActiveBay} selectedSlotId={selectedSlotId} onSelect={onSelectSlot} onMove={move} canEdit={canEdit} />;
-    if (mode === 'TOP') return <TopView slots={slots} context={{ ...visualContext, footer: null }} activeBay={activeBay} activeRow={activeRow} onSetActiveBay={setActiveBay} onSetActiveRow={setActiveRow} selectedSlotId={selectedSlotId} onSelect={onSelectSlot} onMove={move} canEdit={canEdit} />;
+    if (mode === 'PROFILE') return <ProfileView slots={slots} activeBay={activeBay} onSetActiveBay={setActiveBay} selectedSlotId={selectedSlotId} onSelect={onSelectSlot} onMove={move} canEdit={canEdit} />;
+    if (mode === 'TOP') return <TopView slots={slots} context={visualContext} activeBay={activeBay} activeRow={activeRow} onSetActiveBay={setActiveBay} onSetActiveRow={setActiveRow} selectedSlotId={selectedSlotId} onSelect={onSelectSlot} onMove={move} canEdit={canEdit} />;
     if (mode === 'SECTION') return <SectionView slots={slots} context={visualContext} activeBay={activeBay} selectedSlotId={selectedSlotId} onSelect={onSelectSlot} onMove={move} canEdit={canEdit} />;
     return <TierView slots={slots} context={visualContext} activeTier={activeTier} selectedSlotId={selectedSlotId} onSelect={onSelectSlot} onMove={move} canEdit={canEdit} />;
   }

@@ -1,7 +1,8 @@
+import { ContextHelp } from './ContextHelp.jsx';
 import { OperationalDataGrid } from './OperationalDataGrid.jsx';
 import { sanitizeText } from './api.js';
 
-export { OperationalDataGrid };
+export { ContextHelp, OperationalDataGrid };
 
 export function PageHeader({ eyebrow, title, description, actions }) {
   return <header className="page-header">
@@ -10,7 +11,7 @@ export function PageHeader({ eyebrow, title, description, actions }) {
       <h1>{title}</h1>
       {description && <p>{description}</p>}
     </div>
-    {actions && <div className="page-actions">{actions}</div>}
+    <div className="page-actions">{actions}<ContextHelp /></div>
   </header>;
 }
 

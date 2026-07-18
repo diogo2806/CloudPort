@@ -8,6 +8,8 @@ export const FILTER_OPERATORS = [
   { value: 'isNotEmpty', label: 'não está vazio' }
 ];
 
+const SPREADSHEET_FORMULA_PREFIX = /^[\u0000-\u0020\u007F]*[=+\-@]/;
+
 export function normalizeGridValue(value) {
   if (value === undefined || value === null) return '';
   if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
@@ -17,6 +19,11 @@ export function normalizeGridValue(value) {
     catch { return String(value); }
   }
   return String(value);
+}
+
+export function neutralizeSpreadsheetFormula(value) {
+  const text = normalizeGridValue(value);
+  return SPREADSHEET_FORMULA_PREFIX.test(text) ? `'${text}` : text;
 }
 
 export function normalizeSearchText(value) {
@@ -138,17 +145,39 @@ export function moveColumn(order, columnKey, direction) {
   return safeOrder;
 }
 
+function exportableColumns(columns) {
+  return (Array.isArray(columns) ? columns : []).filter((column) => column.exportable !== false);
+}
+
+function exportValue(row, column) {
+  return column.exportValue ? column.exportValue(row) : columnRawValue(row, column);
+}
+
 function escapeCsv(value) {
-  const text = normalizeGridValue(value).replace(/"/g, '""');
+  const text = neutralizeSpreadsheetFormula(value).replace(/"/g, '""');
   return `"${text}"`;
 }
 
+function escapeXml(value) {
+  return neutralizeSpreadsheetFormula(value)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 export function buildGridCsv(rows, columns) {
-  const safeColumns = (Array.isArray(columns) ? columns : []).filter((column) => column.exportable !== false);
+  const safeColumns = exportableColumns(columns);
   const header = safeColumns.map((column) => escapeCsv(column.label ?? column.key)).join(';');
-  const body = (Array.isArray(rows) ? rows : []).map((row) => safeColumns.map((column) => {
-    const value = column.exportValue ? column.exportValue(row) : columnRawValue(row, column);
-    return escapeCsv(value);
-  }).join(';'));
+  const body = (Array.isArray(rows) ? rows : []).map((row) => safeColumns.map((column) => escapeCsv(exportValue(row, column))).join(';'));
   return ['\uFEFF' + header, ...body].join('\r\n');
+}
+
+export function buildGridExcel(rows, columns) {
+  const safeColumns = exportableColumns(columns);
+  const header = `<Row>${safeColumns.map((column) => `<Cell ss:StyleID="Header"><Data ss:Type="String">${escapeXml(column.label ?? column.key)}</Data></Cell>`).join('')}</Row>`;
+  const body = (Array.isArray(rows) ? rows : []).map((row) => `<Row>${safeColumns.map((column) => `<Cell><Data ss:Type="String">${escapeXml(exportValue(row, column))}</Data></Cell>`).join('')}</Row>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="Header"><Font ss:Bold="1"/><Interior ss:Color="#DCE6F1" ss:Pattern="Solid"/></Style></Styles><Worksheet ss:Name="Registros"><Table>${header}${body}</Table></Worksheet></Workbook>`;
 }

@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.dto;
 
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
+import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusConfirmacaoVmt;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.modelo.StatusConteiner;
 import br.com.cloudport.servicoyard.patio.modelo.TipoMovimentoPatio;
@@ -29,6 +30,13 @@ public class OrdemTrabalhoPatioRespostaDto {
     private boolean prioridadeBusca;
     private Long workQueueId;
     private String chaveIdempotencia;
+    private StatusConfirmacaoVmt statusConfirmacaoVmt;
+    private LocalDateTime vmtAceitoEm;
+    private LocalDateTime vmtIniciadoEm;
+    private LocalDateTime vmtFalhaEm;
+    private LocalDateTime vmtConcluidoEm;
+    private String ultimoEventoVmtId;
+    private String resultadoVmt;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
     private LocalDateTime concluidoEm;
@@ -55,6 +63,13 @@ public class OrdemTrabalhoPatioRespostaDto {
         dto.prioridadeBusca = ordem.isPrioridadeBusca();
         dto.workQueueId = ordem.getWorkQueueId();
         dto.chaveIdempotencia = escapar(ordem.getChaveIdempotencia());
+        dto.statusConfirmacaoVmt = ordem.getStatusConfirmacaoVmt();
+        dto.vmtAceitoEm = ordem.getVmtAceitoEm();
+        dto.vmtIniciadoEm = ordem.getVmtIniciadoEm();
+        dto.vmtFalhaEm = ordem.getVmtFalhaEm();
+        dto.vmtConcluidoEm = ordem.getVmtConcluidoEm();
+        dto.ultimoEventoVmtId = escapar(ordem.getUltimoEventoVmtId());
+        dto.resultadoVmt = escapar(ordem.getResultadoVmt());
         dto.criadoEm = ordem.getCriadoEm();
         dto.atualizadoEm = ordem.getAtualizadoEm();
         dto.concluidoEm = ordem.getConcluidoEm();
@@ -85,6 +100,13 @@ public class OrdemTrabalhoPatioRespostaDto {
     public boolean isPrioridadeBusca() { return prioridadeBusca; }
     public Long getWorkQueueId() { return workQueueId; }
     public String getChaveIdempotencia() { return chaveIdempotencia; }
+    public StatusConfirmacaoVmt getStatusConfirmacaoVmt() { return statusConfirmacaoVmt; }
+    public LocalDateTime getVmtAceitoEm() { return vmtAceitoEm; }
+    public LocalDateTime getVmtIniciadoEm() { return vmtIniciadoEm; }
+    public LocalDateTime getVmtFalhaEm() { return vmtFalhaEm; }
+    public LocalDateTime getVmtConcluidoEm() { return vmtConcluidoEm; }
+    public String getUltimoEventoVmtId() { return ultimoEventoVmtId; }
+    public String getResultadoVmt() { return resultadoVmt; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
     public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
     public LocalDateTime getConcluidoEm() { return concluidoEm; }

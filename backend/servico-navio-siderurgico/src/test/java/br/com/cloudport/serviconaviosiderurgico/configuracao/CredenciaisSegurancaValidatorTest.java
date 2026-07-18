@@ -40,10 +40,9 @@ class CredenciaisSegurancaValidatorTest {
     }
 
     @Test
-    void deveRejeitarConfiguracaoAusenteDeClientesPublicos() {
-        assertThatThrownBy(() -> CredenciaisSegurancaValidator.carregarClientesPublicos(" "))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("configurado externamente");
+    void deveDesabilitarClientesPublicosQuandoConfiguracaoEstiverAusente() {
+        assertThat(CredenciaisSegurancaValidator.carregarClientesPublicos(" "))
+                .isEmpty();
     }
 
     @Test

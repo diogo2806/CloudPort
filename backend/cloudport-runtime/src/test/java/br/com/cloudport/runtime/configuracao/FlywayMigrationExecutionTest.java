@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +27,9 @@ class FlywayMigrationExecutionTest {
             "target", "classes", "cloudport", "migrations");
     private static final Path REPORT_PATH = Path.of("target", "flyway-audit-report.txt");
     private static final Pattern VERSIONED_MIGRATION = Pattern.compile("^V([^_]+)__.+\\.sql$");
+    private static final List<String> POSTGRES_IMAGES = List.of(
+            "postgres:14-alpine",
+            "postgres:17-alpine");
 
     @Test
     void deveAuditarTodasAsMigrationsEmPostgresqlLimpo() throws IOException {
@@ -45,19 +47,13 @@ class FlywayMigrationExecutionTest {
                 report,
                 failures);
 
-        try (PostgreSQLContainer<?> postgresql = new PostgreSQLContainer<>("postgres:14-alpine")) {
-            postgresql.start();
-
-            for (Path moduleDirectory : moduleDirectories) {
-                String module = moduleDirectory.getFileName().toString();
-                if (modulesWithDuplicateVersions.contains(module)) {
-                    report.add("EXECUCAO IGNORADA " + module + ": versoes duplicadas");
-                    continue;
-                }
-                validateModule(postgresql, moduleDirectory, report, failures);
-            }
-        } catch (Exception exception) {
-            failures.add("postgresql: " + rootMessage(exception));
+        for (String postgresImage : POSTGRES_IMAGES) {
+            validateDatabaseVersion(
+                    postgresImage,
+                    moduleDirectories,
+                    modulesWithDuplicateVersions,
+                    report,
+                    failures);
         }
 
         report.add("");
@@ -75,6 +71,37 @@ class FlywayMigrationExecutionTest {
         assertThat(failures)
                 .as("Falhas na auditoria integral das migrations. Relatorio: " + REPORT_PATH)
                 .isEmpty();
+    }
+
+    private static void validateDatabaseVersion(
+            String postgresImage,
+            List<Path> moduleDirectories,
+            Set<String> modulesWithDuplicateVersions,
+            List<String> report,
+            List<String> failures) {
+        report.add("");
+        report.add("BANCO " + postgresImage);
+
+        try (PostgreSQLContainer<?> postgresql = new PostgreSQLContainer<>(postgresImage)) {
+            postgresql.start();
+
+            for (Path moduleDirectory : moduleDirectories) {
+                String module = moduleDirectory.getFileName().toString();
+                if (modulesWithDuplicateVersions.contains(module)) {
+                    report.add("EXECUCAO IGNORADA " + postgresImage + " " + module
+                            + ": versoes duplicadas");
+                    continue;
+                }
+                validateModule(
+                        postgresql,
+                        postgresImage,
+                        moduleDirectory,
+                        report,
+                        failures);
+            }
+        } catch (Exception exception) {
+            failures.add(postgresImage + ": " + rootMessage(exception));
+        }
     }
 
     private static List<Path> listModuleDirectories() throws IOException {
@@ -142,6 +169,7 @@ class FlywayMigrationExecutionTest {
 
     private static void validateModule(
             PostgreSQLContainer<?> postgresql,
+            String postgresImage,
             Path moduleDirectory,
             List<String> report,
             List<String> failures) {
@@ -164,9 +192,9 @@ class FlywayMigrationExecutionTest {
 
             flyway.migrate();
             flyway.validate();
-            report.add("EXECUCAO SUCESSO " + module);
+            report.add("EXECUCAO SUCESSO " + postgresImage + " " + module);
         } catch (Exception exception) {
-            String failure = module + ": " + rootMessage(exception);
+            String failure = postgresImage + " " + module + ": " + rootMessage(exception);
             failures.add(failure);
             report.add("EXECUCAO FALHA " + failure);
         }

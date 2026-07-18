@@ -1,6 +1,7 @@
 import { request } from './api.js';
 
 const BASE = '/api/carga-geral';
+const INTERMODAL = `${BASE}/intermodal`;
 const STUFF_UNSTUFF = `${BASE}/operacoes-stuff-unstuff`;
 const INVENTORY_RESERVATIONS = '/yard/inventario/canonico/reservas-carga-geral';
 
@@ -14,7 +15,10 @@ export const generalCargoApi = {
   listarLotes: (query) => request(`${BASE}/lotes`, { query }),
   obterLote: (id) => request(`${BASE}/lotes/${encodeURIComponent(id)}`),
   registrarMovimentacao: (id, body) => request(`${BASE}/lotes/${encodeURIComponent(id)}/movimentacoes`, { method: 'POST', body }),
-  registrarAvaria: (id, body) => request(`${BASE}/lotes/${encodeURIComponent(id)}/avarias`, { method: 'POST', body }),
+  registrarAvaria: (body) => request(`${INTERMODAL}/avarias`, { method: 'POST', body }),
+  listarAvarias: (loteId) => request(`${INTERMODAL}/lotes/${encodeURIComponent(loteId)}/avarias`),
+  inspecionarAvaria: (id, body) => request(`${INTERMODAL}/avarias/${encodeURIComponent(id)}/inspecionar`, { method: 'POST', body }),
+  encerrarAvaria: (id, body) => request(`${INTERMODAL}/avarias/${encodeURIComponent(id)}/encerrar`, { method: 'POST', body }),
   listarReferencias: (categoria) => request(`${BASE}/referencias`, { query: categoria ? { categoria } : undefined }),
   criarReferencia: (body) => request(`${BASE}/referencias`, { method: 'POST', body }),
   atualizarReferencia: (id, ativo) => request(`${BASE}/referencias/${encodeURIComponent(id)}/status`, { method: 'PATCH', query: { ativo } }),

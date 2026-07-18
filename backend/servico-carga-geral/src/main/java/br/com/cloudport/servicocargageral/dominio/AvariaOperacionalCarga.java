@@ -119,11 +119,8 @@ public class AvariaOperacionalCarga {
     }
 
     public void encerrar(ResultadoAvaria resultado, String observacao, String usuario) {
-        if (status == StatusAvariaOperacional.REINTEGRADA
-                || status == StatusAvariaOperacional.BAIXADA
-                || status == StatusAvariaOperacional.BLOQUEADA
-                || status == StatusAvariaOperacional.ENCERRADA) {
-            throw new IllegalStateException("Avaria já está encerrada.");
+        if (status != StatusAvariaOperacional.EM_TRATAMENTO) {
+            throw new IllegalStateException("Avaria deve estar em tratamento após inspeção para ser encerrada.");
         }
         resultadoTratamento = resultado;
         observacaoEncerramento = observacao == null ? null : observacao.trim();

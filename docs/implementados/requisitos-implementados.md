@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão dos BUS10, BUS1030 e BUS1040, da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-18 com a conclusão dos BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -69,7 +69,7 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 4. Line-up interno, vertical e público.
 5. Quay Monitor, crane plan e produtividade planejada versus realizada.
 6. Vistas profile, top, section e tier sincronizadas.
-7. Drag-and-drop, inspector de slot e movimentação validada no backend.
+7. Drag-and-drop, inspector de slot e movimentação validada pelo backend.
 8. Legendas por POD, peso, IMO, reefer e operador.
 9. Tampas de porão, peso por stack, segregação IMDG e restrições nos slots.
 10. Restow, sequência visual de guindastes e overlays técnicos.
@@ -213,6 +213,14 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 22. A confirmação física debita a posição de origem e credita a posição de destino na mesma transação do Yard, com bloqueio pessimista e rejeição de saldo insuficiente.
 23. O saldo confirmado é persistido por cargo lot e posição, com carga inicial das reservas históricas já confirmadas.
 24. A API expõe consulta dos saldos por posição e os adaptadores HTTP e local propagam a origem da allocation para a transferência correta.
+25. O BUS1070 usa `AvariaOperacionalCarga` como agregado canônico para código, descrição, parcela afetada, responsável, evidência inicial, inspeção, decisão e histórico.
+26. A abertura bloqueia somente a quantidade, o volume e o peso afetados, preservando o saldo total e expondo o saldo disponível após a segregação.
+27. O encerramento exige relatório de inspeção e só é permitido no estado `EM_TRATAMENTO`.
+28. O resultado `REINTEGRAR` libera o saldo reparado, `BAIXAR` remove a perda do estoque e `MANTER_BLOQUEADA` conserva a parcela indisponível.
+29. O portal possui inspector com saldo total, segregado e disponível, evidência inicial, relatório, decisão e histórico operacional.
+30. O endpoint simplificado `POST /api/carga-geral/lotes/{id}/avarias` retorna `410 Gone` e direciona ao contrato canônico `/api/carga-geral/intermodal/avarias`.
+31. A tela possui ajuda contextual e manual operacional com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e referências do processo completo.
+32. Testes de domínio cobrem o ciclo completo, a obrigatoriedade da inspeção e a manutenção do bloqueio.
 
 ## Billing e portal CAP
 

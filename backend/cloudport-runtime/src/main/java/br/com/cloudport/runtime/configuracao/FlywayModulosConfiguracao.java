@@ -15,6 +15,7 @@ public class FlywayModulosConfiguracao {
 
     private final DataSource dataSource;
     private final String schemaAutenticacao;
+    private final String schemaCargaGeral;
     private final String schemaGate;
     private final String schemaRail;
     private final String schemaVisibilidade;
@@ -25,6 +26,7 @@ public class FlywayModulosConfiguracao {
     public FlywayModulosConfiguracao(
             DataSource dataSource,
             @Value("${cloudport.runtime.schema.autenticacao:cloudport_autenticacao}") String schemaAutenticacao,
+            @Value("${cloudport.runtime.schema.carga-geral:cloudport_carga_geral}") String schemaCargaGeral,
             @Value("${cloudport.runtime.schema.gate:cloudport_gate}") String schemaGate,
             @Value("${cloudport.runtime.schema.rail:cloudport_rail}") String schemaRail,
             @Value("${cloudport.runtime.schema.visibilidade:cloudport_visibilidade}") String schemaVisibilidade,
@@ -33,6 +35,7 @@ public class FlywayModulosConfiguracao {
             @Value("${cloudport.runtime.schema.siderurgico:cloudport_siderurgico}") String schemaSiderurgico) {
         this.dataSource = dataSource;
         this.schemaAutenticacao = validarSchema(schemaAutenticacao, "Autenticacao");
+        this.schemaCargaGeral = validarSchema(schemaCargaGeral, "Carga Geral");
         this.schemaGate = validarSchema(schemaGate, "Gate");
         this.schemaRail = validarSchema(schemaRail, "Rail");
         this.schemaVisibilidade = validarSchema(schemaVisibilidade, "Visibilidade");
@@ -44,6 +47,11 @@ public class FlywayModulosConfiguracao {
     @Bean(name = "flywayAutenticacao", initMethod = "migrate")
     public Flyway flywayAutenticacao() {
         return criarFlyway("classpath:cloudport/migrations/autenticacao/db/migration", schemaAutenticacao);
+    }
+
+    @Bean(name = "flywayCargaGeral", initMethod = "migrate")
+    public Flyway flywayCargaGeral() {
+        return criarFlyway("classpath:cloudport/migrations/carga-geral/db/migration", schemaCargaGeral);
     }
 
     @Bean(name = "flywayGate", initMethod = "migrate")
@@ -80,6 +88,7 @@ public class FlywayModulosConfiguracao {
     public static EntityManagerFactoryDependsOnPostProcessor entityManagerFactoryDependsOnFlywayModulos() {
         return new EntityManagerFactoryDependsOnPostProcessor(
                 "flywayAutenticacao",
+                "flywayCargaGeral",
                 "flywayGate",
                 "flywayRail",
                 "flywayVisibilidade",

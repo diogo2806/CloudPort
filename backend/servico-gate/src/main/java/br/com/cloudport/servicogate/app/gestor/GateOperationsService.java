@@ -70,8 +70,8 @@ public class GateOperationsService {
     }
 
     public TruckHoppingSession abrirTroca(String cpf, String cnh, String cavalo, Long gatePassId) {
-        String cpfNormalizado = obrigatorio(cpf, "CPF do motorista");
-        String cnhNormalizada = obrigatorio(cnh, "Número da CNH");
+        String cpfNormalizado = normalizarCpf(cpf);
+        String cnhNormalizada = normalizarCnh(cnh);
         String cavaloNormalizado = obrigatorio(cavalo, "Placa do cavalo").toUpperCase(Locale.ROOT);
         if (truckHoppingSessionRepository.existsByCpfMotoristaAndStatus(cpfNormalizado, TruckHoppingStatus.ABERTA)) {
             throw new BusinessException("Já existe uma troca de cavalo aberta para o CPF informado");
@@ -86,7 +86,7 @@ public class GateOperationsService {
     }
 
     public TruckHoppingSession encerrarTroca(String cpf, String cavalo, Long gatePassId) {
-        String cpfNormalizado = obrigatorio(cpf, "CPF do motorista");
+        String cpfNormalizado = normalizarCpf(cpf);
         TruckHoppingSession sessao = truckHoppingSessionRepository
                 .findFirstByCpfMotoristaAndStatusOrderByCreatedAtDesc(cpfNormalizado, TruckHoppingStatus.ABERTA)
                 .orElseThrow(() -> new NotFoundException("Não existe troca de cavalo aberta para o CPF informado"));
@@ -144,6 +144,7 @@ public class GateOperationsService {
         chamado.setJustificativaCancelamento(obrigatorio(justificativa, "Justificativa do cancelamento"));
         chamado.setStatus(GateCallStatus.CANCELADO);
         chamado.setCanceladoEm(LocalDateTime.now());
+        restaurarFilaAguardando(chamado.getGatePass().getId());
         return gateCallRepository.save(chamado);
     }
 
@@ -161,6 +162,24 @@ public class GateOperationsService {
             throw new BusinessException("A nova posição deve ser maior que zero");
         }
         GateQueueEntry entrada = obterEntradaFila(entradaId);
+        List<GateQueueEntry> itens = gateQueueEntryRepository
+                .findBySentidoAndStatusIn(entrada.getSentido(), FILA_ATIVA);
+        if (novaPosicao > itens.size()) {
+            throw new BusinessException("A nova posição não pode ser maior que o tamanho da fila");
+        }
+        int posicaoAnterior = entrada.getPosicaoAtual();
+        for (GateQueueEntry item : itens) {
+            if (item.getId().equals(entrada.getId())) {
+                continue;
+            }
+            int posicaoItem = item.getPosicaoAtual();
+            if (novaPosicao < posicaoAnterior && posicaoItem >= novaPosicao && posicaoItem < posicaoAnterior) {
+                item.setPosicaoAtual(posicaoItem + 1);
+            } else if (novaPosicao > posicaoAnterior && posicaoItem > posicaoAnterior && posicaoItem <= novaPosicao) {
+                item.setPosicaoAtual(posicaoItem - 1);
+            }
+        }
+        gateQueueEntryRepository.saveAll(itens);
         entrada.setPosicaoAtual(novaPosicao);
         entrada.setJustificativaPrioridade(obrigatorio(justificativa, "Justificativa da reordenação"));
         entrada.setOperadorPrioridade(normalizarOpcional(operador));
@@ -174,6 +193,9 @@ public class GateOperationsService {
         if (novaPrioridade != GateQueuePriority.NORMAL) {
             entrada.setJustificativaPrioridade(obrigatorio(justificativa, "Justificativa da prioridade"));
             entrada.setOperadorPrioridade(normalizarOpcional(operador));
+        } else {
+            entrada.setJustificativaPrioridade(null);
+            entrada.setOperadorPrioridade(null);
         }
         entrada.setPrioridade(novaPrioridade);
         return gateQueueEntryRepository.save(entrada);
@@ -192,13 +214,16 @@ public class GateOperationsService {
     private GateQueueEntry garantirNaFila(Long gatePassId, GateQueueDirection sentido) {
         return gateQueueEntryRepository.findFirstByGatePassIdAndSentidoAndStatusIn(gatePassId, sentido, FILA_ATIVA)
                 .orElseGet(() -> {
-                    long quantidade = gateQueueEntryRepository.countBySentidoAndStatusIn(sentido, FILA_ATIVA);
+                    int proximaPosicao = gateQueueEntryRepository.findBySentidoAndStatusIn(sentido, FILA_ATIVA).stream()
+                            .map(GateQueueEntry::getPosicaoAtual)
+                            .max(Integer::compareTo)
+                            .orElse(0) + 1;
                     GateQueueEntry entrada = new GateQueueEntry();
                     entrada.setGatePass(obterGatePass(gatePassId));
                     entrada.setSentido(sentido);
                     entrada.setStatus(GateQueueStatus.AGUARDANDO);
-                    entrada.setPosicaoOriginal(Math.toIntExact(quantidade + 1));
-                    entrada.setPosicaoAtual(Math.toIntExact(quantidade + 1));
+                    entrada.setPosicaoOriginal(proximaPosicao);
+                    entrada.setPosicaoAtual(proximaPosicao);
                     entrada.setPrioridade(GateQueuePriority.NORMAL);
                     entrada.setEntrouEm(LocalDateTime.now());
                     return gateQueueEntryRepository.save(entrada);
@@ -222,9 +247,33 @@ public class GateOperationsService {
                 });
     }
 
+    private void restaurarFilaAguardando(Long gatePassId) {
+        Arrays.stream(GateQueueDirection.values())
+                .map(sentido -> gateQueueEntryRepository
+                        .findFirstByGatePassIdAndSentidoAndStatusIn(gatePassId, sentido, FILA_ATIVA).orElse(null))
+                .filter(item -> item != null)
+                .forEach(item -> {
+                    item.setStatus(GateQueueStatus.AGUARDANDO);
+                    item.setChamadoEm(null);
+                    item.setAtendimentoIniciadoEm(null);
+                    gateQueueEntryRepository.save(item);
+                });
+    }
+
     private void removerDaFila(Long gatePassId, GateQueueDirection sentido) {
         gateQueueEntryRepository.findFirstByGatePassIdAndSentidoAndStatusIn(gatePassId, sentido, FILA_ATIVA)
-                .ifPresent(gateQueueEntryRepository::delete);
+                .ifPresent(entrada -> {
+                    int posicaoRemovida = entrada.getPosicaoAtual();
+                    List<GateQueueEntry> itens = gateQueueEntryRepository.findBySentidoAndStatusIn(sentido, FILA_ATIVA);
+                    itens.stream()
+                            .filter(item -> !item.getId().equals(entrada.getId()))
+                            .filter(item -> item.getPosicaoAtual() > posicaoRemovida)
+                            .forEach(item -> item.setPosicaoAtual(item.getPosicaoAtual() - 1));
+                    gateQueueEntryRepository.saveAll(itens.stream()
+                            .filter(item -> !item.getId().equals(entrada.getId()))
+                            .collect(Collectors.toList()));
+                    gateQueueEntryRepository.delete(entrada);
+                });
     }
 
     private void removerFilasAtivas(Long gatePassId) {
@@ -263,6 +312,22 @@ public class GateOperationsService {
             return 2;
         }
         return 1;
+    }
+
+    private String normalizarCpf(String cpf) {
+        String valor = obrigatorio(cpf, "CPF do motorista").replaceAll("\\D", "");
+        if (valor.length() != 11) {
+            throw new BusinessException("CPF do motorista deve conter 11 dígitos");
+        }
+        return valor;
+    }
+
+    private String normalizarCnh(String cnh) {
+        String valor = obrigatorio(cnh, "Número da CNH").replaceAll("\\D", "");
+        if (valor.length() != 11) {
+            throw new BusinessException("Número da CNH deve conter 11 dígitos");
+        }
+        return valor;
     }
 
     private String obrigatorio(String valor, String campo) {

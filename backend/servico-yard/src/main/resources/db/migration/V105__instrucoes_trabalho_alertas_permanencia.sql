@@ -35,4 +35,6 @@ CREATE INDEX idx_work_instruction_status ON work_instruction (status, prioridade
 CREATE INDEX idx_work_instruction_conteiner ON work_instruction (codigo_conteiner);
 CREATE UNIQUE INDEX uk_work_instruction_destino_ativo
     ON work_instruction (destino)
-    WHERE destino IS NOT NULL AND status IN ('PENDENTE', 'EM_EXECUCAO');
+    WHERE destino IS NOT NULL
+      AND tipo_operacao = 'MOVIMENTACAO'
+      AND status IN ('PENDENTE', 'EM_EXECUCAO');

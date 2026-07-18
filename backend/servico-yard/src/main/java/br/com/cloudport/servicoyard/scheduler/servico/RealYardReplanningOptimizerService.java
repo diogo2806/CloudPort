@@ -359,7 +359,10 @@ public class RealYardReplanningOptimizerService {
     private int estimarRehandles(SchedulerPositionCandidateDto posicao) {
         int nivel = extrairNivel(posicao.getCamada());
         long ocupacao = posicao.getOcupacaoPilha() == null ? 0 : posicao.getOcupacaoPilha();
-        return Math.max(0, nivel - 1) + Math.max(0, (int) ocupacao - nivel);
+        long base = Math.max(0, nivel - 1);
+        long adicionais = Math.max(0L, ocupacao - nivel);
+        long total = base + adicionais;
+        return total > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) total;
     }
 
     private int extrairNivel(String camada) {

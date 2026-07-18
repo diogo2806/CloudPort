@@ -89,4 +89,10 @@ public enum CanalWebSocketOperacional {
                 .filter(canal -> canal.correspondeAoCaminho(caminho))
                 .findFirst();
     }
+
+    public static Optional<CanalWebSocketOperacional> identificarPorDestino(String destino) {
+        return Arrays.stream(values())
+                .filter(canal -> canal.permiteDestino(destino))
+                .findFirst();
+    }
 }

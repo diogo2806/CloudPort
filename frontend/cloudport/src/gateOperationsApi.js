@@ -3,6 +3,7 @@ import { request } from './api.js';
 export const gateOperationsApi = {
   obterPainel: (facilityId) => request('/gate/operacional/painel', { query: { facilityId } }),
   listarReferencias: () => request('/gate/operacional/referencias'),
+  listarComplementos: (facilityId) => request('/gate/operacional/complementos', { query: { facilityId } }),
   criarVisita: (payload) => request('/gate/operacional/visitas', { method: 'POST', body: payload }),
   buscarVisita: (visitaId) => request(`/gate/operacional/visitas/${visitaId}`),
   avancarVisita: (visitaId, payload) => request(`/gate/operacional/visitas/${visitaId}/avancar`, { method: 'POST', body: payload }),
@@ -19,7 +20,10 @@ export const gateOperationsApi = {
   salvarLane: (payload) => request('/gate/operacional/configuracao/lanes', { method: 'POST', body: payload }),
   salvarStage: (payload) => request('/gate/operacional/configuracao/stages', { method: 'POST', body: payload }),
   salvarTask: (stageId, payload) => request(`/gate/operacional/configuracao/stages/${stageId}/tasks`, { method: 'POST', body: payload }),
+  salvarRegraAcesso: (payload) => request('/gate/operacional/configuracao/regras-acesso', { method: 'POST', body: payload }),
   salvarBooking: (payload) => request('/gate/operacional/bookings', { method: 'POST', body: payload }),
+  salvarBillOfLading: (payload) => request('/gate/operacional/bills-of-lading', { method: 'POST', body: payload }),
+  vincularBillOfLading: (ordemId, billOfLadingId) => request(`/gate/operacional/ordens/${ordemId}/bill-of-lading/${billOfLadingId}`, { method: 'POST' }),
   salvarOrder: (payload) => request('/gate/operacional/ordens', { method: 'POST', body: payload }),
   salvarPreadvice: (payload) => request('/gate/operacional/pre-avisos', { method: 'POST', body: payload })
 };

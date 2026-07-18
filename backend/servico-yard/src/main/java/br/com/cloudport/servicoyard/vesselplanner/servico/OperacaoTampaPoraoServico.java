@@ -23,7 +23,6 @@ import br.com.cloudport.servicoyard.vesselplanner.repositorio.SlotNavioRepositor
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.TampaPoraoRepositorio;
 import br.com.cloudport.servicoyard.vesselplanner.repositorio.TarefaTampaPoraoRepositorio;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -60,7 +59,7 @@ public class OperacaoTampaPoraoServico {
 
     @Transactional
     public List<TampaPoraoResposta> sincronizar(Long planId) {
-        EstivagemPlan plan = buscarPlano(planId);
+        EstivagemPlan plan = buscarPlanoBloqueado(planId);
         return sincronizarComPlano(plan);
     }
 
@@ -123,6 +122,7 @@ public class OperacaoTampaPoraoServico {
             Long tarefaId,
             IniciarTarefaRequest request,
             String usuario) {
+        buscarPlanoBloqueado(planId);
         TarefaTampaPorao tarefa = buscarTarefaDoPlano(planId, tarefaId);
         if (tarefa.getStatus() != StatusTarefaTampaPorao.LIBERADA) {
             throw new IllegalStateException("Somente tarefa liberada pode ser iniciada");
@@ -130,6 +130,13 @@ public class OperacaoTampaPoraoServico {
         if (tarefa.getDependencia() != null
                 && tarefa.getDependencia().getStatus() != StatusTarefaTampaPorao.CONCLUIDA) {
             throw new IllegalStateException("A dependência operacional da tarefa ainda não foi concluída");
+        }
+        if (movimentoRepositorio.existsByEstivagemIdAndSlotCodigoHatchCoverIgnoreCaseAndStatus(
+                planId,
+                tarefa.getTampa().getCodigo(),
+                StatusMovimentoContainerNavio.EM_EXECUCAO)) {
+            throw new IllegalStateException(
+                    "A tarefa da tampa não pode iniciar enquanto houver movimento de contêiner em execução");
         }
         tarefa.setStatus(StatusTarefaTampaPorao.EM_EXECUCAO);
         tarefa.setRecurso(normalizarObrigatorio(request.getRecurso(), "O recurso operacional é obrigatório"));
@@ -148,6 +155,7 @@ public class OperacaoTampaPoraoServico {
             Long tarefaId,
             ConfirmarTarefaRequest request,
             String usuario) {
+        buscarPlanoBloqueado(planId);
         TarefaTampaPorao tarefa = buscarTarefaDoPlano(planId, tarefaId);
         if (tarefa.getStatus() != StatusTarefaTampaPorao.EM_EXECUCAO) {
             throw new IllegalStateException("Somente tarefa em execução pode ser confirmada");
@@ -180,6 +188,7 @@ public class OperacaoTampaPoraoServico {
             Long tarefaId,
             String motivo,
             String usuario) {
+        buscarPlanoBloqueado(planId);
         TarefaTampaPorao tarefa = buscarTarefaDoPlano(planId, tarefaId);
         if (tarefa.getStatus() == StatusTarefaTampaPorao.CONCLUIDA) {
             throw new IllegalStateException("Tarefa concluída não pode ser cancelada");
@@ -203,7 +212,7 @@ public class OperacaoTampaPoraoServico {
             Long slotId,
             IniciarMovimentoRequest request,
             String usuario) {
-        EstivagemPlan plan = buscarPlano(planId);
+        EstivagemPlan plan = buscarPlanoBloqueado(planId);
         SlotNavio slot = slotRepositorio.findById(slotId)
                 .orElseThrow(() -> new EntityNotFoundException("Slot não encontrado: " + slotId));
         if (slot.getEstivagem() == null || !planId.equals(slot.getEstivagem().getId())) {
@@ -244,6 +253,7 @@ public class OperacaoTampaPoraoServico {
             Long movimentoId,
             ConcluirMovimentoRequest request,
             String usuario) {
+        buscarPlanoBloqueado(planId);
         MovimentoContainerNavio movimento = movimentoRepositorio.findById(movimentoId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Movimento de contêiner não encontrado: " + movimentoId));
@@ -406,6 +416,11 @@ public class OperacaoTampaPoraoServico {
 
     private EstivagemPlan buscarPlano(Long planId) {
         return planRepositorio.findById(planId)
+                .orElseThrow(() -> new EntityNotFoundException("EstivagemPlan não encontrado: " + planId));
+    }
+
+    private EstivagemPlan buscarPlanoBloqueado(Long planId) {
+        return planRepositorio.findLockedById(planId)
                 .orElseThrow(() -> new EntityNotFoundException("EstivagemPlan não encontrado: " + planId));
     }
 

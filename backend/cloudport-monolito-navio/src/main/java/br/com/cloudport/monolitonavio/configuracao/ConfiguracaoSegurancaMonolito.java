@@ -14,10 +14,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -36,6 +38,8 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -45,6 +49,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class ConfiguracaoSegurancaMonolito {
+
+    private static final String BEARER_PREFIX = "Bearer ";
 
     private final String jwtSecret;
     private final String allowedOrigins;
@@ -67,7 +73,7 @@ public class ConfiguracaoSegurancaMonolito {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors().configurationSource(corsConfigurationSource()).and()
-                .csrf().disable()
+                .csrf(csrf -> csrf.requireCsrfProtectionMatcher(csrfProtectionMatcher()))
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests(authorize -> authorize
                         .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
@@ -96,6 +102,38 @@ public class ConfiguracaoSegurancaMonolito {
                 .addFilterBefore(publicApiClientAuthenticationFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(internalServiceAuthenticationFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
+    }
+
+    RequestMatcher csrfProtectionMatcher() {
+        return request -> CsrfFilter.DEFAULT_CSRF_MATCHER.matches(request)
+                && !isPublicAuthenticationRequest(request)
+                && !hasExplicitCredential(request);
+    }
+
+    private boolean isPublicAuthenticationRequest(HttpServletRequest request) {
+        if (!HttpMethod.POST.matches(request.getMethod())) {
+            return false;
+        }
+        String requestUri = request.getRequestURI();
+        return "/auth/login".equals(requestUri) || "/auth/register".equals(requestUri);
+    }
+
+    private boolean hasExplicitCredential(HttpServletRequest request) {
+        return hasBearerToken(request)
+                || StringUtils.hasText(request.getHeader(InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY))
+                || hasPublicApiClientCredentials(request);
+    }
+
+    private boolean hasBearerToken(HttpServletRequest request) {
+        String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
+        return StringUtils.hasText(authorization)
+                && authorization.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())
+                && StringUtils.hasText(authorization.substring(BEARER_PREFIX.length()));
+    }
+
+    private boolean hasPublicApiClientCredentials(HttpServletRequest request) {
+        return StringUtils.hasText(request.getHeader(PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID))
+                && StringUtils.hasText(request.getHeader(PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET));
     }
 
     @Bean

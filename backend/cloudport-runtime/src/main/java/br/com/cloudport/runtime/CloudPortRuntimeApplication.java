@@ -75,7 +75,33 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         })
 public class CloudPortRuntimeApplication {
 
+    private static final String RABBIT_ENABLED_PROPERTY = "cloudport.messaging.rabbit.enabled";
+
+    static {
+        configurarRabbitMqOpcional();
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(CloudPortRuntimeApplication.class, args);
+    }
+
+    private static void configurarRabbitMqOpcional() {
+        String habilitado = System.getProperty(RABBIT_ENABLED_PROPERTY);
+        if (habilitado == null || habilitado.isBlank()) {
+            String variavelAmbiente = System.getenv("RABBITMQ_ENABLED");
+            habilitado = variavelAmbiente == null || variavelAmbiente.isBlank()
+                    ? Boolean.FALSE.toString()
+                    : Boolean.toString(Boolean.parseBoolean(variavelAmbiente));
+        }
+
+        definirPropriedadePadrao(RABBIT_ENABLED_PROPERTY, habilitado);
+        definirPropriedadePadrao("spring.rabbitmq.dynamic", habilitado);
+        definirPropriedadePadrao("spring.rabbitmq.listener.simple.auto-startup", habilitado);
+        definirPropriedadePadrao("spring.rabbitmq.listener.direct.auto-startup", habilitado);
+        definirPropriedadePadrao("management.health.rabbit.enabled", habilitado);
+    }
+
+    private static void definirPropriedadePadrao(String nome, String valor) {
+        System.getProperties().putIfAbsent(nome, valor);
     }
 }

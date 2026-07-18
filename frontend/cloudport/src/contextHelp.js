@@ -105,6 +105,19 @@ const PAGES = {
   '/home/ferrovia/locomotivas': ['Locomotivas para navio', 'Controlar locomotivas recebidas pela ferrovia e embarcadas em navio.'],
   '/home/patio/mapa': ['Mapa do pátio', 'Visualizar posições, unidades, equipamentos, reservas e alertas.'],
   '/home/patio/inventario': ['Inventário do pátio', 'Consultar cargas presentes e sua localização atual.'],
+  '/home/patio/lost-found': {
+    title: 'Lost & Found / TBD',
+    purpose: 'Investigar unidades sem registro, não localizadas ou temporariamente não identificadas até a associação, regularização, baixa e encerramento.',
+    flow: ['Abra o caso com a identificação lida, o tipo e a evidência inicial.', 'Atribua o responsável e registre os avanços da investigação.', 'Associe uma unidade canônica quando ela for identificada.', 'Regularize a unidade ou registre a baixa com decisão motivada.', 'Encerre o caso somente após regularização ou baixa.'],
+    fields: ['Identificação lida: código capturado na operação.', 'Tipo do caso: sem registro, não localizada ou TBD.', 'Evidência: observações que sustentam a investigação.', 'Responsável: operador encarregado da apuração.', 'Unidade associada: registro canônico identificado.', 'Decisão final: justificativa da regularização, baixa e encerramento.'],
+    permissions: ['ADMIN_PORTO: consulta e execução de todo o ciclo.', 'OPERADOR_PATIO: abertura, investigação e tratamento operacional.', 'PLANEJADOR: consulta e tratamento conforme autorização do backend.'],
+    states: ['ABERTO: caso aguardando tratamento.', 'EM_INVESTIGACAO: responsável e evidências em apuração.', 'ASSOCIADO: unidade canônica vinculada.', 'REGULARIZADO: unidade reativada e operacional.', 'BAIXADO: caso baixado e unidade associada inativada.', 'ENCERRADO: decisão final consolidada.'],
+    blockers: ['Já existe caso ativo para a identificação.', 'Responsável obrigatório não informado.', 'Unidade canônica inexistente.', 'Regularização sem unidade associada.', 'Encerramento antes da regularização ou baixa.', 'Perfil sem uma das permissões exigidas.'],
+    example: 'Uma unidade localizada fisicamente sem correspondência é aberta como SEM_REGISTRO, investigada, associada ao cadastro correto, regularizada e encerrada com a evidência da conferência.',
+    processPath: '/home/patio/inventario',
+    processLabel: 'Abrir inventário canônico',
+    documentationUrl: 'https://github.com/diogo2806/CloudPort/blob/main/docs/implementados/requisitos-implementados.md#lost--found-e-unidades-tbd--bus1130'
+  },
   '/home/patio/planejamento-recebimento': ['Planejamento de recebimento', 'Agrupar contêineres e reservar áreas antes da chegada.'],
   '/home/patio/lista-trabalho': ['Lista de trabalho do pátio', 'Priorizar, despachar e acompanhar instruções.'],
   '/home/patio/posicoes': ['Posições do pátio', 'Consultar disponibilidade, ocupação e restrições.'],
@@ -137,7 +150,11 @@ export function resolveContextHelp(path, session = {}) {
   const moduleData = MODULES.find(([prefix]) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`))?.[1] ?? {};
   let help = copyArrays(BASE, moduleData);
   const page = PAGES[normalizedPath];
-  if (page) help = copyArrays(help, { title: page[0], purpose: page[1], fields: page[2] ?? help.fields, processPath: page[3] ?? help.processPath, processLabel: page[4] ?? help.processLabel });
+  if (Array.isArray(page)) {
+    help = copyArrays(help, { title: page[0], purpose: page[1], fields: page[2] ?? help.fields, processPath: page[3] ?? help.processPath, processLabel: page[4] ?? help.processLabel });
+  } else if (page) {
+    help = copyArrays(help, page);
+  }
   const currentRoles = [...new Set([...(Array.isArray(session?.roles) ? session.roles : []), session?.perfil].filter(Boolean).map(String))];
   return { ...help, path: normalizedPath, currentRoles, documentationUrl: help.documentationUrl || DOCUMENTATION_URL };
 }

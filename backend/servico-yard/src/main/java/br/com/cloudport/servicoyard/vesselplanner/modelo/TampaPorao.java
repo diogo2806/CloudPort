@@ -100,13 +100,13 @@ public class TampaPorao {
         if (slotSobreTampa) {
             return estado == EstadoTampaPorao.FECHADA || estado == EstadoTampaPorao.POSICIONADA;
         }
-        return estado == EstadoTampaPorao.ABERTA || estado == EstadoTampaPorao.REMOVIDA;
+        return estado == EstadoTampaPorao.REMOVIDA;
     }
 
     public String motivoBloqueio(boolean slotSobreTampa) {
         if (slotSobreTampa) {
             return "A tampa " + codigo + " deve estar fechada ou posicionada para movimentar contêineres sobre ela.";
         }
-        return "A tampa " + codigo + " deve estar aberta ou removida para movimentar contêineres no porão.";
+        return "A tampa " + codigo + " deve estar removida para movimentar contêineres no porão.";
     }
 }

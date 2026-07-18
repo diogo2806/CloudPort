@@ -8,6 +8,7 @@ import br.com.cloudport.servicoyard.scheduler.dto.SchedulerEquipmentDto;
 import br.com.cloudport.servicoyard.scheduler.dto.SchedulerPlanoOperacionalRequisicaoDto;
 import br.com.cloudport.servicoyard.scheduler.dto.SchedulerPositionCandidateDto;
 import br.com.cloudport.servicoyard.scheduler.dto.VesselArrivalDto;
+import br.com.cloudport.servicoyard.scheduler.servico.RealYardReplanningOptimizerService.ResultadoOtimizacaoReal;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,8 +20,8 @@ class RealYardReplanningOptimizerServiceTest {
 
     @Test
     void deveGerarPropostaDeterministicaComMemoriaEJustificativas() {
-        var primeiro = servico.otimizar(requisicaoBase());
-        var segundo = servico.otimizar(requisicaoBase());
+        ResultadoOtimizacaoReal primeiro = servico.otimizar(requisicaoBase());
+        ResultadoOtimizacaoReal segundo = servico.otimizar(requisicaoBase());
 
         assertThat(primeiro.atribuicoes()).hasSize(1);
         assertThat(primeiro.atribuicoes().get(0).getLinhaProposta()).isEqualTo(2);
@@ -69,7 +70,7 @@ class RealYardReplanningOptimizerServiceTest {
         destino.setOcupacaoPilha(0L);
         requisicao.setPosicoesCandidatas(List.of(ocupada, destino));
 
-        var resultado = servico.otimizar(requisicao);
+        ResultadoOtimizacaoReal resultado = servico.otimizar(requisicao);
 
         assertThat(resultado.atribuicoes().get(0).getBlocoProposto()).isEqualTo("EXPORT");
         assertThat(resultado.atribuicoes().get(0).getJustificativas())

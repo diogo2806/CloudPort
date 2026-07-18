@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #393.
+Status: atualizado em 2026-07-18 com base nas entregas incorporadas à `main` até o PR #396.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -13,35 +13,71 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 1. O backend oficial é o monólito modular `backend/cloudport-runtime`.
 2. O runtime incorpora Autenticação, Carga Geral, Gate, Rail, Visibilidade, Yard, Navio e Navio Siderúrgico.
 3. Os limites de domínio são preservados por módulos, pacotes, portas, eventos e schemas próprios.
-4. As integrações internas principais usam adaptadores locais no mesmo processo.
-5. Adaptadores HTTP permanecem condicionais para rollback ou integração externa.
-6. `backend/cloudport-monolito-navio` permanece somente como runtime anterior de rollback.
-7. Os diretórios `backend/servico-*` continuam compiláveis isoladamente durante a janela de retorno.
-8. O runtime produz um único JAR executável e uma única imagem Docker.
-9. O portal e o Control Room usam uma origem de API configurável.
-10. O Control Room React pode ser incorporado ao JAR do runtime.
-11. `GET /assets/configuracao.json` fornece configuração dinâmica ao frontend incorporado.
-12. Escritas são controladas por `cloudport.runtime.writes-enabled`.
-13. Jobs são controlados por `cloudport.runtime.jobs-enabled`.
-14. Consumidores são controlados por `cloudport.runtime.consumers-enabled` e pelas propriedades de inicialização do RabbitMQ.
-15. O runtime anterior exige `CLOUDPORT_ROLLBACK_ENABLED=true` e permanece fail-closed por padrão.
+4. `backend/cloudport-contracts` concentra contratos compartilhados sem compartilhar entidades JPA ou repositories.
+5. As integrações internas principais usam adaptadores locais no mesmo processo.
+6. Adaptadores HTTP permanecem condicionais para rollback ou integração externa.
+7. `backend/cloudport-monolito-navio` permanece somente como runtime anterior de rollback.
+8. Os diretórios `backend/servico-*` continuam compiláveis isoladamente durante a janela de retorno.
+9. O runtime produz um único JAR executável e uma única imagem Docker.
+10. O portal e o Control Room usam uma origem de API configurável.
+11. Escritas, jobs e consumidores podem ser controlados separadamente para impedir execução duplicada durante o corte.
+12. O runtime anterior exige `CLOUDPORT_ROLLBACK_ENABLED=true` e permanece fail-closed por padrão.
 
 ## Maven, módulos, schemas e Flyway
 
 1. `backend/cloudport-modules` funciona como parent e reator Maven canônico.
-2. Java, BOMs, versões, `dependencyManagement`, `pluginManagement` e regras do Maven Enforcer estão centralizados.
-3. `cloudport-contracts`, os oito módulos de domínio e o runtime participam do build consolidado.
+2. `cloudport-contracts`, os oito módulos de domínio e o runtime participam do build consolidado.
+3. Java, BOMs, versões, `dependencyManagement`, `pluginManagement` e regras do Maven Enforcer estão centralizados.
 4. Os módulos podem produzir biblioteca para o monólito e aplicação standalone para rollback.
 5. Não há inclusão direta de fontes de projetos irmãos.
-6. Cada módulo publica suas próprias migrações no artefato.
+6. Cada módulo publica suas próprias migrações.
 7. O PostgreSQL é compartilhado com schemas proprietários por módulo.
 8. Cada schema possui histórico Flyway independente.
 9. Os Flyways são executados antes da criação do `EntityManagerFactory`.
 10. `validateOnMigrate` está habilitado e `clean` permanece desabilitado.
 11. O `search_path` inclui os schemas dos módulos e `public`.
 12. Alterações de banco seguem estratégia aditiva e `expand and contract`, sem downgrade automático.
-13. O módulo de Carga Geral foi incluído no runtime, no reator e nos Dockerfiles consolidados.
-14. O módulo `cloudport-contracts` foi incluído no workflow e nas imagens standalone e consolidada.
+13. O módulo de Carga Geral está incluído no runtime, no reator e nos Dockerfiles.
+14. O módulo `cloudport-contracts` está incluído no workflow e nas imagens standalone e consolidada.
+
+Schemas atuais:
+
+- `cloudport_autenticacao`;
+- `cloudport_carga_geral`;
+- `cloudport_gate`;
+- `cloudport_rail`;
+- `cloudport_visibilidade`;
+- `cloudport_yard`;
+- `cloudport_navio`;
+- `cloudport_siderurgico`.
+
+## Configuração do backend
+
+O backend aceita as variáveis:
+
+```text
+DB_HOST
+DB_PORT
+DB_NAME
+DB_USER
+DB_PASS
+DB_SCHEMA
+SECURITY_JWT_SECRET
+SECURITY_JWT_EXPIRATION_MS
+ADMIN_EMAIL
+ADMIN_PASSWORD
+```
+
+Foram implementados:
+
+1. composição da conexão PostgreSQL a partir das variáveis `DB_*`;
+2. configuração explícita do schema de execução;
+3. segredo e expiração JWT por `SECURITY_JWT_*`;
+4. criação do administrador inicial somente quando `ADMIN_EMAIL` e `ADMIN_PASSWORD` são fornecidos;
+5. ausência de administrador funcional padrão inseguro;
+6. migração para remoção do registro administrativo padrão conhecido;
+7. arquivo `.env.example` do runtime consolidado;
+8. documentação das variáveis no README principal e no runtime.
 
 ## Infraestrutura transversal
 
@@ -75,6 +111,7 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 10. `/api/public/v1/**` é protegido por cliente ou aplicação com `X-CloudPort-Client-Id` e `X-CloudPort-Client-Secret`.
 11. Clientes externos recebem a role `INTEGRACAO_EXTERNA` após validação segura do segredo.
 12. APIs operacionais do runtime exigem JWT e autorização por perfil.
+13. O portal invalida a sessão em respostas `401`, remove o token e redireciona com retorno interno seguro.
 
 ## Contratos compartilhados e API
 
@@ -90,166 +127,94 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 10. SSE e WebSocket/STOMP versionados foram publicados para eventos de visita e integrações.
 11. `X-Correlation-Id` é gerado e propagado nas chamadas autenticadas.
 
-## Módulo Navio
+## Navio e Vessel Planner
 
 1. Cadastro canônico de navios com resolução por ID ou IMO.
-2. Criação e manutenção de visitas de navio.
-3. Itens operacionais de embarque, descarga e restow.
-4. Plano de estiva vinculado à visita.
-5. Eventos e resumo operacional da visita.
-6. Integração Navio + Yard por reservas e ordens reais.
-7. Preenchimento de posição real e sincronização do estado da ordem.
-8. Consumo, cancelamento e compensação de reservas conforme o ciclo da operação.
-9. Atualização do item somente quando a reconciliação altera dados.
-10. Line-up operacional interno com ETA, ETB, ETD, berço, fase, progresso e conflitos.
-11. Line-up vertical com berços em colunas e tempo no eixo vertical.
-12. Distribuição visual de escalas sobrepostas dentro do mesmo berço.
-13. Line-up público anônimo em `/line-up` e `GET /public/line-up-navios`.
-14. A API pública não expõe IDs internos, observações administrativas ou dados sensíveis.
-15. Cache curto e atualização automática do line-up público.
-16. Quay Monitor por visita.
-17. Plano de guindastes persistido e validado contra recursos operacionais do Yard.
-18. Produtividade planejada e realizada por cais e guindaste.
-19. Validação de período, equipamento repetido e janelas sobrepostas no crane plan.
-20. Criação do Vessel Planner vinculada à escala selecionada por `bayPlanId` e `visitaNavioId`.
+2. Criação e manutenção de visitas, itens operacionais e planos de estiva.
+3. Integração Navio + Yard por reservas e ordens reais.
+4. Sincronização do estado das ordens e das posições reais.
+5. Consumo, cancelamento e compensação de reservas.
+6. Line-up interno com ETA, ETB, ETD, berço, fase, progresso e conflitos.
+7. Line-up vertical com berços em colunas e tempo no eixo vertical.
+8. Line-up público anônimo em `/line-up` e `GET /public/line-up-navios`.
+9. Contrato público sanitizado, sem IDs internos ou observações administrativas.
+10. Quay Monitor, plano de guindastes e produtividade planejada versus realizada.
+11. Validação de período, equipamento repetido e janelas sobrepostas no crane plan.
+12. Vessel Planner vinculado à escala selecionada.
+13. Vistas sincronizadas de profile, top, section e tier.
+14. Modo multivisão e inspector lateral de slot.
+15. Drag-and-drop da load list para slots e movimentação entre slots.
+16. Legendas por POD, peso, IMO, reefer e operador.
+17. Tampas de porão, peso por stack e restrições diretamente nos slots.
+18. Segregação IMDG, restow e sequência visual por guindaste.
+19. Overlays de estabilidade e força estrutural baseados em cálculos persistidos.
+20. Overlay de lashing explicitamente indicativo e não certificado.
+21. Dados hidrostáticos e de resistência longitudinal versionados.
+22. Peso total, centros de gravidade, GM, calado, trim, banda, força cortante e momento fletor calculados a partir de dados persistidos.
+23. Aprovações persistem versões de entrada, memória de cálculo e resultado.
+24. Alterações no plano invalidam a aprovação anterior.
+25. BAPLIE preserva atributos de posição, operação, VGM, reefer, perigosos e OOG.
 
-## Vessel Planner gráfico
-
-1. Vistas sincronizadas de profile, top, section e tier.
-2. Modo multivisão e inspector lateral de slot.
-3. Drag-and-drop da load list para slots.
-4. Movimentação entre slots usando a validação do backend.
-5. Preservação de atributos operacionais durante a movimentação.
-6. Legendas por POD, peso, IMO, reefer e operador.
-7. Representação de tampas de porão.
-8. Peso acumulado por stack e limites visuais.
-9. Restrições e alertas exibidos diretamente nos slots.
-10. Segregação IMDG gráfica.
-11. Visualização de restow.
-12. Sequência visual por guindaste.
-13. Overlays de estabilidade e força estrutural baseados em cálculos persistidos.
-14. Overlay indicativo de risco de lashing, explicitamente não certificado.
-15. Planejamento de contêineres separado da estiva especializada de bobinas de aço.
-
-## Estabilidade e atributos de estiva
-
-1. Dados hidrostáticos sintéticos foram removidos dos cálculos operacionais.
-2. Dados hidrostáticos e de resistência longitudinal são versionados.
-3. Peso total, LCG, TCG, VCG, GM, calado, trim e banda usam condição real de peso leve, lastro e carga.
-4. Força cortante e momento fletor são calculados por seções e limites versionados.
-5. Coordenadas físicas persistidas são usadas nos cálculos.
-6. Planos incompletos são marcados como simulação não operacional.
-7. Aprovações persistem versões de entrada, memória de cálculo, resultado e instante.
-8. Alterações no plano invalidam a aprovação anterior.
-9. BAPLIE preserva posição, operação, cheio/vazio, reefer, IMO, ONU, grupo de embalagem, segregação, OOG e instruções.
-10. VGM é mantido separado do peso bruto e usado como peso operacional quando disponível.
-11. Slots dedicados, segregação conservadora e reserva adjacente para OOG são considerados.
-
-## Yard e planejamento de pátio
+## Yard, inventário e dispatch
 
 1. Mapa georreferenciado com Google Maps, polígonos, blocos, pilhas e posições.
-2. Reserva baseada em posição real com linha, coluna e camada.
-3. Validação de existência, ocupação, bloqueio, interdição, área permitida, carga, peso, altura, camada e capacidade.
-4. Expiração configurável de reservas.
-5. Cancelamento de reservas por cancelamento de visita ou replanejamento.
-6. Compensação transacional durante a troca de posição.
-7. Auditoria de criação, consumo, cancelamento e expiração.
-8. Workspaces de pátio salvos e restaurados no navegador.
-9. Vistas de bloco, seção lateral, scan e microvisão da pilha.
-10. Camadas de situação, ocupação, dwell time e reefers.
-11. Heatmaps de ocupação e dwell time.
-12. Destaque de pilhas bloqueadas, interditadas, cheias, reservadas ou com notas.
-13. Edição motivada de bloqueio, interdição, permissão e nota de pilha.
-14. Simulação de origem e destino antes da confirmação de movimento.
-15. Arrastar contêiner para posição livre com validação no backend.
-16. Telemetria persistida de reefers.
-17. Alarmes de reefer por temperatura, alimentação e atraso da leitura.
-18. Rotas desenhadas entre posição atual e destino da work instruction.
-19. Editor gráfico de allocations com posições elegíveis, pré-visualização e confirmação motivada.
-20. Replanejamento rejeita destino inexistente, ocupado, proibido, reservado ou igual à posição atual.
-21. Planejamento de recebimento e agrupamento operacional de contêineres.
-
-## Inventário canônico
-
-1. Ciclo de vida completo da unidade.
-2. Contêiner, chassi, carreta e acessórios no mesmo domínio.
-3. Tipos, códigos ISO, dimensões, capacidades, prefixos e equivalências.
-4. Lacres e documentos da unidade.
-5. Avarias, componentes, condições e graus.
-6. Manutenção, reparo e status de M&R.
-7. Holds e permissions.
-8. Ownership, operador e pools.
-9. Montagem e desmontagem de equipamentos.
-10. Histórico de atributos.
-11. Controle reefer.
-12. Inventário físico e divergências.
-13. Importação e sincronização do inventário legado do pátio.
-14. API canônica em `/yard/inventario/canonico`.
-15. Tela unificada com filtros, indicadores, cadastro, inspector e ações rápidas.
-16. Integração com `OperationalDataGrid` para pesquisa, filtros, paginação e exportação.
-17. Relatório operacional de inventário com totais, retenções, avarias, reefers, perigosos, unidades sem posição e peso.
-
-## Work queues, work instructions e dispatch
-
-1. Criação, listagem, ativação e desativação de work queues.
-2. Associação de POW, pool e equipamento.
-3. Job list expansível por fila.
-4. Vínculo persistente de `workQueueId` na ordem de pátio.
-5. Atualização da job list por endpoint dedicado.
-6. Dispatch respeitando o limite de ordens.
-7. Reset e cancelamento de work instruction.
-8. Alteração de prioridade, suspensão, retomada, bloqueio e conclusão conforme matriz oficial.
-9. Validação de fila ativa, POW, pool, plano de guindaste, recurso de cais e equipamento operacional.
-10. Auditoria de motivo, usuário, origem e `correlationId`.
-11. Drill-down operacional e job lists por equipamento no Control Room.
-12. Eventos internos publicados após comandos do Yard.
-13. Reconciliação periódica mantida apenas como reparo de divergências.
+2. Vistas de bloco, seção lateral, scan e microvisão.
+3. Camadas, heatmaps, workspaces, notas, bloqueios, interdições e permissões.
+4. Reserva baseada em posição real com linha, coluna e camada.
+5. Validação de existência, ocupação, bloqueio, área, carga, peso, altura, apoio e capacidade.
+6. Expiração, cancelamento e compensação de reservas.
+7. Simulação e confirmação de movimentos com validação do backend.
+8. Telemetria de reefers e alarmes por temperatura, alimentação e atraso.
+9. Rotas no mapa e editor gráfico de allocations.
+10. Planejamento de recebimento e agrupamento operacional de contêineres.
+11. Otimização global de posições por custo mínimo com algoritmo Húngaro.
+12. Restrições de reefer, perigosos, reservas, apoio físico e capacidade consideradas no planejamento.
+13. Custos de rehandle, distância, mistura, nova pilha e camada considerados na otimização.
+14. Domínio canônico de unidade e equipamento.
+15. Contêiner, chassi, carreta e acessórios.
+16. Tipos, códigos ISO, dimensões, capacidades, prefixos e equivalências.
+17. Lacres, documentos, avarias, manutenção, holds e permissions.
+18. Ownership, operador, montagem, histórico, reefer e inventário físico.
+19. API canônica em `/yard/inventario/canonico`.
+20. Work queues, POW, pool, equipamento, job list e dispatch.
+21. Reset, cancelamento, prioridade, suspensão, retomada, bloqueio e conclusão.
+22. Motivo, usuário, origem e `correlationId` auditados.
+23. Reshuffling baseado no mapa real, com reserva do destino e idempotência.
 
 ## Control Room e equipamentos
 
-1. Painel integrado Navio + Yard com filtros, movimentos iminentes, filas, reservas, ordens, alertas e exceções.
-2. Ações de reserva, sincronização, replanejamento, prioridade, suspensão e retomada.
-3. Ações de work queue e work instruction com motivo obrigatório.
-4. Rota autenticada `/home/navio/control-room`.
-5. SSO por `postMessage` restrito a origens configuradas.
-6. Login próprio como fallback.
-7. Snapshot carregado em paralelo e aplicado atomicamente.
-8. SSE autenticado como mecanismo principal de atualização.
-9. Snapshot inicial, heartbeat, reconexão com backoff e polling somente como fallback.
-10. Quay Monitor operacional com plano de guindastes, progresso, produtividade e alertas.
-11. Painel de equipamentos com status, posição, conectividade, VMT e work instruction atual.
-12. Histórico persistido de telemetria e atualização quase em tempo real.
-13. Detecção de telemetria atrasada, heartbeat ausente, falha de dispositivo e indisponibilidade.
-14. Reconhecimento e resolução de alarmes técnicos.
-15. Registro de indisponibilidade com início, encerramento, motivo e responsáveis.
-16. Ciclo de comandos remotos: criação, polling, envio, execução e confirmação.
-17. Dispositivos integrados por heartbeat autenticado com firmware, protocolo, endereço e sequência.
-18. Navegação e autorização específicas do Control Room de equipamentos.
+1. Painel Navio + Yard com movimentos, filas, reservas, ordens, alertas e exceções.
+2. Ações operacionais protegidas e motivadas.
+3. SSE autenticado como mecanismo principal de atualização.
+4. Snapshot inicial, heartbeat, reconexão e polling como fallback.
+5. Painel de equipamentos com status, posição, conectividade, VMT e work instruction atual.
+6. Histórico persistido de telemetria.
+7. Detecção de telemetria atrasada, heartbeat ausente, falha e indisponibilidade.
+8. Reconhecimento e resolução de alarmes técnicos.
+9. Registro de indisponibilidade com início, fim, motivo e responsáveis.
+10. Ciclo de comandos remotos: criação, polling, envio, execução e confirmação.
+11. Dispositivos integrados por heartbeat autenticado com firmware, protocolo, endereço e sequência.
 
-## Gate operacional
+## Gate operacional e visual
 
-1. Facilities e múltiplos gates.
-2. Pistas, consoles, filas e monitor de lanes.
-3. Estágios, transições e business tasks configuráveis.
-4. Bookings, Bill of Lading, EDO, ERO, IDO e pré-avisos.
-5. Appointments com capacidade e consumo transacional da janela.
-6. Truck visits com múltiplas transações.
-7. Trouble transactions.
-8. Inspeções rodoviárias e operacionais.
-9. Fotografias, documentos, tickets e EIR.
-10. Impressão e reimpressão de EIR.
-11. Transferências entre instalações.
-12. Regras de bloqueio e permissão para motorista, transportadora e veículo.
-13. Histórico de estágios.
-14. Relatórios persistidos com período, operação, transportadora, pontualidade, no-show, ocupação, abandono e turnaround.
-15. Quadro visual de pistas e filas por estágio.
-16. Calendário de agendamentos com ocupação versus capacidade.
-17. Jornada do veículo com OCR, balança, inspeção e liberação.
-18. Painel de transações problemáticas.
-19. Cronômetro e classificação visual de SLA.
-20. Operação de embarque de contêiner direto do gate para o navio, sem passagem pelo pátio.
-21. Fechamento do gate somente após confirmação do módulo Navio.
-22. Idempotência e auditoria do embarque direto.
+1. Facilities, múltiplos Gates, pistas, consoles, filas e monitor de lanes.
+2. Estágios, transições e business tasks configuráveis.
+3. Bookings, Bill of Lading, EDO, ERO, IDO e pré-avisos.
+4. Appointments com capacidade e consumo transacional da janela.
+5. Truck visits com múltiplas transações.
+6. Trouble transactions e inspeções.
+7. Fotografias, documentos, tickets e EIR.
+8. Impressão e reimpressão de EIR.
+9. Transferências entre instalações.
+10. Regras de bloqueio e permissão para motorista, transportadora e veículo.
+11. Histórico de estágios e relatórios operacionais.
+12. Quadro visual de pistas e filas por estágio.
+13. Calendário de agendamentos com ocupação versus capacidade.
+14. Jornada do veículo com OCR, balança, inspeção e liberação.
+15. Painel de transações problemáticas e classificação de SLA.
+16. Embarque de contêiner direto do Gate para o navio sem passagem pelo pátio.
+17. Fechamento do Gate somente após confirmação do módulo Navio.
+18. Saída direta de carga autopropelida descarregada do navio.
 
 ## Controle de entrada e saída de pessoas
 
@@ -259,219 +224,145 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 4. Normalização de documento.
 5. APIs de entrada, saída, presentes, resumo e histórico.
 6. Tela `Gate > Controle de Pessoas`.
-7. Autorização para perfis administrativos e operacionais definidos.
+7. Autorização para perfis administrativos e operacionais.
+8. Busca serializada por documento com `PESSIMISTIC_WRITE` e timeout imediato.
+9. `saveAndFlush` usado para materializar conflitos dentro da operação.
+10. Violações da constraint de documento, locks pessimistas e locks otimistas são traduzidos para HTTP `409`.
+11. O contrato OpenAPI documenta `201` para sucesso e `409` para conflito concorrente.
+12. Testes cobrem colisão de documento, lock pessimista e lock otimista.
+
+O requisito técnico `ERR10` foi concluído no PR #396.
 
 ## Ferrovia
 
-1. Visitas ferroviárias, manifestos, vagões, contêineres e ordens de trabalho.
-2. Lista de trabalho por visita com filtros, manifesto e métricas.
-3. Início e conclusão de movimentações conforme as transições do domínio.
-4. Fase `CONCLUIDO` entre processamento e partida.
-5. Conclusão automática da visita quando todas as operações terminam.
-6. Registro de partida somente após conclusão integral.
-7. Composição gráfica do trem com locomotiva e vagões em sequência.
-8. Associação visual de carga e descarga por vagão.
-9. Progresso operacional por vagão.
-10. Representação das linhas ferroviárias e sua ocupação.
-11. Indicação de vagões bloqueados, incompatíveis e operações sem vagão válido.
-12. Cronograma de chegada, operação e partida.
-13. Detecção visual de conflitos entre trens e recursos.
-14. Line-up ferroviário vertical por linha e etapa operacional.
-15. Drag-and-drop e seletor acessível para simulação de replanejamento no frontend.
-16. Locomotiva isolada tratada como a própria visita ferroviária.
-17. Transferência de custódia, planejamento, checklist e embarque da locomotiva no navio.
-18. Ao confirmar o embarque, a própria visita da locomotiva é encerrada.
+1. Visitas ferroviárias, manifestos, vagões, contêineres e ordens.
+2. Lista de trabalho por visita com filtros e métricas.
+3. Início, conclusão e partida conforme as transições do domínio.
+4. Fase `CONCLUIDO` antes da partida.
+5. Composição gráfica com locomotiva e vagões.
+6. Associação visual de carga e descarga por vagão.
+7. Progresso operacional e ocupação das linhas.
+8. Indicação de vagões bloqueados ou incompatíveis.
+9. Cronograma e conflitos entre trens e recursos.
+10. Line-up ferroviário vertical.
+11. Drag-and-drop e seletor acessível para simulação de replanejamento.
+12. Locomotiva isolada tratada como a própria visita ferroviária.
+13. Transferência de custódia, planejamento, checklist e embarque no navio.
 
-## Carga geral, projeto e break-bulk
+A persistência do replanejamento visual por vagão permanece no backlog.
 
-1. Módulo `servico-carga-geral` incorporado ao runtime modular.
+## Carga Geral, projeto e break-bulk
+
+1. Módulo `servico-carga-geral` incorporado ao runtime.
 2. Bill of Lading e itens do conhecimento.
-3. Cargo lots para carga solta, carga de projeto e break-bulk.
+3. Cargo lots para carga solta, projeto e break-bulk.
 4. Commodities, embalagens e produtos.
 5. Códigos de armazenagem e manuseio.
 6. Mercadorias perigosas com número ONU e classe IMDG.
-7. Faixas de temperatura.
-8. Tipos e registros de avaria.
-9. Quantidade, volume e peso previstos e em estoque.
-10. Recebimento, carga, descarga parcial e transferência.
-11. Consolidação e desconsolidação.
-12. Vínculo de lote com veículo, visita de navio, armazém e cliente.
-13. Bloqueio pessimista nas movimentações de estoque.
-14. Validação de saldo não negativo.
-15. Dashboard e console React operacional.
-16. Flyway, testes, navegação e contratos integrados ao runtime.
+7. Faixas de temperatura e avarias.
+8. Quantidade, volume e peso previstos e em estoque.
+9. Recebimento, carga, descarga parcial e transferência.
+10. Consolidação e desconsolidação.
+11. Vínculos com veículo, visita de navio, armazém e cliente.
+12. Bloqueio pessimista e saldo não negativo.
+13. Dashboard e console React.
+14. Flyway, testes, navegação e contratos integrados ao runtime.
+
+## Carga siderúrgica
+
+1. Planos persistidos por navio e visita.
+2. Manifesto de bobinas, porões e setores de tank top.
+3. Posicionamento, empilhamento, estabilidade e securing.
+4. Relatório, validação completa e aprovação explícita.
+5. Dimensões de apoio, geometria, camadas, espaçamento, dunnage, calços e sequência de descarga.
+6. Materiais certificados, pontos de amarração, capacidade nominal e carga de trabalho segura.
+7. Regras e versões da especificação persistidas.
+8. Valores sintéticos não são usados para aprovar o plano.
 
 ## Billing e portal CAP
 
-1. Tabelas de tarifas, cobranças, faturas, itens e pagamentos.
+1. Tarifas, cobranças, faturas, itens e pagamentos.
 2. Tarifas por operação e vigência.
 3. Cobrança idempotente para atendimentos concluídos.
 4. Consolidação de cobranças pendentes em faturas.
 5. Registro de pagamentos e quitação automática.
-6. Isolamento dos dados da transportadora pelos dados do JWT.
+6. Isolamento por transportadora com dados do JWT.
 7. Resumo CAP de agendamentos, cobranças e faturas.
 8. Telas, rotas e navegação por perfil.
-9. Integração das telas com contratos reais do backend.
 
-## Visibilidade e alertas
+## Visibilidade, alertas, EDI e eventos
 
-1. Rastreamento e histórico de contêineres consolidados.
+1. Rastreamento e histórico de contêineres.
 2. Eventos de Gate, Yard, Rail e Navio persistidos.
-3. Projeção criada quando o evento chega antes do cadastro.
-4. Capacidade do Yard processada sem exigir `containerId`.
-5. Status do navio preservado quando o evento altera somente o berço.
-6. Throughput do Gate calculado por ciclos reais.
-7. Alertas automáticos e resolução motivada.
-8. Idempotência por `eventId` ou `messageId` nos consumidores.
-9. Hash canônico do payload e rejeição de colisões divergentes.
-10. Deduplicação, efeito e histórico executados na mesma transação.
-11. Central global de alertas disponível em todas as telas autenticadas.
-12. Contagem de alertas ativos e não reconhecidos no cabeçalho.
-13. Filtros por status e severidade.
-14. Reconhecimento e resolução com usuário e data.
-15. Navegação para o módulo relacionado.
-16. Página completa `/home/alertas` com indicadores e grade operacional.
-17. Atualização automática e layout acessível.
-
-## EDI e processamento assíncrono
-
-1. BAPLIE, COPRAR, COARRI e VERMAS suportados.
-2. Validação, rejeição e auditoria persistente por processamento.
-3. Status `RECEBIDO`, `PROCESSANDO`, `CONCLUIDO` e `REJEITADO`.
-4. Consulta paginada e detalhamento da auditoria.
-5. Reprocessamento motivado com encadeamento e limite de tentativas.
-6. `X-EDI-Processing-Id` retornado nas recepções aceitas.
-7. Identificadores `UNB` e `UNH` persistidos.
-8. Chave idempotente derivada do intercâmbio e referência da mensagem.
-9. Reenvio idêntico reutiliza a recepção existente.
-10. Reutilização de identidade com conteúdo divergente retorna conflito.
-11. Worker persistente executa o processamento fora da requisição HTTP.
-12. Mensagens são reivindicadas com trava transacional e lote limitado.
-13. Retentativa exponencial e recuperação de execução interrompida.
-14. Falhas esgotadas são movidas para `QUARENTENA`.
-15. Processamento, efeito e conclusão permanecem na mesma transação.
-
-## Eventos internos e reconciliação seletiva
-
-1. Eventos de operação de pátio e cadastro de navio possuem contratos versionados.
-2. Eventos de work queue e work instruction são publicados após persistência.
-3. Alterações do cadastro canônico de navio publicam eventos internos.
-4. Navio Siderúrgico sincroniza somente a visita afetada por evento do Yard.
-5. A projeção siderúrgica atualiza somente o navio afetado.
-6. Eventos internos processados são persistidos para impedir reaplicação.
-7. Remoção do cadastro canônico cancela a projeção correspondente.
-8. Jobs de reconciliação consultam somente registros pendentes, com erro ou desatualizados.
-9. Jobs periódicos permanecem como reparo para divergências ou eventos perdidos.
+3. Projeções operacionais e reconciliação seletiva.
+4. Alertas automáticos e resolução motivada.
+5. Idempotência por `eventId` ou `messageId`.
+6. Central global de alertas no cabeçalho e em `/home/alertas`.
+7. Filtros, reconhecimento, resolução e navegação ao módulo de origem.
+8. BAPLIE, COPRAR, COARRI e VERMAS suportados.
+9. Auditoria persistente e reprocessamento motivado.
+10. Recepção EDI assíncrona e idempotente.
+11. Worker com reivindicação transacional, retentativa e quarentena.
+12. Eventos internos publicados após persistência.
+13. Reconciliação periódica mantida como reparo de divergências.
 
 ## Frontend compartilhado
 
-1. `OperationalDataGrid` substitui a tabela genérica simples.
-2. Busca rápida sem diferenciação de acentos.
-3. Filtros combináveis por coluna.
-4. Ordenação de texto, número e data.
-5. Paginação local e contrato opcional para paginação no backend.
-6. Ocultação, exibição, reordenação e congelamento de coluna.
-7. Persistência de preferências e visões nomeadas.
-8. Seleção múltipla e ações em lote extensíveis.
-9. Exportação CSV da grade ou da seleção.
-10. Exportação Excel em SpreadsheetML.
-11. Neutralização de valores que poderiam ser interpretados como fórmula.
-12. Inspector lateral do registro.
-13. Navegação por teclado e `aria-sort`.
-14. Páginas genéricas inferem todos os campos retornados, sem limite de oito colunas.
-15. Ajuda contextual no `PageHeader` para páginas atuais e futuras.
-16. Painel de ajuda responsivo e acessível.
-17. Conteúdo por rota e módulo, pesquisa sem acentos e exibição dos papéis do usuário.
-18. Atalhos `F1`, `Shift + ?` e `Esc`.
-19. Conteúdo específico para Gate, Rail, Yard, Navio, Embarque, Billing, CAP, Administração, Alertas e Painéis.
+1. `OperationalDataGrid` com busca, filtros, ordenação e paginação.
+2. Ocultação, reordenação, congelamento e persistência de colunas.
+3. Visões nomeadas, seleção múltipla e ações em lote.
+4. Exportação CSV e Excel.
+5. Neutralização de fórmulas nas exportações.
+6. Inspector lateral e navegação por teclado.
+7. Inferência de todos os campos retornados.
+8. Ajuda contextual no `PageHeader`.
+9. Painel acessível, conteúdo por rota, pesquisa e atalhos.
 
 ## Implantação e operação
 
 1. Dockerfile multi-stage do frontend em `frontend/Dockerfile`.
-2. Build do portal `frontend/cloudport` com Node 22.
-3. Publicação do frontend por Nginx na porta 80.
-4. Fallback de SPA para `index.html`.
-5. Health check do frontend em `/health`.
-6. Dockerfile do backend em `backend/Dockerfile` compatível com o contexto `/backend` do EasyPanel.
-7. Parent Maven instalado antes do empacotamento dos módulos.
-8. Build consolidado inclui contratos, Carga Geral e todos os módulos do runtime.
-9. Diretório persistente de documentos preparado na imagem.
-10. Health check do backend em `/actuator/health/readiness`.
-11. Workflow valida a imagem pelo contexto da raiz e pelo contexto usado no EasyPanel.
-12. Configuração documentada para frontend na porta 80 e backend na porta 8080.
+2. Build com Node 22 e publicação por Nginx na porta 80.
+3. Fallback da SPA e health check em `/health`.
+4. Dockerfile do backend em `backend/Dockerfile` para o contexto `/backend` do EasyPanel.
+5. Parent Maven instalado antes do empacotamento.
+6. Build inclui contratos, Carga Geral e todos os módulos.
+7. Diretório persistente de documentos preparado na imagem.
+8. Health check em `/actuator/health/readiness`.
+9. Workflow valida os dois contextos Docker do backend.
+10. Frontend e backend possuem parâmetros documentados no EasyPanel.
+11. O Compose utiliza as variáveis `DB_*`, `SECURITY_JWT_*`, `ADMIN_*` e dependências externas configuráveis.
 
-## Contratos de API de referência
+## Entregas recentes de referência
 
-```text
-GET   /assets/configuracao.json
-GET   /public/line-up-navios
-GET   /yard/inventario
-GET   /yard/inventario/canonico
-GET   /yard/patio/work-queues
-POST  /yard/patio/work-queues
-PATCH /yard/patio/work-queues/{id}/ativar
-PATCH /yard/patio/work-queues/{id}/desativar
-PATCH /yard/patio/work-queues/{id}/pow
-PATCH /yard/patio/work-queues/{id}/equipamento
-PATCH /yard/patio/work-queues/{id}/ordens
-GET   /yard/patio/work-queues/{id}/job-list
-POST  /yard/patio/work-queues/{id}/dispatch
-POST  /yard/patio/work-instructions/{id}/reset
-POST  /yard/patio/work-instructions/{id}/cancelar
-GET   /yard/patio/reservas/posicoes
-GET   /yard/patio/reservas/auditoria
-GET   /visitas-navio/{id}/integracao-patio/stream
-GET   /visitas-navio/{id}/quay-monitor
-POST  /visitas-navio/{id}/crane-plan
-GET   /visitas-navio/{id}/produtividade-cais
-GET   /api/public/v1/vessel-visits
-GET   /api/public/v1/events/stream
-POST  /api/edi/baplie/upload
-POST  /api/edi/baplie/texto
-POST  /api/edi/coprar
-POST  /api/edi/coarri
-POST  /api/edi/vermas
-GET   /api/edi/processamentos
-POST  /api/edi/processamentos/{id}/reprocessar
-GET   /api/v1/visibilidade/alertas/filtrados
-GET   /api/v1/visibilidade/alertas/resumo
-PATCH /api/v1/visibilidade/alertas/{id}/reconhecer
-PATCH /api/v1/visibilidade/alertas/{id}/resolver
-GET   /api/v1/visibilidade/conteiners/{containerId}/track
-GET   /api/v1/visibilidade/conteiners/{containerId}/historico
-POST  /gate/embarques-diretos/navio
-PATCH /rail/ferrovia/visitas/{id}/partida
-GET   /rail/ferrovia/visitas/{id}/locomotiva
-```
+| PR | Entrega |
+| --- | --- |
+| #396 | Concorrência no controle de acesso de pessoas e conclusão de `ERR10` |
+| #395 | Novas variáveis de ambiente e remoção do administrador padrão inseguro |
+| #394 | Consolidação da documentação funcional |
+| #393 | Correção do backend no EasyPanel |
+| #392 | Imagem do frontend para EasyPanel |
+| #386 | Operação completa do Gate |
+| #385 | Carga Geral e break-bulk |
+| #384 | Reefers, rotas e allocations no Yard |
+| #383 | Inventory Management canônico |
+| #382 | Gate visual |
+| #381 | Vessel Planner gráfico completo |
+| #379 | Pátio operacional |
+| #378 | Control Room, telemetria e equipamentos |
+| #376 | Ferrovia visual |
+| #375 | Exportação Excel e grade operacional |
+| #373 | Ajuda contextual |
+| #371 | Billing e CAP |
+| #370 | Central global de alertas |
+| #360 | Line-up público de navios |
+| #357 | Controle de pessoas |
+| #345 | Embarque direto do Gate para o navio |
+| #340 | Otimização global de posições do Yard |
+| #339 | Agrupamento para recebimento no pátio |
+| #338 | Saída direta de carga autopropelida |
 
-## Itens que não devem voltar como pendência principal
+## Pendências não marcadas como implementadas
 
-1. CRUD básico de visita, item e plano de navio.
-2. Integração inicial e avançada entre Navio e Yard.
-3. Work queues, job lists, dispatch e matriz de transições.
-4. Reserva contra posição real e ciclo de expiração, cancelamento e compensação.
-5. Control Room com SSE, Quay Monitor e painel de equipamentos.
-6. Cadastro canônico de navio.
-7. Runtime modular com build único, schemas e Flyways independentes.
-8. Portas locais para integrações entre módulos incorporados.
-9. Segurança, CORS, erros, logs, métricas, tracing e agendamento centralizados no runtime.
-10. Controles de escrita, jobs e consumidores para coexistência.
-11. API pública de Navio protegida, paginada e versionada.
-12. BAPLIE, COPRAR, COARRI e VERMAS com auditoria e reprocessamento.
-13. Idempotência dos consumidores da Visibilidade.
-14. Recepção EDI assíncrona e idempotente.
-15. Eventos internos e reconciliação seletiva.
-16. Validação do crane plan contra work queues reais do Yard.
-17. Estado operacional oficial de work queues e work instructions.
-18. Vessel Planner gráfico multivisão.
-19. Pátio gráfico, reefers, rotas e allocations.
-20. Inventário canônico completo.
-21. Gate operacional e Gate visual.
-22. Controle de entrada e saída de pessoas.
-23. Ferrovia operacional, visual e transferência de locomotiva.
-24. Carga geral e break-bulk.
-25. Billing e portal CAP.
-26. Central global de alertas.
-27. Grade operacional, exportação Excel e ajuda contextual.
-28. Line-up interno, ferroviário e público.
-29. Dockerfiles e parâmetros do EasyPanel.
+Permanecem no backlog técnico `ERR20`, `ERR30`, `ERR40`, `SEC70`, `SEC80` e `SEC90`, conforme `docs/requisitos/requisito-tecnico.md`.
+
+Permanecem no backlog funcional a persistência do replanejamento ferroviário, a conclusão e edição integral de operações de navio, o corte operacional, as integrações reais de campo e as evoluções avançadas registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.

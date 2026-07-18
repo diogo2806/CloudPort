@@ -13,7 +13,7 @@ public interface GateQueueEntryRepository extends JpaRepository<GateQueueEntry, 
     Optional<GateQueueEntry> findFirstByGatePassIdAndSentidoAndStatusIn(
             Long gatePassId, GateQueueDirection sentido, Collection<GateQueueStatus> statuses);
 
-    List<GateQueueEntry> findBySentidoAndStatusInOrderByPrioridadeDescPosicaoAtualAscEntrouEmAsc(
+    List<GateQueueEntry> findBySentidoAndStatusIn(
             GateQueueDirection sentido, Collection<GateQueueStatus> statuses);
 
     long countBySentidoAndStatusIn(GateQueueDirection sentido, Collection<GateQueueStatus> statuses);

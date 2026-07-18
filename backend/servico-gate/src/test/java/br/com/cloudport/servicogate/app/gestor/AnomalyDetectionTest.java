@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import br.com.cloudport.servicogate.app.gestor.dto.TosContainerStatus;
 import br.com.cloudport.servicogate.integration.tos.TosIntegrationService;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.GatePass;
@@ -60,7 +59,6 @@ class AnomalyDetectionTest {
 
     @Test
     void deveDetectarSaidaSemEntrada() {
-        // Setup: Container com saída registrada mas sem entrada
         gatePass.setStatus(StatusGate.FINALIZADO);
         gatePass.setDataEntrada(null);
         gatePass.setDataSaida(LocalDateTime.now().minusMinutes(5));
@@ -69,6 +67,7 @@ class AnomalyDetectionTest {
                 .thenReturn(List.of());
         when(gatePassRepository.findByStatus(StatusGate.EM_PROCESSAMENTO)).thenReturn(List.of());
         when(gatePassRepository.findByStatus(StatusGate.LIBERADO)).thenReturn(List.of());
+        when(gatePassRepository.findByStatus(StatusGate.FINALIZADO)).thenReturn(List.of(gatePass));
         when(gatePassRepository.findAll()).thenReturn(List.of(gatePass));
         when(reconciliacaoRepository.findByGatePassIdAndTipoDesinconia(1L,
                 TipoDesincroniaBarcode.SAIDA_SEM_ENTRADA))
@@ -80,10 +79,8 @@ class AnomalyDetectionTest {
                     return r;
                 });
 
-        // Execute
         List<ReconciliacaoBarcode> resultado = reconciliacaoService.executarReconciliacao();
 
-        // Verify
         assertTrue(resultado.stream()
                 .anyMatch(r -> r.getTipoDesinconia() == TipoDesincroniaBarcode.SAIDA_SEM_ENTRADA));
         assertEquals(StatusGate.FINALIZADO.name(), resultado.get(0).getStatusLocal());
@@ -91,7 +88,6 @@ class AnomalyDetectionTest {
 
     @Test
     void deveDetectarMultiplosContainersMesmaPlaca() {
-        // Setup: Dois containers da mesma placa em 1 hora
         GatePass gatePass2 = new GatePass();
         gatePass2.setId(2L);
         gatePass2.setCodigo("GP-002");
@@ -121,10 +117,8 @@ class AnomalyDetectionTest {
                     return r;
                 });
 
-        // Execute
         List<ReconciliacaoBarcode> resultado = reconciliacaoService.executarReconciliacao();
 
-        // Verify
         long multiploContainers = resultado.stream()
                 .filter(r -> r.getTipoDesinconia() == TipoDesincroniaBarcode.MULTIPLOS_CONTAINERS_PLACA)
                 .count();
@@ -133,7 +127,6 @@ class AnomalyDetectionTest {
 
     @Test
     void deveDetectarTempoGateExcedido() {
-        // Setup: Container no gate há mais de 30 minutos
         gatePass.setStatus(StatusGate.EM_PROCESSAMENTO);
         gatePass.setDataEntrada(LocalDateTime.now().minusMinutes(45));
         gatePass.setDataSaida(null);
@@ -153,10 +146,8 @@ class AnomalyDetectionTest {
                     return r;
                 });
 
-        // Execute
         List<ReconciliacaoBarcode> resultado = reconciliacaoService.executarReconciliacao();
 
-        // Verify
         assertTrue(resultado.stream()
                 .anyMatch(r -> r.getTipoDesinconia() == TipoDesincroniaBarcode.TEMPO_GATE_EXCEDIDO));
         ReconciliacaoBarcode anomalia = resultado.stream()
@@ -168,7 +159,6 @@ class AnomalyDetectionTest {
 
     @Test
     void naoDeveDetectarMultiplosContainersDePlacasDiferentes() {
-        // Setup: Múltiplos containers de placas diferentes (normal)
         Veiculo veiculo2 = new Veiculo();
         veiculo2.setId(2L);
         veiculo2.setPlaca("XYZ9876");
@@ -183,11 +173,11 @@ class AnomalyDetectionTest {
         gatePass2.setCodigo("GP-002");
         gatePass2.setStatus(StatusGate.EM_PROCESSAMENTO);
         gatePass2.setAgendamento(agendamento2);
-        gatePass2.setDataEntrada(LocalDateTime.now().minusMinutes(30));
+        gatePass2.setDataEntrada(LocalDateTime.now().minusMinutes(10));
         gatePass2.setDataSaida(null);
 
         gatePass.setStatus(StatusGate.EM_PROCESSAMENTO);
-        gatePass.setDataEntrada(LocalDateTime.now().minusMinutes(50));
+        gatePass.setDataEntrada(LocalDateTime.now().minusMinutes(20));
         gatePass.setDataSaida(null);
 
         when(gatePassRepository.findByStatus(StatusGate.AGUARDANDO_CONFIRMACAO_BARCODE))
@@ -196,10 +186,8 @@ class AnomalyDetectionTest {
         when(gatePassRepository.findByStatus(StatusGate.LIBERADO)).thenReturn(List.of());
         when(gatePassRepository.findAll()).thenReturn(List.of(gatePass, gatePass2));
 
-        // Execute
         List<ReconciliacaoBarcode> resultado = reconciliacaoService.executarReconciliacao();
 
-        // Verify
         long multiploContainers = resultado.stream()
                 .filter(r -> r.getTipoDesinconia() == TipoDesincroniaBarcode.MULTIPLOS_CONTAINERS_PLACA)
                 .count();
@@ -208,7 +196,6 @@ class AnomalyDetectionTest {
 
     @Test
     void naoDeveDetectarTempoGateExcedidoMenorQue30Min() {
-        // Setup: Container no gate há menos de 30 minutos (normal)
         gatePass.setStatus(StatusGate.EM_PROCESSAMENTO);
         gatePass.setDataEntrada(LocalDateTime.now().minusMinutes(15));
         gatePass.setDataSaida(null);
@@ -219,10 +206,8 @@ class AnomalyDetectionTest {
         when(gatePassRepository.findByStatus(StatusGate.LIBERADO)).thenReturn(List.of());
         when(gatePassRepository.findAll()).thenReturn(List.of(gatePass));
 
-        // Execute
         List<ReconciliacaoBarcode> resultado = reconciliacaoService.executarReconciliacao();
 
-        // Verify
         long tempoExcedido = resultado.stream()
                 .filter(r -> r.getTipoDesinconia() == TipoDesincroniaBarcode.TEMPO_GATE_EXCEDIDO)
                 .count();

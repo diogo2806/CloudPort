@@ -88,57 +88,6 @@ CREATE TABLE comando_plano_operacional_carga (
     CONSTRAINT uk_comando_plano_command UNIQUE (plano_id, command_id)
 );
 
-CREATE TABLE reserva_gate_carga (
-    id UUID PRIMARY KEY,
-    transacao_id VARCHAR(120) NOT NULL UNIQUE,
-    retirada BOOLEAN NOT NULL,
-    status VARCHAR(30) NOT NULL,
-    lote_id UUID NOT NULL,
-    bl_numero VARCHAR(80) NOT NULL,
-    delivery_order VARCHAR(120),
-    appointment_id VARCHAR(120),
-    truck_visit_id VARCHAR(120),
-    veiculo_id VARCHAR(80) NOT NULL,
-    janela_inicio TIMESTAMP WITH TIME ZONE,
-    janela_fim TIMESTAMP WITH TIME ZONE,
-    quantidade_reservada NUMERIC(19,3) NOT NULL,
-    volume_reservado_m3 NUMERIC(19,3) NOT NULL,
-    peso_reservado_kg NUMERIC(19,3) NOT NULL,
-    quantidade_confirmada NUMERIC(19,3) NOT NULL DEFAULT 0,
-    volume_confirmado_m3 NUMERIC(19,3) NOT NULL DEFAULT 0,
-    peso_confirmado_kg NUMERIC(19,3) NOT NULL DEFAULT 0,
-    usuario VARCHAR(120) NOT NULL,
-    motivo_liberacao VARCHAR(1000),
-    criado_em TIMESTAMP WITH TIME ZONE NOT NULL,
-    atualizado_em TIMESTAMP WITH TIME ZONE NOT NULL,
-    confirmado_em TIMESTAMP WITH TIME ZONE,
-    liberado_em TIMESTAMP WITH TIME ZONE,
-    CONSTRAINT fk_reserva_gate_lote FOREIGN KEY (lote_id) REFERENCES lote_carga(id),
-    CONSTRAINT ck_reserva_gate_status CHECK (status IN ('RESERVADA','PARCIAL','CONFIRMADA','LIBERADA','CANCELADA')),
-    CONSTRAINT ck_reserva_gate_janela CHECK (janela_inicio IS NULL OR janela_fim IS NULL OR janela_inicio <= janela_fim),
-    CONSTRAINT ck_reserva_gate_valores CHECK (
-        quantidade_reservada > 0 AND volume_reservado_m3 >= 0 AND peso_reservado_kg >= 0
-        AND quantidade_confirmada >= 0 AND volume_confirmado_m3 >= 0 AND peso_confirmado_kg >= 0
-        AND quantidade_confirmada <= quantidade_reservada
-        AND volume_confirmado_m3 <= volume_reservado_m3
-        AND peso_confirmado_kg <= peso_reservado_kg
-    )
-);
-
-CREATE TABLE confirmacao_reserva_gate_carga (
-    id UUID PRIMARY KEY,
-    reserva_id UUID NOT NULL,
-    confirmacao_id VARCHAR(120) NOT NULL UNIQUE,
-    quantidade NUMERIC(19,3) NOT NULL,
-    volume_m3 NUMERIC(19,3) NOT NULL,
-    peso_kg NUMERIC(19,3) NOT NULL,
-    usuario VARCHAR(120) NOT NULL,
-    correlation_id VARCHAR(120),
-    confirmado_em TIMESTAMP WITH TIME ZONE NOT NULL,
-    CONSTRAINT fk_confirmacao_reserva_gate FOREIGN KEY (reserva_id) REFERENCES reserva_gate_carga(id),
-    CONSTRAINT ck_confirmacao_reserva_gate CHECK (quantidade > 0 AND volume_m3 >= 0 AND peso_kg >= 0)
-);
-
 CREATE TABLE avaria_operacional_carga (
     id UUID PRIMARY KEY,
     lote_id UUID NOT NULL,
@@ -213,8 +162,6 @@ CREATE INDEX idx_plano_operacional_status ON plano_operacional_carga(status, pri
 CREATE INDEX idx_plano_operacional_navio ON plano_operacional_carga(visita_navio_id);
 CREATE INDEX idx_plano_operacional_ferrovia ON plano_operacional_carga(visita_ferroviaria_id);
 CREATE INDEX idx_item_plano_operacional_lote ON item_plano_operacional_carga(lote_id);
-CREATE INDEX idx_reserva_gate_lote_status ON reserva_gate_carga(lote_id, status);
-CREATE INDEX idx_reserva_gate_agendamento ON reserva_gate_carga(appointment_id, truck_visit_id);
 CREATE INDEX idx_avaria_operacional_lote_status ON avaria_operacional_carga(lote_id, status);
 CREATE INDEX idx_inventario_fisico_status ON inventario_fisico_carga(status, armazem_id);
 CREATE INDEX idx_contagem_inventario_lote ON contagem_inventario_carga(inventario_id, lote_id, contado_em);

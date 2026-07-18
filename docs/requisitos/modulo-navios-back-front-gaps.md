@@ -1,6 +1,6 @@
 # Requisitos pendentes - CloudPort
 
-Status: atualizado em 2026-07-18 após a entrega das operações administrativas de visita, item, plano de estiva e ordem de pátio.
+Status: atualizado em 2026-07-18 após a integração do motor de otimização ao replanejamento operacional real.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -41,25 +41,11 @@ A lista detalhada está em `docs/implementados/requisitos-implementados.md`. Nã
 17. Dockerfiles e parâmetros de implantação do frontend e backend no EasyPanel.
 18. Edição de visita e item, conclusão/publicação, invalidação, cancelamento e nova versão de plano, cancelamentos administrativos de visita, item e ordem, compensações e histórico auditável no portal.
 19. Sanitização de logs do TOS, segurança standalone da carga geral e autorização dos WebSockets operacionais do Yard.
+20. Replanejamento real integrado ao motor de otimização, com mapa e reservas do Yard, restrições de carga, CHEs e work queues, dual-cycling, memória de cálculo, proposta reproduzível, simulação e aplicação revalidada transacionalmente.
 
 ## P0 - Pendências obrigatórias
 
-### 1. Replanejamento com otimização real
-
-O replanejamento visual e a troca transacional de posições reais já existem. Falta integrar o motor de otimização ao contrato operacional.
-
-O motor deve considerar, no mínimo:
-
-1. ETA, ETB, ETD, cutoff e sequência de descarga/embarque;
-2. mapa completo do pátio, ocupação, restrições, allocations e reservas concorrentes;
-3. tipo, peso, altura, IMO, reefer, OOG, operador e destino da unidade;
-4. rehandles, dwell time, distância, disponibilidade e produtividade dos CHEs;
-5. dual-cycling, prioridades de work queue e conflitos de recursos;
-6. comparação entre plano atual e proposta, com memória de cálculo e justificativa da pontuação.
-
-Critério de aceite: a proposta é reproduzível, explica os fatores utilizados, nunca confirma uma posição sem revalidação transacional e permite simular antes de aplicar.
-
-### 2. Persistência do planejamento ferroviário visual
+### 1. Persistência do planejamento ferroviário visual
 
 A composição gráfica e o drag-and-drop de vagões foram entregues como simulação no frontend. Falta:
 
@@ -72,7 +58,7 @@ A composição gráfica e o drag-and-drop de vagões foram entregues como simula
 
 Critério de aceite: ao recarregar a página, o planejamento confirmado permanece no backend e não produz divergência entre manifesto, vagão e ordem de trabalho.
 
-### 3. Corte operacional do monólito modular
+### 2. Corte operacional do monólito modular
 
 O código e as imagens do runtime canônico estão prontos, mas ainda falta comprovar o corte de ambiente:
 

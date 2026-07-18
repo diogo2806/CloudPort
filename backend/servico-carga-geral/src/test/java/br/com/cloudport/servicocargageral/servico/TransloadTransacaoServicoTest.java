@@ -2,7 +2,7 @@ package br.com.cloudport.servicocargageral.servico;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -92,9 +92,10 @@ class TransloadTransacaoServicoTest {
         when(loteRepositorio.findComBloqueioById(loteOrigemId)).thenReturn(Optional.of(loteOrigem));
         when(loteRepositorio.findComBloqueioById(loteDestinoUmId)).thenReturn(Optional.of(loteDestinoUm));
         when(loteRepositorio.findComBloqueioById(loteDestinoDoisId)).thenReturn(Optional.of(loteDestinoDois));
-        configurarLote(loteOrigem, itemId, "LOTE-ORIGEM");
-        configurarLote(loteDestinoUm, itemId, "LOTE-DESTINO-1");
-        configurarLote(loteDestinoDois, itemId, "LOTE-DESTINO-2");
+        when(itemConhecimento.getId()).thenReturn(itemId);
+        configurarIdentidade(loteOrigem, "LOTE-ORIGEM");
+        configurarIdentidade(loteDestinoUm, "LOTE-DESTINO-1");
+        configurarIdentidade(loteDestinoDois, "LOTE-DESTINO-2");
         when(loteOrigem.getQuantidadeDisponivel()).thenReturn(new BigDecimal("10.000"));
         when(loteOrigem.getVolumeDisponivelM3()).thenReturn(BigDecimal.ZERO);
         when(loteOrigem.getPesoDisponivelKg()).thenReturn(BigDecimal.ZERO);
@@ -108,7 +109,7 @@ class TransloadTransacaoServicoTest {
                 new BigDecimal("6.000"),
                 BigDecimal.ZERO,
                 BigDecimal.ZERO);
-        verify(loteRepositorio, never()).saveAll(anyCollection());
+        verify(loteRepositorio, never()).saveAll(any());
     }
 
     private OperacaoTransload novaOperacao(UUID operacaoId) {
@@ -125,16 +126,9 @@ class TransloadTransacaoServicoTest {
         return operacao;
     }
 
-    private void configurarLote(LoteCarga lote, UUID itemId, String codigo) {
+    private void configurarIdentidade(LoteCarga lote, String codigo) {
         when(lote.getUnidadeMedida()).thenReturn("UN");
         when(lote.getItem()).thenReturn(itemConhecimento);
-        when(itemConhecimento.getId()).thenReturn(itemId);
         when(lote.getCodigo()).thenReturn(codigo);
-        when(lote.getQuantidadeSaldo()).thenReturn(BigDecimal.ZERO);
-        when(lote.getVolumeSaldoM3()).thenReturn(BigDecimal.ZERO);
-        when(lote.getPesoSaldoKg()).thenReturn(BigDecimal.ZERO);
-        when(lote.getQuantidadePrevista()).thenReturn(new BigDecimal("100.000"));
-        when(lote.getVolumePrevistoM3()).thenReturn(BigDecimal.ZERO);
-        when(lote.getPesoPrevistoKg()).thenReturn(BigDecimal.ZERO);
     }
 }

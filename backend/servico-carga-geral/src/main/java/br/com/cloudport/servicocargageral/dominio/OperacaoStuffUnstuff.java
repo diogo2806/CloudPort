@@ -39,8 +39,14 @@ public class OperacaoStuffUnstuff {
     @Column(nullable = false, length = 20)
     private StatusOperacaoStuffUnstuff status = StatusOperacaoStuffUnstuff.PLANEJADA;
 
+    @Column(name = "plano_intermodal_id")
+    private UUID planoIntermodalId;
+
     @Column(name = "conteiner_id", nullable = false, length = 80)
     private String conteinerId;
+
+    @Column(name = "conteiner_estado_anterior", length = 30)
+    private String conteinerEstadoAnterior;
 
     @Column(name = "armazem_id", length = 80)
     private String armazemId;
@@ -89,12 +95,14 @@ public class OperacaoStuffUnstuff {
         criadoEm = agora;
         atualizadoEm = agora;
         conteinerId = normalizar(conteinerId);
+        conteinerEstadoAnterior = normalizar(conteinerEstadoAnterior);
     }
 
     @PreUpdate
     void preUpdate() {
         atualizadoEm = OffsetDateTime.now();
         conteinerId = normalizar(conteinerId);
+        conteinerEstadoAnterior = normalizar(conteinerEstadoAnterior);
     }
 
     public void adicionarItem(ItemOperacaoStuffUnstuff item) {
@@ -102,7 +110,11 @@ public class OperacaoStuffUnstuff {
         itens.add(item);
     }
 
-    public void registrarEvento(TipoEventoStuffUnstuff tipoEvento, String usuario, String correlationId, String descricao) {
+    public void registrarEvento(
+            TipoEventoStuffUnstuff tipoEvento,
+            String usuario,
+            String correlationId,
+            String descricao) {
         EventoOperacaoStuffUnstuff evento = new EventoOperacaoStuffUnstuff();
         evento.setOperacao(this);
         evento.setTipo(tipoEvento);
@@ -123,7 +135,8 @@ public class OperacaoStuffUnstuff {
     public void atualizarStatusExecucao() {
         boolean algumaExecucao = itens.stream().anyMatch(ItemOperacaoStuffUnstuff::possuiExecucao);
         boolean completa = itens.stream().allMatch(ItemOperacaoStuffUnstuff::estaCompleto);
-        status = completa ? StatusOperacaoStuffUnstuff.EM_EXECUCAO
+        status = completa
+                ? StatusOperacaoStuffUnstuff.EM_EXECUCAO
                 : algumaExecucao ? StatusOperacaoStuffUnstuff.PARCIAL : StatusOperacaoStuffUnstuff.EM_EXECUCAO;
     }
 
@@ -158,8 +171,12 @@ public class OperacaoStuffUnstuff {
     public TipoOperacaoStuffUnstuff getTipo() { return tipo; }
     public void setTipo(TipoOperacaoStuffUnstuff tipo) { this.tipo = tipo; }
     public StatusOperacaoStuffUnstuff getStatus() { return status; }
+    public UUID getPlanoIntermodalId() { return planoIntermodalId; }
+    public void setPlanoIntermodalId(UUID planoIntermodalId) { this.planoIntermodalId = planoIntermodalId; }
     public String getConteinerId() { return conteinerId; }
     public void setConteinerId(String conteinerId) { this.conteinerId = conteinerId; }
+    public String getConteinerEstadoAnterior() { return conteinerEstadoAnterior; }
+    public void setConteinerEstadoAnterior(String conteinerEstadoAnterior) { this.conteinerEstadoAnterior = conteinerEstadoAnterior; }
     public String getArmazemId() { return armazemId; }
     public void setArmazemId(String armazemId) { this.armazemId = armazemId; }
     public String getPosicaoOperacao() { return posicaoOperacao; }

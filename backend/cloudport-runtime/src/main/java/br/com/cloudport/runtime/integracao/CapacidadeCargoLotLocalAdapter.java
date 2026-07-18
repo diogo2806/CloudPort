@@ -1,8 +1,7 @@
 package br.com.cloudport.runtime.integracao;
 
 import br.com.cloudport.servicocargageral.integracao.yard.CapacidadeCargoLotCliente;
-import br.com.cloudport.servicoyard.inventario.dto.CapacidadeCargoLotDTOs.ComandoCapacidadeRequest;
-import br.com.cloudport.servicoyard.inventario.dto.CapacidadeCargoLotDTOs.ReservarCapacidadeRequest;
+import br.com.cloudport.servicoyard.inventario.dto.CapacidadeCargoLotDTOs;
 import br.com.cloudport.servicoyard.inventario.servico.CapacidadeCargoLotServico;
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -32,21 +31,31 @@ public class CapacidadeCargoLotLocalAdapter extends CapacidadeCargoLotCliente {
             String usuario) {
         return converter(servico.reservar(
                 posicao,
-                new ReservarCapacidadeRequest(commandId, loteId, quantidade, volumeM3, pesoKg, usuario)));
+                new CapacidadeCargoLotDTOs.ReservarCapacidadeRequest(
+                        commandId,
+                        loteId,
+                        quantidade,
+                        volumeM3,
+                        pesoKg,
+                        usuario)));
     }
 
     @Override
     public ReservaCapacidadeResposta confirmar(UUID reservaId, String usuario, String motivo) {
-        return converter(servico.confirmar(reservaId, new ComandoCapacidadeRequest(usuario, motivo)));
+        return converter(servico.confirmar(
+                reservaId,
+                new CapacidadeCargoLotDTOs.ComandoCapacidadeRequest(usuario, motivo)));
     }
 
     @Override
     public ReservaCapacidadeResposta cancelar(UUID reservaId, String usuario, String motivo) {
-        return converter(servico.cancelar(reservaId, new ComandoCapacidadeRequest(usuario, motivo)));
+        return converter(servico.cancelar(
+                reservaId,
+                new CapacidadeCargoLotDTOs.ComandoCapacidadeRequest(usuario, motivo)));
     }
 
     private ReservaCapacidadeResposta converter(
-            br.com.cloudport.servicoyard.inventario.dto.CapacidadeCargoLotDTOs.ReservaCapacidadeResposta origem) {
+            CapacidadeCargoLotDTOs.ReservaCapacidadeResposta origem) {
         return new ReservaCapacidadeResposta(
                 origem.id(),
                 origem.commandId(),

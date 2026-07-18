@@ -83,7 +83,7 @@ test('aceita destino compatível e preserva aviso de tarefa de tampa planejada',
   const valid = validateDropTarget({ payload, target: baseSlots[2], slots: baseSlots, stackSummaries: summaries });
   assert.equal(valid.status, DROP_VALIDATION_STATUS.VALID);
 
-  const hatchTarget = { ...baseSlots[2], codigoHatchCover: 'HC02', tier: 82 };
+  const hatchTarget = { ...baseSlots[2], codigoHatchCover: 'HC02', zonaNavio: 'CONVES' };
   const covers = [{ codigo: 'HC02', estado: 'FECHADA', tarefas: [{ id: 1, tipo: 'ABRIR', status: 'PLANEJADA' }] }];
   const warning = validateDropTarget({ payload, target: hatchTarget, slots: baseSlots, stackSummaries: summaries, hatchCovers: covers });
   assert.equal(warning.status, DROP_VALIDATION_STATUS.WARNING);

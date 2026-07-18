@@ -8,20 +8,31 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import br.com.cloudport.servicogate.app.gestor.dto.GateDecisionDTO;
 import br.com.cloudport.servicogate.app.gestor.dto.GateFlowRequest;
+import br.com.cloudport.servicogate.config.SecurityConfig;
 import br.com.cloudport.servicogate.model.Agendamento;
 import br.com.cloudport.servicogate.model.enums.StatusGate;
+import br.com.cloudport.servicogate.security.AutenticacaoClient;
+import br.com.cloudport.servicogate.security.TransportadoraSyncService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.web.client.RestTemplateAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(GateFlowController.class)
+@Import({SecurityConfig.class, RestTemplateAutoConfiguration.class})
+@TestPropertySource(properties = {
+        "cloudport.security.jwt.secret=test-secret-test-secret-test-secret-1234",
+        "cloudport.security.cors.allowed-origins=http://localhost:4200"
+})
 class GateFlowControllerTest {
 
     @Autowired
@@ -38,6 +49,12 @@ class GateFlowControllerTest {
 
     @MockBean
     private GateOperationsService gateOperationsService;
+
+    @MockBean
+    private TransportadoraSyncService transportadoraSyncService;
+
+    @MockBean
+    private AutenticacaoClient autenticacaoClient;
 
     @Test
     @DisplayName("Deve bloquear chamadas sem autenticação no fluxo de entrada")

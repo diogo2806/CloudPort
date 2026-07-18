@@ -15,6 +15,7 @@ import br.com.cloudport.serviconaviosiderurgico.repositorio.ItemOperacaoNavioRep
 import br.com.cloudport.serviconaviosiderurgico.repositorio.ReservaPosicaoPatioNavioRepositorio;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -491,16 +492,28 @@ public class ReservaPatioNavioServico {
             return encontrada;
         }
 
-        return posicoes.stream()
-                .filter(posicao -> motivoIndisponibilidade(
-                        item,
-                        posicao,
-                        posicao.identificador(),
-                        reservadas,
-                        reservasPorPilha) == null)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Nao ha posicao livre, permitida, compativel e com capacidade para a reserva."));
+        List<String> motivos = new ArrayList<>();
+        for (PosicaoPatioYardDTO posicao : posicoes) {
+            String motivo = motivoIndisponibilidade(
+                    item,
+                    posicao,
+                    posicao.identificador(),
+                    reservadas,
+                    reservasPorPilha);
+            if (motivo == null) {
+                return posicao;
+            }
+            motivos.add(motivo);
+        }
+
+        if (motivos.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Nao ha posicao livre, permitida, compativel e com capacidade para a reserva.");
+        }
+
+        throw new IllegalArgumentException(
+                "Nao ha posicao disponivel para a reserva. Motivos: "
+                        + String.join(" ", motivos));
     }
 
     private boolean correspondePreferencia(PosicaoPatioYardDTO posicao,

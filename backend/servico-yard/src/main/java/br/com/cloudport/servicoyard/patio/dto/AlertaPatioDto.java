@@ -8,7 +8,9 @@ public class AlertaPatioDto implements Serializable {
     public enum TipoAlerta {
         REHANDLE,
         CONFLITO_INFRAESTRUTURA,
-        GARGALO_EQUIPAMENTO
+        GARGALO_EQUIPAMENTO,
+        VEICULOS_PARADOS,
+        EQUIPAMENTOS_PARADOS
     }
 
     public enum NivelSeveridade {
@@ -37,51 +39,16 @@ public class AlertaPatioDto implements Serializable {
         this.recomendacao = recomendacao;
     }
 
-    public Long getConteinerParioId() {
-        return conteinerParioId;
-    }
-
-    public void setConteinerParioId(Long conteinerParioId) {
-        this.conteinerParioId = conteinerParioId;
-    }
-
-    public String getCodigoConteiner() {
-        return codigoConteiner;
-    }
-
-    public void setCodigoConteiner(String codigoConteiner) {
-        this.codigoConteiner = codigoConteiner;
-    }
-
-    public TipoAlerta getTipoAlerta() {
-        return tipoAlerta;
-    }
-
-    public void setTipoAlerta(TipoAlerta tipoAlerta) {
-        this.tipoAlerta = tipoAlerta;
-    }
-
-    public NivelSeveridade getNivelSeveridade() {
-        return nivelSeveridade;
-    }
-
-    public void setNivelSeveridade(NivelSeveridade nivelSeveridade) {
-        this.nivelSeveridade = nivelSeveridade;
-    }
-
-    public String getMensagem() {
-        return mensagem;
-    }
-
-    public void setMensagem(String mensagem) {
-        this.mensagem = mensagem;
-    }
-
-    public String getRecomendacao() {
-        return recomendacao;
-    }
-
-    public void setRecomendacao(String recomendacao) {
-        this.recomendacao = recomendacao;
-    }
+    public Long getConteinerParioId() { return conteinerParioId; }
+    public void setConteinerParioId(Long conteinerParioId) { this.conteinerParioId = conteinerParioId; }
+    public String getCodigoConteiner() { return codigoConteiner; }
+    public void setCodigoConteiner(String codigoConteiner) { this.codigoConteiner = codigoConteiner; }
+    public TipoAlerta getTipoAlerta() { return tipoAlerta; }
+    public void setTipoAlerta(TipoAlerta tipoAlerta) { this.tipoAlerta = tipoAlerta; }
+    public NivelSeveridade getNivelSeveridade() { return nivelSeveridade; }
+    public void setNivelSeveridade(NivelSeveridade nivelSeveridade) { this.nivelSeveridade = nivelSeveridade; }
+    public String getMensagem() { return mensagem; }
+    public void setMensagem(String mensagem) { this.mensagem = mensagem; }
+    public String getRecomendacao() { return recomendacao; }
+    public void setRecomendacao(String recomendacao) { this.recomendacao = recomendacao; }
 }

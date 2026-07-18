@@ -1,166 +1,144 @@
-# Requisitos pendentes - CloudPort
+# Requisitos funcionais e operacionais pendentes - CloudPort
+
+Atualizado em 2026-07-18 após a consolidação das funcionalidades incorporadas à branch `main`.
 
 ## Instruções obrigatórias para agentes de IA
 
-Esta pasta deve manter um único arquivo: `docs/requisitos/modulo-navios-back-front-gaps.md`.
+Este arquivo deve conter somente lacunas ainda não concluídas.
 
-Não criar outros arquivos de requisito, relatórios de execução, históricos ou rascunhos nesta pasta. Itens concluídos devem sair deste arquivo e ser registrados em `docs/implementados/requisitos-implementados.md`.
+Depois de desenvolver um item:
 
-Antes de desenvolver, ler os dois arquivos. Depois de desenvolver, remover daqui o que foi entregue, registrar a entrega no arquivo de implementados e acrescentar novas lacunas encontradas em APIs, telas, contratos, testes, observabilidade e memórias de cálculo.
+1. remover a pendência deste arquivo;
+2. registrar a entrega em `docs/implementados/requisitos-implementados.md`;
+3. não criar relatórios, históricos ou arquivos paralelos nas pastas `docs/requisitos` e `docs/implementados`.
+
+As pendências técnicas comprovadas por auditoria, com classe e método, permanecem em `docs/requisitos/requisito-tecnico.md`.
 
 ## Diretriz arquitetural vigente
 
-O backend alvo do CloudPort é um **monólito modular**. Não criar novos microsserviços para funcionalidades internas nem ampliar chamadas HTTP entre módulos que já executam no mesmo processo.
+O backend alvo é o monólito modular executado por `backend/cloudport-runtime`.
 
-O runtime geral `backend/cloudport-runtime` incorpora Autenticação, Gate, Rail, Visibilidade, Yard, Navio e Navio Siderúrgico. O runtime `backend/cloudport-monolito-navio` permanece apenas como primeiro corte e alternativa de rollback durante a retirada controlada dos deployments antigos.
+Não criar novos microsserviços para funcionalidades internas nem introduzir chamadas HTTP entre módulos que já executam no mesmo processo. Integrações externas continuam na borda por HTTP, EDI, RabbitMQ, storage ou protocolos próprios.
 
-As regras, fases, critérios de corte e rollback estão em `docs/arquitetura-monolito-modular.md` e `docs/operacao-corte-rollback-navio.md`.
+`backend/cloudport-monolito-navio` e os executáveis standalone permanecem somente para rollback controlado.
 
-## Pendências de integração Back x Front
+## 1. Pendências técnicas auditadas
 
-1. Expor no frontend a conclusão/publicação do plano por `POST /visitas-navio/{id}/plano-estiva/{planoId}/concluir`.
-2. Completar edição de visita e item pelos contratos `PUT /visitas-navio/{id}` e `PUT /visitas-navio/{id}/itens/{itemId}`.
-3. Criar cancelamento administrativo diferenciado para visita e item.
-4. Criar tela de diagnóstico dos contratos `/api/public/v1/*`.
-5. Integrar o motor real de otimização ao endpoint de replanejamento da visita.
-6. Separar em `/filas` e `/sem-cobertura` as causas sem fila, sem POW, sem equipamento e sem job list.
-7. Evoluir o relatório integrado com produtividade, divergências detalhadas, planejado x realizado e exportação.
-8. Consumir no frontend os contratos de quay/berth/crane, permitindo consultar o monitor, editar/publicar o plano e acompanhar a produtividade do cais.
+Os itens abaixo continuam pendentes e estão detalhados em `docs/requisitos/requisito-tecnico.md`:
 
-## Pendências do Control Room
+| ID | Pendência |
+| --- | --- |
+| `ERR10` | serializar entradas e saídas concorrentes de pessoas e retornar conflito funcional |
+| `ERR20` | serializar geração de faturas e pagamentos concorrentes |
+| `ERR30` | traduzir rejeições transacionais da abertura de truck visits para `409` ou `422` |
+| `ERR40` | tratar concorrência nos cadastros únicos de carga geral sem expor constraint ou SQL |
+| `SEC70` | retirar payload externo e dados operacionais sensíveis dos logs do Gate |
+| `SEC80` | proteger a execução standalone de Carga Geral com autenticação e autorização por operação |
+| `SEC90` | autenticar handshake e assinatura dos WebSockets operacionais do Yard |
 
-1. Consumir o SSE/WebSocket versionado já exposto pelo backend, remover o polling de 30 segundos como mecanismo principal e manter reconexão com fallback de reconciliação.
-2. Criar drill-down da work instruction com eventos, auditoria, divergências, reserva, item de navio e movimento de pátio.
-3. Diferenciar visualmente sem fila, sem POW, sem equipamento, sem job list, posição inválida, reserva bloqueada e divergência Navio x Pátio.
-4. Criar painel de CHE/job list por equipamento.
-5. Criar a tela de Quay Monitor consumindo os contratos de berth/crane, com linha do tempo, alertas, progresso, MPH e ETC por guindaste.
-6. Expandir para os demais backends o contrato de erro com `codigo`, `mensagem`, `detalhes`, `correlationId` e timestamp já aplicado no `servico-visibilidade` e no módulo Navio Siderúrgico.
-7. Criar e2e para login/SSO, job list, dispatch, reset, cancelamento, motivo obrigatório e indisponibilidade do Yard.
+Esses itens somente podem sair daqui quando o código, o contrato HTTP e os testes correspondentes estiverem implementados.
 
-## Pendências de contratos compartilhados
+## 2. Navio e Vessel Planner
 
-1. Adotar `backend/cloudport-contracts` nos módulos Gate, Rail, Autenticação, Visibilidade e Yard após a incorporação incremental ao monólito.
-2. Substituir enums locais equivalentes pelos enums compartilhados sem quebrar compatibilidade dos contratos externos.
-3. Gerar os tipos TypeScript no pipeline a partir do OpenAPI publicado, comparando o snapshot para detectar quebra de contrato.
-4. Adicionar escopos, rotação de segredo, expiração, rate limit e auditoria por cliente ou aplicação da API pública.
-5. Validar automaticamente no CI a ausência de `operationId`, rota e schema duplicados no OpenAPI consolidado.
+1. Expor no frontend a conclusão e publicação formal do plano por `POST /visitas-navio/{id}/plano-estiva/{planoId}/concluir`.
+2. Completar a edição de visita e item pelos contratos `PUT /visitas-navio/{id}` e `PUT /visitas-navio/{id}/itens/{itemId}`.
+3. Criar cancelamento administrativo diferenciado para visita, item, plano e operação já iniciada.
+4. Evoluir o relatório integrado para planejado versus realizado, produtividade, divergências detalhadas e exportação operacional.
+5. Integrar validações certificadas de lashing, visibility, estabilidade e resistência quando o terminal exigir aprovação oficial por modelo de navio.
+6. Manter a memória de cálculo e a origem dos dados estruturais rastreáveis até a versão do navio utilizada na aprovação.
 
-## Pendências do módulo de Visibilidade
+## 3. Otimização global
 
-1. Persistir `eventId` ou `messageId` e impedir duplicação de histórico em redelivery do RabbitMQ.
-2. Substituir buscas com `repository.findAll()` e filtros em memória por consultas paginadas no banco.
-3. Publicar atualização do dashboard imediatamente após eventos de gate, pátio, rail e navio, mantendo o agendamento apenas como reconciliação.
-4. Persistir quantidades reais de movimentos, produtividade, equipamentos alocados e previsão de saída antes de preencher esses campos nos contratos.
-5. Integrar a Visibilidade ao contrato compartilhado de enums e eventos versionados.
-6. Criar teste de contexto com RabbitMQ e Redis reais, incluindo redelivery, idempotência e todos os listeners, além do contexto PostgreSQL já coberto pelo runtime geral.
+1. Evoluir a otimização local já incorporada para um motor global Navio, Yard, Gate, Rail e equipamentos.
+2. Considerar simultaneamente ETA, ETB, ETD, cutoff, dual-cycling, rehandles, capacidade de pilhas, disponibilidade de CHE, prioridades e restrições operacionais.
+3. Comparar cenários antes da confirmação e explicar os fatores que determinaram a posição ou sequência escolhida.
+4. Prever gargalos por berço, porão, bloco, fila, linha ferroviária, pista e equipamento.
+5. Permitir reotimização controlada sem invalidar ordens em execução nem perder auditoria do plano anterior.
 
-## Pendências da migração para monólito modular
+## 4. Integrações externas e EDI
 
-O runtime geral já carrega os sete módulos no mesmo processo, preserva schemas e históricos Flyway independentes, centraliza segurança, CORS, cache, OpenAPI e conexão PostgreSQL e mantém TOS, OCR, EDI, RabbitMQ, Redis e storage como adaptadores externos. As integrações Navio Siderúrgico -> Navio, Navio -> Yard, Gate -> Autenticação e Gate -> status do Yard são locais no runtime geral.
+1. Aplicar os efeitos de COPRAR, COARRI e VERMAS às reservas, ordens, capacidade e planejamento quando o contrato operacional exigir atualização automática.
+2. Publicar eventos externos específicos de estiva, reserva, ordem, movimento, work queue, Gate, Rail e carga geral, sem expor eventos internos do monólito.
+3. Implementar outbox transacional para eventos externos que precisem de entrega garantida além da persistência e retentativa já existentes.
+4. Criar tela operacional para quarentena, diagnóstico e reprocessamento EDI com filtros e comparação entre tentativa original e reprocessamentos.
+5. Criar tela de diagnóstico dos contratos `/api/public/v1/*`, incluindo cliente, escopo, expiração, rate limit e últimas falhas autorizadas.
+6. Concluir rotação de segredo e auditoria por cliente ou aplicação da API pública.
 
-Ainda falta:
+## 5. Visibilidade e streaming
 
-1. Executar o corte operacional dos ambientes, mantendo uma única instância escritora e uma única instância de cada job e consumidor antes de desligar os deployments antigos.
-2. Validar paridade e e2e de todos os endpoints de Gate, Rail, Autenticação, Visibilidade e Yard no runtime geral, incluindo falhas dos adaptadores externos.
-3. Auditar e substituir qualquer chamada HTTP interna remanescente encontrada entre módulos incorporados, preservando HTTP somente na borda.
-4. Centralizar tratamento de erros, Jackson, logs, métricas, tracing e políticas de agendamento que ainda permaneçam definidos nos módulos.
-5. Centralizar versões e `pluginManagement` em um parent Maven compartilhado, sem criar dependências cíclicas.
-6. Remover credenciais internas, imagens, deployments e variáveis legadas somente depois do corte e rollback do runtime geral serem testados no ambiente.
-7. Renomear diretórios e artefatos `servico-*` somente quando não houver impacto em pipelines, imports ou rollback.
-8. Criar smoke completo do runtime geral com PostgreSQL, RabbitMQ, Redis, autenticação, Gate, Rail, Visibilidade, Yard, Navio e integrações externas simuladas.
+1. Expandir eventos e streaming versionado para todos os domínios operacionais, preservando autorização por tópico e baixa cardinalidade nas métricas.
+2. Substituir consultas amplas e filtros em memória remanescentes por paginação e filtros no banco.
+3. Persistir todos os indicadores exibidos quando ainda forem derivados de aproximações ou agregações incompletas.
+4. Consolidar uma linha temporal única do ativo entre Gate, Yard, Rail, Navio, armazém e cliente.
+5. Permitir investigação de divergência com acesso aos eventos, correlações, documentos e comandos que alteraram o estado.
 
-## P0 - Pendências obrigatórias restantes
+## 6. Gate, pessoas e CAP
 
-### 1. Eventos Pátio -> Navio
+1. Concluir o tratamento funcional das disputas de capacidade, acesso, entrada e saída descritas em `ERR10`, `ERR20` e `ERR30`.
+2. Garantir que todas as ações sensíveis do Gate visual usem autorização por operação e motivo obrigatório.
+3. Integrar dispositivos reais de OCR, balança, cancela, biometria e impressora, mantendo simuladores somente como contingência.
+4. Evoluir o CAP para autosserviço completo da transportadora conforme as políticas comerciais e de segurança do terminal.
+5. Completar controle documental e aduaneiro quando houver integração oficial com os órgãos e sistemas externos responsáveis.
 
-A reconciliação automática e idempotente por job já atualiza item, posição real e reserva. Falta substituir a consulta periódica por evento interno no runtime geral e por evento externo versionado apenas quando atravessar a fronteira da aplicação.
+## 7. Rail
 
-Eventos alvo:
+1. Integrar telemetria real de locomotivas, vagões, sensores de via e equipamentos de atendimento.
+2. Consolidar conflitos entre line-up ferroviário, capacidade das linhas, recursos e janelas de navio.
+3. Implementar confirmação operacional por vagão e reconciliação automática com o inventário físico.
+4. Integrar ordens ferroviárias externas e mensagens de chegada, composição, carga, descarga e partida.
 
-```text
-OrdemPatioCriada
-StatusOrdemPatioAlterado
-ReservaPatioConsumida
-ReservaPatioCancelada
-MovimentoPatioConfirmado
-DivergenciaNavioPatioDetectada
-```
+## 8. Yard e Equipment Control
 
-### 2. Work queues e cobertura operacional
+1. Integrar VMT e telemetria real dos CHEs com confirmação de execução, posição e indisponibilidade.
+2. Validar mensagens de equipamento contra a work instruction ativa antes de avançar o estado.
+3. Implementar modo degradado para perda de telemetria sem permitir conclusão silenciosa de movimentos.
+4. Persistir e comparar o mapa físico levantado com o mapa lógico, registrando divergências de inventário por posição.
+5. Evoluir rotas e interdições para considerar sentido de via, prioridade, congestionamento, dimensões do equipamento e zonas de segurança.
 
-Já entregue: vínculo persistente `workQueueId`, endpoint `PATCH /yard/patio/work-queues/{id}/ordens`, auditoria de criação/status/POW/equipamento/vínculo/dispatch/reset/cancelamento, motivo obrigatório nas alterações administrativas e limite real no dispatch. O plano de guindastes também persiste porão, recurso de cais e `workQueueId` por alocação.
+## 9. Inventory Management e carga geral
 
-Ainda falta:
+1. Concluir o tratamento de concorrência dos cadastros únicos descrito em `ERR40`.
+2. Proteger o standalone de Carga Geral conforme `SEC80`.
+3. Integrar ordens comerciais, documentos aduaneiros e liberações externas quando aplicáveis.
+4. Evoluir inventário físico para campanhas, contagem cega, recontagem, aprovação e ajuste segregado por perfil.
+5. Integrar manutenção e reparo com ordens de serviço, custos, peças e indisponibilidade do equipamento.
+6. Evoluir carga geral para planejamento gráfico de armazém, área descoberta e posição a bordo quando o tipo de carga exigir.
 
-1. Auditar bloqueio e conclusão.
-2. Validar no Yard a existência, cobertura e compatibilidade da work queue informada no plano de guindastes.
-3. Associar fila a CHE real.
-4. Auditar prioridade de fetch/busca separadamente da prioridade operacional.
-5. Criar matriz oficial de transição de work instruction.
-6. Expor painel de job list por equipamento e drill-down completo.
+## 10. Segurança e proteção de dados
 
-### 3. Replanejamento real
+1. Concluir `SEC70`, `SEC80` e `SEC90` antes de disponibilizar os respectivos fluxos em ambiente externo.
+2. Aplicar autorização por destino nos canais SSE e WebSocket de cada domínio.
+3. Restringir origens WebSocket pela configuração CORS canônica.
+4. Garantir que logs, erros, métricas e tracing não incluam tokens, credenciais, payload EDI integral, dados aduaneiros ou dados pessoais desnecessários.
+5. Definir retenção, acesso e descarte para documentos, imagens, telemetria e auditorias.
+6. Revisar permissões dos módulos standalone mantidos para rollback e falhar fechado quando a configuração obrigatória estiver ausente.
 
-O replanejamento já troca reservas usando outra posição real validada do Yard, cancela a reserva anterior e mantém o vínculo de compensação na mesma transação. Falta conectar o motor real de otimização ao contrato, considerando ETA, ETB, ETD, cutoff, mapa completo, dual-cycling, rehandle e disponibilidade de equipamentos.
+## 11. Corte operacional e rollback
 
-### 4. Contratos externos e EDI
+1. Executar o corte dos ambientes para o `cloudport-runtime` como única instância escritora.
+2. Garantir uma única execução de jobs e consumidores durante a transição.
+3. Validar paridade dos endpoints de Autenticação, Gate, Rail, Visibilidade, Yard, Navio e Carga Geral no runtime canônico.
+4. Validar falhas e tempos limite de TOS, OCR, EDI, RabbitMQ, Redis, storage e demais adaptadores externos.
+5. Executar smoke completo da imagem com PostgreSQL, RabbitMQ e Redis reais ou equivalentes de homologação.
+6. Ensaiar retorno para o runtime de rollback sem downgrade do banco.
+7. Remover deployments, imagens, credenciais e variáveis legadas somente após aceite e período de observação.
 
-1. Publicar eventos versionados específicos de estiva, reserva, ordem, movimento e work queue; o envelope, os canais SSE/WebSocket e os eventos de visita já foram entregues.
-2. Separar explicitamente eventos internos do monólito dos eventos publicados para integrações externas.
-3. Tornar o processamento EDI idempotente por identificadores `UNB`, `UNH` e referência, evitando repostagem duplicada.
-4. Adicionar fila de quarentena, retentativa assíncrona e outbox para EDI sem depender da requisição HTTP aberta.
-5. Aplicar VERMAS também a reservas, ordens e validações de capacidade quando o Yard for incorporado ao runtime.
+## 12. Critérios de aceite remanescentes
 
-### 5. Testes e observabilidade
+1. Nenhuma operação concorrente conhecida deve produzir `500`, duplicidade ou estado parcial.
+2. Nenhum canal operacional deve permitir conexão ou assinatura anônima.
+3. Nenhum módulo standalone preservado para rollback deve ficar desprotegido.
+4. Todos os comandos sensíveis devem registrar usuário, motivo, origem e `correlationId`.
+5. O frontend deve consumir uma única origem de API.
+6. Módulos incorporados não devem realizar chamadas HTTP entre si.
+7. Eventos externos devem ser versionados, idempotentes e rastreáveis.
+8. O plano operacional deve ser reproduzível a partir das versões dos dados usadas no cálculo.
+9. O corte deve manter uma única instância escritora, um executor de cada job e um consumidor efetivo por fila.
+10. O rollback deve trocar binário e roteamento sem reverter automaticamente migrations.
 
-1. Validar os adaptadores HTTP legados de rollback com sucesso, retorno vazio legítimo, credencial interna, correlação e falha convertida em `503`.
-2. Criar teste de contexto da Visibilidade com PostgreSQL, RabbitMQ, Redis e todos os listeners.
-3. Criar testes de integração do crane plan com work queues reais do Yard e testes frontend do Quay Monitor.
-4. Centralizar logs estruturados, métricas e tracing de Gate, Rail, Autenticação e Visibilidade na infraestrutura do runtime geral.
-5. Criar teste de integração da reserva contra o endpoint real do Yard, cobrindo concorrência, expiração e restrições persistidas no PostgreSQL.
-6. Criar smoke completo da imagem geral e comprovar que jobs, consumidores e escritas não duplicam durante o corte.
-7. Testar vínculo `workQueueId`, limite de dispatch, auditoria, motivo obrigatório e autorização por perfil.
-8. Validar o OpenAPI consolidado e ausência de rotas, schemas e `operationId` duplicados.
-9. Testar rejeição, auditoria e limite de tentativas de BAPLIE, COPRAR, COARRI e VERMAS.
+## Fora do escopo imediato
 
-## P1
-
-1. Relatórios operacionais e exportação CSV/PDF.
-2. Completar permissões de reservas, replanejamento, sincronização e prioridades e a auditoria das ações operacionais ainda pendentes.
-3. Adotar os enums compartilhados nos módulos ainda legados e remover conversões locais equivalentes.
-4. Substituir a sincronização periódica da projeção siderúrgica do cadastro canônico por evento interno.
-5. Criar matriz de dependências permitidas entre todos os módulos do monólito.
-6. Concluir idempotência, consultas paginadas e publicação orientada a eventos no módulo de Visibilidade.
-
-## P2
-
-1. Integração EDI operacional atualizando reservas e ordens automaticamente.
-2. Otimização global Navio + Pátio + Equipamento.
-3. Comparação automática entre estiva, pátio e execução.
-4. Previsão de gargalos por berço, porão, bloco, fila e equipamento.
-5. Control Room completo com yard view, vessel view, CHE detail, alerts e quay monitor.
-6. Telemetria/VMT real.
-7. Lashing, estabilidade, segregação e restrições estruturais.
-8. EVP/event streaming versionado para todos os domínios operacionais.
-
-## Critérios de aceite pendentes
-
-1. Replanejar usando mapa e otimização real.
-2. Atualizar o Control Room por eventos, sem polling como mecanismo principal.
-3. Validar quay/berth/crane contra work queues, ordens e recursos reais do Yard.
-4. Cobrir o fluxo por testes de service, controller, contrato e frontend.
-5. Centralizar logs, métricas e tracing no runtime geral.
-6. Exigir motivo e usuário autenticado nas ações aplicáveis dos módulos ainda não migrados.
-7. Diferenciar fila derivada, work queue persistente, work instruction, job list e exceção operacional.
-8. Manter uma única origem de API para o frontend.
-9. Garantir que módulos incorporados não realizem chamadas HTTP entre si.
-10. Retirar deployments legados somente após paridade, dados, segurança, observabilidade e rollback validados.
-11. Executar cada job, consumidor e comando de escrita em uma única instância durante a transição.
-
-## Fora do escopo deste corte
-
-1. Telemetria real de equipamentos.
-2. Dispatch direto para VMT real.
-3. Motor matemático global multi-recurso.
-4. Controle aduaneiro/documental completo.
-5. Substituição integral de um TOS comercial.
+1. Substituição integral de um TOS comercial.
+2. Certificação marítima oficial dos cálculos sem dados homologados do navio.
+3. Automação física de equipamentos sem integração com o fabricante ou ECS.
+4. Integrações aduaneiras sem contrato e credencial dos órgãos responsáveis.

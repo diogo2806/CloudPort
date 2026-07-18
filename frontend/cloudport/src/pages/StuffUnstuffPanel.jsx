@@ -40,13 +40,47 @@ function currentUser() {
   return session?.nome || session?.email || 'operador';
 }
 
+function decimal(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function difference(planned, performed) {
+  return Math.max(0, decimal(planned) - decimal(performed)).toFixed(3);
+}
+
+function reconciliationStatus(planned, performed) {
+  const plannedValue = decimal(planned);
+  const performedValue = decimal(performed);
+  if (performedValue === 0) return 'PENDENTE';
+  if (performedValue < plannedValue) return 'PARCIAL';
+  if (performedValue === plannedValue) return 'CONCILIADO';
+  return 'EXCEDIDO';
+}
+
+function operationItemsAsPlan(items = []) {
+  return items.map((item) => ({
+    loteId: item.loteId,
+    loteCodigo: item.loteCodigo,
+    quantidadePlanejada: item.quantidadePlanejada,
+    volumePlanejadoM3: item.volumePlanejadoM3,
+    pesoPlanejadoKg: item.pesoPlanejadoKg
+  }));
+}
+
 export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
   const [operacoes, setOperacoes] = useState([]);
   const [selectedOperationId, setSelectedOperationId] = useState('');
   const [selectedOperation, setSelectedOperation] = useState(null);
+  const [planVersions, setPlanVersions] = useState([]);
+  const [selectedPlanVersion, setSelectedPlanVersion] = useState(null);
   const [operation, setOperation] = useState(blankOperation);
   const [plannedItem, setPlannedItem] = useState(blankPlannedItem);
   const [plannedItems, setPlannedItems] = useState([]);
+  const [versionItem, setVersionItem] = useState(blankPlannedItem);
+  const [versionItems, setVersionItems] = useState([]);
+  const [versionReason, setVersionReason] = useState('');
+  const [releaseReason, setReleaseReason] = useState('');
   const [execution, setExecution] = useState(() => blankExecution());
   const [finalSeal, setFinalSeal] = useState('');
   const [conclusionNote, setConclusionNote] = useState('');
@@ -67,13 +101,23 @@ export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
   const loadSelectedOperation = useCallback(async (id) => {
     if (!id) {
       setSelectedOperation(null);
+      setPlanVersions([]);
+      setSelectedPlanVersion(null);
+      setVersionItems([]);
       setExecution(blankExecution());
       return;
     }
     try {
-      const result = await generalCargoApi.obterOperacaoStuffUnstuff(id);
-      setSelectedOperation(result);
-      setExecution(blankExecution(result?.itens?.[0]?.id || ''));
+      const [operationResult, plansResult] = await Promise.all([
+        generalCargoApi.obterOperacaoStuffUnstuff(id),
+        generalCargoApi.listarPlanosStuffUnstuff(id)
+      ]);
+      const plans = Array.isArray(plansResult) ? plansResult : [];
+      setSelectedOperation(operationResult);
+      setPlanVersions(plans);
+      setSelectedPlanVersion(plans[0] || null);
+      setVersionItems(operationItemsAsPlan(operationResult?.itens));
+      setExecution(blankExecution(operationResult?.itens?.[0]?.id || ''));
     } catch (reason) {
       setError(formatError(reason));
     }
@@ -87,20 +131,54 @@ export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
     [lotes, plannedItems]
   );
 
-  async function execute(key, action, message) {
+  const availableVersionLots = useMemo(
+    () => lotes.filter((lot) => !versionItems.some((item) => item.loteId === lot.id)),
+    [lotes, versionItems]
+  );
+
+  const latestPlan = planVersions[0] || null;
+  const terminal = selectedOperation?.status === 'CONCLUIDA' || selectedOperation?.status === 'CANCELADA';
+  const planReleased = latestPlan?.status === 'LIBERADO';
+  const canVersion = selectedOperation?.status === 'PLANEJADA' && !terminal;
+  const canRelease = canVersion && latestPlan?.status === 'RASCUNHO';
+  const canStart = canVersion && planReleased;
+  const canExecute = planReleased && ['EM_EXECUCAO', 'PARCIAL'].includes(selectedOperation?.status);
+
+  const reconciliationRows = useMemo(() => {
+    if (!selectedPlanVersion) return [];
+    return (selectedPlanVersion.itens ?? []).map((planItem) => {
+      const performed = selectedOperation?.itens?.find((item) => item.loteId === planItem.loteId);
+      return {
+        loteId: planItem.loteId,
+        loteCodigo: planItem.loteCodigo,
+        quantidadePlanejada: planItem.quantidadePlanejada,
+        quantidadeRealizada: performed?.quantidadeRealizada ?? 0,
+        quantidadePendente: difference(planItem.quantidadePlanejada, performed?.quantidadeRealizada),
+        volumePlanejadoM3: planItem.volumePlanejadoM3,
+        volumeRealizadoM3: performed?.volumeRealizadoM3 ?? 0,
+        volumePendenteM3: difference(planItem.volumePlanejadoM3, performed?.volumeRealizadoM3),
+        pesoPlanejadoKg: planItem.pesoPlanejadoKg,
+        pesoRealizadoKg: performed?.pesoRealizadoKg ?? 0,
+        pesoPendenteKg: difference(planItem.pesoPlanejadoKg, performed?.pesoRealizadoKg),
+        status: reconciliationStatus(planItem.quantidadePlanejada, performed?.quantidadeRealizada)
+      };
+    });
+  }, [selectedOperation, selectedPlanVersion]);
+
+  async function execute(key, action, message, operationId = selectedOperationId) {
     setBusy(key);
     setError('');
     setSuccess('');
     try {
       const result = await action();
       setSuccess(message);
-      await loadOperations();
-      if (result?.id) {
+      let refreshId = operationId;
+      if (result?.id && result?.tipo && result?.conteinerId) {
+        refreshId = result.id;
         setSelectedOperationId(result.id);
-        setSelectedOperation(result);
-      } else if (selectedOperationId) {
-        await loadSelectedOperation(selectedOperationId);
       }
+      await loadOperations();
+      if (refreshId) await loadSelectedOperation(refreshId);
       if (onChanged) await onChanged();
       return result;
     } catch (reason) {
@@ -119,6 +197,20 @@ export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
     setPlannedItem(blankPlannedItem());
   }
 
+  function addVersionItem(event) {
+    event.preventDefault();
+    if (!versionItem.loteId) return;
+    const lot = lotes.find((candidate) => candidate.id === versionItem.loteId);
+    setVersionItems((current) => [...current, { ...versionItem, loteCodigo: lot?.codigo || versionItem.loteId }]);
+    setVersionItem(blankPlannedItem());
+  }
+
+  function updateVersionItem(loteId, field, value) {
+    setVersionItems((current) => current.map((item) => (
+      item.loteId === loteId ? { ...item, [field]: value } : item
+    )));
+  }
+
   async function createOperation(event) {
     event.preventDefault();
     if (!plannedItems.length) {
@@ -129,17 +221,48 @@ export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
       ...operation,
       usuario: currentUser(),
       itens: plannedItems.map(({ loteCodigo, ...item }) => item)
-    }), 'Operação de stuff/unstuff criada e contêiner reservado.');
+    }), 'Operação criada com a versão inicial do plano em rascunho.', '');
     if (created) {
       setOperation(blankOperation());
       setPlannedItems([]);
     }
   }
 
+  async function createPlanVersion(event) {
+    event.preventDefault();
+    if (!versionItems.length) {
+      setError('A nova versão deve conter ao menos um cargo lot.');
+      return;
+    }
+    const result = await execute('version', () => generalCargoApi.criarVersaoPlanoStuffUnstuff(
+      selectedOperationId,
+      {
+        usuario: currentUser(),
+        motivo: versionReason,
+        itens: versionItems.map(({ loteCodigo, ...item }) => item)
+      }
+    ), 'Nova versão imutável criada em rascunho.');
+    if (result) setVersionReason('');
+  }
+
+  async function releasePlan(event) {
+    event.preventDefault();
+    if (!latestPlan) return;
+    const result = await execute('release', () => generalCargoApi.liberarPlanoStuffUnstuff(
+      selectedOperationId,
+      {
+        versao: latestPlan.versao,
+        usuario: currentUser(),
+        motivo: releaseReason
+      }
+    ), 'Plano validado por capacidade e liberado para execução.');
+    if (result) setReleaseReason('');
+  }
+
   async function startOperation() {
     await execute('start', () => generalCargoApi.iniciarOperacaoStuffUnstuff(
       selectedOperationId, currentUser()
-    ), 'Operação iniciada.');
+    ), 'Operação iniciada com o plano liberado.');
   }
 
   async function registerExecution(event) {
@@ -147,10 +270,8 @@ export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
     const result = await execute('execute', () => generalCargoApi.registrarExecucaoStuffUnstuff(selectedOperationId, {
       ...execution,
       usuario: currentUser()
-    }), 'Execução parcial registrada.');
-    if (result) {
-      setExecution(blankExecution(execution.itemId));
-    }
+    }), 'Execução parcial registrada e conciliada por item.');
+    if (result) setExecution(blankExecution(execution.itemId));
   }
 
   async function concludeOperation(event) {
@@ -173,11 +294,9 @@ export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
     setCancelReason('');
   }
 
-  const terminal = selectedOperation?.status === 'CONCLUIDA' || selectedOperation?.status === 'CANCELADA';
-
   return <Section
     title="Operações de stuff e unstuff"
-    description="Selecione um contêiner elegível do inventário canônico, planeje os cargo lots e registre apontamentos idempotentes."
+    description="Crie versões imutáveis do plano, libere a versão válida e concilie a execução física por cargo lot."
   >
     <Message type="error">{error}</Message>
     <Message type="success" onClose={() => setSuccess('')}>{success}</Message>
@@ -222,7 +341,7 @@ export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
         { key: 'posicaoOperacao', label: 'Local' },
         { key: 'equipeRecurso', label: 'Equipe/recurso' },
         { key: 'criadoEm', label: 'Criada em', render: (row) => dateTime(row.criadoEm) },
-        { key: 'acao', label: 'Ação', exportable: false, render: (row) => <button type="button" className="secondary small" onClick={() => setSelectedOperationId(row.id)}>Operar</button> }
+        { key: 'acao', label: 'Ação', exportable: false, render: (row) => <button type="button" className="secondary small" onClick={() => setSelectedOperationId(row.id)}>Planejar e operar</button> }
       ]}
       emptyTitle="Nenhuma operação de stuff ou unstuff"
     />
@@ -230,10 +349,70 @@ export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
     {selectedOperation && <>
       <div className="planner-selection-grid">
         <div className="field"><span>Operação selecionada</span><strong>{selectedOperation.tipo} | {selectedOperation.conteinerId}</strong></div>
-        <div className="field"><span>Status</span><StatusBadge value={selectedOperation.status} /></div>
+        <div className="field"><span>Status operacional</span><StatusBadge value={selectedOperation.status} /></div>
+        <div className="field"><span>Versão atual</span><strong>{latestPlan ? `v${latestPlan.versao}` : '—'}</strong></div>
+        <div className="field"><span>Estado do plano</span>{latestPlan ? <StatusBadge value={latestPlan.status} /> : <strong>Sem plano</strong>}</div>
         <div className="field"><span>Lacre inicial</span><strong>{selectedOperation.lacreInicial || '—'}</strong></div>
         <div className="field"><span>Lacre final</span><strong>{selectedOperation.lacreFinal || '—'}</strong></div>
-        <div className="field"><span>Ação</span><button type="button" disabled={terminal || selectedOperation.status !== 'PLANEJADA' || busy === 'start'} onClick={startOperation}>{busy === 'start' ? 'Iniciando...' : 'Iniciar'}</button></div>
+      </div>
+
+      <DataTable rows={planVersions} rowKey="id" columns={[
+        { key: 'versao', label: 'Versão', render: (row) => `v${row.versao}` },
+        { key: 'status', label: 'Estado', render: (row) => <StatusBadge value={row.status} /> },
+        { key: 'criadoPor', label: 'Criada por' },
+        { key: 'criadoEm', label: 'Criada em', render: (row) => dateTime(row.criadoEm) },
+        { key: 'liberadoPor', label: 'Liberada por' },
+        { key: 'liberadoEm', label: 'Liberada em', render: (row) => dateTime(row.liberadoEm) },
+        { key: 'motivo', label: 'Motivo' },
+        { key: 'acao', label: 'Ação', exportable: false, render: (row) => <button type="button" className="secondary small" onClick={() => setSelectedPlanVersion(row)}>Comparar</button> }
+      ]} emptyTitle="Nenhuma versão do plano encontrada" />
+
+      {canVersion && <>
+        <form className="planner-selection-grid" onSubmit={addVersionItem}>
+          <label className="field"><span>Adicionar cargo lot à nova versão</span><select value={versionItem.loteId} onChange={(event) => setVersionItem((current) => ({ ...current, loteId: event.target.value }))}><option value="">Selecione</option>{availableVersionLots.map((lot) => <option key={lot.id} value={lot.id}>{lot.codigo} | saldo {lot.quantidadeSaldo}</option>)}</select></label>
+          <label className="field"><span>Quantidade planejada</span><input type="number" min="0.001" step="0.001" value={versionItem.quantidadePlanejada} onChange={(event) => setVersionItem((current) => ({ ...current, quantidadePlanejada: event.target.value }))} /></label>
+          <label className="field"><span>Volume planejado m³</span><input type="number" min="0" step="0.001" value={versionItem.volumePlanejadoM3} onChange={(event) => setVersionItem((current) => ({ ...current, volumePlanejadoM3: event.target.value }))} /></label>
+          <label className="field"><span>Peso planejado kg</span><input type="number" min="0" step="0.001" value={versionItem.pesoPlanejadoKg} onChange={(event) => setVersionItem((current) => ({ ...current, pesoPlanejadoKg: event.target.value }))} /></label>
+          <div className="field"><span>Ação</span><button type="submit" className="secondary" disabled={!versionItem.loteId}>Adicionar</button></div>
+        </form>
+
+        <DataTable rows={versionItems} rowKey="loteId" columns={[
+          { key: 'loteCodigo', label: 'Cargo lot' },
+          { key: 'quantidadePlanejada', label: 'Quantidade', render: (row) => <input required type="number" min="0.001" step="0.001" value={row.quantidadePlanejada} onChange={(event) => updateVersionItem(row.loteId, 'quantidadePlanejada', event.target.value)} /> },
+          { key: 'volumePlanejadoM3', label: 'Volume m³', render: (row) => <input required type="number" min="0" step="0.001" value={row.volumePlanejadoM3} onChange={(event) => updateVersionItem(row.loteId, 'volumePlanejadoM3', event.target.value)} /> },
+          { key: 'pesoPlanejadoKg', label: 'Peso kg', render: (row) => <input required type="number" min="0" step="0.001" value={row.pesoPlanejadoKg} onChange={(event) => updateVersionItem(row.loteId, 'pesoPlanejadoKg', event.target.value)} /> },
+          { key: 'acao', label: 'Ação', exportable: false, render: (row) => <button type="button" className="danger small" onClick={() => setVersionItems((current) => current.filter((item) => item.loteId !== row.loteId))}>Remover</button> }
+        ]} emptyTitle="A nova versão não possui itens" />
+
+        <form className="planner-selection-grid" onSubmit={createPlanVersion}>
+          <label className="field"><span>Motivo da nova versão</span><input required maxLength="1000" value={versionReason} onChange={(event) => setVersionReason(event.target.value)} /></label>
+          <div className="field"><span>Ação</span><button type="submit" disabled={!versionItems.length || busy === 'version'}>{busy === 'version' ? 'Versionando...' : 'Criar nova versão'}</button></div>
+        </form>
+
+        <form className="planner-selection-grid" onSubmit={releasePlan}>
+          <label className="field"><span>Motivo da liberação</span><input required disabled={!canRelease} maxLength="1000" value={releaseReason} onChange={(event) => setReleaseReason(event.target.value)} /></label>
+          <div className="field"><span>Ação</span><button type="submit" disabled={!canRelease || busy === 'release'}>{busy === 'release' ? 'Validando...' : `Liberar v${latestPlan?.versao ?? ''}`}</button></div>
+          <div className="field"><span>Efeito</span><strong>Apenas valida e libera; não altera estoque.</strong></div>
+        </form>
+      </>}
+
+      {selectedPlanVersion && <DataTable rows={reconciliationRows} rowKey="loteId" columns={[
+        { key: 'loteCodigo', label: `Cargo lot da v${selectedPlanVersion.versao}` },
+        { key: 'quantidadePlanejada', label: 'Qtd. planejada' },
+        { key: 'quantidadeRealizada', label: 'Qtd. realizada' },
+        { key: 'quantidadePendente', label: 'Qtd. pendente' },
+        { key: 'volumePlanejadoM3', label: 'Vol. planejado' },
+        { key: 'volumeRealizadoM3', label: 'Vol. realizado' },
+        { key: 'volumePendenteM3', label: 'Vol. pendente' },
+        { key: 'pesoPlanejadoKg', label: 'Peso planejado' },
+        { key: 'pesoRealizadoKg', label: 'Peso realizado' },
+        { key: 'pesoPendenteKg', label: 'Peso pendente' },
+        { key: 'status', label: 'Conciliação', render: (row) => <StatusBadge value={row.status} /> }
+      ]} emptyTitle="A versão selecionada não possui itens" />}
+
+      <div className="planner-selection-grid">
+        <div className="field"><span>Bloqueio operacional</span><strong>{!latestPlan ? 'Crie uma versão do plano.' : !planReleased ? 'Libere a versão mais recente.' : selectedOperation.status === 'PLANEJADA' ? 'Inicie a operação.' : terminal ? 'Operação encerrada.' : 'Execução permitida.'}</strong></div>
+        <div className="field"><span>Ação</span><button type="button" disabled={!canStart || busy === 'start'} onClick={startOperation}>{busy === 'start' ? 'Iniciando...' : 'Iniciar operação'}</button></div>
       </div>
 
       <DataTable rows={selectedOperation.itens ?? []} rowKey="id" columns={[
@@ -246,25 +425,25 @@ export function StuffUnstuffPanel({ lotes = [], conteineres = [], onChanged }) {
         { key: 'pesoRealizadoKg', label: 'Peso realizado' },
         { key: 'codigoAvaria', label: 'Avaria' },
         { key: 'divergencia', label: 'Divergência' },
-        { key: 'acao', label: 'Ação', exportable: false, render: (row) => <button type="button" className="secondary small" disabled={terminal} onClick={() => setExecution(blankExecution(row.id))}>Apontar</button> }
+        { key: 'acao', label: 'Ação', exportable: false, render: (row) => <button type="button" className="secondary small" disabled={!canExecute} onClick={() => setExecution(blankExecution(row.id))}>Apontar</button> }
       ]} />
 
       <form className="planner-selection-grid" onSubmit={registerExecution}>
         <label className="field"><span>Command ID</span><input readOnly value={execution.commandId} /></label>
-        <label className="field"><span>Item</span><select required disabled={terminal} value={execution.itemId} onChange={(event) => setExecution(blankExecution(event.target.value))}>{(selectedOperation.itens ?? []).map((item) => <option key={item.id} value={item.id}>{item.loteCodigo}</option>)}</select></label>
-        <label className="field"><span>Quantidade realizada</span><input required disabled={terminal} type="number" min="0.001" step="0.001" value={execution.quantidade} onChange={(event) => setExecution((current) => ({ ...current, quantidade: event.target.value }))} /></label>
-        <label className="field"><span>Volume realizado m³</span><input required disabled={terminal} type="number" min="0" step="0.001" value={execution.volumeM3} onChange={(event) => setExecution((current) => ({ ...current, volumeM3: event.target.value }))} /></label>
-        <label className="field"><span>Peso realizado kg</span><input required disabled={terminal} type="number" min="0" step="0.001" value={execution.pesoKg} onChange={(event) => setExecution((current) => ({ ...current, pesoKg: event.target.value }))} /></label>
-        <label className="field"><span>Código da avaria</span><input disabled={terminal} maxLength="80" value={execution.codigoAvaria} onChange={(event) => setExecution((current) => ({ ...current, codigoAvaria: event.target.value }))} /></label>
-        <label className="field"><span>Descrição da avaria</span><input disabled={terminal} maxLength="1000" value={execution.descricaoAvaria} onChange={(event) => setExecution((current) => ({ ...current, descricaoAvaria: event.target.value }))} /></label>
-        <label className="field"><span>Divergência</span><input disabled={terminal} maxLength="1000" value={execution.divergencia} onChange={(event) => setExecution((current) => ({ ...current, divergencia: event.target.value }))} /></label>
-        <div className="field"><span>Ação</span><button type="submit" disabled={terminal || !execution.itemId || busy === 'execute'}>{busy === 'execute' ? 'Registrando...' : 'Registrar execução'}</button></div>
+        <label className="field"><span>Item</span><select required disabled={!canExecute} value={execution.itemId} onChange={(event) => setExecution(blankExecution(event.target.value))}>{(selectedOperation.itens ?? []).map((item) => <option key={item.id} value={item.id}>{item.loteCodigo}</option>)}</select></label>
+        <label className="field"><span>Quantidade realizada</span><input required disabled={!canExecute} type="number" min="0.001" step="0.001" value={execution.quantidade} onChange={(event) => setExecution((current) => ({ ...current, quantidade: event.target.value }))} /></label>
+        <label className="field"><span>Volume realizado m³</span><input required disabled={!canExecute} type="number" min="0" step="0.001" value={execution.volumeM3} onChange={(event) => setExecution((current) => ({ ...current, volumeM3: event.target.value }))} /></label>
+        <label className="field"><span>Peso realizado kg</span><input required disabled={!canExecute} type="number" min="0" step="0.001" value={execution.pesoKg} onChange={(event) => setExecution((current) => ({ ...current, pesoKg: event.target.value }))} /></label>
+        <label className="field"><span>Código da avaria</span><input disabled={!canExecute} maxLength="80" value={execution.codigoAvaria} onChange={(event) => setExecution((current) => ({ ...current, codigoAvaria: event.target.value }))} /></label>
+        <label className="field"><span>Descrição da avaria</span><input disabled={!canExecute} maxLength="1000" value={execution.descricaoAvaria} onChange={(event) => setExecution((current) => ({ ...current, descricaoAvaria: event.target.value }))} /></label>
+        <label className="field"><span>Divergência</span><input disabled={!canExecute} maxLength="1000" value={execution.divergencia} onChange={(event) => setExecution((current) => ({ ...current, divergencia: event.target.value }))} /></label>
+        <div className="field"><span>Ação</span><button type="submit" disabled={!canExecute || !execution.itemId || busy === 'execute'}>{busy === 'execute' ? 'Registrando...' : 'Registrar execução'}</button></div>
       </form>
 
       <form className="planner-selection-grid" onSubmit={concludeOperation}>
-        <label className="field"><span>Lacre final</span><input disabled={terminal} maxLength="80" value={finalSeal} onChange={(event) => setFinalSeal(event.target.value)} /></label>
-        <label className="field"><span>Observação de conclusão</span><input disabled={terminal} maxLength="1000" value={conclusionNote} onChange={(event) => setConclusionNote(event.target.value)} /></label>
-        <div className="field"><span>Ação</span><button type="submit" disabled={terminal || busy === 'conclude'}>{busy === 'conclude' ? 'Concluindo...' : 'Concluir operação'}</button></div>
+        <label className="field"><span>Lacre final</span><input disabled={!canExecute} maxLength="80" value={finalSeal} onChange={(event) => setFinalSeal(event.target.value)} /></label>
+        <label className="field"><span>Observação de conclusão</span><input disabled={!canExecute} maxLength="1000" value={conclusionNote} onChange={(event) => setConclusionNote(event.target.value)} /></label>
+        <div className="field"><span>Ação</span><button type="submit" disabled={!canExecute || busy === 'conclude'}>{busy === 'conclude' ? 'Concluindo...' : 'Concluir operação'}</button></div>
       </form>
 
       <form className="planner-selection-grid" onSubmit={cancelOperation}>

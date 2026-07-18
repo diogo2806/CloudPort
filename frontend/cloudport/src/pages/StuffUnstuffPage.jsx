@@ -6,28 +6,33 @@ import { StuffUnstuffPanel } from './StuffUnstuffPanel.jsx';
 
 export function StuffUnstuffPage() {
   const [lotes, setLotes] = useState([]);
+  const [conteineres, setConteineres] = useState([]);
   const [error, setError] = useState('');
 
-  const reloadLots = useCallback(async () => {
+  const reloadData = useCallback(async () => {
     setError('');
     try {
-      const result = await generalCargoApi.listarLotes();
-      setLotes(Array.isArray(result) ? result : []);
+      const [lotsResult, containersResult] = await Promise.all([
+        generalCargoApi.listarLotes(),
+        generalCargoApi.listarConteineresElegiveis()
+      ]);
+      setLotes(Array.isArray(lotsResult) ? lotsResult : []);
+      setConteineres(Array.isArray(containersResult) ? containersResult : []);
     } catch (reason) {
       setError(formatError(reason));
     }
   }, []);
 
-  useEffect(() => { reloadLots(); }, [reloadLots]);
+  useEffect(() => { reloadData(); }, [reloadData]);
 
   return <>
     <PageHeader
       eyebrow="Carga geral"
       title="Stuff e unstuff"
-      description="Planejamento e execução persistida de estufagem e desova por contêiner, cargo lot, local, equipe, lacres, divergências e avarias."
-      actions={<button type="button" className="secondary" onClick={reloadLots}>Atualizar lotes</button>}
+      description="Planejamento e execução persistida de estufagem e desova por contêiner canônico, cargo lot, local, equipe, lacres, divergências e avarias."
+      actions={<button type="button" className="secondary" onClick={reloadData}>Atualizar dados</button>}
     />
     <Message type="error">{error}</Message>
-    <StuffUnstuffPanel lotes={lotes} onChanged={reloadLots} />
+    <StuffUnstuffPanel lotes={lotes} conteineres={conteineres} onChanged={reloadData} />
   </>;
 }

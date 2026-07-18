@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão do ASYNC90 e a proteção fail-closed dos jobs persistentes do Gate.
+Status: atualizado em 2026-07-18 com a conclusão do BUS1090 e a persistência auditável do replanejamento ferroviário.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -157,8 +157,9 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 3. Composição gráfica, ocupação de linhas, progresso e conflitos.
 4. Line-up ferroviário vertical.
 5. Locomotiva isolada tratada como visita e embarcada após custódia e checklist.
-
-A persistência do replanejamento visual por vagão permanece no backlog.
+6. O replanejamento visual confirmado move contêineres entre vagões e atualiza vagão, posição física e ordem do manifesto na mesma transação.
+7. A confirmação valida capacidade, disponibilidade e compatibilidade do vagão de destino, rejeita versões desatualizadas e impede alteração de operação concluída.
+8. Cada replanejamento registra origem, destino, posições, ordens, versões, usuário, motivo e data em histórico persistido.
 
 ## Carga Geral e carga siderúrgica
 
@@ -201,6 +202,6 @@ A persistência do replanejamento visual por vagão permanece no backlog.
 
 ## Pendências não marcadas como implementadas
 
-Não há pendências no backlog técnico `docs/requisitos/requisito-tecnico.md`.
+O BUS1090 foi removido do backlog técnico após a implementação do replanejamento ferroviário persistente.
 
-Permanecem no backlog funcional a persistência do planejamento ferroviário visual, a comprovação do corte operacional e as evoluções registradas em `docs/requisitos/modulo-navios-back-front-gaps.md`.
+Permanecem no backlog técnico e funcional apenas os itens ainda listados em `docs/requisitos/requisito-tecnico.md` e `docs/requisitos/modulo-navios-back-front-gaps.md`.

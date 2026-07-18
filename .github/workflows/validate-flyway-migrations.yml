@@ -1,0 +1,49 @@
+name: Validar migrations Flyway
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**/src/main/resources/db/migration/**'
+      - 'backend/cloudport-runtime/pom.xml'
+      - 'backend/cloudport-runtime/src/test/java/br/com/cloudport/runtime/configuracao/FlywayMigrationPackagingUniquenessTest.java'
+      - 'backend/Dockerfile'
+      - 'backend/cloudport-runtime/Dockerfile'
+      - '.github/workflows/validate-flyway-migrations.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**/src/main/resources/db/migration/**'
+      - 'backend/cloudport-runtime/pom.xml'
+      - 'backend/cloudport-runtime/src/test/java/br/com/cloudport/runtime/configuracao/FlywayMigrationPackagingUniquenessTest.java'
+      - 'backend/Dockerfile'
+      - 'backend/cloudport-runtime/Dockerfile'
+      - '.github/workflows/validate-flyway-migrations.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar-migrations:
+    name: Validar migrations empacotadas por módulo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Montar runtime e validar versões Flyway
+        working-directory: backend/cloudport-modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn -B -N -f ../cloudport-navio-modules/pom.xml -DskipTests install
+          mvn -B -Dspring-boot.repackage.skip=true \
+            -pl :cloudport-runtime -am \
+            -DskipTests install
+          mvn -B -pl :cloudport-runtime -DskipTests clean package
+          mvn -B -pl :cloudport-runtime \
+            -Dtest=FlywayMigrationPackagingUniquenessTest test

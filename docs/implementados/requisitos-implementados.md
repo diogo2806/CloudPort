@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-18 com a conclusão do BUS1130, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -142,6 +142,22 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 12. Reset, cancelamento, prioridade, suspensão, retomada, bloqueio e conclusão.
 13. Auditoria por usuário, motivo, origem e `correlationId`.
 14. Reshuffling com posição real, reserva e idempotência.
+
+## Lost & Found e unidades TBD — BUS1130
+
+1. Unidades sem registro, não localizadas ou temporariamente não identificadas entram em caso persistido com os tipos `SEM_REGISTRO`, `NAO_LOCALIZADA` e `TBD`.
+2. A identificação lida é normalizada e a abertura concorrente de mais de um caso ativo para a mesma identificação é impedida por validação de serviço e índice parcial único.
+3. Cada caso mantém unidade canônica associada, responsável, evidências, decisão final, usuário de abertura e datas das transições operacionais.
+4. O ciclo persistido usa os estados `ABERTO`, `EM_INVESTIGACAO`, `ASSOCIADO`, `REGULARIZADO`, `BAIXADO` e `ENCERRADO`.
+5. A investigação exige responsável, permite acumular evidências e preserva o histórico textual da apuração.
+6. A associação exige uma unidade existente no inventário canônico.
+7. A regularização exige associação prévia, reativa a unidade e restaura sua condição operacional.
+8. A baixa registra decisão motivada e inativa a unidade associada quando existente.
+9. O encerramento é permitido somente após regularização ou baixa.
+10. A API autenticada disponibiliza listagem, abertura, investigação, associação, regularização, baixa e encerramento em `/api/inventario/casos`.
+11. O acesso é limitado a `ADMIN_PORTO`, `OPERADOR_PATIO` e `PLANEJADOR`.
+12. O portal disponibiliza a rota `/home/patio/lost-found`, item de navegação persistido, fallback de menu, fila filtrável, inspector e comandos compatíveis com o estado.
+13. A tela possui ajuda contextual com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplo, atalhos e ligação para o inventário canônico.
 
 ## Control Room e Visibilidade
 

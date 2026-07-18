@@ -68,7 +68,7 @@ public class VesselPlannerTampaPoraoServico extends VesselPlannerServico {
     public AlocacaoSlotRespostaDto alocarContainer(
             Long planId,
             AlocacaoSlotRequisicaoDto requisicao) {
-        EstivagemPlan plan = planRepositorioLocal.findById(planId)
+        EstivagemPlan plan = planRepositorioLocal.findLockedById(planId)
                 .orElseThrow(() -> new EntityNotFoundException("EstivagemPlan não encontrado: " + planId));
         SlotNavio destino = slotRepositorioLocal.findById(requisicao.getSlotDestinoId())
                 .orElseThrow(() -> new EntityNotFoundException(

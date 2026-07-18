@@ -93,9 +93,10 @@ class TransloadTransacaoServicoTest {
         when(loteRepositorio.findComBloqueioById(loteDestinoUmId)).thenReturn(Optional.of(loteDestinoUm));
         when(loteRepositorio.findComBloqueioById(loteDestinoDoisId)).thenReturn(Optional.of(loteDestinoDois));
         when(itemConhecimento.getId()).thenReturn(itemId);
-        configurarIdentidade(loteOrigem, "LOTE-ORIGEM");
-        configurarIdentidade(loteDestinoUm, "LOTE-DESTINO-1");
-        configurarIdentidade(loteDestinoDois, "LOTE-DESTINO-2");
+        configurarIdentidade(loteOrigem);
+        configurarIdentidade(loteDestinoUm);
+        configurarIdentidade(loteDestinoDois);
+        when(loteOrigem.getCodigo()).thenReturn("LOTE-ORIGEM");
         when(loteOrigem.getQuantidadeDisponivel()).thenReturn(new BigDecimal("10.000"));
         when(loteOrigem.getVolumeDisponivelM3()).thenReturn(BigDecimal.ZERO);
         when(loteOrigem.getPesoDisponivelKg()).thenReturn(BigDecimal.ZERO);
@@ -126,9 +127,8 @@ class TransloadTransacaoServicoTest {
         return operacao;
     }
 
-    private void configurarIdentidade(LoteCarga lote, String codigo) {
+    private void configurarIdentidade(LoteCarga lote) {
         when(lote.getUnidadeMedida()).thenReturn("UN");
         when(lote.getItem()).thenReturn(itemConhecimento);
-        when(lote.getCodigo()).thenReturn(codigo);
     }
 }

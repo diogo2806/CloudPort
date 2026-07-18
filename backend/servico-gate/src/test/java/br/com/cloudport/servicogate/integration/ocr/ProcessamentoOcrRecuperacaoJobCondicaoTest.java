@@ -7,6 +7,7 @@ import br.com.cloudport.servicogate.app.cidadao.DocumentoAgendamentoRepository;
 import java.io.IOException;
 import java.util.Properties;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.convert.ApplicationConversionService;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
@@ -14,6 +15,8 @@ import org.springframework.core.io.support.PropertiesLoaderUtils;
 class ProcessamentoOcrRecuperacaoJobCondicaoTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withInitializer(contexto -> contexto.getBeanFactory()
+                    .setConversionService(ApplicationConversionService.getSharedInstance()))
             .withBean(
                     DocumentoAgendamentoRepository.class,
                     () -> mock(DocumentoAgendamentoRepository.class))

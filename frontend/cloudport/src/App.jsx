@@ -9,6 +9,7 @@ import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
 import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
 import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
+import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
@@ -56,6 +57,7 @@ const FALLBACK_NAVIGATION = [
   ] },
   { group: 'Ferrovia', items: [
     { label: 'Visitas', path: '/home/ferrovia/visitas', roles: [] },
+    { label: 'Line-up ferroviário', path: '/home/ferrovia/line-up', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
     { label: 'Importar manifesto', path: '/home/ferrovia/visitas/importar', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Lista de trabalho', path: '/home/ferrovia/lista-trabalho', roles: [] },
     { label: 'Locomotivas para navio', path: '/home/ferrovia/locomotivas', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] }
@@ -158,6 +160,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDirectVesselReleasePage />;
   if (path === '/home/gate/relatorios') return <GateReportsPage />;
   if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
+  if (path === '/home/ferrovia/line-up') return <RailLineUpPage />;
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
   if (path === '/home/ferrovia/lista-trabalho') return <RailWorkListPage session={session} />;
   if (path === '/home/ferrovia/locomotivas') return <RailLocomotiveTransfersPage />;

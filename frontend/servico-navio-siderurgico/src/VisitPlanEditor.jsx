@@ -26,6 +26,12 @@ function text(value) {
   return String(value ?? '').normalize('NFKC').replace(/[<>`\\]/g, '').trim();
 }
 
+function dateTime(value) {
+  if (!value) return 'sem data';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString('pt-BR');
+}
+
 function toDateTimeInput(value) {
   if (!value) return '';
   return String(value).slice(0, 16);
@@ -110,16 +116,33 @@ function itemPayload(draft) {
   };
 }
 
+function administrativeReason(label) {
+  if (typeof window === 'undefined' || typeof window.prompt !== 'function') return 'Operação administrativa confirmada';
+  return text(window.prompt(label, '') ?? '');
+}
+
+function confirmed(message) {
+  return typeof window === 'undefined'
+    || typeof window.confirm !== 'function'
+    || window.confirm(message);
+}
+
 export default function VisitPlanEditor({
   visit,
   items = [],
   plan,
+  planHistory = [],
   validation,
   busyKey = '',
   onSaveVisit,
+  onCancelVisit,
   onSaveItem,
+  onCancelItem,
   onValidatePlan,
-  onConcludePlan
+  onPublishPlan,
+  onInvalidatePlan,
+  onCancelPlan,
+  onCreatePlanVersion
 }) {
   const [visitDraft, setVisitDraft] = useState(() => visitDraftFrom(visit));
   const [itemDraft, setItemDraft] = useState(null);
@@ -129,12 +152,13 @@ export default function VisitPlanEditor({
     setVisitDraft(visitDraftFrom(visit));
     setItemDraft(null);
     setLocalError('');
-  }, [visit?.id, visit?.atualizadoEm]);
+  }, [visit?.id, visit?.atualizadoEm, visit?.fase]);
 
   useEffect(() => {
     if (itemDraft && !items.some((item) => item.id === itemDraft.id)) setItemDraft(null);
   }, [items, itemDraft]);
 
+  const visitClosed = ['PARTIU', 'CANCELADA'].includes(visit?.fase);
   const visitValid = useMemo(() => Number(visitDraft?.navioId) > 0 && text(visitDraft?.codigoVisita), [visitDraft]);
   const itemValid = useMemo(() => itemDraft
     && MOVIMENTOS.includes(itemDraft.tipoMovimento)
@@ -165,74 +189,115 @@ export default function VisitPlanEditor({
     if (updated) setItemDraft(itemDraftFrom(updated));
   }
 
-  function concludePlan() {
+  function cancelVisit() {
+    if (!confirmed(`Cancelar administrativamente a visita ${visit.codigoVisita}?`)) return;
+    const reason = administrativeReason('Informe o motivo do cancelamento da visita:');
+    if (!reason) return setLocalError('O motivo do cancelamento da visita é obrigatório.');
+    setLocalError('');
+    onCancelVisit(reason);
+  }
+
+  function cancelItem(item) {
+    if (!confirmed(`Cancelar o item ${item.codigoLote}?`)) return;
+    const reason = administrativeReason(`Informe o motivo do cancelamento do item ${item.codigoLote}:`);
+    if (!reason) return setLocalError('O motivo do cancelamento do item é obrigatório.');
+    setLocalError('');
+    onCancelItem(item.id, reason);
+  }
+
+  function publishPlan() {
     if (!plan?.id || plan.status !== 'VALIDADO') return;
-    const confirmed = typeof window === 'undefined'
-      || typeof window.confirm !== 'function'
-      || window.confirm(`Concluir definitivamente o plano de estiva v${plan.versao}?`);
-    if (confirmed) onConcludePlan(plan.id);
+    if (!confirmed(`Concluir e publicar definitivamente o plano de estiva v${plan.versao}?`)) return;
+    const reason = administrativeReason('Informe o motivo da publicação do plano:');
+    if (!reason) return setLocalError('O motivo da publicação é obrigatório.');
+    setLocalError('');
+    onPublishPlan(plan.id, reason);
+  }
+
+  function invalidatePlan() {
+    if (!plan?.id || !['VALIDADO', 'CONCLUIDO'].includes(plan.status)) return;
+    if (!confirmed(`Invalidar o plano de estiva v${plan.versao}?`)) return;
+    const reason = administrativeReason('Informe o motivo da invalidação do plano:');
+    if (!reason) return setLocalError('O motivo da invalidação é obrigatório.');
+    setLocalError('');
+    onInvalidatePlan(plan.id, reason);
+  }
+
+  function cancelPlan() {
+    if (!plan?.id || plan.status === 'CANCELADO') return;
+    if (!confirmed(`Cancelar o plano de estiva v${plan.versao}?`)) return;
+    const reason = administrativeReason('Informe o motivo do cancelamento do plano:');
+    if (!reason) return setLocalError('O motivo do cancelamento do plano é obrigatório.');
+    setLocalError('');
+    onCancelPlan(plan.id, reason);
   }
 
   if (!visit || !visitDraft) return null;
 
   return <section className="panel visit-plan-editor">
     <div className="section-head">
-      <div><span className="eyebrow">Visita e estiva</span><h2>Edição operacional</h2></div>
+      <div><span className="eyebrow">Visita e estiva</span><h2>Edição e administração operacional</h2></div>
       <span>{items.length} itens</span>
     </div>
     {localError && <div className="message error" role="alert">{localError}</div>}
 
     <form className="editor-block" onSubmit={saveVisit}>
-      <div className="editor-title"><div><h3>Dados da visita</h3><small>Os dados somente são recarregados após a persistência confirmada pela API.</small></div><button disabled={!visitValid || busyKey === 'visit-update'}>{busyKey === 'visit-update' ? 'Salvando...' : 'Salvar visita'}</button></div>
+      <div className="editor-title">
+        <div><h3>Dados da visita</h3><small>Os dados somente são recarregados após a persistência confirmada pela API.</small></div>
+        <div className="actions">
+          <button disabled={visitClosed || !visitValid || busyKey === 'visit-update'}>{busyKey === 'visit-update' ? 'Salvando...' : 'Salvar visita'}</button>
+          <button type="button" className="danger" disabled={visitClosed || busyKey === 'visit-cancel'} onClick={cancelVisit}>{busyKey === 'visit-cancel' ? 'Cancelando...' : 'Cancelar visita'}</button>
+        </div>
+      </div>
       <div className="editor-grid">
-        <label>Código da visita<input required value={visitDraft.codigoVisita} onChange={(event) => setVisitDraft({ ...visitDraft, codigoVisita: event.target.value })} /></label>
+        <label>Código da visita<input required disabled={visitClosed} value={visitDraft.codigoVisita} onChange={(event) => setVisitDraft({ ...visitDraft, codigoVisita: event.target.value })} /></label>
         <label>Navio<input value={visit.navioNome || visit.navioId} readOnly /></label>
-        <label>Viagem de entrada<input value={visitDraft.viagemEntrada} onChange={(event) => setVisitDraft({ ...visitDraft, viagemEntrada: event.target.value })} /></label>
-        <label>Viagem de saída<input value={visitDraft.viagemSaida} onChange={(event) => setVisitDraft({ ...visitDraft, viagemSaida: event.target.value })} /></label>
-        <label>Linha operadora<input value={visitDraft.linhaOperadora} onChange={(event) => setVisitDraft({ ...visitDraft, linhaOperadora: event.target.value })} /></label>
-        <label>Terminal/facility<input value={visitDraft.terminalFacility} onChange={(event) => setVisitDraft({ ...visitDraft, terminalFacility: event.target.value })} /></label>
-        <label>Berço previsto<input value={visitDraft.bercoPrevisto} onChange={(event) => setVisitDraft({ ...visitDraft, bercoPrevisto: event.target.value })} /></label>
-        <label>Berço atual<input value={visitDraft.bercoAtual} onChange={(event) => setVisitDraft({ ...visitDraft, bercoAtual: event.target.value })} /></label>
-        <label>ETA<input type="datetime-local" value={visitDraft.eta} onChange={(event) => setVisitDraft({ ...visitDraft, eta: event.target.value })} /></label>
-        <label>ETB<input type="datetime-local" value={visitDraft.etb} onChange={(event) => setVisitDraft({ ...visitDraft, etb: event.target.value })} /></label>
-        <label>ETD<input type="datetime-local" value={visitDraft.etd} onChange={(event) => setVisitDraft({ ...visitDraft, etd: event.target.value })} /></label>
-        <label>Cutoff operacional<input type="datetime-local" value={visitDraft.cutoffOperacional} onChange={(event) => setVisitDraft({ ...visitDraft, cutoffOperacional: event.target.value })} /></label>
-        <label className="span-2">Observações<textarea rows="3" value={visitDraft.observacoes} onChange={(event) => setVisitDraft({ ...visitDraft, observacoes: event.target.value })} /></label>
+        <label>Viagem de entrada<input disabled={visitClosed} value={visitDraft.viagemEntrada} onChange={(event) => setVisitDraft({ ...visitDraft, viagemEntrada: event.target.value })} /></label>
+        <label>Viagem de saída<input disabled={visitClosed} value={visitDraft.viagemSaida} onChange={(event) => setVisitDraft({ ...visitDraft, viagemSaida: event.target.value })} /></label>
+        <label>Linha operadora<input disabled={visitClosed} value={visitDraft.linhaOperadora} onChange={(event) => setVisitDraft({ ...visitDraft, linhaOperadora: event.target.value })} /></label>
+        <label>Terminal/facility<input disabled={visitClosed} value={visitDraft.terminalFacility} onChange={(event) => setVisitDraft({ ...visitDraft, terminalFacility: event.target.value })} /></label>
+        <label>Berço previsto<input disabled={visitClosed} value={visitDraft.bercoPrevisto} onChange={(event) => setVisitDraft({ ...visitDraft, bercoPrevisto: event.target.value })} /></label>
+        <label>Berço atual<input disabled={visitClosed} value={visitDraft.bercoAtual} onChange={(event) => setVisitDraft({ ...visitDraft, bercoAtual: event.target.value })} /></label>
+        <label>ETA<input disabled={visitClosed} type="datetime-local" value={visitDraft.eta} onChange={(event) => setVisitDraft({ ...visitDraft, eta: event.target.value })} /></label>
+        <label>ETB<input disabled={visitClosed} type="datetime-local" value={visitDraft.etb} onChange={(event) => setVisitDraft({ ...visitDraft, etb: event.target.value })} /></label>
+        <label>ETD<input disabled={visitClosed} type="datetime-local" value={visitDraft.etd} onChange={(event) => setVisitDraft({ ...visitDraft, etd: event.target.value })} /></label>
+        <label>Cutoff operacional<input disabled={visitClosed} type="datetime-local" value={visitDraft.cutoffOperacional} onChange={(event) => setVisitDraft({ ...visitDraft, cutoffOperacional: event.target.value })} /></label>
+        <label className="span-2">Observações<textarea disabled={visitClosed} rows="3" value={visitDraft.observacoes} onChange={(event) => setVisitDraft({ ...visitDraft, observacoes: event.target.value })} /></label>
       </div>
     </form>
 
     <div className="editor-block">
-      <div className="editor-title"><div><h3>Itens da operação</h3><small>Selecione um item para editar os dados aceitos pelo contrato existente.</small></div></div>
-      <div className="table-wrap"><table><thead><tr><th>Lote</th><th>Movimento</th><th>Produto</th><th>Quantidade</th><th>Peso total</th><th>Status</th><th>Ação</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}>
-        <td><strong>{item.codigoLote}</strong></td><td>{item.tipoMovimento}</td><td>{item.produto}</td><td>{item.quantidade}</td><td>{number(item.pesoTotalToneladas, 3)} t</td><td><span className={statusClass(item.status)}>{item.status}</span></td><td><button type="button" className="small secondary" onClick={() => { setItemDraft(itemDraftFrom(item)); setLocalError(''); }}>Editar</button></td>
+      <div className="editor-title"><div><h3>Itens da operação</h3><small>Edição e cancelamento são persistidos e auditados individualmente.</small></div></div>
+      <div className="table-wrap"><table><thead><tr><th>Lote</th><th>Movimento</th><th>Produto</th><th>Quantidade</th><th>Peso total</th><th>Status</th><th>Ações</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}>
+        <td><strong>{item.codigoLote}</strong></td><td>{item.tipoMovimento}</td><td>{item.produto}</td><td>{item.quantidade}</td><td>{number(item.pesoTotalToneladas, 3)} t</td><td><span className={statusClass(item.status)}>{item.status}</span></td><td><div className="actions"><button type="button" className="small secondary" disabled={visitClosed || item.status === 'CANCELADO'} onClick={() => { setItemDraft(itemDraftFrom(item)); setLocalError(''); }}>Editar</button><button type="button" className="small danger" disabled={visitClosed || ['OPERADO', 'CANCELADO'].includes(item.status) || busyKey === `item-cancel-${item.id}`} onClick={() => cancelItem(item)}>{busyKey === `item-cancel-${item.id}` ? 'Cancelando...' : 'Cancelar'}</button></div></td>
       </tr>)}</tbody></table></div>
       {!items.length && <p className="empty">Nenhum item cadastrado para a visita.</p>}
 
       {itemDraft && <form className="item-editor" onSubmit={saveItem}>
-        <div className="editor-title"><div><h3>Editar item {itemDraft.codigoLote}</h3><small>ID {itemDraft.id}</small></div><div className="actions"><button type="button" className="secondary" onClick={() => setItemDraft(null)}>Cancelar</button><button disabled={!itemValid || busyKey === `item-update-${itemDraft.id}`}>{busyKey === `item-update-${itemDraft.id}` ? 'Salvando...' : 'Salvar item'}</button></div></div>
+        <div className="editor-title"><div><h3>Editar item {itemDraft.codigoLote}</h3><small>ID {itemDraft.id}</small></div><div className="actions"><button type="button" className="secondary" onClick={() => setItemDraft(null)}>Fechar edição</button><button disabled={visitClosed || !itemValid || busyKey === `item-update-${itemDraft.id}`}>{busyKey === `item-update-${itemDraft.id}` ? 'Salvando...' : 'Salvar item'}</button></div></div>
         <div className="editor-grid">
-          <label>Movimento<select value={itemDraft.tipoMovimento} onChange={(event) => setItemDraft({ ...itemDraft, tipoMovimento: event.target.value })}>{MOVIMENTOS.map((value) => <option key={value}>{value}</option>)}</select></label>
-          <label>Tipo de carga<select value={itemDraft.tipoCarga} onChange={(event) => setItemDraft({ ...itemDraft, tipoCarga: event.target.value })}>{TIPOS_CARGA.map((value) => <option key={value}>{value}</option>)}</select></label>
-          <label>Código do lote<input required value={itemDraft.codigoLote} onChange={(event) => setItemDraft({ ...itemDraft, codigoLote: event.target.value })} /></label>
-          <label>Produto<input required value={itemDraft.produto} onChange={(event) => setItemDraft({ ...itemDraft, produto: event.target.value })} /></label>
-          <label>Quantidade<input type="number" min="1" required value={itemDraft.quantidade} onChange={(event) => setItemDraft({ ...itemDraft, quantidade: event.target.value })} /></label>
-          <label>Peso unitário (t)<input type="number" min="0.001" step="0.001" value={itemDraft.pesoUnitarioToneladas} onChange={(event) => setItemDraft({ ...itemDraft, pesoUnitarioToneladas: event.target.value })} /></label>
-          <label>Peso total (t)<input type="number" min="0.001" step="0.001" required value={itemDraft.pesoTotalToneladas} onChange={(event) => setItemDraft({ ...itemDraft, pesoTotalToneladas: event.target.value })} /></label>
-          <label>Altura (m)<input type="number" min="0.001" step="0.001" value={itemDraft.alturaCargaMetros} onChange={(event) => setItemDraft({ ...itemDraft, alturaCargaMetros: event.target.value })} /></label>
-          <label>Porão planejado<input type="number" min="1" value={itemDraft.poraoPlanejado} onChange={(event) => setItemDraft({ ...itemDraft, poraoPlanejado: event.target.value })} /></label>
-          <label>Porão real<input type="number" min="1" value={itemDraft.poraoReal} onChange={(event) => setItemDraft({ ...itemDraft, poraoReal: event.target.value })} /></label>
-          <label>Posição planejada<input value={itemDraft.posicaoPlanejada} onChange={(event) => setItemDraft({ ...itemDraft, posicaoPlanejada: event.target.value })} /></label>
-          <label>Posição real<input value={itemDraft.posicaoReal} onChange={(event) => setItemDraft({ ...itemDraft, posicaoReal: event.target.value })} /></label>
-          <label>Origem no pátio<input value={itemDraft.origemPatio} onChange={(event) => setItemDraft({ ...itemDraft, origemPatio: event.target.value })} /></label>
-          <label>Destino no pátio<input value={itemDraft.destinoPatio} onChange={(event) => setItemDraft({ ...itemDraft, destinoPatio: event.target.value })} /></label>
-          <label>Sequência operacional<input type="number" min="1" value={itemDraft.sequenciaOperacional} onChange={(event) => setItemDraft({ ...itemDraft, sequenciaOperacional: event.target.value })} /></label>
-          <label className="span-2">Observações<textarea rows="3" value={itemDraft.observacoes} onChange={(event) => setItemDraft({ ...itemDraft, observacoes: event.target.value })} /></label>
+          <label>Movimento<select disabled={visitClosed} value={itemDraft.tipoMovimento} onChange={(event) => setItemDraft({ ...itemDraft, tipoMovimento: event.target.value })}>{MOVIMENTOS.map((value) => <option key={value}>{value}</option>)}</select></label>
+          <label>Tipo de carga<select disabled={visitClosed} value={itemDraft.tipoCarga} onChange={(event) => setItemDraft({ ...itemDraft, tipoCarga: event.target.value })}>{TIPOS_CARGA.map((value) => <option key={value}>{value}</option>)}</select></label>
+          <label>Código do lote<input disabled={visitClosed} required value={itemDraft.codigoLote} onChange={(event) => setItemDraft({ ...itemDraft, codigoLote: event.target.value })} /></label>
+          <label>Produto<input disabled={visitClosed} required value={itemDraft.produto} onChange={(event) => setItemDraft({ ...itemDraft, produto: event.target.value })} /></label>
+          <label>Quantidade<input disabled={visitClosed} type="number" min="1" required value={itemDraft.quantidade} onChange={(event) => setItemDraft({ ...itemDraft, quantidade: event.target.value })} /></label>
+          <label>Peso unitário (t)<input disabled={visitClosed} type="number" min="0.001" step="0.001" value={itemDraft.pesoUnitarioToneladas} onChange={(event) => setItemDraft({ ...itemDraft, pesoUnitarioToneladas: event.target.value })} /></label>
+          <label>Peso total (t)<input disabled={visitClosed} type="number" min="0.001" step="0.001" required value={itemDraft.pesoTotalToneladas} onChange={(event) => setItemDraft({ ...itemDraft, pesoTotalToneladas: event.target.value })} /></label>
+          <label>Altura (m)<input disabled={visitClosed} type="number" min="0.001" step="0.001" value={itemDraft.alturaCargaMetros} onChange={(event) => setItemDraft({ ...itemDraft, alturaCargaMetros: event.target.value })} /></label>
+          <label>Porão planejado<input disabled={visitClosed} type="number" min="1" value={itemDraft.poraoPlanejado} onChange={(event) => setItemDraft({ ...itemDraft, poraoPlanejado: event.target.value })} /></label>
+          <label>Porão real<input disabled={visitClosed} type="number" min="1" value={itemDraft.poraoReal} onChange={(event) => setItemDraft({ ...itemDraft, poraoReal: event.target.value })} /></label>
+          <label>Posição planejada<input disabled={visitClosed} value={itemDraft.posicaoPlanejada} onChange={(event) => setItemDraft({ ...itemDraft, posicaoPlanejada: event.target.value })} /></label>
+          <label>Posição real<input disabled={visitClosed} value={itemDraft.posicaoReal} onChange={(event) => setItemDraft({ ...itemDraft, posicaoReal: event.target.value })} /></label>
+          <label>Origem no pátio<input disabled={visitClosed} value={itemDraft.origemPatio} onChange={(event) => setItemDraft({ ...itemDraft, origemPatio: event.target.value })} /></label>
+          <label>Destino no pátio<input disabled={visitClosed} value={itemDraft.destinoPatio} onChange={(event) => setItemDraft({ ...itemDraft, destinoPatio: event.target.value })} /></label>
+          <label>Sequência operacional<input disabled={visitClosed} type="number" min="1" value={itemDraft.sequenciaOperacional} onChange={(event) => setItemDraft({ ...itemDraft, sequenciaOperacional: event.target.value })} /></label>
+          <label className="span-2">Observações<textarea disabled={visitClosed} rows="3" value={itemDraft.observacoes} onChange={(event) => setItemDraft({ ...itemDraft, observacoes: event.target.value })} /></label>
         </div>
       </form>}
     </div>
 
     <div className="editor-block plan-editor">
-      <div className="editor-title"><div><h3>Plano de estiva</h3><small>A conclusão exige validação persistida e nova validação no backend.</small></div>{plan && <span className={statusClass(plan.status)}>{plan.status}</span>}</div>
+      <div className="editor-title"><div><h3>Plano de estiva</h3><small>Publicação, invalidação, cancelamento e nova aprovação exigem transições persistidas.</small></div>{plan && <span className={statusClass(plan.status)}>{plan.status}</span>}</div>
       {!plan ? <p className="empty">Nenhum plano de estiva disponível para a visita.</p> : <>
         <div className="plan-summary">
           <span><b>v{plan.versao}</b> versão</span><span><b>{plan.posicoes?.length ?? 0}</b> posições</span><span><b>{number(plan.pesoTotalPlanejado, 3)} t</b> planejadas</span><span><b>{number(plan.pesoTotalRealizado, 3)} t</b> realizadas</span>
@@ -243,10 +308,18 @@ export default function VisitPlanEditor({
           {(validation.alertas ?? []).map((entry) => <p className="validation-warning" key={entry}>{entry}</p>)}
         </div>}
         <div className="actions">
-          <button type="button" className="secondary" disabled={busyKey === 'plan-validate' || plan.status === 'CONCLUIDO'} onClick={() => onValidatePlan(plan.id)}>{busyKey === 'plan-validate' ? 'Validando...' : 'Validar plano'}</button>
-          <button type="button" className="warning" disabled={busyKey === 'plan-conclude' || plan.status !== 'VALIDADO'} onClick={concludePlan}>{busyKey === 'plan-conclude' ? 'Concluindo...' : 'Concluir plano de estiva'}</button>
+          <button type="button" className="secondary" disabled={visitClosed || busyKey === 'plan-validate' || ['CONCLUIDO', 'INVALIDADO', 'CANCELADO'].includes(plan.status)} onClick={() => onValidatePlan(plan.id)}>{busyKey === 'plan-validate' ? 'Validando...' : 'Validar plano'}</button>
+          <button type="button" className="warning" disabled={visitClosed || busyKey === 'plan-publish' || plan.status !== 'VALIDADO'} onClick={publishPlan}>{busyKey === 'plan-publish' ? 'Publicando...' : 'Concluir e publicar'}</button>
+          <button type="button" className="secondary" disabled={visitClosed || busyKey === 'plan-invalidate' || !['VALIDADO', 'CONCLUIDO'].includes(plan.status)} onClick={invalidatePlan}>{busyKey === 'plan-invalidate' ? 'Invalidando...' : 'Invalidar plano'}</button>
+          <button type="button" className="danger" disabled={visitClosed || busyKey === 'plan-cancel' || plan.status === 'CANCELADO'} onClick={cancelPlan}>{busyKey === 'plan-cancel' ? 'Cancelando...' : 'Cancelar plano'}</button>
+          <button type="button" className="secondary" disabled={visitClosed || busyKey === 'plan-new-version' || !['CONCLUIDO', 'INVALIDADO', 'CANCELADO'].includes(plan.status)} onClick={onCreatePlanVersion}>{busyKey === 'plan-new-version' ? 'Criando...' : 'Criar nova versão'}</button>
         </div>
       </>}
+
+      <div className="validation-result">
+        <strong>Histórico de publicação e aprovação</strong>
+        {!planHistory.length ? <p className="empty">Nenhuma transição de plano registrada.</p> : planHistory.map((event) => <p key={event.id || `${event.tipoEvento}-${event.criadoEm}`}><b>{event.tipoEvento}</b> · {dateTime(event.criadoEm)} · {event.usuario || 'sistema'}<br />{event.descricao}</p>)}
+      </div>
     </div>
   </section>;
 }

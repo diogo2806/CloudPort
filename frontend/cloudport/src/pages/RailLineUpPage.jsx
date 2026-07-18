@@ -29,6 +29,8 @@ import {
   somarHorasFerroviarias
 } from '../railLineUp.js';
 
+const TIPO_DADO_CONTEINER = 'application/x-cloudport-container';
+
 function formatarDataHora(valor) {
   if (!valor) return '—';
   const data = valor instanceof Date ? valor : new Date(valor);
@@ -47,6 +49,10 @@ function formatarHora(valor) {
 
 function classeEtapa(etapa) {
   return String(etapa || 'indefinida').toLowerCase();
+}
+
+function operacaoConcluida(status) {
+  return ['CONCLUIDO', 'CONCLUIDA'].includes(String(status || '').toUpperCase());
 }
 
 function SegmentoFerroviario({ segmento, janela }) {
@@ -121,17 +127,39 @@ function BarraProgressoVagao({ valor }) {
   </div>;
 }
 
-function VagaoComposicao({ vagao, linha, bloqueado, onMover, onAlternarBloqueio }) {
+function VagaoComposicao({ vagao, linha, bloqueado, onMover, onAlternarBloqueio, onSolicitarReplanejamento }) {
   const indisponivel = bloqueado || vagao.bloqueadoOrigem;
   const conteineres = vagao.operacoes.slice(0, 4);
+  const capacidade = Number(vagao.capacidadeConteineres) || 2;
   return <article
     className={`rail-wagon-card${indisponivel ? ' blocked' : ''}${vagao.incompativel ? ' incompatible' : ''}`}
     draggable={!indisponivel}
     onDragStart={(event) => {
+      if (event.target !== event.currentTarget) return;
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', vagao.identificadorVagao);
     }}
-    title={indisponivel ? 'Vagão bloqueado para replanejamento' : 'Arraste o vagão para outra linha ferroviária'}
+    onDragOver={(event) => {
+      if (!indisponivel && Array.from(event.dataTransfer.types || []).includes(TIPO_DADO_CONTEINER)) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }
+    }}
+    onDrop={(event) => {
+      const conteudo = event.dataTransfer.getData(TIPO_DADO_CONTEINER);
+      if (!conteudo || indisponivel) return;
+      event.preventDefault();
+      event.stopPropagation();
+      try {
+        const movimento = JSON.parse(conteudo);
+        if (movimento.vagaoOrigem !== vagao.identificadorVagao) {
+          onSolicitarReplanejamento({ ...movimento, vagaoDestino: vagao.identificadorVagao });
+        }
+      } catch {
+        // Dados externos de drag-and-drop são ignorados.
+      }
+    }}
+    title={indisponivel ? 'Vagão bloqueado para replanejamento' : 'Arraste o vagão para outra linha ou mova um contêiner entre vagões'}
   >
     <div className="rail-wagon-topline">
       <span>#{vagao.posicaoNoTrem}</span>
@@ -139,15 +167,33 @@ function VagaoComposicao({ vagao, linha, bloqueado, onMover, onAlternarBloqueio 
       <small>{vagao.tipoVagao}</small>
     </div>
     <div className="rail-wagon-containers">
-      {conteineres.map((operacao) => <span key={`${operacao.tipoOperacao}-${operacao.codigoConteiner}`} className={String(operacao.statusOperacao).toLowerCase()}>
-        {operacao.codigoConteiner}
-      </span>)}
+      {conteineres.map((operacao) => {
+        const concluida = operacaoConcluida(operacao.statusOperacao);
+        return <span
+          key={`${operacao.tipoOperacao}-${operacao.codigoConteiner}`}
+          className={String(operacao.statusOperacao).toLowerCase()}
+          draggable={!indisponivel && !concluida}
+          onDragStart={(event) => {
+            event.stopPropagation();
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData(TIPO_DADO_CONTEINER, JSON.stringify({
+              codigoConteiner: operacao.codigoConteiner,
+              tipoOperacao: operacao.tipoOperacao,
+              vagaoOrigem: vagao.identificadorVagao
+            }));
+          }}
+          title={concluida ? 'Operação concluída' : 'Arraste para outro vagão'}
+        >
+          {operacao.codigoConteiner}
+        </span>;
+      })}
       {vagao.operacoes.length > conteineres.length && <span>+{vagao.operacoes.length - conteineres.length}</span>}
       {!vagao.operacoes.length && <em>Sem contêiner associado</em>}
     </div>
     <div className="rail-wagon-stats">
       <span>{vagao.quantidadeDescarga} descarga</span>
       <span>{vagao.quantidadeCarga} carga</span>
+      <span>{vagao.operacoes.length}/{capacidade} ocupação</span>
       <strong>{vagao.progresso}%</strong>
     </div>
     <BarraProgressoVagao valor={vagao.progresso} />
@@ -166,7 +212,7 @@ function VagaoComposicao({ vagao, linha, bloqueado, onMover, onAlternarBloqueio 
   </article>;
 }
 
-function ComposicaoVisual({ composicao, planejamento, bloqueios, onMover, onAlternarBloqueio }) {
+function ComposicaoVisual({ composicao, planejamento, bloqueios, onMover, onAlternarBloqueio, onSolicitarReplanejamento }) {
   if (!composicao.locomotiva) return null;
   return <div className="rail-composition-scroll">
     <div className="rail-composition-sequence">
@@ -181,6 +227,7 @@ function ComposicaoVisual({ composicao, planejamento, bloqueios, onMover, onAlte
         bloqueado={Boolean(bloqueios[vagao.identificadorVagao])}
         onMover={onMover}
         onAlternarBloqueio={onAlternarBloqueio}
+        onSolicitarReplanejamento={onSolicitarReplanejamento}
       />)}
       {!composicao.vagoes.length && !composicao.locomotiva.isolada && <EmptyState title="Composição sem vagões" description="A visita selecionada não possui vagões cadastrados." />}
     </div>
@@ -193,6 +240,7 @@ function PatioFerroviario({ ocupacoes, bloqueios, onMover }) {
       className="rail-track-row"
       key={ocupacao.linha}
       onDragOver={(event) => {
+        if (!Array.from(event.dataTransfer.types || []).includes('text/plain')) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
       }}
@@ -238,6 +286,10 @@ export function RailLineUpPage() {
   const [erroDetalhe, setErroDetalhe] = useState('');
   const [planejamento, setPlanejamento] = useState({});
   const [bloqueios, setBloqueios] = useState({});
+  const [replanejamentoPendente, setReplanejamentoPendente] = useState(null);
+  const [motivoReplanejamento, setMotivoReplanejamento] = useState('');
+  const [salvandoReplanejamento, setSalvandoReplanejamento] = useState(false);
+  const [mensagemReplanejamento, setMensagemReplanejamento] = useState('');
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -265,7 +317,10 @@ export function RailLineUpPage() {
 
   const visitas = useMemo(() => normalizarVisitasFerrovia(dados), [dados]);
   const segmentos = useMemo(() => construirOcupacoesFerroviarias(visitas), [visitas]);
-  const simuladas = useMemo(() => construirSimulacaoFerroviaria(visitas, segmentos, instante), [visitas, segmentos, instante]);
+  const simuladas = useMemo(
+    () => construirSimulacaoFerroviaria(visitas, segmentos, instante),
+    [visitas, segmentos, instante]
+  );
   const composicao = useMemo(() => construirComposicaoFerroviaria(detalheVisita), [detalheVisita]);
   const ocupacoesComposicao = useMemo(
     () => construirOcupacaoLinhasComposicao(composicao, planejamento),
@@ -281,6 +336,9 @@ export function RailLineUpPage() {
   }, [visitas]);
 
   useEffect(() => {
+    setReplanejamentoPendente(null);
+    setMotivoReplanejamento('');
+    setMensagemReplanejamento('');
     if (!visitaSelecionadaId) {
       setDetalheVisita(null);
       setPlanejamento({});
@@ -330,6 +388,47 @@ export function RailLineUpPage() {
 
   function alternarBloqueio(identificadorVagao) {
     setBloqueios((atual) => ({ ...atual, [identificadorVagao]: !atual[identificadorVagao] }));
+  }
+
+  function solicitarReplanejamento(movimento) {
+    setErroDetalhe('');
+    setMensagemReplanejamento('');
+    setMotivoReplanejamento('');
+    setReplanejamentoPendente(movimento);
+  }
+
+  async function confirmarReplanejamento() {
+    const motivo = motivoReplanejamento.trim();
+    if (!replanejamentoPendente || !motivo) {
+      setErroDetalhe('Informe o motivo para confirmar o replanejamento.');
+      return;
+    }
+    setSalvandoReplanejamento(true);
+    setErroDetalhe('');
+    try {
+      const detalheAtualizado = await railApi.replanejarConteiner(visitaSelecionadaId, {
+        codigoConteiner: replanejamentoPendente.codigoConteiner,
+        tipoMovimentacao: replanejamentoPendente.tipoOperacao === 'DESCARGA' ? 'DESCARGA_TREM' : 'CARGA_TREM',
+        vagaoOrigem: replanejamentoPendente.vagaoOrigem,
+        vagaoDestino: replanejamentoPendente.vagaoDestino,
+        versaoComposicao: Number(detalheVisita?.versao ?? 0),
+        motivo
+      });
+      setDetalheVisita(detalheAtualizado);
+      setReplanejamentoPendente(null);
+      setMotivoReplanejamento('');
+      setMensagemReplanejamento(`Contêiner ${replanejamentoPendente.codigoConteiner} replanejado para ${replanejamentoPendente.vagaoDestino}.`);
+    } catch (motivoErro) {
+      setErroDetalhe(formatError(motivoErro, 'Não foi possível confirmar o replanejamento.'));
+    } finally {
+      setSalvandoReplanejamento(false);
+    }
+  }
+
+  function cancelarReplanejamento() {
+    setReplanejamentoPendente(null);
+    setMotivoReplanejamento('');
+    setErroDetalhe('');
   }
 
   function resetarPlano() {
@@ -384,7 +483,7 @@ export function RailLineUpPage() {
         <MetricCard label="Trens em conflito" value={conflitos} detail={conflitos ? 'Replanejamento necessário' : 'Sem sobreposição de linha'} />
       </div>
 
-      <Section title="Composição gráfica e planejamento" description="Selecione uma visita. Arraste os vagões entre as linhas ou use o seletor de linha em cada vagão.">
+      <Section title="Composição gráfica e planejamento" description="Arraste contêineres entre vagões e confirme o motivo. O movimento é validado e persistido no manifesto e na ordem ferroviária.">
         <div className="rail-composition-toolbar">
           <label className="compact-field">Visita de trem
             <select value={visitaSelecionadaId} onChange={(event) => setVisitaSelecionadaId(event.target.value)} disabled={!visitas.length}>
@@ -392,9 +491,10 @@ export function RailLineUpPage() {
               {visitas.map((visita) => <option key={visita.chave} value={visita.id}>{visita.identificadorTrem} · {visita.operadoraFerroviaria} · {visita.statusVisita}</option>)}
             </select>
           </label>
-          <button className="secondary" type="button" disabled={!detalheVisita || carregandoDetalhe} onClick={resetarPlano}>Resetar plano</button>
+          <button className="secondary" type="button" disabled={!detalheVisita || carregandoDetalhe} onClick={resetarPlano}>Resetar plano de linhas</button>
         </div>
         <Message type="error">{erroDetalhe}</Message>
+        <Message type="success">{mensagemReplanejamento}</Message>
         {carregandoDetalhe ? <Loading label="Carregando locomotiva, vagões e contêineres..." /> : !detalheVisita ? <EmptyState title="Selecione uma visita" description="A composição e a ocupação das linhas serão exibidas aqui." /> : <>
           <ComposicaoVisual
             composicao={composicao}
@@ -402,7 +502,28 @@ export function RailLineUpPage() {
             bloqueios={bloqueios}
             onMover={moverVagao}
             onAlternarBloqueio={alternarBloqueio}
+            onSolicitarReplanejamento={solicitarReplanejamento}
           />
+          {replanejamentoPendente && <div className="rail-composition-toolbar">
+            <div>
+              <strong>Confirmar replanejamento</strong>
+              <p>{replanejamentoPendente.codigoConteiner}: {replanejamentoPendente.vagaoOrigem} → {replanejamentoPendente.vagaoDestino}</p>
+            </div>
+            <label className="compact-field">Motivo
+              <textarea
+                maxLength="500"
+                value={motivoReplanejamento}
+                onChange={(event) => setMotivoReplanejamento(event.target.value)}
+                placeholder="Informe o motivo operacional"
+              />
+            </label>
+            <div className="rail-lineup-control-buttons">
+              <button type="button" disabled={salvandoReplanejamento} onClick={confirmarReplanejamento}>
+                {salvandoReplanejamento ? 'Confirmando...' : 'Confirmar movimento'}
+              </button>
+              <button className="secondary" type="button" disabled={salvandoReplanejamento} onClick={cancelarReplanejamento}>Cancelar</button>
+            </div>
+          </div>}
           {composicao.operacoesSemVagao.length > 0 && <Message type="warning">Há {composicao.operacoesSemVagao.length} operação(ões) com vagão ausente ou incompatível na composição.</Message>}
           <PatioFerroviario ocupacoes={ocupacoesComposicao} bloqueios={bloqueios} onMover={moverVagao} />
         </>}

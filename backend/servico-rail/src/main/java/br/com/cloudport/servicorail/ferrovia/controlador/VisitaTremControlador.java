@@ -2,10 +2,14 @@ package br.com.cloudport.servicorail.ferrovia.controlador;
 
 import br.com.cloudport.servicorail.ferrovia.dto.AtualizacaoStatusOperacaoConteinerDto;
 import br.com.cloudport.servicorail.ferrovia.dto.OperacaoConteinerVisitaRequisicaoDto;
+import br.com.cloudport.servicorail.ferrovia.dto.ReplanejamentoConteinerHistoricoDto;
+import br.com.cloudport.servicorail.ferrovia.dto.ReplanejamentoConteinerRequisicaoDto;
 import br.com.cloudport.servicorail.ferrovia.dto.VisitaTremRequisicaoDto;
 import br.com.cloudport.servicorail.ferrovia.dto.VisitaTremRespostaDto;
 import br.com.cloudport.servicorail.ferrovia.servico.PartidaTremServico;
+import br.com.cloudport.servicorail.ferrovia.servico.ReplanejamentoConteinerFerroviarioServico;
 import br.com.cloudport.servicorail.ferrovia.servico.VisitaTremServico;
+import java.security.Principal;
 import java.util.List;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -27,11 +31,14 @@ public class VisitaTremControlador {
 
     private final VisitaTremServico visitaTremServico;
     private final PartidaTremServico partidaTremServico;
+    private final ReplanejamentoConteinerFerroviarioServico replanejamentoServico;
 
     public VisitaTremControlador(VisitaTremServico visitaTremServico,
-                                 PartidaTremServico partidaTremServico) {
+                                  PartidaTremServico partidaTremServico,
+                                  ReplanejamentoConteinerFerroviarioServico replanejamentoServico) {
         this.visitaTremServico = visitaTremServico;
         this.partidaTremServico = partidaTremServico;
+        this.replanejamentoServico = replanejamentoServico;
     }
 
     @PostMapping
@@ -42,7 +49,7 @@ public class VisitaTremControlador {
 
     @PutMapping("/{id}")
     public VisitaTremRespostaDto atualizar(@PathVariable("id") Long id,
-                                           @Valid @RequestBody VisitaTremRequisicaoDto dto) {
+                                            @Valid @RequestBody VisitaTremRequisicaoDto dto) {
         return visitaTremServico.atualizarVisita(id, dto);
     }
 
@@ -61,41 +68,56 @@ public class VisitaTremControlador {
         return partidaTremServico.registrarPartida(id);
     }
 
+    @PostMapping("/{id}/replanejamentos-conteiner")
+    public VisitaTremRespostaDto replanejarConteinerEntreVagoes(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody ReplanejamentoConteinerRequisicaoDto dto,
+            Principal principal) {
+        String usuario = principal != null ? principal.getName() : null;
+        return replanejamentoServico.replanejarConteinerEntreVagoes(id, dto, usuario);
+    }
+
+    @GetMapping("/{id}/replanejamentos-conteiner")
+    public List<ReplanejamentoConteinerHistoricoDto> listarHistoricoReplanejamento(
+            @PathVariable("id") Long id) {
+        return replanejamentoServico.listarHistorico(id);
+    }
+
     @PostMapping("/{id}/descarga")
     public VisitaTremRespostaDto adicionarConteinerDescarga(@PathVariable("id") Long id,
-                                                             @Valid @RequestBody OperacaoConteinerVisitaRequisicaoDto dto) {
+                                                              @Valid @RequestBody OperacaoConteinerVisitaRequisicaoDto dto) {
         return visitaTremServico.adicionarConteinerDescarga(id, dto);
     }
 
     @PostMapping("/{id}/carga")
     public VisitaTremRespostaDto adicionarConteinerCarga(@PathVariable("id") Long id,
-                                                          @Valid @RequestBody OperacaoConteinerVisitaRequisicaoDto dto) {
+                                                           @Valid @RequestBody OperacaoConteinerVisitaRequisicaoDto dto) {
         return visitaTremServico.adicionarConteinerCarga(id, dto);
     }
 
     @DeleteMapping("/{id}/descarga/{codigoConteiner}")
     public VisitaTremRespostaDto removerConteinerDescarga(@PathVariable("id") Long id,
-                                                           @PathVariable("codigoConteiner") String codigoConteiner) {
+                                                            @PathVariable("codigoConteiner") String codigoConteiner) {
         return visitaTremServico.removerConteinerDescarga(id, codigoConteiner);
     }
 
     @DeleteMapping("/{id}/carga/{codigoConteiner}")
     public VisitaTremRespostaDto removerConteinerCarga(@PathVariable("id") Long id,
-                                                        @PathVariable("codigoConteiner") String codigoConteiner) {
+                                                         @PathVariable("codigoConteiner") String codigoConteiner) {
         return visitaTremServico.removerConteinerCarga(id, codigoConteiner);
     }
 
     @PatchMapping("/{id}/descarga/{codigoConteiner}/status")
     public VisitaTremRespostaDto atualizarStatusDescarga(@PathVariable("id") Long id,
-                                                          @PathVariable("codigoConteiner") String codigoConteiner,
-                                                          @Valid @RequestBody AtualizacaoStatusOperacaoConteinerDto dto) {
+                                                           @PathVariable("codigoConteiner") String codigoConteiner,
+                                                           @Valid @RequestBody AtualizacaoStatusOperacaoConteinerDto dto) {
         return visitaTremServico.atualizarStatusDescarga(id, codigoConteiner, dto.getStatusOperacao());
     }
 
     @PatchMapping("/{id}/carga/{codigoConteiner}/status")
     public VisitaTremRespostaDto atualizarStatusCarga(@PathVariable("id") Long id,
-                                                       @PathVariable("codigoConteiner") String codigoConteiner,
-                                                       @Valid @RequestBody AtualizacaoStatusOperacaoConteinerDto dto) {
+                                                        @PathVariable("codigoConteiner") String codigoConteiner,
+                                                        @Valid @RequestBody AtualizacaoStatusOperacaoConteinerDto dto) {
         return visitaTremServico.atualizarStatusCarga(id, codigoConteiner, dto.getStatusOperacao());
     }
 }

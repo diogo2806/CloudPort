@@ -7,6 +7,8 @@ import javax.persistence.Embeddable;
 @Embeddable
 public class VagaoVisita {
 
+    private static final int CAPACIDADE_PADRAO_CONTEINERES = 2;
+
     @Column(name = "posicao_no_trem", nullable = false)
     private Integer posicaoNoTrem;
 
@@ -16,13 +18,26 @@ public class VagaoVisita {
     @Column(name = "tipo_vagao", length = 40)
     private String tipoVagao;
 
+    @Column(name = "capacidade_conteineres", nullable = false)
+    private Integer capacidadeConteineres = CAPACIDADE_PADRAO_CONTEINERES;
+
     public VagaoVisita() {
     }
 
     public VagaoVisita(Integer posicaoNoTrem, String identificadorVagao, String tipoVagao) {
+        this(posicaoNoTrem, identificadorVagao, tipoVagao, CAPACIDADE_PADRAO_CONTEINERES);
+    }
+
+    public VagaoVisita(Integer posicaoNoTrem,
+                       String identificadorVagao,
+                       String tipoVagao,
+                       Integer capacidadeConteineres) {
         this.posicaoNoTrem = posicaoNoTrem;
         this.identificadorVagao = identificadorVagao;
         this.tipoVagao = tipoVagao;
+        this.capacidadeConteineres = capacidadeConteineres != null && capacidadeConteineres > 0
+                ? capacidadeConteineres
+                : CAPACIDADE_PADRAO_CONTEINERES;
     }
 
     public Integer getPosicaoNoTrem() {
@@ -49,6 +64,14 @@ public class VagaoVisita {
         this.tipoVagao = tipoVagao;
     }
 
+    public Integer getCapacidadeConteineres() {
+        return capacidadeConteineres;
+    }
+
+    public void setCapacidadeConteineres(Integer capacidadeConteineres) {
+        this.capacidadeConteineres = capacidadeConteineres;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -60,11 +83,12 @@ public class VagaoVisita {
         VagaoVisita that = (VagaoVisita) o;
         return Objects.equals(posicaoNoTrem, that.posicaoNoTrem)
                 && Objects.equals(identificadorVagao, that.identificadorVagao)
-                && Objects.equals(tipoVagao, that.tipoVagao);
+                && Objects.equals(tipoVagao, that.tipoVagao)
+                && Objects.equals(capacidadeConteineres, that.capacidadeConteineres);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(posicaoNoTrem, identificadorVagao, tipoVagao);
+        return Objects.hash(posicaoNoTrem, identificadorVagao, tipoVagao, capacidadeConteineres);
     }
 }

@@ -6,6 +6,5 @@ ALTER TABLE alerta
 CREATE INDEX IF NOT EXISTS idx_alerta_status_severidade_data
     ON alerta(status, severidade, data_gerada DESC);
 
-CREATE INDEX IF NOT EXISTS idx_alerta_nao_reconhecido
-    ON alerta(status, data_reconhecimento)
-    WHERE status = 'ativo';
+CREATE INDEX IF NOT EXISTS idx_alerta_status_reconhecimento
+    ON alerta(status, data_reconhecimento);

@@ -61,8 +61,14 @@ public class ConfiguracaoSeguranca {
                 .authorizeRequests(authorize -> authorize
                         .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
-                        .antMatchers("/ws/patio", "/ws/patio/**", "/ws/recursos", "/ws/recursos/**").permitAll()
                         .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .antMatchers("/ws/patio", "/ws/patio/**")
+                        .hasAnyRole("ADMIN_PORTO", "PLANEJADOR", "OPERADOR_PATIO", "OPERADOR_GATE",
+                                "SERVICE_NAVIO", "SERVICE_SIDERURGICO")
+                        .antMatchers("/ws/recursos", "/ws/recursos/**")
+                        .hasAnyRole("ADMIN_PORTO", "PLANEJADOR", "OPERADOR_PATIO")
+                        .antMatchers("/ws/edi", "/ws/edi/**")
+                        .hasAnyRole("ADMIN_PORTO", "PLANEJADOR", "SERVICE_NAVIO", "SERVICE_SIDERURGICO")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))

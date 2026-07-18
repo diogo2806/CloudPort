@@ -57,13 +57,20 @@ public class IntegracaoNavioPatioOtimizadaServico extends IntegracaoNavioPatioSe
             Long visitaId,
             ComandoReplanejamentoPatioNavioDTO comando
     ) {
-        OtimizacaoGlobalNavioPatioDTO planoPreparado = otimizacaoGlobalServico.otimizar(
+        OtimizacaoGlobalNavioPatioDTO planoPreparado = otimizacaoGlobalServico.prepararPlano(
                 visitaId,
                 comando);
-        ResultadoAplicacaoPlano resultado = aplicacaoPlanoServico.replanejar(visitaId, comando);
+        ResultadoAplicacaoPlano resultado;
+        try {
+            resultado = aplicacaoPlanoServico.replanejar(visitaId, comando);
+        } finally {
+            otimizacaoGlobalServico.limparPlanoPreparado();
+        }
         Map<String, Object> plano = planoPreparado.planoOtimizado() == null
                 ? Map.of()
                 : planoPreparado.planoOtimizado();
+        Integer distanciaOriginal = inteiro(plano.get("distanciaOriginal"));
+        Integer distanciaOtimizada = inteiro(plano.get("distanciaOtimizada"));
         return new ResultadoReplanejamentoPatioNavioDTO(
                 resultado.reservas(),
                 listarOrdensDaVisita(visitaId),
@@ -73,8 +80,8 @@ public class IntegracaoNavioPatioOtimizadaServico extends IntegracaoNavioPatioSe
                 resultado.itensNaoReplanejados(),
                 resultado.planoId(),
                 resultado.versaoPlano(),
-                resultado.distanciaOriginal(),
-                resultado.distanciaOtimizada(),
+                distanciaOriginal == null ? resultado.distanciaOriginal() : distanciaOriginal,
+                distanciaOtimizada == null ? resultado.distanciaOtimizada() : distanciaOtimizada,
                 converterAtribuicoes(plano.get("atribuicoesReplanejamento")),
                 converterMemoria(plano.get("memoriaCalculo")),
                 converterTextos(plano.get("justificativas")),

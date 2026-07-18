@@ -3,6 +3,7 @@ package br.com.cloudport.servicocargageral.controlador;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.CategoriaReferenciaCarga;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.NaturezaCarga;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusLoteCarga;
+import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoMovimentacaoCarga;
 import br.com.cloudport.servicocargageral.dto.CargaGeralDTOs.ConhecimentoDetalhe;
 import br.com.cloudport.servicocargageral.dto.CargaGeralDTOs.ConhecimentoResumo;
 import br.com.cloudport.servicocargageral.dto.CargaGeralDTOs.CriarConhecimentoRequest;
@@ -44,6 +45,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class CargaGeralControlador {
 
     private static final String ENDPOINT_AVARIA_CANONICO = "/api/carga-geral/intermodal/avarias";
+    private static final String ENDPOINT_INVENTARIO_CANONICO = "/api/carga-geral/intermodal/inventarios";
 
     private final CargaGeralServico cargaGeralServico;
 
@@ -131,9 +133,20 @@ public class CargaGeralControlador {
     @PostMapping("/lotes/{id}/movimentacoes")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'OPERADOR_GATE')")
     @Operation(summary = "Registrar recebimento, carga, descarga, consolidação ou transferência parcial")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Movimentação registrada"),
+        @ApiResponse(responseCode = "410", description = "Ajuste direto de inventário desativado")
+    })
     public LoteDetalhe registrarMovimentacao(
             @PathVariable UUID id,
             @Valid @RequestBody RegistrarMovimentacaoRequest request) {
+        if (request.tipo() == TipoMovimentacaoCarga.AJUSTE_INVENTARIO) {
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "O ajuste direto de inventário foi desativado. Abra uma sessão de inventário físico em "
+                            + ENDPOINT_INVENTARIO_CANONICO
+                            + ", registre as contagens e submeta a divergência para aprovação.");
+        }
         return cargaGeralServico.registrarMovimentacao(id, request);
     }
 

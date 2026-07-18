@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
+import { OperationalDataGrid } from './OperationalDataGrid.jsx';
 import { sanitizeText } from './api.js';
+
+export { OperationalDataGrid };
 
 export function PageHeader({ eyebrow, title, description, actions }) {
   return <header className="page-header">
@@ -38,23 +40,8 @@ export function MetricCard({ label, value, detail }) {
   return <article className="metric-card"><span>{label}</span><strong>{value ?? '—'}</strong>{detail && <small>{detail}</small>}</article>;
 }
 
-export function DataTable({ rows, columns, rowKey = 'id', emptyTitle, onRowClick }) {
-  const safeRows = Array.isArray(rows) ? rows : [];
-  const safeColumns = useMemo(() => Array.isArray(columns) ? columns : [], [columns]);
-  if (!safeRows.length) return <EmptyState title={emptyTitle} />;
-  return <div className="table-wrap">
-    <table>
-      <thead><tr>{safeColumns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead>
-      <tbody>{safeRows.map((row, index) => {
-        const key = typeof rowKey === 'function' ? rowKey(row, index) : row?.[rowKey] ?? index;
-        return <tr key={key} className={onRowClick ? 'clickable' : ''} onClick={() => onRowClick?.(row)}>
-          {safeColumns.map((column) => <td key={column.key} data-label={column.label}>
-            {column.render ? column.render(row, index) : String(row?.[column.key] ?? '—')}
-          </td>)}
-        </tr>;
-      })}</tbody>
-    </table>
-  </div>;
+export function DataTable(props) {
+  return <OperationalDataGrid {...props} />;
 }
 
 export function JsonDetails({ value, title = 'Resposta da operação' }) {

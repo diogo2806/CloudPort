@@ -151,6 +151,17 @@ public class SlotNavio {
     @Column(name = "status_alertas", length = 20)
     private String statusAlertas;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_reconciliacao", nullable = false, length = 30)
+    private StatusReconciliacaoSlot statusReconciliacao = StatusReconciliacaoSlot.NAO_RECONCILIADO;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "severidade_reconciliacao", length = 20)
+    private SeveridadeDivergenciaReconciliacao severidadeReconciliacao;
+
+    @Column(name = "reconciliado_em")
+    private LocalDateTime reconciliadoEm;
+
     @Column(name = "criado_em")
     private LocalDateTime criadoEm;
 
@@ -166,6 +177,9 @@ public class SlotNavio {
         }
         if (estadoCarga == null) {
             estadoCarga = EstadoCargaContainer.DESCONHECIDO;
+        }
+        if (statusReconciliacao == null) {
+            statusReconciliacao = StatusReconciliacaoSlot.NAO_RECONCILIADO;
         }
     }
 

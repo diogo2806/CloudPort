@@ -10,6 +10,7 @@ import br.com.cloudport.servicoyard.edi.parser.CoprarCoarriParser;
 import br.com.cloudport.servicoyard.edi.parser.CoprarCoarriParser.ResultadoParse;
 import br.com.cloudport.servicoyard.edi.parser.VermasParser;
 import br.com.cloudport.servicoyard.edi.parser.VermasParser.ResultadoVermas;
+import br.com.cloudport.servicoyard.vesselplanner.servico.ReconciliacaoBaplieExecucaoServico;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -20,15 +21,19 @@ public class EdiProcessadorServico {
     private final CoprarCoarriParser coprarCoarriParser;
     private final VermasParser vermasParser;
     private final BayPlanServico bayPlanServico;
+    private final ReconciliacaoBaplieExecucaoServico reconciliacaoServico;
 
-    public EdiProcessadorServico(BaplieParser baplieParser,
-                                   CoprarCoarriParser coprarCoarriParser,
-                                   VermasParser vermasParser,
-                                   BayPlanServico bayPlanServico) {
+    public EdiProcessadorServico(
+            BaplieParser baplieParser,
+            CoprarCoarriParser coprarCoarriParser,
+            VermasParser vermasParser,
+            BayPlanServico bayPlanServico,
+            ReconciliacaoBaplieExecucaoServico reconciliacaoServico) {
         this.baplieParser = baplieParser;
         this.coprarCoarriParser = coprarCoarriParser;
         this.vermasParser = vermasParser;
         this.bayPlanServico = bayPlanServico;
+        this.reconciliacaoServico = reconciliacaoServico;
     }
 
     public BayPlanRespostaDto processarBaplie(String conteudoEdifact) {
@@ -37,7 +42,7 @@ public class EdiProcessadorServico {
         if (bayPlan.getContainers().isEmpty()) {
             throw new IllegalArgumentException("BAPLIE: a mensagem nao possui containers validos.");
         }
-        return bayPlanServico.processarBaplie(bayPlan);
+        return reconciliar(bayPlanServico.processarBaplie(bayPlan));
     }
 
     public BayPlanRespostaDto processarCoprar(CoprarMensagemDto dto) {
@@ -49,7 +54,10 @@ public class EdiProcessadorServico {
         if (resultado.getContainers().isEmpty()) {
             throw new IllegalArgumentException("COPRAR: nenhum container valido foi encontrado.");
         }
-        return bayPlanServico.processarCoprar(codigoNavio, codigoViagem, resultado.getContainers());
+        return reconciliar(bayPlanServico.processarCoprar(
+                codigoNavio,
+                codigoViagem,
+                resultado.getContainers()));
     }
 
     public BayPlanRespostaDto processarCoarri(CoarriMensagemDto dto) {
@@ -61,7 +69,10 @@ public class EdiProcessadorServico {
         if (resultado.getContainers().isEmpty()) {
             throw new IllegalArgumentException("COARRI: nenhuma confirmacao de container foi encontrada.");
         }
-        return bayPlanServico.processarCoarri(codigoNavio, codigoViagem, resultado.getContainers());
+        return reconciliar(bayPlanServico.processarCoarri(
+                codigoNavio,
+                codigoViagem,
+                resultado.getContainers()));
     }
 
     public BayPlanRespostaDto processarVermas(VermasMensagemDto dto) {
@@ -69,7 +80,18 @@ public class EdiProcessadorServico {
         String codigoNavio = preferir(dto.getCodigoNavio(), resultado.codigoNavio());
         String codigoViagem = preferir(dto.getCodigoViagem(), resultado.codigoViagem());
         validarNavioViagem(codigoNavio, codigoViagem, "VERMAS");
-        return bayPlanServico.processarVermas(codigoNavio, codigoViagem, resultado.pesos());
+        return reconciliar(bayPlanServico.processarVermas(
+                codigoNavio,
+                codigoViagem,
+                resultado.pesos()));
+    }
+
+    private BayPlanRespostaDto reconciliar(BayPlanRespostaDto resposta) {
+        if (resposta == null || resposta.getId() == null) {
+            return resposta;
+        }
+        reconciliacaoServico.reconciliarPorBayPlan(resposta.getId());
+        return bayPlanServico.buscarPorId(resposta.getId());
     }
 
     private void validarTipoMensagem(String conteudoEdifact, String tipoEsperado) {

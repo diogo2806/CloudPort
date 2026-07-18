@@ -16,6 +16,8 @@ import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelReposit
 import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkIdentidadeServico;
 import br.com.cloudport.servicoyard.vesselplanner.controlador.VesselPlannerControlador;
 import br.com.cloudport.servicoyard.vesselplanner.dto.EstivagemPlanDto;
+import br.com.cloudport.servicoyard.vesselplanner.servico.ExecucaoSequenciaGuindasteServico;
+import br.com.cloudport.servicoyard.vesselplanner.servico.ReconciliacaoBaplieExecucaoServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.VesselPlannerServico;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,12 @@ class PlanejamentoEstivaAutorizacaoControladorTest {
 
     @MockBean
     private VesselPlannerServico vesselPlannerServico;
+
+    @MockBean
+    private ExecucaoSequenciaGuindasteServico execucaoSequenciaGuindasteServico;
+
+    @MockBean
+    private ReconciliacaoBaplieExecucaoServico reconciliacaoBaplieExecucaoServico;
 
     @MockBean
     private PlanoEstivaBulkIdentidadeServico planoEstivaBulkServico;

@@ -47,6 +47,9 @@ public class VisitaTrem {
     @Column(name = "status_visita", nullable = false, length = 20)
     private StatusVisitaTrem statusVisita;
 
+    @Column(name = "posicao_ferroviaria_atual", length = 120)
+    private String posicaoFerroviariaAtual;
+
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
 
@@ -138,6 +141,14 @@ public class VisitaTrem {
 
     public void setStatusVisita(StatusVisitaTrem statusVisita) {
         this.statusVisita = statusVisita;
+    }
+
+    public String getPosicaoFerroviariaAtual() {
+        return posicaoFerroviariaAtual;
+    }
+
+    public void setPosicaoFerroviariaAtual(String posicaoFerroviariaAtual) {
+        this.posicaoFerroviariaAtual = posicaoFerroviariaAtual;
     }
 
     public LocalDateTime getCriadoEm() {

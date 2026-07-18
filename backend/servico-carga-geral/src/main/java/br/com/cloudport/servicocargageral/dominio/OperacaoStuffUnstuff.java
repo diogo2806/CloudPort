@@ -102,6 +102,18 @@ public class OperacaoStuffUnstuff {
         itens.add(item);
     }
 
+    public void substituirItens(List<ItemOperacaoStuffUnstuff> novosItens) {
+        if (status != StatusOperacaoStuffUnstuff.PLANEJADA || possuiExecucao()) {
+            throw new IllegalStateException("Itens só podem ser substituídos antes da execução física.");
+        }
+        itens.clear();
+        novosItens.forEach(this::adicionarItem);
+    }
+
+    public boolean possuiExecucao() {
+        return itens.stream().anyMatch(ItemOperacaoStuffUnstuff::possuiExecucao);
+    }
+
     public void registrarEvento(TipoEventoStuffUnstuff tipoEvento, String usuario, String correlationId, String descricao) {
         EventoOperacaoStuffUnstuff evento = new EventoOperacaoStuffUnstuff();
         evento.setOperacao(this);

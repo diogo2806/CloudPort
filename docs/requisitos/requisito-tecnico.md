@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1050, BUS1090, BUS1170 e DATA1180 na branch `main`.
+Status: atualizado em 2026-07-18 após conclusão dos BUS1000, BUS1050, BUS1060, BUS1090, BUS1170 e DATA1180 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -13,7 +13,7 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 | BUS1020 | Implementar transload entre unidades com rastreabilidade e atualização atômica. | Origem, destino, lotes, quantidades, lacres, divergências e avarias são persistidos sem saldo negativo ou atualização parcial. | ⬜ Pendente |
 | BUS1030 | Integrar Gate à carga geral para retirada e entrega parcial. | O Gate reserva quantidade por BL, delivery order e cargo lot e só confirma o estoque após o estágio físico correspondente. | ⬜ Pendente |
 | BUS1040 | Implementar planejamento de pátio e armazém para cargo lots. | Allocation, capacidade, restrições, origem, destino, recurso e saldo por posição são persistidos e confirmados pela execução. | ⬜ Pendente |
-| BUS1060 | Implementar plano de carga e descarga de cargo lots por visita ferroviária. | Lotes são planejados e executados por vagão e posição, com capacidade, incompatibilidades, sequência e custódia persistida. | ⬜ Pendente |
+| BUS1060 | Implementar plano de carga e descarga de cargo lots por visita ferroviária. | Lotes são planejados e executados por vagão e posição, com capacidade, incompatibilidades, sequência e custódia persistida. | ✅ Concluído |
 | BUS1070 | Implementar ciclo completo de avaria da carga. | Avarias possuem quantidade afetada, evidências, responsável, bloqueio, inspeção, reparo ou baixa e saldo segregado. | ⬜ Pendente |
 | BUS1080 | Implementar identificação e inventário físico reconciliável de cargo lots. | Código de barras ou QR identifica lote e embalagem; contagens e divergências geram ajuste motivado sem sobrescrever diretamente o saldo lógico. | ⬜ Pendente |
 
@@ -57,8 +57,9 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | Caminho completo | Método/campo/contrato | Como está | O que fazer |
 |---|---|---|---|
-| `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/listatrabalho/controlador/ListaTrabalhoTremControlador.java` | lista de trabalho | Opera contêineres e ordens ferroviárias, sem cargo lots e quantidades por vagão. | Estender por contrato específico de carga geral. |
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/dominio/LoteCarga.java` | vínculos de transporte | Não mantém visita ferroviária, vagão, posição e histórico de custódia. | Adicionar associação persistida à operação ferroviária. |
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/controlador/ListaTrabalhoTremCargaGeralControlador.java` | planejamento, lista e atualização de status | Expõe contrato específico para planejar cargo lots por visita e vagão, listar por status e atualizar execução e custódia. | Concluído. |
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/dominio/LoteCarga.java` | vínculos e histórico ferroviário | Persiste visita, vagão, posição, sequência, peso, capacidade, incompatibilidades, status, custódia atual e histórico de transições. | Concluído. |
+| `backend/servico-carga-geral/src/test/java/br/com/cloudport/servicocargageral/dominio/LoteCargaFerroviaTest.java` | fluxo por natureza da carga | Valida planejamento, capacidade, progressão de status, custódia e bloqueio de regressão para todas as naturezas de carga. | Concluído. |
 
 ### BUS1070 — arquivos e métodos
 

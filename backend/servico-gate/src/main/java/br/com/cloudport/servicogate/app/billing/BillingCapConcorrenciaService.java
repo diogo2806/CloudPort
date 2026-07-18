@@ -29,6 +29,8 @@ public class BillingCapConcorrenciaService extends BillingCapService {
             "Somente faturas abertas podem receber pagamentos.";
     private static final String PAGAMENTO_ACIMA_SALDO =
             "O pagamento não pode ser maior que o saldo da fatura.";
+    private static final String CONSTRAINT_COBRANCA_FATURA =
+            "billing_fatura_item_cobranca_id_key";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -52,9 +54,15 @@ public class BillingCapConcorrenciaService extends BillingCapService {
                 throw new ConflictException(ex.getMessage(), ex);
             }
             throw ex;
-        } catch (DataIntegrityViolationException | PessimisticLockingFailureException ex) {
+        } catch (DataIntegrityViolationException ex) {
+            if (ehColisaoDeCobranca(ex)) {
+                throw new ConflictException(
+                        "Uma ou mais cobranças já foram faturadas por outra operação.", ex);
+            }
+            throw ex;
+        } catch (PessimisticLockingFailureException ex) {
             throw new ConflictException(
-                    "Uma ou mais cobranças já foram faturadas por outra operação.", ex);
+                    "As cobranças estão sendo faturadas por outra operação.", ex);
         }
     }
 
@@ -144,5 +152,17 @@ public class BillingCapConcorrenciaService extends BillingCapService {
     private boolean ehConflitoDePagamento(String mensagem) {
         return FATURA_NAO_ABERTA.equals(mensagem)
                 || PAGAMENTO_ACIMA_SALDO.equals(mensagem);
+    }
+
+    private boolean ehColisaoDeCobranca(Throwable erro) {
+        Throwable atual = erro;
+        while (atual != null) {
+            String mensagem = atual.getMessage();
+            if (mensagem != null && mensagem.contains(CONSTRAINT_COBRANCA_FATURA)) {
+                return true;
+            }
+            atual = atual.getCause();
+        }
+        return false;
     }
 }

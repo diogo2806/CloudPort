@@ -78,4 +78,11 @@ test('consulta os contratos dedicados do operador do Gate', async () => {
 
   await gateOperatorApi.listarEventos();
   assert.equal(calls.at(-1).url, 'http://localhost:8080/gate/operador/eventos');
+
+  await gateOperatorApi.obterComprovante(10);
+  assert.equal(calls.at(-1).url, 'http://localhost:8080/gate/operador/veiculos/10/comprovante');
+});
+
+test('recusa impressão sem identificador válido do veículo', async () => {
+  await assert.rejects(() => gateOperatorApi.obterComprovante(null), /veículo é obrigatório/i);
 });

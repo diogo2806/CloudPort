@@ -28,12 +28,15 @@ jobs:
             command: mvn -B test package
           - module: backend/servico-yard
             command: >-
+              mvn -B -f ../cloudport-contracts/pom.xml -DskipTests install &&
               mvn -B
               -Dtest=OtimizadorRotasPatioServicoTest,OtimizadorDualCyclingServicoTest,WorkQueuePatioServicoTest,WorkQueuePatioControladorAutorizacaoTest,ConsumidoresMigracaoConfiguracaoTest,ObservabilidadeYardFiltroTest,VermasParserTest,BaplieParserTest,AutoStowageServicoTest,EstabilidadeNavioServicoTest
               test &&
               mvn -B -DskipTests package
           - module: backend/servico-navio
-            command: mvn -B -DskipTests package
+            command: >-
+              mvn -B -f ../cloudport-contracts/pom.xml -DskipTests install &&
+              mvn -B -DskipTests package
           - module: backend/servico-navio-siderurgico
             command: >-
               mvn -B -f ../cloudport-contracts/pom.xml -DskipTests install &&
@@ -121,11 +124,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validar Docker Compose
-        run: docker compose -f deploy/cloudport-runtime/docker-compose.yml config
+        run: |
+          DB_NAME=cloudport DB_USER=cloudport DB_PASS="$POSTGRES_PASSWORD" \
+          DB_SCHEMA=cloudport_autenticacao,cloudport_carga_geral,cloudport_gate,cloudport_rail,cloudport_visibilidade,cloudport_yard,cloudport_navio,cloudport_siderurgico \
+          SECURITY_JWT_SECRET="$JWT_SECRET" SECURITY_JWT_EXPIRATION_MS=7200000 \
+          ADMIN_EMAIL=admin@cloudport.test ADMIN_PASSWORD=cloudport-admin \
+          CLOUDPORT_INTERNAL_SERVICE_KEY="$CLOUDPORT_INTERNAL_SERVICE_KEY" \
+          docker compose -f deploy/cloudport-runtime/docker-compose.yml config
       - name: Construir imagem do runtime canônico pela raiz
         run: docker build -f backend/cloudport-runtime/Dockerfile -t cloudport-runtime:ci .
       - name: Construir imagem do runtime canônico no contexto do EasyPanel
         run: docker build -f backend/Dockerfile -t cloudport-runtime-easypanel:ci backend
+
+  corte-operacional:
+    name: Provar corte e rollback do monólito modular
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Validar contratos de TOS, OCR e EDI
+        shell: bash
+        run: |
+          mvn -B -f backend/cloudport-contracts/pom.xml -DskipTests install
+          mvn -B -f backend/servico-gate/pom.xml \
+            -Dtest=TosIntegrationServiceTest,TosConsumerContractTest,ProcessamentoOcrRecuperacaoJobTest,ProcessamentoOcrRecuperacaoJobCondicaoTest \
+            test
+          mvn -B -f backend/servico-yard/pom.xml \
+            -Dtest=EdiMensagemListenerServicoTest,ConsumidoresMigracaoConfiguracaoTest \
+            test
+      - name: Executar prova do runtime canônico e retorno para rollback
+        env:
+          CLOUDPORT_RUNTIME_REVISAO: ${{ github.sha }}
+        run: bash deploy/cloudport-runtime/provar-corte.sh
+      - name: Publicar evidências do corte operacional
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencia-corte-operacional
+          path: /tmp/cloudport-cutover-evidence
+          if-no-files-found: error
 
   frontend:
     name: Frontend ${{ matrix.name }}

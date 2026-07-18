@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.UUID;
 import javax.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,18 +48,21 @@ public class CargaGeralControlador {
     }
 
     @GetMapping("/dashboard")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE')")
     @Operation(summary = "Consultar visão consolidada da carga geral")
     public DashboardResposta obterDashboard() {
         return cargaGeralServico.obterDashboard();
     }
 
     @GetMapping("/conhecimentos")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE')")
     @Operation(summary = "Listar Bills of Lading")
     public List<ConhecimentoResumo> listarConhecimentos() {
         return cargaGeralServico.listarConhecimentos();
     }
 
     @PostMapping("/conhecimentos")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR')")
     @Operation(summary = "Criar Bill of Lading")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Bill of Lading criado"),
@@ -70,12 +74,14 @@ public class CargaGeralControlador {
     }
 
     @GetMapping("/conhecimentos/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE')")
     @Operation(summary = "Consultar Bill of Lading com itens e lotes")
     public ConhecimentoDetalhe obterConhecimento(@PathVariable UUID id) {
         return cargaGeralServico.obterConhecimento(id);
     }
 
     @PostMapping("/conhecimentos/{id}/itens")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR')")
     @Operation(summary = "Adicionar item ao Bill of Lading")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Item criado"),
@@ -89,6 +95,7 @@ public class CargaGeralControlador {
     }
 
     @PostMapping("/itens/{id}/lotes")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR')")
     @Operation(summary = "Criar cargo lot para um item do conhecimento")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Cargo lot criado"),
@@ -102,6 +109,7 @@ public class CargaGeralControlador {
     }
 
     @GetMapping("/lotes")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE')")
     @Operation(summary = "Listar cargo lots")
     public List<LoteResumo> listarLotes(
             @RequestParam(required = false) StatusLoteCarga status,
@@ -110,12 +118,14 @@ public class CargaGeralControlador {
     }
 
     @GetMapping("/lotes/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE')")
     @Operation(summary = "Consultar cargo lot e histórico de movimentações")
     public LoteDetalhe obterLote(@PathVariable UUID id) {
         return cargaGeralServico.obterLote(id);
     }
 
     @PostMapping("/lotes/{id}/movimentacoes")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'OPERADOR_GATE')")
     @Operation(summary = "Registrar recebimento, carga, descarga, consolidação ou transferência parcial")
     public LoteDetalhe registrarMovimentacao(
             @PathVariable UUID id,
@@ -124,6 +134,7 @@ public class CargaGeralControlador {
     }
 
     @PostMapping("/lotes/{id}/avarias")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'OPERADOR_GATE')")
     @Operation(summary = "Registrar avaria de carga")
     public LoteDetalhe registrarAvaria(
             @PathVariable UUID id,
@@ -132,6 +143,7 @@ public class CargaGeralControlador {
     }
 
     @GetMapping("/referencias")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE')")
     @Operation(summary = "Listar commodities, embalagens, produtos e códigos operacionais")
     public List<ReferenciaResposta> listarReferencias(
             @RequestParam(required = false) CategoriaReferenciaCarga categoria) {
@@ -139,6 +151,7 @@ public class CargaGeralControlador {
     }
 
     @PostMapping("/referencias")
+    @PreAuthorize("hasRole('ADMIN_PORTO')")
     @Operation(summary = "Criar referência do domínio de carga")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Referência criada"),
@@ -150,6 +163,7 @@ public class CargaGeralControlador {
     }
 
     @PatchMapping("/referencias/{id}/status")
+    @PreAuthorize("hasRole('ADMIN_PORTO')")
     @Operation(summary = "Ativar ou desativar referência")
     public ReferenciaResposta atualizarReferenciaAtiva(
             @PathVariable UUID id,

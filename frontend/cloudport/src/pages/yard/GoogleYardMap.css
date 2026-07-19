@@ -20,6 +20,24 @@
   backdrop-filter: blur(2px);
 }
 
+.yard-google-map-empty {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 25;
+  max-width: min(520px, calc(100% - 420px));
+  padding: 9px 12px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(15, 23, 42, .14);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, .14);
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .yard-google-map-legend {
   position: absolute;
   left: 14px;
@@ -60,6 +78,13 @@
 .yard-google-map-legend i.reserved { background: #d97706; }
 .yard-google-map-legend i.blocked { background: #dc2626; }
 .yard-google-map-legend i.interdicted { background: #7c3aed; }
+.yard-google-map-legend i.geometry { background: #0f4c81; }
+.yard-google-map-legend i.route {
+  width: 16px;
+  height: 3px;
+  border-radius: 0;
+  background: #0f4c81;
+}
 .yard-google-map-legend i.equipment {
   width: 14px;
   height: 14px;
@@ -127,6 +152,94 @@
   color: #0f4c81;
 }
 
+.yard-geometry-editor {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 130;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100% - 28px));
+  max-height: calc(100% - 92px);
+  padding: 14px;
+  overflow: auto;
+  border: 1px solid rgba(15, 23, 42, .16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 12px 34px rgba(15, 23, 42, .2);
+  backdrop-filter: blur(4px);
+}
+
+.yard-geometry-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #0f172a;
+}
+
+.yard-geometry-editor-header span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.yard-geometry-editor label {
+  display: grid;
+  gap: 4px;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.yard-geometry-editor input,
+.yard-geometry-editor select {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 12px;
+}
+
+.yard-geometry-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yard-geometry-editor-grid label:first-child,
+.yard-geometry-editor-grid label:nth-child(2) {
+  grid-column: span 2;
+}
+
+.yard-geometry-editor-hint {
+  margin: 0;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.yard-geometry-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.yard-geometry-editor-actions button {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+
+.yard-geometry-editor-actions .danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
 .yard-google-map-not-configured {
   display: grid;
   place-items: center;
@@ -147,6 +260,22 @@
   font-size: 12px;
 }
 
+@media (max-width: 800px) {
+  .yard-google-map-empty {
+    display: none;
+  }
+
+  .yard-geometry-editor {
+    position: static;
+    width: auto;
+    max-height: none;
+    border: 0;
+    border-top: 1px solid #d8e3ec;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
 @media (max-width: 650px) {
   .yard-google-map {
     min-height: 440px;
@@ -160,5 +289,14 @@
     border-top: 1px solid #d8e3ec;
     border-radius: 0;
     box-shadow: none;
+  }
+
+  .yard-geometry-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .yard-geometry-editor-grid label:first-child,
+  .yard-geometry-editor-grid label:nth-child(2) {
+    grid-column: auto;
   }
 }

@@ -2,30 +2,34 @@
 .context-help-trigger { display: inline-flex; min-height: 40px; align-items: center; gap: 7px; padding: 8px 12px; }
 .context-help-trigger > span { display: grid; width: 21px; height: 21px; place-items: center; border-radius: 50%; background: #1261a0; color: #fff; font-size: 13px; font-weight: 900; }
 .context-help-trigger > strong { font-size: 12px; }
-.context-help-backdrop { position: fixed; inset: 0; z-index: 85; padding: 0; border-radius: 0; background: rgba(7, 22, 37, .44); }
-.context-help-drawer { position: fixed; top: 0; right: 0; z-index: 90; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; width: min(620px, 96vw); height: 100vh; overflow: hidden; background: #f7fafc; box-shadow: -24px 0 55px rgba(7, 28, 48, .26); }
-.context-help-drawer > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 21px 23px 17px; border-bottom: 1px solid #d8e3ec; background: #fff; }
+.context-help-layer { position: fixed; inset: 0; z-index: 1000; pointer-events: none; }
+.context-help-backdrop { position: absolute; inset: 0; z-index: 0; padding: 0; border-radius: 0; background: rgba(7, 22, 37, .44); box-shadow: none; pointer-events: auto; transform: none; }
+.context-help-backdrop:hover:not(:disabled), .context-help-backdrop:active:not(:disabled) { background: rgba(7, 22, 37, .44); box-shadow: none; transform: none; }
+.context-help-drawer { position: absolute; top: 0; right: 0; z-index: 1; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; width: min(620px, 100vw); max-width: 100%; min-width: 0; height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior: contain; background: #f7fafc; color: #172033; box-shadow: -24px 0 55px rgba(7, 28, 48, .26); pointer-events: auto; isolation: isolate; }
+.context-help-drawer > header { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 21px 23px 17px; border-bottom: 1px solid #d8e3ec; background: #fff; }
+.context-help-drawer > header > div { min-width: 0; }
 .context-help-drawer > header span { color: #1261a0; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
-.context-help-drawer > header h2 { margin: 5px 0 4px; font-size: 26px; line-height: 1.15; }
-.context-help-drawer > header p { margin: 0; color: #7a8a9d; font-size: 11px; }
-.context-help-search { display: grid; gap: 6px; padding: 14px 23px; border-bottom: 1px solid #dce5ed; background: #fff; }
+.context-help-drawer > header h2 { margin: 5px 0 4px; overflow-wrap: anywhere; font-size: 26px; line-height: 1.15; }
+.context-help-drawer > header p { margin: 0; overflow-wrap: anywhere; color: #7a8a9d; font-size: 11px; }
+.context-help-drawer > header .icon-button { flex: 0 0 auto; }
+.context-help-search { display: grid; min-width: 0; gap: 6px; padding: 14px 23px; border-bottom: 1px solid #dce5ed; background: #fff; }
 .context-help-search label { color: #52677e; font-size: 10px; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
-.context-help-search input { min-height: 38px; }
-.context-help-access { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 23px; border-bottom: 1px solid #dce5ed; background: #eef4f8; }
-.context-help-access span { color: #6d7f93; font-size: 10px; font-weight: 800; text-transform: uppercase; }
-.context-help-access strong { overflow: hidden; color: #24415d; font-size: 11px; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
-.context-help-content { overflow-y: auto; display: grid; align-content: start; gap: 11px; padding: 15px 23px 24px; }
-.context-help-section { padding: 15px 16px; border: 1px solid #d8e3ec; border-radius: 13px; background: #fff; box-shadow: 0 4px 14px rgba(23, 50, 75, .04); }
+.context-help-search input { min-width: 0; min-height: 38px; }
+.context-help-access { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 10px 23px; border-bottom: 1px solid #dce5ed; background: #eef4f8; }
+.context-help-access span { flex: 0 0 auto; color: #6d7f93; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.context-help-access strong { min-width: 0; max-width: 76%; overflow-wrap: anywhere; color: #24415d; font-size: 11px; line-height: 1.45; text-align: right; }
+.context-help-content { display: grid; min-width: 0; overflow-x: hidden; overflow-y: auto; align-content: start; gap: 11px; padding: 15px 23px 24px; }
+.context-help-section { width: 100%; min-width: 0; padding: 15px 16px; border: 1px solid #d8e3ec; border-radius: 13px; background: #fff; box-shadow: 0 4px 14px rgba(23, 50, 75, .04); }
 .context-help-section h3 { margin: 0 0 9px; color: #1f3b55; font-size: 14px; }
-.context-help-section ul, .context-help-section ol { display: grid; gap: 7px; margin: 0; padding-left: 20px; }
-.context-help-section li { color: #5f7187; font-size: 12px; line-height: 1.5; }
+.context-help-section ul, .context-help-section ol { display: grid; min-width: 0; gap: 7px; margin: 0; padding-left: 20px; }
+.context-help-section li { overflow-wrap: anywhere; color: #5f7187; font-size: 12px; line-height: 1.5; }
 .context-help-section-purpose { border-left: 5px solid #1261a0; }
 .context-help-section-blockers { border-left: 5px solid #b45309; }
 .context-help-section-example { border-left: 5px solid #318b64; }
 .context-help-empty { min-height: 180px; display: grid; place-items: center; align-content: center; gap: 5px; border: 1px dashed #cad7e2; border-radius: 13px; color: #718198; text-align: center; }
 .context-help-empty strong { color: #40536a; }
-.context-help-drawer > footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 23px; border-top: 1px solid #d8e3ec; background: #fff; }
-.context-help-drawer > footer > div { display: flex; align-items: center; gap: 11px; }
+.context-help-drawer > footer { display: flex; min-width: 0; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; padding: 13px 23px; border-top: 1px solid #d8e3ec; background: #fff; }
+.context-help-drawer > footer > div { display: flex; min-width: 0; align-items: center; flex-wrap: wrap; gap: 11px; }
 .context-help-drawer > footer a { color: #1261a0; font-size: 11px; font-weight: 800; text-decoration: none; }
 .context-help-drawer > footer a:hover { text-decoration: underline; }
 .context-help-drawer > footer > span { color: #718198; font-size: 10px; text-align: right; }
@@ -38,9 +42,9 @@
   .context-help-trigger { padding: 8px; }
   .context-help-drawer { width: 100vw; }
   .context-help-drawer > header, .context-help-search, .context-help-access, .context-help-content, .context-help-drawer > footer { padding-left: 17px; padding-right: 17px; }
-  .context-help-access { align-items: flex-start; flex-direction: column; }
-  .context-help-access strong { width: 100%; text-align: left; white-space: normal; }
+  .context-help-access { flex-direction: column; }
+  .context-help-access strong { max-width: 100%; text-align: left; }
   .context-help-drawer > footer { align-items: stretch; flex-direction: column; }
-  .context-help-drawer > footer > div { display: grid; grid-template-columns: 1fr auto; }
+  .context-help-drawer > footer > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .context-help-drawer > footer > span { text-align: left; }
 }

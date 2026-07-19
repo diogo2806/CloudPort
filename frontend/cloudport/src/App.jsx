@@ -88,7 +88,7 @@ const FALLBACK_NAVIGATION = [
   { group: 'Pátio', items: [
     { label: 'Mapa', path: '/home/patio/mapa', roles: [] },
     { label: 'Inventário', path: '/home/patio/inventario', roles: [] },
-    { label: 'Lost & Found / TBD', path: '/home/patio/lost-found', roles: ['ADMIN_PORTO', 'OPERADOR_PATIO', 'PLANEJADOR'] },
+    { label: 'Unidades não localizadas', path: '/home/patio/lost-found', roles: ['ADMIN_PORTO', 'OPERADOR_PATIO', 'PLANEJADOR'] },
     { label: 'Planejamento de recebimento', path: '/home/patio/planejamento-recebimento', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Lista de trabalho', path: '/home/patio/lista-trabalho', roles: [] },
     { label: 'Instruções de trabalho', path: '/home/patio/instrucoes', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
@@ -215,9 +215,16 @@ function PortalShell({ path, navigate, session, onLogout }) {
   }, []);
   const navigation = dynamicNavigation.length ? dynamicNavigation : FALLBACK_NAVIGATION;
   const visibleNavigation = useMemo(() => navigation.map((group) => ({ ...group, items: group.items.filter((item) => !item.roles?.length || hasAnyRole(session, ...item.roles)) })).filter((group) => group.items.length), [navigation, session]);
+  const currentContext = useMemo(() => {
+    for (const group of visibleNavigation) {
+      const item = group.items.find((candidate) => path === candidate.path || path.startsWith(`${candidate.path}/`));
+      if (item) return `${group.group} / ${item.label}`;
+    }
+    return path.replace('/home/', '').replaceAll('/', ' / ') || 'Painel';
+  }, [path, visibleNavigation]);
   function open(pathToOpen) { navigate(pathToOpen); setMobileMenu(false); }
   function logout() { clearSession(); onLogout(); navigate('/login', { replace: true }); }
-  return <div className="portal-shell"><aside className={`sidebar ${mobileMenu ? 'open' : ''}`}><button className="sidebar-brand" onClick={() => open('/home/dashboard')}><span className="brand-mark small">CP</span><span><strong>CloudPort</strong><small>Portal operacional</small></span></button><nav aria-label="Navegação principal">{visibleNavigation.map((group) => <section className="nav-group" key={group.group}><h2>{group.group}</h2>{group.items.map((item) => <button key={item.path} className={path === item.path || path.startsWith(`${item.path}/`) ? 'active' : ''} onClick={() => open(item.path)}>{item.label}</button>)}</section>)}</nav><footer className="sidebar-footer"><span>React 19 · Vite 8</span></footer></aside>{mobileMenu && <button className="sidebar-backdrop" aria-label="Fechar menu" onClick={() => setMobileMenu(false)} />}<div className="portal-main"><header className="topbar"><button className="menu-button" onClick={() => setMobileMenu((value) => !value)} aria-label="Abrir menu">☰</button><div className="topbar-context"><strong>CloudPort</strong><span>{path.replace('/home/', '').replaceAll('/', ' / ') || 'Painel'}</span></div><div className="topbar-actions"><GlobalAlertCenter navigate={navigate} session={session} /><div className="user-menu"><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div></div></header><main className="content"><RouteContent path={path} navigate={navigate} session={session} /></main></div></div>;
+  return <div className="portal-shell"><aside className={`sidebar ${mobileMenu ? 'open' : ''}`}><button className="sidebar-brand" onClick={() => open('/home/dashboard')}><span className="brand-mark small">CP</span><span><strong>CloudPort</strong><small>Portal operacional</small></span></button><nav aria-label="Navegação principal">{visibleNavigation.map((group) => <section className="nav-group" key={group.group}><h2>{group.group}</h2>{group.items.map((item) => <button key={item.path} className={path === item.path || path.startsWith(`${item.path}/`) ? 'active' : ''} onClick={() => open(item.path)}>{item.label}</button>)}</section>)}</nav><footer className="sidebar-footer"><span>React 19 · Vite 8</span></footer></aside>{mobileMenu && <button className="sidebar-backdrop" aria-label="Fechar menu" onClick={() => setMobileMenu(false)} />}<div className="portal-main"><header className="topbar"><button className="menu-button" onClick={() => setMobileMenu((value) => !value)} aria-label="Abrir menu">☰</button><div className="topbar-context"><strong>CloudPort</strong><span>{currentContext}</span></div><div className="topbar-actions"><GlobalAlertCenter navigate={navigate} session={session} /><div className="user-menu"><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div></div></header><main className="content"><RouteContent path={path} navigate={navigate} session={session} /></main></div></div>;
 }
 
 export default function App() {

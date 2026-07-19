@@ -898,7 +898,7 @@ public class GateOperacionalService {
                   LEFT JOIN truck_visit tv ON tv.lane_id = gl.id
                  WHERE gc.facility_id = :facilityId
                  GROUP BY gl.id
-                 ORDER BY gc.id, gl.codigo
+                 ORDER BY gl.gate_id, gl.codigo
                 """, new MapSqlParameterSource("facilityId", facilityId)).stream()
                 .map(this::mapearLane).collect(Collectors.toList());
     }

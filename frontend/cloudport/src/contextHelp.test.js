@@ -21,10 +21,10 @@ test('combina ajuda do módulo com conteúdo específico da página', () => {
   assert.deepEqual(help.currentRoles, ['ROLE_PLANEJADOR']);
 });
 
-test('fornece manual operacional completo para Lost and Found', () => {
+test('fornece manual operacional completo para unidades não localizadas', () => {
   const help = resolveContextHelp('/home/patio/lost-found', { perfil: 'ROLE_OPERADOR_PATIO' });
   assert.equal(help.module, 'Pátio');
-  assert.equal(help.title, 'Lost & Found / TBD');
+  assert.equal(help.title, 'Unidades de carga não localizadas');
   assert.match(help.purpose, /unidades sem registro/i);
   assert.ok(help.flow.some((item) => item.includes('Associe')));
   assert.ok(help.fields.some((item) => item.includes('Tipo do caso')));

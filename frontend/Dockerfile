@@ -16,7 +16,9 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker-entrypoint.d/40-cloudport-runtime-config.sh /docker-entrypoint.d/40-cloudport-runtime-config.sh
 COPY --from=build /app/dist/cloudport/ /usr/share/nginx/html/
 
-RUN chmod +x /docker-entrypoint.d/40-cloudport-runtime-config.sh
+RUN chmod +x /docker-entrypoint.d/40-cloudport-runtime-config.sh \
+    && find /usr/share/nginx/html -type d -exec chmod 0755 {} \; \
+    && find /usr/share/nginx/html -type f -exec chmod 0644 {} \;
 
 EXPOSE 80
 

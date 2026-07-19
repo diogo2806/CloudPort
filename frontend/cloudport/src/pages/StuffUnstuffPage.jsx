@@ -3,6 +3,7 @@ import { formatError } from '../api.js';
 import { Message, PageHeader } from '../components.jsx';
 import { generalCargoApi } from '../generalCargoApi.js';
 import { StuffUnstuffPanel } from './StuffUnstuffPanel.jsx';
+import { StuffUnstuffSealPanel } from './StuffUnstuffSealPanel.jsx';
 
 export function StuffUnstuffPage() {
   const [lotes, setLotes] = useState([]);
@@ -34,5 +35,6 @@ export function StuffUnstuffPage() {
     />
     <Message type="error">{error}</Message>
     <StuffUnstuffPanel lotes={lotes} conteineres={conteineres} onChanged={reloadData} />
+    <StuffUnstuffSealPanel onChanged={reloadData} />
   </>;
 }

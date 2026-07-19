@@ -70,8 +70,30 @@ public final class CargaGeralTipos {
         EXECUCAO_REGISTRADA,
         DIVERGENCIA_REGISTRADA,
         AVARIA_REGISTRADA,
+        LACRE_PREVISTO,
+        LACRE_APLICADO,
+        LACRE_ROMPIDO,
+        LACRE_SUBSTITUIDO,
+        LACRE_CONFERIDO,
         CONCLUIDA,
         CANCELADA
+    }
+
+    public enum TipoEventoLacreStuffUnstuff {
+        PREVISTO,
+        APLICADO,
+        ROMPIDO,
+        SUBSTITUIDO,
+        CONFERIDO
+    }
+
+    public enum StatusLacreStuffUnstuff {
+        PREVISTO,
+        APLICADO,
+        ROMPIDO,
+        SUBSTITUIDO,
+        CONFERIDO,
+        DIVERGENTE
     }
 
     public enum CategoriaReferenciaCarga {

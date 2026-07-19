@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-18 após auditoria da branch main.
+Status: atualizado em 2026-07-19 após validação da branch main e implementação do BUS1370.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -8,24 +8,8 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| BUS1080 | Implementar identificação e inventário físico reconciliável de cargo lots. | Código de barras ou QR identifica lote e embalagem; contagens e divergências geram ajuste motivado sem sobrescrever diretamente o saldo lógico. | ⬜ Pendente |
-| BUS1370 | Controlar lacres durante todo o ciclo de stuff e unstuff. | Lacres previstos, aplicados, rompidos, substituídos e conferidos são vinculados à operação, ao contêiner, ao operador e ao instante; divergência impede conclusão sem decisão autorizada. | ⬜ Pendente |
 | BUS1380 | Confirmar pesagem e VGM após a conclusão física do stuffing. | A operação concluída registra tara, peso bruto, método de pesagem, equipamento, responsável e VGM; o contêiner não é liberado para embarque quando o peso exceder limites ou não estiver confirmado. | ⬜ Pendente |
 | BUS1390 | Implementar staging de carga por doca e janela operacional antes de stuff e unstuff. | Doca, área de espera, janela, recurso, lotes e contêiner são reservados sem conflito; início e conclusão atualizam ocupação e liberam recursos de forma transacional. | ⬜ Pendente |
-
-### BUS1080 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/CargaGeralServico.java` | `AJUSTE_INVENTARIO` | Altera diretamente o saldo sem sessão de contagem e aprovação. | Criar novos métodos sugeridos: `abrirInventarioFisico()`, `registrarContagem()` e `confirmarDivergencia()`. |
-| `frontend/cloudport/src/pages/GeneralCargoPage.jsx` | seleção de lote | A identificação é manual. | Criar leitura por código de barras ou QR e inventário por posição. |
-
-### BUS1370 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/StuffUnstuffServico.java` | fluxo de execução e conclusão | A operação controla quantidade e saldo, mas não mantém ciclo persistido de lacres por evento operacional. | Criar novos métodos sugeridos: `aplicarLacre()`, `romperLacre()`, `substituirLacre()` e `confirmarLacres()`, com idempotência e autorização. |
-| `frontend/cloudport/src/pages/StuffUnstuffPage.jsx` | execução física | Não há conferência obrigatória do lacre previsto versus lacre encontrado ou aplicado. | Exibir histórico de lacres e bloquear conclusão quando houver divergência aberta. |
 
 ### BUS1380 — arquivos e métodos
 

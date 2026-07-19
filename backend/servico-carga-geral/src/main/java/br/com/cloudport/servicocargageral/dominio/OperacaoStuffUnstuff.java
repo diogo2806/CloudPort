@@ -68,6 +68,10 @@ public class OperacaoStuffUnstuff {
     @OrderBy("ocorridoEm ASC")
     private List<EventoOperacaoStuffUnstuff> historico = new ArrayList<>();
 
+    @OneToMany(mappedBy = "operacao", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("ocorridoEm ASC")
+    private List<LacreOperacaoStuffUnstuff> lacres = new ArrayList<>();
+
     @Column(name = "criado_em", nullable = false)
     private OffsetDateTime criadoEm;
 
@@ -89,12 +93,15 @@ public class OperacaoStuffUnstuff {
         criadoEm = agora;
         atualizadoEm = agora;
         conteinerId = normalizar(conteinerId);
+        lacreInicial = normalizar(lacreInicial);
     }
 
     @PreUpdate
     void preUpdate() {
         atualizadoEm = OffsetDateTime.now();
         conteinerId = normalizar(conteinerId);
+        lacreInicial = normalizar(lacreInicial);
+        lacreFinal = normalizar(lacreFinal);
     }
 
     public void adicionarItem(ItemOperacaoStuffUnstuff item) {
@@ -124,6 +131,15 @@ public class OperacaoStuffUnstuff {
         historico.add(evento);
     }
 
+    public void adicionarLacre(LacreOperacaoStuffUnstuff lacre) {
+        lacre.setOperacao(this);
+        lacres.add(lacre);
+    }
+
+    public boolean possuiDivergenciaLacreAberta() {
+        return lacres.stream().anyMatch(lacre -> lacre.isDivergenciaAberta() && !lacre.isOverrideAutorizado());
+    }
+
     public void iniciar() {
         if (status != StatusOperacaoStuffUnstuff.PLANEJADA) {
             throw new IllegalStateException("Somente operação planejada pode ser iniciada.");
@@ -145,6 +161,9 @@ public class OperacaoStuffUnstuff {
         }
         if (itens.stream().anyMatch(item -> !item.estaCompleto())) {
             throw new IllegalStateException("Todos os itens devem atingir a quantidade planejada antes da conclusão.");
+        }
+        if (possuiDivergenciaLacreAberta()) {
+            throw new IllegalStateException("A operação possui divergência de lacre aberta sem override autorizado.");
         }
         lacreFinal = lacre;
         status = StatusOperacaoStuffUnstuff.CONCLUIDA;
@@ -184,6 +203,7 @@ public class OperacaoStuffUnstuff {
     public String getMotivoCancelamento() { return motivoCancelamento; }
     public List<ItemOperacaoStuffUnstuff> getItens() { return Collections.unmodifiableList(itens); }
     public List<EventoOperacaoStuffUnstuff> getHistorico() { return Collections.unmodifiableList(historico); }
+    public List<LacreOperacaoStuffUnstuff> getLacres() { return Collections.unmodifiableList(lacres); }
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public OffsetDateTime getIniciadoEm() { return iniciadoEm; }
     public OffsetDateTime getConcluidoEm() { return concluidoEm; }

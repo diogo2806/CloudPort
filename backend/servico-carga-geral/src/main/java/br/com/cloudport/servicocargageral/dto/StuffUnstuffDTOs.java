@@ -1,6 +1,8 @@
 package br.com.cloudport.servicocargageral.dto;
 
+import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusLacreStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusOperacaoStuffUnstuff;
+import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoEventoLacreStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoEventoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoOperacaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.PlanoStuffUnstuffVersao.StatusPlano;
@@ -65,6 +67,18 @@ public final class StuffUnstuffDTOs {
             @Size(max = 1000) String divergencia,
             @NotBlank @Size(max = 120) String usuario,
             @Size(max = 120) String correlationId) {
+    }
+
+    public record RegistrarLacreRequest(
+            @NotNull UUID commandId,
+            @NotNull TipoEventoLacreStuffUnstuff tipoEvento,
+            @NotBlank @Size(max = 80) String numeroLacre,
+            @Size(max = 80) String numeroLacreSubstituido,
+            @NotBlank @Size(max = 120) String operador,
+            @Size(max = 120) String correlationId,
+            @Size(max = 1000) String motivo,
+            boolean divergencia,
+            boolean overrideAutorizado) {
     }
 
     public record ConcluirOperacaoRequest(
@@ -140,6 +154,21 @@ public final class StuffUnstuffDTOs {
             String usuario,
             String correlationId,
             String descricao,
+            OffsetDateTime ocorridoEm) {
+    }
+
+    public record LacreOperacaoResposta(
+            UUID id,
+            UUID commandId,
+            String numeroLacre,
+            String numeroLacreSubstituido,
+            TipoEventoLacreStuffUnstuff tipoEvento,
+            StatusLacreStuffUnstuff status,
+            String operador,
+            String correlationId,
+            String motivo,
+            boolean divergenciaAberta,
+            boolean overrideAutorizado,
             OffsetDateTime ocorridoEm) {
     }
 }

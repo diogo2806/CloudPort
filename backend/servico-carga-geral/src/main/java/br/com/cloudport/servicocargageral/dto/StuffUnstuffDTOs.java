@@ -110,9 +110,7 @@ public final class StuffUnstuffDTOs {
             OffsetDateTime concluidoEm,
             OffsetDateTime canceladoEm,
             List<ItemOperacaoResposta> itens,
-            List<EventoOperacaoResposta> historico,
-            List<LacreOperacaoResposta> lacres,
-            boolean divergenciaLacreAberta) {
+            List<EventoOperacaoResposta> historico) {
     }
 
     public record PlanoVersaoResposta(

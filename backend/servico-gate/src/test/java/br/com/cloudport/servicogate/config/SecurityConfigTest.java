@@ -57,6 +57,20 @@ class SecurityConfigTest {
     }
 
     @Test
+    void deveRemoverRoleTransportadoraDeTokenLegadoComPapeisAdministrativos() {
+        Jwt jwt = criarJwt(
+                Arrays.asList("ROLE_ROOT", "ROLE_ADMIN_PORTO", "ROLE_OPERADOR_GATE", "ROLE_TRANSPORTADORA"),
+                null
+        );
+
+        Collection<String> authorities = converterAutoridades(jwt);
+
+        assertThat(authorities)
+                .contains("ROLE_ROOT", "ROLE_ADMIN_PORTO", "ROLE_OPERADOR_GATE")
+                .doesNotContain("ROLE_TRANSPORTADORA");
+    }
+
+    @Test
     void deveManterRoleTransportadoraQuandoPerfilPrincipalForTransportadora() {
         Jwt jwt = criarJwt(
                 Arrays.asList("ROLE_TRANSPORTADORA"),

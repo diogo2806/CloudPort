@@ -15,6 +15,7 @@ public class SanitizadorConteudoNavegacao {
     private static final Map<String, String> ROTULOS_GRUPO = Map.ofEntries(
             Map.entry("VISAOGERAL", "Visão geral"),
             Map.entry("CONFIGURACOES", "Configurações"),
+            Map.entry("CADASTROS", "Cadastros"),
             Map.entry("USUARIOS", "Usuários"),
             Map.entry("GATE", "Gate"),
             Map.entry("NAVIO", "Navio e embarque"),

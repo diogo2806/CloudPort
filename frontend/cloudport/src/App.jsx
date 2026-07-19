@@ -48,15 +48,20 @@ const FALLBACK_NAVIGATION = [
     { label: 'Painel', path: '/home/dashboard', roles: [] },
     { label: 'Central de alertas', path: '/home/alertas', roles: [] }
   ] },
+  { group: 'Cadastros', items: [
+    { label: 'Papéis de acesso', path: '/home/role', roles: ['ADMIN_PORTO'] },
+    { label: 'Usuários', path: '/home/lista-de-usuarios', roles: ['ADMIN_PORTO'] },
+    { label: 'Janelas de atendimento', path: '/home/gate/janelas', roles: [] },
+    { label: 'Posições do pátio', path: '/home/patio/posicoes', roles: [] },
+    { label: 'Recursos do pátio', path: '/home/patio/recursos', roles: [] }
+  ] },
   { group: 'Control Room', items: [
     { label: 'Equipamentos e telemetria', path: '/home/control-room', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO', 'OPERADOR_GATE'] }
   ] },
   { group: 'Configurações', items: [
-    { label: 'Papéis de acesso', path: '/home/role', roles: ['ADMIN_PORTO'] },
     { label: 'Segurança', path: '/home/seguranca', roles: [] },
     { label: 'Notificações', path: '/home/notificacoes', roles: [] },
-    { label: 'Privacidade', path: '/home/privacidade', roles: [] },
-    { label: 'Usuários', path: '/home/lista-de-usuarios', roles: ['ADMIN_PORTO'] }
+    { label: 'Privacidade', path: '/home/privacidade', roles: [] }
   ] },
   { group: 'Carga geral', items: [
     { label: 'Bill of Lading e cargo lots', path: '/home/carga-geral', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
@@ -66,7 +71,6 @@ const FALLBACK_NAVIGATION = [
     { label: 'Gate visual', path: '/home/gate/dashboard', roles: [] },
     { label: 'Operação completa', path: '/home/gate/operacao', roles: ['ADMIN_PORTO', 'OPERADOR_GATE', 'PLANEJADOR'] },
     { label: 'Agendamentos', path: '/home/gate/agendamentos', roles: [] },
-    { label: 'Janelas', path: '/home/gate/janelas', roles: [] },
     { label: 'Controle de pessoas', path: '/home/gate/pessoas', roles: ['ADMIN_PORTO', 'OPERADOR_GATE', 'PLANEJADOR'] },
     { label: 'Embarque direto', path: '/home/gate/embarque-direto', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
     { label: 'Saída direta do navio', path: '/home/gate/saida-direta-navio', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
@@ -92,9 +96,7 @@ const FALLBACK_NAVIGATION = [
     { label: 'Planejamento de recebimento', path: '/home/patio/planejamento-recebimento', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Lista de trabalho', path: '/home/patio/lista-trabalho', roles: [] },
     { label: 'Instruções de trabalho', path: '/home/patio/instrucoes', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
-    { label: 'Posições', path: '/home/patio/posicoes', roles: [] },
     { label: 'Movimentações', path: '/home/patio/movimentacoes', roles: [] },
-    { label: 'Recursos', path: '/home/patio/recursos', roles: [] },
     { label: 'Indicadores', path: '/home/patio/dashboard-kpi', roles: [] },
     { label: 'Automação', path: '/home/patio/automacao', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }
   ] },

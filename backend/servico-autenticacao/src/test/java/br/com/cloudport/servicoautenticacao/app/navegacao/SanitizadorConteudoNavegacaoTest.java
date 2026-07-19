@@ -49,6 +49,7 @@ class SanitizadorConteudoNavegacaoTest {
         assertEquals("Visão geral", sanitizador.sanitizarGrupo("VISAO_GERAL"));
         assertEquals("Configurações", sanitizador.sanitizarGrupo("CONFIGURACOES"));
         assertEquals("Navio e embarque", sanitizador.sanitizarGrupo("Navio e embarque"));
+        assertEquals("Navio e cargas", sanitizador.sanitizarGrupo("NAVIO_E_CARGAS"));
         assertEquals("Pátio", sanitizador.sanitizarGrupo("PÁTIO"));
     }
 

@@ -80,8 +80,6 @@ class CloudPortRuntimePostgresTest {
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.datasource.hikari.connection-init-sql", () ->
-                "SET search_path TO " + String.join(", ", SCHEMAS) + ", public");
     }
 
     @Autowired private JdbcTemplate jdbcTemplate;

@@ -3,7 +3,6 @@ import { buildYardMapLayout } from './yardGoogleMaps.js';
 import { stackClass } from './yardModel.js';
 
 export const YARD_GEOMETRY_TYPE_COLORS = Object.freeze({
-  PILHA: '#16a34a',
   BLOCO: '#0f4c81',
   VIA: '#64748b',
   AREA_BLOQUEADA: '#dc2626',
@@ -76,7 +75,7 @@ export function buildPersistedYardMapLayout(blocks, geometries) {
       stack,
       stackKey,
       state: geometryState(geometry, stack),
-      color: YARD_GEOMETRY_TYPE_COLORS[geometry.tipo],
+      color: geometry.tipo === 'PILHA' ? null : YARD_GEOMETRY_TYPE_COLORS[geometry.tipo],
       center: pathCenter(path),
       path,
       occupiedLayers,

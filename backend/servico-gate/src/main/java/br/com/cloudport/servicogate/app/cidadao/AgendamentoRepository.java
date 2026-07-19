@@ -78,7 +78,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             "AND ABS(EXTRACT(EPOCH FROM (a.horario_real_chegada - a.horario_previsto_chegada))) <= (:toleranciaPontualidade * 60) THEN 1 ELSE 0 END) AS pontuais, " +
             "SUM(CASE WHEN a.status = 'NO_SHOW' THEN 1 ELSE 0 END) AS no_show, " +
             "AVG(EXTRACT(EPOCH FROM (a.horario_real_saida - a.horario_real_chegada)) / 60) FILTER (WHERE a.horario_real_chegada IS NOT NULL AND a.horario_real_saida IS NOT NULL) AS turnaround_medio, " +
-            "COALESCE(COUNT(*) FILTER (WHERE a.status <> 'CANCELADO')::decimal / NULLIF(( " +
+            "COALESCE(CAST(COUNT(*) FILTER (WHERE a.status <> 'CANCELADO') AS DECIMAL) / NULLIF(( " +
             "SELECT SUM(j.capacidade) FROM janela_atendimento j WHERE EXISTS ( " +
             "SELECT 1 FROM agendamento a2 WHERE a2.janela_atendimento_id = j.id " +
             "AND a2.status <> 'CANCELADO' " +

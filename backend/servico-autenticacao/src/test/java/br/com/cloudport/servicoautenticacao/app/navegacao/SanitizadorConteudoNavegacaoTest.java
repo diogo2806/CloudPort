@@ -31,7 +31,9 @@ class SanitizadorConteudoNavegacaoTest {
 
     @Test
     void deveRemoverCaracteresDeControleSemCodificarComoHtml() {
-        assertEquals("Gestão & Recursos", sanitizador.sanitizarMensagem("  Gestão\u0000 & Recursos\n  "));
+        String comControle = "  Gestão" + Character.toString(0) + " & Recursos\n  ";
+
+        assertEquals("Gestão & Recursos", sanitizador.sanitizarMensagem(comControle));
     }
 
     @Test

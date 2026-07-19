@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { readSession } from './api.js';
 import { buildHelpSections, filterHelpSections, resolveContextHelp } from './contextHelp.js';
 import './context-help.css';
@@ -26,6 +27,7 @@ export function ContextHelp({ path, navigate, session }) {
   const help = useMemo(() => resolveContextHelp(activePath, activeSession), [activePath, activeSession]);
   const sections = useMemo(() => buildHelpSections(help), [help]);
   const visibleSections = useMemo(() => filterHelpSections(sections, query), [sections, query]);
+  const portalTarget = globalThis.document?.body;
 
   useEffect(() => {
     setOpen(false);
@@ -54,6 +56,16 @@ export function ContextHelp({ path, navigate, session }) {
     if (open) closeRef.current?.focus();
   }, [open]);
 
+  useEffect(() => {
+    if (!open || !portalTarget) return undefined;
+
+    const previousOverflow = portalTarget.style.overflow;
+    portalTarget.style.overflow = 'hidden';
+    return () => {
+      portalTarget.style.overflow = previousOverflow;
+    };
+  }, [open, portalTarget]);
+
   function close() {
     setOpen(false);
     triggerRef.current?.focus();
@@ -70,6 +82,45 @@ export function ContextHelp({ path, navigate, session }) {
     globalThis.scrollTo?.({ top: 0, behavior: 'smooth' });
   }
 
+  const overlay = open && portalTarget
+    ? createPortal(
+      <div className="context-help-layer">
+        <button type="button" className="context-help-backdrop" aria-label="Fechar ajuda contextual" onClick={close} />
+        <aside className="context-help-drawer" role="dialog" aria-modal="true" aria-labelledby="context-help-title">
+          <header>
+            <div><span>{help.module}</span><h2 id="context-help-title">{help.title}</h2><p>{help.path}</p></div>
+            <button ref={closeRef} type="button" className="icon-button" aria-label="Fechar ajuda" onClick={close}>×</button>
+          </header>
+
+          <div className="context-help-search">
+            <label htmlFor="context-help-query">Pesquisar nesta ajuda</label>
+            <input id="context-help-query" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ex.: permissão, status, bloqueio" />
+          </div>
+
+          <div className="context-help-access">
+            <span>Perfil atual</span>
+            <strong title={help.currentRoles.join(' · ')}>{help.currentRoles.length ? help.currentRoles.join(' · ') : 'Perfil não informado'}</strong>
+          </div>
+
+          <div className="context-help-content">
+            {visibleSections.length
+              ? visibleSections.map((section) => <HelpSection key={section.id} section={section} />)
+              : <div className="context-help-empty"><strong>Nenhum conteúdo encontrado</strong><span>Altere o termo pesquisado.</span></div>}
+          </div>
+
+          <footer>
+            <div>
+              <button type="button" className="secondary small" onClick={openProcess}>{help.processLabel}</button>
+              <a href={help.documentationUrl} target="_blank" rel="noreferrer">Documentação técnica</a>
+            </div>
+            <span>F1 ou Shift + ? abre a ajuda · Esc fecha</span>
+          </footer>
+        </aside>
+      </div>,
+      portalTarget,
+    )
+    : null;
+
   return <div className="context-help">
     <button
       ref={triggerRef}
@@ -81,38 +132,6 @@ export function ContextHelp({ path, navigate, session }) {
     >
       <span aria-hidden="true">?</span><strong>Ajuda</strong>
     </button>
-    {open && <>
-      <button type="button" className="context-help-backdrop" aria-label="Fechar ajuda contextual" onClick={close} />
-      <aside className="context-help-drawer" role="dialog" aria-modal="true" aria-labelledby="context-help-title">
-        <header>
-          <div><span>{help.module}</span><h2 id="context-help-title">{help.title}</h2><p>{help.path}</p></div>
-          <button ref={closeRef} type="button" className="icon-button" aria-label="Fechar ajuda" onClick={close}>×</button>
-        </header>
-
-        <div className="context-help-search">
-          <label htmlFor="context-help-query">Pesquisar nesta ajuda</label>
-          <input id="context-help-query" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ex.: permissão, status, bloqueio" />
-        </div>
-
-        <div className="context-help-access">
-          <span>Perfil atual</span>
-          <strong>{help.currentRoles.length ? help.currentRoles.join(' · ') : 'Perfil não informado'}</strong>
-        </div>
-
-        <div className="context-help-content">
-          {visibleSections.length
-            ? visibleSections.map((section) => <HelpSection key={section.id} section={section} />)
-            : <div className="context-help-empty"><strong>Nenhum conteúdo encontrado</strong><span>Altere o termo pesquisado.</span></div>}
-        </div>
-
-        <footer>
-          <div>
-            <button type="button" className="secondary small" onClick={openProcess}>{help.processLabel}</button>
-            <a href={help.documentationUrl} target="_blank" rel="noreferrer">Documentação técnica</a>
-          </div>
-          <span>F1 ou Shift + ? abre a ajuda · Esc fecha</span>
-        </footer>
-      </aside>
-    </>}
+    {overlay}
   </div>;
 }

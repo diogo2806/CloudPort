@@ -98,22 +98,26 @@ public class SecurityConfig {
                         String role = jwt.getClaimAsString("role");
                         return StringUtils.hasText(role) ? Collections.singletonList(role) : Collections.emptyList();
                     });
-            String perfil = normalizarRole(jwt.getClaimAsString("perfil"));
-
-            return roles.stream()
+            List<String> rolesNormalizadas = roles.stream()
                     .filter(StringUtils::hasText)
                     .map(this::normalizarRole)
-                    .filter(role -> deveConcederRole(role, perfil))
                     .distinct()
+                    .collect(Collectors.toList());
+            String perfil = normalizarRole(jwt.getClaimAsString("perfil"));
+            boolean contextoTransportadora = ROLE_TRANSPORTADORA.equals(perfil)
+                    || (!StringUtils.hasText(perfil)
+                    && rolesNormalizadas.size() == 1
+                    && rolesNormalizadas.contains(ROLE_TRANSPORTADORA));
+
+            return rolesNormalizadas.stream()
+                    .filter(role -> deveConcederRole(role, contextoTransportadora))
                     .<GrantedAuthority>map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
         };
     }
 
-    private boolean deveConcederRole(String role, String perfil) {
-        return !ROLE_TRANSPORTADORA.equals(role)
-                || !StringUtils.hasText(perfil)
-                || ROLE_TRANSPORTADORA.equals(perfil);
+    private boolean deveConcederRole(String role, boolean contextoTransportadora) {
+        return !ROLE_TRANSPORTADORA.equals(role) || contextoTransportadora;
     }
 
     private String normalizarRole(String role) {

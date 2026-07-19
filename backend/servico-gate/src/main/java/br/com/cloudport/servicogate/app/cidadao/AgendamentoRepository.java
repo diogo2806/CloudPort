@@ -82,15 +82,15 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             "SELECT SUM(j.capacidade) FROM janela_atendimento j WHERE EXISTS ( " +
             "SELECT 1 FROM agendamento a2 WHERE a2.janela_atendimento_id = j.id " +
             "AND a2.status <> 'CANCELADO' " +
-            "AND (:inicio IS NULL OR a2.horario_previsto_chegada >= :inicio) " +
-            "AND (:fim IS NULL OR a2.horario_previsto_saida <= :fim) " +
-            "AND (:transportadoraId IS NULL OR a2.transportadora_id = :transportadoraId) " +
-            "AND (:tipoOperacao IS NULL OR a2.tipo_operacao = :tipoOperacao))), 0), 0) AS ocupacao_slots " +
+            "AND (CAST(:inicio AS TIMESTAMP) IS NULL OR a2.horario_previsto_chegada >= CAST(:inicio AS TIMESTAMP)) " +
+            "AND (CAST(:fim AS TIMESTAMP) IS NULL OR a2.horario_previsto_saida <= CAST(:fim AS TIMESTAMP)) " +
+            "AND (CAST(:transportadoraId AS BIGINT) IS NULL OR a2.transportadora_id = CAST(:transportadoraId AS BIGINT)) " +
+            "AND (CAST(:tipoOperacao AS VARCHAR) IS NULL OR a2.tipo_operacao = CAST(:tipoOperacao AS VARCHAR)))), 0), 0) AS ocupacao_slots " +
             "FROM agendamento a " +
-            "WHERE (:inicio IS NULL OR a.horario_previsto_chegada >= :inicio) " +
-            "AND (:fim IS NULL OR a.horario_previsto_saida <= :fim) " +
-            "AND (:transportadoraId IS NULL OR a.transportadora_id = :transportadoraId) " +
-            "AND (:tipoOperacao IS NULL OR a.tipo_operacao = :tipoOperacao)",
+            "WHERE (CAST(:inicio AS TIMESTAMP) IS NULL OR a.horario_previsto_chegada >= CAST(:inicio AS TIMESTAMP)) " +
+            "AND (CAST(:fim AS TIMESTAMP) IS NULL OR a.horario_previsto_saida <= CAST(:fim AS TIMESTAMP)) " +
+            "AND (CAST(:transportadoraId AS BIGINT) IS NULL OR a.transportadora_id = CAST(:transportadoraId AS BIGINT)) " +
+            "AND (CAST(:tipoOperacao AS VARCHAR) IS NULL OR a.tipo_operacao = CAST(:tipoOperacao AS VARCHAR))",
             nativeQuery = true)
     DashboardMetricsProjection calcularMetricasDashboard(@Param("inicio") java.time.LocalDateTime inicio,
                                                          @Param("fim") java.time.LocalDateTime fim,

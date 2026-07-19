@@ -195,7 +195,7 @@ function enrichCommand(path, method, body, session, correlationId) {
 }
 
 function sessionExpiredError() {
-  const error = new Error('Sua sessão expirou. Entre novamente.');
+  const error = new Error('Sessão expirada. Entre novamente.');
   error.status = 401;
   return error;
 }

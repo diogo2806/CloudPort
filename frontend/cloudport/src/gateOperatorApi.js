@@ -49,5 +49,5 @@ function requiredVehicleId(vehicleId) {
 export const gateOperatorApi = {
   obterPainel: () => request('/gate/operador/painel'),
   listarEventos: () => request('/gate/operador/eventos'),
-  obterComprovante: (vehicleId) => request(`/gate/operador/veiculos/${requiredVehicleId(vehicleId)}/comprovante`)
+  obterComprovante: async (vehicleId) => request(`/gate/operador/veiculos/${requiredVehicleId(vehicleId)}/comprovante`)
 };

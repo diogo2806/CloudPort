@@ -121,7 +121,7 @@ test('requisição protegida sem token encerra localmente sem chamar a API', asy
 
   await assert.rejects(
     () => request('/yard/patio/ordens'),
-    (error) => error.status === 401 && /sessão expirou/i.test(error.message)
+    (error) => error.status === 401 && /sessão expirada/i.test(error.message)
   );
   unsubscribe();
 
@@ -155,8 +155,8 @@ test('cliente do planejador bulk usa contratos persistidos e preserva correlatio
   };
   await loadRuntimeConfig();
 
-  await api.listarPlanosEstivagemBulk(7, 'V001');
-  assert.equal(calls.at(-1).url, 'http://localhost:8080/api/estivagem-bulk/planos?navioId=7&codigoViagem=V001');
+  await api.listarPlanosEstivagemBulk(7, 12);
+  assert.equal(calls.at(-1).url, 'http://localhost:8080/api/estivagem-bulk/planos?navioId=7&visitaNavioId=12');
 
   await api.criarPlanoEstivagemBulk({ navioId: 7, codigoViagem: 'V001', portoCarga: 'BRITG', portoDescarga: 'NLRTM' });
   const createCall = calls.at(-1);

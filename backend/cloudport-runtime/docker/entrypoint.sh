@@ -1,11 +1,23 @@
 #!/bin/sh
 set -eu
 
-# Variaveis vazias sao consideradas valores validos pelo Spring e impedem o
-# fallback definido em application.properties. Normaliza host e porta antes de
-# iniciar o runtime para evitar a criacao do Lettuce com host vazio.
-REDIS_EFFECTIVE_HOST="${SPRING_REDIS_HOST:-${REDIS_HOST:-localhost}}"
-REDIS_EFFECTIVE_PORT="${SPRING_REDIS_PORT:-${REDIS_PORT:-6379}}"
+normalizar_variavel() {
+    valor="$1"
+    valor_padrao="$2"
+    valor="$(printf '%s' "$valor" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+    if [ -n "$valor" ]; then
+        printf '%s' "$valor"
+        return
+    fi
+
+    printf '%s' "$valor_padrao"
+}
+
+# Variaveis vazias ou compostas somente por espacos sao consideradas valores
+# validos pelo Spring e impedem o fallback definido em application.properties.
+REDIS_EFFECTIVE_HOST="$(normalizar_variavel "${SPRING_REDIS_HOST:-${REDIS_HOST:-}}" "localhost")"
+REDIS_EFFECTIVE_PORT="$(normalizar_variavel "${SPRING_REDIS_PORT:-${REDIS_PORT:-}}" "6379")"
 
 export REDIS_HOST="${REDIS_EFFECTIVE_HOST}"
 export REDIS_PORT="${REDIS_EFFECTIVE_PORT}"
@@ -22,4 +34,11 @@ if [ -n "${REDIS_PASSWORD:-}" ]; then
     export SPRING_REDIS_PASSWORD="${REDIS_PASSWORD}"
 fi
 
-exec java -XX:MaxRAMPercentage=75.0 -jar /app/app.jar
+printf 'CloudPort runtime: Redis configurado em %s:%s\n' \
+    "${REDIS_EFFECTIVE_HOST}" "${REDIS_EFFECTIVE_PORT}"
+
+exec java \
+    -XX:MaxRAMPercentage=75.0 \
+    -Dspring.redis.host="${REDIS_EFFECTIVE_HOST}" \
+    -Dspring.redis.port="${REDIS_EFFECTIVE_PORT}" \
+    -jar /app/app.jar

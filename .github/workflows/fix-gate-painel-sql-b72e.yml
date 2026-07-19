@@ -32,8 +32,8 @@ jobs:
 
           arquivo = Path("backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalService.java")
           conteudo = arquivo.read_text(encoding="utf-8")
-          trecho_invalido = "                  ORDER BY gc.id, gl.codigo"
-          trecho_corrigido = "                  ORDER BY gl.gate_id, gl.codigo"
+          trecho_invalido = "ORDER BY gc.id, gl.codigo"
+          trecho_corrigido = "ORDER BY gl.gate_id, gl.codigo"
 
           ocorrencias = conteudo.count(trecho_invalido)
           if ocorrencias != 1:

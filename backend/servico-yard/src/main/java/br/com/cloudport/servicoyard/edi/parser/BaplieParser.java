@@ -11,7 +11,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import org.springframework.stereotype.Component;
 
+@Component
 public class BaplieParser {
 
     private static final Set<String> RELEASES_SUPORTADOS = Set.of("95B", "13B");

@@ -1,5 +1,6 @@
 name: Temporary Gate lane SQL patch
 
+# Segunda gravação intencional para disparar o workflow já presente na branch.
 on:
   push:
     branches:

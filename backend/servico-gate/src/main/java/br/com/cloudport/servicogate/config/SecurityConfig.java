@@ -42,6 +42,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
+    private static final String ROLE_TRANSPORTADORA = "ROLE_TRANSPORTADORA";
+
     private final TransportadoraSynchronizationFilter transportadoraSynchronizationFilter;
     private final String jwtSecret;
     private final String allowedOrigins;
@@ -96,14 +98,29 @@ public class SecurityConfig {
                         String role = jwt.getClaimAsString("role");
                         return StringUtils.hasText(role) ? Collections.singletonList(role) : Collections.emptyList();
                     });
+            String perfil = normalizarRole(jwt.getClaimAsString("perfil"));
 
             return roles.stream()
                     .filter(StringUtils::hasText)
-                    .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase(Locale.ROOT))
+                    .map(this::normalizarRole)
+                    .filter(role -> deveConcederRole(role, perfil))
                     .distinct()
                     .<GrantedAuthority>map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
         };
+    }
+
+    private boolean deveConcederRole(String role, String perfil) {
+        return !ROLE_TRANSPORTADORA.equals(role)
+                || !StringUtils.hasText(perfil)
+                || ROLE_TRANSPORTADORA.equals(perfil);
+    }
+
+    private String normalizarRole(String role) {
+        if (!StringUtils.hasText(role)) {
+            return role;
+        }
+        return role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase(Locale.ROOT);
     }
 
     @Bean

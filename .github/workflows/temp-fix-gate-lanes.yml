@@ -1,0 +1,101 @@
+name: Temporary Gate lane SQL patch
+
+on:
+  push:
+    branches:
+      - fix/gate-erros-runtime-20260719
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Patch SQL and add regression test
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path('backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalService.java')
+          text = source.read_text(encoding='utf-8')
+          old = """                 GROUP BY gl.id
+                 ORDER BY gc.id, gl.codigo"""
+          new = """                 GROUP BY gl.id, gc.id
+                 ORDER BY gc.id, gl.codigo"""
+          occurrences = text.count(old)
+          if occurrences != 1:
+              raise SystemExit(f'Expected one lane GROUP BY occurrence, found {occurrences}')
+          source.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          test = Path('backend/servico-gate/src/test/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalServiceSqlTest.java')
+          test.parent.mkdir(parents=True, exist_ok=True)
+          test.write_text("""package br.com.cloudport.servicogate.app.operacional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.lang.reflect.Method;
+import java.util.Collections;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+class GateOperacionalServiceSqlTest {
+
+    @Test
+    void deveAgruparPistasPeloGateAoMontarPainelOperacional() throws Exception {
+        NamedParameterJdbcTemplate jdbcTemplate = mock(NamedParameterJdbcTemplate.class);
+        ObjectMapper objectMapper = mock(ObjectMapper.class);
+        GateOperacionalService service = new GateOperacionalService(jdbcTemplate, objectMapper);
+        when(jdbcTemplate.queryForList(any(String.class), any(MapSqlParameterSource.class)))
+                .thenReturn(Collections.emptyList());
+
+        Method listarLanes = GateOperacionalService.class.getDeclaredMethod("listarLanes", Long.class);
+        listarLanes.setAccessible(true);
+        listarLanes.invoke(service, 1L);
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(sqlCaptor.capture(), any(MapSqlParameterSource.class));
+        assertThat(sqlCaptor.getValue())
+                .contains("GROUP BY gl.id, gc.id")
+                .contains("ORDER BY gc.id, gl.codigo");
+    }
+}
+""", encoding='utf-8')
+          PY
+
+          rm .github/workflows/temp-fix-gate-lanes.yml
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path('backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalService.java').read_text(encoding='utf-8')
+          assert 'GROUP BY gl.id, gc.id' in source
+          assert 'GROUP BY gl.id\n                 ORDER BY gc.id, gl.codigo' not in source
+          assert Path('backend/servico-gate/src/test/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalServiceSqlTest.java').is_file()
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalService.java
+          git add backend/servico-gate/src/test/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalServiceSqlTest.java
+          git add .github/workflows/temp-fix-gate-lanes.yml
+          git commit -m "fix(gate): corrigir agrupamento das pistas no painel"
+          git push origin HEAD:${GITHUB_REF_NAME}

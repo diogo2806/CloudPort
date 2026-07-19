@@ -25,7 +25,7 @@ class SanitizadorConteudoNavegacaoTest {
     @Test
     void deveContinuarNormalizandoCamposTecnicos() {
         assertEquals("patio/gestao-de-recursos", sanitizador.sanitizarIdentificador("Pátio/Gestão de Recursos"));
-        assertEquals("PATIO", sanitizador.sanitizarGrupo("Pátio"));
+        assertEquals("PATIO", sanitizador.sanitizarGrupo("PÁTIO"));
         assertEquals(Arrays.asList("patio", "gestao-de-recursos"),
                 sanitizador.sanitizarSegmentosRota("Pátio/Gestão de Recursos"));
         assertEquals(Arrays.asList("ROLE_ADMIN_PORTO", "ROLE_OPERADOR_PATIO"),

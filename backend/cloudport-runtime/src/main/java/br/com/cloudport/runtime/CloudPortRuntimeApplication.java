@@ -77,6 +77,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class CloudPortRuntimeApplication {
 
     private static final String RABBIT_ENABLED_PROPERTY = "cloudport.messaging.rabbit.enabled";
+    private static final String RABBIT_CONSUMERS_ENABLED_PROPERTY = "cloudport.runtime.consumers-enabled";
 
     static {
         configurarRabbitMqOpcional();
@@ -102,6 +103,7 @@ public class CloudPortRuntimeApplication {
         }
 
         definirPropriedadePadrao(RABBIT_ENABLED_PROPERTY, habilitado);
+        definirPropriedadePadrao(RABBIT_CONSUMERS_ENABLED_PROPERTY, habilitado);
         definirPropriedadePadrao("spring.rabbitmq.dynamic", habilitado);
         definirPropriedadePadrao("spring.rabbitmq.listener.simple.auto-startup", habilitado);
         definirPropriedadePadrao("spring.rabbitmq.listener.direct.auto-startup", habilitado);

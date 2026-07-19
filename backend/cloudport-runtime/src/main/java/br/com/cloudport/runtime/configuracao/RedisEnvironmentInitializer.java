@@ -2,15 +2,14 @@ package br.com.cloudport.runtime.configuracao;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
-import org.springframework.boot.env.EnvironmentPostProcessor;
-import org.springframework.core.Ordered;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.util.StringUtils;
 
-public final class RedisEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
+public final class RedisEnvironmentInitializer
+        implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
     static final String PROPERTY_SOURCE_NAME = "cloudportRedisNormalizacao";
 
@@ -18,9 +17,8 @@ public final class RedisEnvironmentPostProcessor implements EnvironmentPostProce
     private static final String DEFAULT_REDIS_PORT = "6379";
 
     @Override
-    public void postProcessEnvironment(
-            ConfigurableEnvironment environment,
-            SpringApplication application) {
+    public void initialize(ConfigurableApplicationContext applicationContext) {
+        ConfigurableEnvironment environment = applicationContext.getEnvironment();
         Map<String, Object> propriedadesNormalizadas = new LinkedHashMap<>();
         propriedadesNormalizadas.put(
                 "spring.redis.host",
@@ -51,10 +49,5 @@ public final class RedisEnvironmentPostProcessor implements EnvironmentPostProce
             return valorLegado.trim();
         }
         return valorPadrao;
-    }
-
-    @Override
-    public int getOrder() {
-        return ConfigDataEnvironmentPostProcessor.ORDER + 1;
     }
 }

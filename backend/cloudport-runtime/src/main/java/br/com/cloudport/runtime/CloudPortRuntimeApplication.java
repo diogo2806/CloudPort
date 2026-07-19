@@ -1,5 +1,6 @@
 package br.com.cloudport.runtime;
 
+import br.com.cloudport.runtime.configuracao.RedisEnvironmentInitializer;
 import br.com.cloudport.servicoautenticacao.ServicoAutenticacaoApplication;
 import br.com.cloudport.servicoautenticacao.config.SecurityConfigurations;
 import br.com.cloudport.servicoautenticacao.config.SecurityFilter;
@@ -82,7 +83,13 @@ public class CloudPortRuntimeApplication {
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(CloudPortRuntimeApplication.class, args);
+        criarAplicacao().run(args);
+    }
+
+    static SpringApplication criarAplicacao() {
+        SpringApplication application = new SpringApplication(CloudPortRuntimeApplication.class);
+        application.addInitializers(new RedisEnvironmentInitializer());
+        return application;
     }
 
     private static void configurarRabbitMqOpcional() {

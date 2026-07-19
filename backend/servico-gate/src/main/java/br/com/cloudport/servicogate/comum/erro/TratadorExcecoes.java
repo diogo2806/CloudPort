@@ -65,19 +65,19 @@ public class TratadorExcecoes {
     }
 
     private ResponseEntity<Map<String, Object>> resposta(HttpStatus status,
-                                                          String codigo,
-                                                          String mensagem,
-                                                          Object campos,
-                                                          HttpServletRequest request) {
+                                                           String codigo,
+                                                           String mensagem,
+                                                           Object campos,
+                                                           HttpServletRequest request) {
         return resposta(status, codigo, mensagem, campos, request, resolverCorrelationId(null, request));
     }
 
     private ResponseEntity<Map<String, Object>> resposta(HttpStatus status,
-                                                          String codigo,
-                                                          String mensagem,
-                                                          Object campos,
-                                                          HttpServletRequest request,
-                                                          String correlationId) {
+                                                           String codigo,
+                                                           String mensagem,
+                                                           Object campos,
+                                                           HttpServletRequest request,
+                                                           String correlationId) {
         Map<String, Object> detalhes = new LinkedHashMap<>();
         detalhes.put("rota", request.getMethod() + " " + request.getRequestURI());
         if (campos != null) {

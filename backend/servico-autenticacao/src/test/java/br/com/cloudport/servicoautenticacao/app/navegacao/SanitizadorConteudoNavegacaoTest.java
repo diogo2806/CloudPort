@@ -13,7 +13,7 @@ class SanitizadorConteudoNavegacaoTest {
     void devePreservarAcentosESimbolosDosRotulos() {
         assertEquals("Line-up Ferroviário", sanitizador.sanitizarRotulo("Line-up Ferroviário"));
         assertEquals("Inventário de Contêineres", sanitizador.sanitizarRotulo("Inventário de Contêineres"));
-        assertEquals("Lost & Found / TBD", sanitizador.sanitizarRotulo("Lost & Found / TBD"));
+        assertEquals("Unidades de carga não localizadas", sanitizador.sanitizarRotulo("Unidades de carga não localizadas"));
         assertEquals("Gestão de Recursos", sanitizador.sanitizarRotulo("Gestão de Recursos"));
     }
 
@@ -24,8 +24,8 @@ class SanitizadorConteudoNavegacaoTest {
                 sanitizador.sanitizarRotulo("Pol&amp;iacute;ticas de Seguran&amp;ccedil;a")
         );
         assertEquals(
-                "Lost & Found / TBD",
-                sanitizador.sanitizarRotulo("Lost &amp; Found / TBD")
+                "Operação & Pátio",
+                sanitizador.sanitizarRotulo("Operação &amp; Pátio")
         );
     }
 

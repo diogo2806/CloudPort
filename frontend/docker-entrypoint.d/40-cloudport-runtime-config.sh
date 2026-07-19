@@ -63,6 +63,7 @@ if ! grep -Fq "\"baseApiUrl\": \"$API_URL\"" "$TEMP_FILE"; then
   exit 1
 fi
 
+chmod 0644 "$TEMP_FILE"
 mv "$TEMP_FILE" "$CONFIG_FILE"
 trap - EXIT
 

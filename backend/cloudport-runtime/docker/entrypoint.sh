@@ -36,6 +36,9 @@ fi
 
 printf 'CloudPort runtime: Redis configurado em %s:%s\n' \
     "${REDIS_EFFECTIVE_HOST}" "${REDIS_EFFECTIVE_PORT}"
+if [ -n "${REDIS_URL:-}" ]; then
+    printf 'CloudPort runtime: REDIS_URL definida; a URL tem precedencia sobre host e porta\n'
+fi
 
 exec java \
     -XX:MaxRAMPercentage=75.0 \

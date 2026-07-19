@@ -95,6 +95,8 @@ REDIS_URL=
 
 `REDIS_URL` é opcional. Quando preenchida, a URL tem precedência sobre host, porta, usuário e senha separados. São aceitas URLs `redis://` e `rediss://`. Quando o provedor não usar ACL por usuário, `REDIS_USER` pode permanecer vazio.
 
+Hosts com underscore (`_`), comuns em nomes de containers do Docker Compose como `pessoal_redis-guardiao`, não são interpretados pelo parser de URL do Java. Nesses casos o runtime decompõe automaticamente a `REDIS_URL` em host, porta e credenciais discretos antes de criar a conexão, evitando a falha `Host must not be empty`.
+
 O entrypoint da imagem converte essas variáveis para as propriedades nativas do Spring Boot sem registrar os valores sensíveis nos logs.
 
 As integrações continuam usando suas variáveis específicas, incluindo RabbitMQ, Redis, TOS, alertas e armazenamento.

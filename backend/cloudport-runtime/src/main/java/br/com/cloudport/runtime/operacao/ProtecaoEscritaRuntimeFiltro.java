@@ -11,6 +11,8 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -24,13 +26,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class ProtecaoEscritaRuntimeFiltro extends OncePerRequestFilter {
 
     static final String HEADER_CORRELATION_ID = "X-Correlation-Id";
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProtecaoEscritaRuntimeFiltro.class);
     private static final Set<String> METODOS_SEGUROS = Set.of("GET", "HEAD", "OPTIONS");
+    private static final Set<String> ROTAS_NAO_OPERACIONAIS = Set.of("/auth/login");
 
     private final boolean escritaHabilitada;
     private final ObjectMapper objectMapper;
 
     public ProtecaoEscritaRuntimeFiltro(
-            @Value("${cloudport.runtime.cutover-writes-enabled:false}") boolean escritaHabilitada,
+            @Value("${cloudport.runtime.cutover-writes-enabled:${cloudport.runtime.writes-enabled:true}}")
+            boolean escritaHabilitada,
             ObjectMapper objectMapper) {
         this.escritaHabilitada = escritaHabilitada;
         this.objectMapper = objectMapper;
@@ -40,7 +45,7 @@ public class ProtecaoEscritaRuntimeFiltro extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        if (escritaHabilitada || METODOS_SEGUROS.contains(request.getMethod())) {
+        if (devePermitir(request)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -56,9 +61,23 @@ public class ProtecaoEscritaRuntimeFiltro extends OncePerRequestFilter {
         erro.put("mensagem", "Este runtime está em observação ou rollback e não aceita comandos de escrita.");
         erro.put("status", HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         erro.put("caminho", request.getRequestURI());
+        erro.put("metodo", request.getMethod());
         erro.put("timestamp", Instant.now().toString());
         erro.put("correlationId", correlationId);
+
+        LOGGER.warn(
+                "Comando bloqueado pelo modo somente leitura: metodo={}, caminho={}, correlationId={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                correlationId
+        );
         objectMapper.writeValue(response.getWriter(), erro);
+    }
+
+    private boolean devePermitir(HttpServletRequest request) {
+        return escritaHabilitada
+                || METODOS_SEGUROS.contains(request.getMethod())
+                || ROTAS_NAO_OPERACIONAIS.contains(request.getRequestURI());
     }
 
     private String correlationId(HttpServletRequest request) {

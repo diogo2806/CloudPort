@@ -107,6 +107,26 @@ class AgendamentoRepositoryTest {
     }
 
     @Test
+    void deveCalcularMetricasDashboardSemFiltrosOpcionais() {
+        LocalDateTime inicio = LocalDateTime.of(2024, 1, 10, 0, 0);
+        LocalDateTime fim = LocalDateTime.of(2024, 1, 11, 23, 59);
+
+        DashboardMetricsProjection projection = agendamentoRepository.calcularMetricasDashboard(
+                inicio,
+                fim,
+                null,
+                null,
+                15
+        );
+
+        assertThat(projection.getTotalAgendamentos()).isEqualTo(4L);
+        assertThat(projection.getPontuais()).isEqualTo(2L);
+        assertThat(projection.getNoShow()).isEqualTo(1L);
+        assertThat(projection.getTurnaroundMedio()).isCloseTo(56.67, within(0.01));
+        assertThat(projection.getOcupacaoSlots()).isCloseTo(0.8, within(0.0001));
+    }
+
+    @Test
     void deveBuscarAgendamentosParaRelatorioComFiltros() {
         LocalDateTime inicio = LocalDateTime.of(2024, 1, 10, 0, 0);
         LocalDateTime fim = LocalDateTime.of(2024, 1, 10, 23, 59);
@@ -160,16 +180,16 @@ class AgendamentoRepositoryTest {
     }
 
     private Agendamento criarAgendamento(String codigo,
-                                          Transportadora transportadora,
-                                          Motorista motorista,
-                                          Veiculo veiculo,
-                                          JanelaAtendimento janela,
-                                          TipoOperacao tipoOperacao,
-                                          StatusAgendamento status,
-                                          LocalDateTime previstoChegada,
-                                          LocalDateTime previstoSaida,
-                                          LocalDateTime realChegada,
-                                          LocalDateTime realSaida) {
+                                           Transportadora transportadora,
+                                           Motorista motorista,
+                                           Veiculo veiculo,
+                                           JanelaAtendimento janela,
+                                           TipoOperacao tipoOperacao,
+                                           StatusAgendamento status,
+                                           LocalDateTime previstoChegada,
+                                           LocalDateTime previstoSaida,
+                                           LocalDateTime realChegada,
+                                           LocalDateTime realSaida) {
         Agendamento agendamento = new Agendamento();
         agendamento.setCodigo(codigo);
         agendamento.setTransportadora(transportadora);

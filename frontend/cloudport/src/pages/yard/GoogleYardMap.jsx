@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { EmptyState, Loading, Message } from '../../components.jsx';
+import { Loading, Message } from '../../components.jsx';
 import {
-  buildYardMapLayout,
   hasGoogleMapsApiKey,
   loadGoogleMaps,
   loadYardMapConfig,
   YARD_MAP_STATE_COLORS,
   YARD_MAP_STATE_LABELS
 } from './yardGoogleMaps.js';
+import { buildResolvedYardMapLayout } from './yardGeoJson.js';
+import { YardGeometryEditor } from './YardGeometryEditor.jsx';
 import { buildEquipmentMapEntries } from './yardLiveMap.js';
 import './GoogleYardMap.css';
 
@@ -26,12 +27,22 @@ function createInfoContent(entry) {
   const root = document.createElement('div');
   root.className = 'yard-google-info';
   const title = document.createElement('strong');
-  title.textContent = `${entry.stack.bloco} · Linha ${entry.stack.linha} · Coluna ${entry.stack.coluna}`;
   const state = document.createElement('span');
-  state.textContent = YARD_MAP_STATE_LABELS[entry.state] ?? entry.state;
-  const occupation = document.createElement('small');
-  occupation.textContent = `${entry.occupiedLayers}/${entry.totalLayers} camada(s) ocupada(s)`;
-  root.append(title, state, occupation);
+  const detail = document.createElement('small');
+
+  if (entry.stack) {
+    title.textContent = `${entry.stack.bloco} · Linha ${entry.stack.linha} · Coluna ${entry.stack.coluna}`;
+    state.textContent = YARD_MAP_STATE_LABELS[entry.state] ?? entry.state;
+    detail.textContent = `${entry.occupiedLayers}/${entry.totalLayers} camada(s) ocupada(s)`;
+  } else {
+    title.textContent = entry.geometry?.codigo ?? 'Geometria do pátio';
+    state.textContent = entry.geometry?.tipo ?? 'POLÍGONO';
+    detail.textContent = entry.geometry?.bloco
+      ? `${entry.geometry.bloco} · L${entry.geometry.linha ?? '—'} C${entry.geometry.coluna ?? '—'}`
+      : 'Geometria georreferenciada persistida';
+  }
+
+  root.append(title, state, detail);
   return root;
 }
 
@@ -68,7 +79,9 @@ function createLabelOverlay(maps, map, entry, selected, onActivate) {
     element = document.createElement('button');
     element.type = 'button';
     element.className = `yard-google-stack-label ${entry.state}${selected ? ' selected' : ''}`;
-    element.textContent = `L${entry.stack.linha} C${entry.stack.coluna}`;
+    element.textContent = entry.stack
+      ? `L${entry.stack.linha} C${entry.stack.coluna}`
+      : entry.geometry?.codigo ?? 'Área';
     element.title = entry.label;
     element.setAttribute('aria-label', entry.label);
     element.addEventListener('click', (event) => {
@@ -93,7 +106,17 @@ function createLabelOverlay(maps, map, entry, selected, onActivate) {
   return overlay;
 }
 
-export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [], equipment = [] }) {
+export function GoogleYardMap({
+  blocks,
+  selectedStack,
+  onSelectStack,
+  routes = [],
+  equipment = [],
+  geometries = [],
+  canEditGeometry = false,
+  onSaveGeometry,
+  onDeleteGeometry
+}) {
   const mapElementRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const fittedLayoutRef = useRef('');
@@ -101,7 +124,11 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [
   const [configError, setConfigError] = useState('');
   const [mapError, setMapError] = useState('');
   const [mapContext, setMapContext] = useState(null);
-  const layout = useMemo(() => config ? buildYardMapLayout(blocks, config) : [], [blocks, config]);
+  const [selectedGeometry, setSelectedGeometry] = useState(null);
+  const layout = useMemo(
+    () => config ? buildResolvedYardMapLayout(blocks, config, geometries) : [],
+    [blocks, config, geometries]
+  );
   const equipmentEntries = useMemo(() => buildEquipmentMapEntries(equipment, layout), [equipment, layout]);
 
   useEffect(() => {
@@ -153,17 +180,21 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [
   }, [config]);
 
   useEffect(() => {
-    if (!mapContext || !layout.length) return undefined;
+    if (!mapContext) return undefined;
     const { map, maps } = mapContext;
     const bounds = new maps.LatLngBounds();
     const infoWindow = new maps.InfoWindow();
     const overlays = [];
     const listeners = [];
-    const centers = new Map(layout.map((entry) => [routePositionKey(entry.stack), entry.center]));
+    const centers = new Map(layout
+      .filter((entry) => entry.stack)
+      .map((entry) => [routePositionKey(entry.stack), entry.center]));
 
     layout.forEach((entry) => {
-      const selected = sameStack(entry.stack, selectedStack);
-      const color = YARD_MAP_STATE_COLORS[entry.state] ?? '#334155';
+      const selected = entry.stack
+        ? sameStack(entry.stack, selectedStack)
+        : Boolean(entry.geometry && String(entry.geometry.id) === String(selectedGeometry?.id));
+      const color = entry.color ?? YARD_MAP_STATE_COLORS[entry.state] ?? '#334155';
       const polygon = new maps.Polygon({
         map,
         paths: entry.path,
@@ -172,13 +203,14 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [
         strokeOpacity: 1,
         strokeWeight: selected ? 4 : 2,
         fillColor: color,
-        fillOpacity: selected ? 0.78 : 0.55,
-        zIndex: selected ? 20 : 10
+        fillOpacity: selected ? 0.78 : 0.48,
+        zIndex: selected ? 30 : entry.geometry ? 15 : 10
       });
       entry.path.forEach((point) => bounds.extend(point));
 
       const activate = () => {
-        onSelectStack(entry.stack);
+        if (entry.stack) onSelectStack(entry.stack);
+        if (entry.geometry) setSelectedGeometry(entry.geometry);
         infoWindow.setContent(createInfoContent(entry));
         infoWindow.setPosition(entry.center);
         infoWindow.open({ map });
@@ -234,7 +266,7 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [
     });
 
     const layoutSignature = `${layout.map((entry) => entry.key).join('|')}::${equipmentEntries.map((entry) => entry.id).join('|')}`;
-    if (fittedLayoutRef.current !== layoutSignature) {
+    if ((layout.length || equipmentEntries.length) && fittedLayoutRef.current !== layoutSignature) {
       fittedLayoutRef.current = layoutSignature;
       map.fitBounds(bounds, 48);
       listeners.push(maps.event.addListenerOnce(map, 'idle', () => {
@@ -247,14 +279,13 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [
       listeners.forEach((listener) => maps.event.removeListener(listener));
       overlays.forEach((overlay) => overlay.setMap(null));
     };
-  }, [mapContext, layout, selectedStack, onSelectStack, config, routes, equipmentEntries]);
+  }, [mapContext, layout, selectedStack, selectedGeometry, onSelectStack, config, routes, equipmentEntries]);
 
   if (configError) return <Message type="error">{configError}</Message>;
   if (!config) return <Loading label="Carregando configuração geográfica do pátio..." />;
-  if (!layout.length) return <EmptyState title="Nenhuma pilha disponível para desenhar" description="As posições persistidas do Yard serão convertidas em polígonos quando estiverem disponíveis." />;
   if (!hasGoogleMapsApiKey(config)) {
     return <div className="yard-google-map-not-configured">
-      <EmptyState title="Google Maps não configurado" description="Informe googleMaps.apiKey no arquivo assets/configuracao.json do ambiente. A grade operacional abaixo continua disponível sem a chave." />
+      <Message type="warning">Informe googleMaps.apiKey no arquivo assets/configuracao.json do ambiente. Sem a chave, não é possível desenhar sobre o mapa.</Message>
       <code>googleMaps.apiKey</code>
     </div>;
   }
@@ -263,8 +294,18 @@ export function GoogleYardMap({ blocks, selectedStack, onSelectStack, routes = [
     <Message type="error">{mapError}</Message>
     <div ref={mapElementRef} className="yard-google-map" aria-label="Mapa georreferenciado do pátio de contêineres" />
     {!mapContext && !mapError && <div className="yard-google-map-loading"><Loading label="Carregando Google Maps..." /></div>}
+    {!layout.length && mapContext && <div className="yard-google-map-empty">Nenhuma geometria cadastrada. Use “Novo polígono” para desenhar o pátio diretamente no mapa.</div>}
+    <YardGeometryEditor
+      mapContext={mapContext}
+      geometries={geometries}
+      canEdit={canEditGeometry}
+      onSave={onSaveGeometry}
+      onDelete={onDeleteGeometry}
+      onSelectGeometry={setSelectedGeometry}
+    />
     <div className="yard-google-map-legend" aria-label="Legenda do mapa">
       {Object.entries(YARD_MAP_STATE_LABELS).map(([state, label]) => <span key={state}><i className={state} />{label}</span>)}
+      {!!geometries.length && <span><i className="geometry" />Geometria persistida</span>}
       {!!routes.length && <span><i className="route" />Rotas planejadas</span>}
       {!!equipmentEntries.length && <span><i className="equipment" />CHE em tempo real</span>}
     </div>

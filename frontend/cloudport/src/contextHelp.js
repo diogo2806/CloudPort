@@ -120,10 +120,10 @@ const PAGES = {
   '/home/patio/mapa': ['Mapa do pátio', 'Visualizar posições, unidades, equipamentos, reservas e alertas.'],
   '/home/patio/inventario': ['Inventário do pátio', 'Consultar cargas presentes e sua localização atual.'],
   '/home/patio/lost-found': {
-    title: 'Lost & Found / TBD',
+    title: 'Unidades de carga não localizadas',
     purpose: 'Investigar unidades sem registro, não localizadas ou temporariamente não identificadas até a associação, regularização, baixa e encerramento.',
     flow: ['Abra o caso com a identificação lida, o tipo e a evidência inicial.', 'Atribua o responsável e registre os avanços da investigação.', 'Associe uma unidade canônica quando ela for identificada.', 'Regularize a unidade ou registre a baixa com decisão motivada.', 'Encerre o caso somente após regularização ou baixa.'],
-    fields: ['Identificação lida: código capturado na operação.', 'Tipo do caso: sem registro, não localizada ou TBD.', 'Evidência: observações que sustentam a investigação.', 'Responsável: operador encarregado da apuração.', 'Unidade associada: registro canônico identificado.', 'Decisão final: justificativa da regularização, baixa e encerramento.'],
+    fields: ['Identificação lida: código capturado na operação.', 'Tipo do caso: sem registro, não localizada ou não identificada.', 'Evidência: observações que sustentam a investigação.', 'Responsável: operador encarregado da apuração.', 'Unidade associada: registro canônico identificado.', 'Decisão final: justificativa da regularização, baixa e encerramento.'],
     permissions: ['ADMIN_PORTO: consulta e execução de todo o ciclo.', 'OPERADOR_PATIO: abertura, investigação e tratamento operacional.', 'PLANEJADOR: consulta e tratamento conforme autorização do backend.'],
     states: ['ABERTO: caso aguardando tratamento.', 'EM_INVESTIGACAO: responsável e evidências em apuração.', 'ASSOCIADO: unidade canônica vinculada.', 'REGULARIZADO: unidade reativada e operacional.', 'BAIXADO: caso baixado e unidade associada inativada.', 'ENCERRADO: decisão final consolidada.'],
     blockers: ['Já existe caso ativo para a identificação.', 'Responsável obrigatório não informado.', 'Unidade canônica inexistente.', 'Regularização sem unidade associada.', 'Encerramento antes da regularização ou baixa.', 'Perfil sem uma das permissões exigidas.'],

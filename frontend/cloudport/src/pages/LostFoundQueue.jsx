@@ -10,6 +10,16 @@ const EMPTY_FORM = {
   evidencia: ''
 };
 
+const TIPO_CASO_LABELS = {
+  SEM_REGISTRO: 'Sem registro',
+  NAO_LOCALIZADA: 'Não localizada',
+  TBD: 'Não identificada'
+};
+
+function tipoCasoLabel(value) {
+  return TIPO_CASO_LABELS[value] || value || '—';
+}
+
 function dateTime(value) {
   if (!value) return '—';
   const parsed = new Date(value);
@@ -34,7 +44,7 @@ export function LostFoundQueue() {
       const response = await inventoryLostFoundApi.listar();
       setRows(Array.isArray(response) ? response : []);
     } catch (reason) {
-      setError(formatError(reason, 'Não foi possível carregar os casos Lost & Found/TBD.'));
+      setError(formatError(reason, 'Não foi possível carregar as ocorrências de unidades de carga.'));
     } finally {
       setLoading(false);
     }
@@ -93,12 +103,12 @@ export function LostFoundQueue() {
     execute(() => operation(selected.id, decisao), message);
   }
 
-  return <Section title="Lost & Found / TBD" description="Fila persistente de unidades sem registro, não localizadas ou temporariamente não identificadas.">
+  return <Section title="Unidades de carga não localizadas" description="Fila persistente de ocorrências envolvendo unidades sem registro, não localizadas ou temporariamente não identificadas.">
     <Message type="error">{error}</Message>
     <Message type="success">{success}</Message>
     <form className="lost-found-form" onSubmit={submit}>
       <label>Identificação lida<input required maxLength="40" value={form.identificacaoLida} onChange={(event) => setForm({ ...form, identificacaoLida: event.target.value.toUpperCase() })} /></label>
-      <label>Tipo do caso<select value={form.tipoCaso} onChange={(event) => setForm({ ...form, tipoCaso: event.target.value })}><option value="SEM_REGISTRO">Sem registro</option><option value="NAO_LOCALIZADA">Não localizada</option><option value="TBD">TBD</option></select></label>
+      <label>Tipo do caso<select value={form.tipoCaso} onChange={(event) => setForm({ ...form, tipoCaso: event.target.value })}><option value="SEM_REGISTRO">Sem registro</option><option value="NAO_LOCALIZADA">Não localizada</option><option value="TBD">Não identificada</option></select></label>
       <label className="wide">Evidência<textarea maxLength="2000" value={form.evidencia} onChange={(event) => setForm({ ...form, evidencia: event.target.value })} /></label>
       <button type="submit" disabled={busy}>Abrir caso</button>
     </form>
@@ -110,14 +120,14 @@ export function LostFoundQueue() {
     {loading ? <Loading label="Carregando casos..." /> : <div className="lost-found-grid">
       <div>{filtered.length ? <DataTable rows={filtered} rowKey={(row) => row.id} onRowClick={setSelected} columns={[
         { key: 'identificacaoLida', label: 'Identificação' },
-        { key: 'tipoCaso', label: 'Tipo', render: (row) => <StatusBadge value={row.tipoCaso} /> },
+        { key: 'tipoCaso', label: 'Tipo', render: (row) => <StatusBadge value={tipoCasoLabel(row.tipoCaso)} /> },
         { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> },
         { key: 'responsavel', label: 'Responsável' },
         { key: 'abertoEm', label: 'Abertura', render: (row) => dateTime(row.abertoEm) }
       ]} /> : <EmptyState title="Nenhum caso encontrado" />}</div>
       <aside className="lost-found-detail">{!selected ? <EmptyState title="Selecione um caso" /> : <>
         <h3>{selected.identificacaoLida}</h3>
-        <dl><div><dt>Tipo</dt><dd>{selected.tipoCaso}</dd></div><div><dt>Status</dt><dd>{selected.status}</dd></div><div><dt>Unidade associada</dt><dd>{selected.unidadeIdentificacao || '—'}</dd></div><div><dt>Responsável</dt><dd>{selected.responsavel || '—'}</dd></div><div><dt>Evidência</dt><dd>{selected.evidencia || '—'}</dd></div><div><dt>Decisão final</dt><dd>{selected.decisaoFinal || '—'}</dd></div></dl>
+        <dl><div><dt>Tipo</dt><dd>{tipoCasoLabel(selected.tipoCaso)}</dd></div><div><dt>Status</dt><dd>{selected.status}</dd></div><div><dt>Unidade associada</dt><dd>{selected.unidadeIdentificacao || '—'}</dd></div><div><dt>Responsável</dt><dd>{selected.responsavel || '—'}</dd></div><div><dt>Evidência</dt><dd>{selected.evidencia || '—'}</dd></div><div><dt>Decisão final</dt><dd>{selected.decisaoFinal || '—'}</dd></div></dl>
         <div className="actions">
           {['ABERTO', 'EM_INVESTIGACAO', 'ASSOCIADO'].includes(selected.status) && <button type="button" disabled={busy} onClick={investigate}>Investigar</button>}
           {['ABERTO', 'EM_INVESTIGACAO'].includes(selected.status) && <button type="button" className="secondary" disabled={busy} onClick={associate}>Associar</button>}

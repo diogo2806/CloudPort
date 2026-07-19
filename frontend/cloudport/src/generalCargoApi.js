@@ -41,6 +41,8 @@ export const generalCargoApi = {
     method: 'POST', query: { usuario, correlationId }
   }),
   registrarExecucaoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/execucoes`, { method: 'POST', body }),
+  listarLacresStuffUnstuff: (id) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/lacres`),
+  registrarLacreStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/lacres`, { method: 'POST', body }),
   concluirOperacaoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/concluir`, { method: 'POST', body }),
   cancelarOperacaoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/cancelar`, { method: 'POST', body })
 };

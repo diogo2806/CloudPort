@@ -37,21 +37,21 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     Page<Agendamento> findByJanelaAtendimentoDataBetween(LocalDate inicio, LocalDate fim, Pageable pageable);
 
     Page<Agendamento> findByTransportadoraIdAndJanelaAtendimentoDataBetween(Long transportadoraId,
-                                                                              LocalDate inicio,
-                                                                              LocalDate fim,
-                                                                              Pageable pageable);
+                                                                             LocalDate inicio,
+                                                                             LocalDate fim,
+                                                                             Pageable pageable);
 
     Page<Agendamento> findByJanelaAtendimentoDataGreaterThanEqual(LocalDate inicio, Pageable pageable);
 
     Page<Agendamento> findByTransportadoraIdAndJanelaAtendimentoDataGreaterThanEqual(Long transportadoraId,
-                                                                                       LocalDate inicio,
-                                                                                       Pageable pageable);
+                                                                                      LocalDate inicio,
+                                                                                      Pageable pageable);
 
     Page<Agendamento> findByJanelaAtendimentoDataLessThanEqual(LocalDate fim, Pageable pageable);
 
     Page<Agendamento> findByTransportadoraIdAndJanelaAtendimentoDataLessThanEqual(Long transportadoraId,
-                                                                                    LocalDate fim,
-                                                                                    Pageable pageable);
+                                                                                   LocalDate fim,
+                                                                                   Pageable pageable);
 
     Page<Agendamento> findByTransportadoraId(Long transportadoraId, Pageable pageable);
 
@@ -60,7 +60,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     long countByJanelaAtendimentoIdAndStatusNot(Long janelaAtendimentoId, StatusAgendamento status);
 
     long countByJanelaAtendimentoIdAndStatusNotAndIdNot(Long janelaAtendimentoId, StatusAgendamento status,
-                                                         Long id);
+                                                        Long id);
 
     @Query("SELECT new br.com.cloudport.servicogate.app.transparencia.dto.OcupacaoPorHoraDTO(" +
             "j.horaInicio, " +
@@ -93,10 +93,10 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             "AND (CAST(:tipoOperacao AS VARCHAR) IS NULL OR a.tipo_operacao = CAST(:tipoOperacao AS VARCHAR))",
             nativeQuery = true)
     DashboardMetricsProjection calcularMetricasDashboard(@Param("inicio") java.time.LocalDateTime inicio,
-                                                          @Param("fim") java.time.LocalDateTime fim,
-                                                          @Param("transportadoraId") Long transportadoraId,
-                                                          @Param("tipoOperacao") String tipoOperacao,
-                                                          @Param("toleranciaPontualidade") int toleranciaPontualidade);
+                                                         @Param("fim") java.time.LocalDateTime fim,
+                                                         @Param("transportadoraId") Long transportadoraId,
+                                                         @Param("tipoOperacao") String tipoOperacao,
+                                                         @Param("toleranciaPontualidade") int toleranciaPontualidade);
 
     @Query("SELECT a FROM Agendamento a " +
             "JOIN FETCH a.transportadora t " +
@@ -109,7 +109,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             "AND a.status <> br.com.cloudport.servicogate.model.enums.StatusAgendamento.CANCELADO " +
             "ORDER BY a.horarioPrevistoChegada ASC")
     List<Agendamento> buscarRelatorio(@Param("inicio") java.time.LocalDateTime inicio,
-                                       @Param("fim") java.time.LocalDateTime fim,
-                                       @Param("transportadoraId") Long transportadoraId,
-                                       @Param("tipoOperacao") TipoOperacao tipoOperacao);
+                                      @Param("fim") java.time.LocalDateTime fim,
+                                      @Param("transportadoraId") Long transportadoraId,
+                                      @Param("tipoOperacao") TipoOperacao tipoOperacao);
 }

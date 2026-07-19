@@ -19,6 +19,7 @@ public class SanitizadorConteudoNavegacao {
             Map.entry("GATE", "Gate"),
             Map.entry("NAVIO", "Navio e embarque"),
             Map.entry("NAVIOEEMBARQUE", "Navio e embarque"),
+            Map.entry("NAVIOECARGAS", "Navio e cargas"),
             Map.entry("EMBARQUE", "Navio e embarque"),
             Map.entry("CONTROLROOM", "Control Room"),
             Map.entry("FERROVIA", "Ferrovia"),

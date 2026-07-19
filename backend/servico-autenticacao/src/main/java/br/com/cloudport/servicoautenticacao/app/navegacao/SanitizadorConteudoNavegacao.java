@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.HtmlUtils;
 
 @Component
 public class SanitizadorConteudoNavegacao {
@@ -69,7 +68,6 @@ public class SanitizadorConteudoNavegacao {
             return "";
         }
         String normalizado = Normalizer.normalize(valor, Normalizer.Form.NFKC).trim();
-        String semControle = normalizado.replaceAll("[\\p{Cntrl}]", "");
-        return HtmlUtils.htmlEscape(semControle).trim();
+        return normalizado.replaceAll("[\\p{Cntrl}]", "").trim();
     }
 }

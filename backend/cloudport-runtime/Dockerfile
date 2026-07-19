@@ -7,6 +7,10 @@ FROM maven:3.9.9-eclipse-temurin-17 AS build
 WORKDIR /workspace
 COPY backend/ .
 
+# Impede que o runtime seja empacotado com duas migrations da mesma versao.
+# A verificacao permanece ativa mesmo quando os testes Maven sao ignorados no deploy.
+RUN sh ./scripts/validar-versoes-flyway.sh
+
 WORKDIR /workspace/cloudport-modules
 
 # Instala o agregador necessário para resolver os módulos do runtime.

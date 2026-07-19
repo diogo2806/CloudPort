@@ -1,6 +1,7 @@
 package br.com.cloudport.servicogate.comum.erro;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -13,20 +14,24 @@ class TratadorExcecoesTest {
 
     @Test
     void deveRetornarForbiddenParaAcessoNegado() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/gate/agendamentos");
-        request.addHeader("X-Correlation-Id", "correlation-test");
-        TratadorExcecoes tratadorExcecoes = new TratadorExcecoes();
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/cap/resumo");
+        request.addHeader("X-Correlation-Id", "correlation-cap-403");
+        TratadorExcecoes tratador = new TratadorExcecoes();
 
-        ResponseEntity<Map<String, Object>> response = tratadorExcecoes.acessoNegado(
-                new AccessDeniedException("Transportadora autenticada sem vínculo válido"),
-                request
-        );
+        ResponseEntity<Map<String, Object>> response = tratador.acessoNegado(
+                new AccessDeniedException("Transportadora autenticada sem vínculo válido."),
+                request);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(response.getHeaders().getFirst("X-Correlation-Id")).isEqualTo("correlation-test");
-        assertThat(response.getBody())
-                .containsEntry("codigo", "ACESSO_NEGADO")
-                .containsEntry("mensagem", "Transportadora autenticada sem vínculo válido")
-                .containsEntry("correlationId", "correlation-test");
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("ACESSO_NEGADO", response.getBody().get("codigo"));
+        assertEquals("Transportadora autenticada sem vínculo válido.", response.getBody().get("mensagem"));
+        assertEquals("correlation-cap-403", response.getBody().get("correlationId"));
+        assertEquals("GET /cap/resumo", detalhes(response).get("rota"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> detalhes(ResponseEntity<Map<String, Object>> response) {
+        return (Map<String, Object>) response.getBody().get("detalhes");
     }
 }

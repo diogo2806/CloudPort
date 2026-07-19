@@ -2,6 +2,7 @@
 set -eu
 
 CONFIG_FILE="/usr/share/nginx/html/assets/configuracao.json"
+CONFIG_DIR="$(dirname "$CONFIG_FILE")"
 API_URL="${CLOUDPORT_API_URL:-}"
 NAVIO_CONTROL_ROOM_URL="${CLOUDPORT_NAVIO_CONTROL_ROOM_URL:-}"
 
@@ -32,6 +33,8 @@ if [ -z "$API_URL" ]; then
     exit 1
   fi
 
+  chmod 0755 "$CONFIG_DIR"
+  chmod 0644 "$CONFIG_FILE"
   echo "CloudPort: mantendo baseApiUrl existente em configuracao.json."
   exit 0
 fi
@@ -50,7 +53,7 @@ API_URL="${API_URL%/}"
 NAVIO_CONTROL_ROOM_URL="${NAVIO_CONTROL_ROOM_URL%/}"
 API_URL_ESCAPED="$(escape_sed_replacement "$API_URL")"
 NAVIO_URL_ESCAPED="$(escape_sed_replacement "$NAVIO_CONTROL_ROOM_URL")"
-TEMP_FILE="$(mktemp)"
+TEMP_FILE="$(mktemp "${CONFIG_FILE}.tmp.XXXXXX")"
 trap 'rm -f "$TEMP_FILE"' EXIT
 
 sed \
@@ -63,8 +66,16 @@ if ! grep -Fq "\"baseApiUrl\": \"$API_URL\"" "$TEMP_FILE"; then
   exit 1
 fi
 
+chmod 0755 "$CONFIG_DIR"
 chmod 0644 "$TEMP_FILE"
-mv "$TEMP_FILE" "$CONFIG_FILE"
+mv -f "$TEMP_FILE" "$CONFIG_FILE"
+chmod 0644 "$CONFIG_FILE"
 trap - EXIT
 
-echo "CloudPort: configuração de runtime atualizada para $API_URL."
+FILE_MODE="$(stat -c '%a' "$CONFIG_FILE")"
+if [ "$FILE_MODE" != "644" ]; then
+  echo "ERRO: configuracao.json ficou com permissão inesperada: $FILE_MODE" >&2
+  exit 1
+fi
+
+echo "CloudPort: configuração de runtime atualizada para $API_URL com permissão $FILE_MODE."

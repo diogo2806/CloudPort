@@ -10,6 +10,11 @@ import {
   hasGoogleMapsApiKey,
   normalizeYardMapConfig
 } from './pages/yard/yardGoogleMaps.js';
+import {
+  buildPersistedYardMapLayout,
+  buildResolvedYardMapLayout,
+  geometryPath
+} from './pages/yard/yardGeoJson.js';
 
 const positions = [
   {
@@ -47,6 +52,19 @@ const positions = [
     areaPermitida: true
   }
 ];
+
+const config = normalizeYardMapConfig({
+  googleMaps: {
+    apiKey: 'AIza-valid-test-key',
+    center: { lat: -22.93315, lng: -43.83731 },
+    slotWidthMeters: 3.2,
+    slotLengthMeters: 12.2,
+    stackGapMeters: 1,
+    blockGapMeters: 20,
+    blockColumns: 2,
+    rotationDegrees: 17
+  }
+});
 
 test('associa a ordem não final à posição usando as coordenadas de destino oficiais', () => {
   const order = {
@@ -90,18 +108,6 @@ test('gera um polígono geográfico por pilha e preserva a situação operaciona
     camadaDestino: 'T2',
     statusOrdem: 'EM_EXECUCAO'
   }]);
-  const config = normalizeYardMapConfig({
-    googleMaps: {
-      apiKey: 'AIza-valid-test-key',
-      center: { lat: -22.93315, lng: -43.83731 },
-      slotWidthMeters: 3.2,
-      slotLengthMeters: 12.2,
-      stackGapMeters: 1,
-      blockGapMeters: 20,
-      blockColumns: 2,
-      rotationDegrees: 17
-    }
-  });
 
   const layout = buildYardMapLayout(blocks, config);
 
@@ -113,8 +119,50 @@ test('gera um polígono geográfico por pilha e preserva a situação operaciona
   assert.notDeepEqual(layout[0].center, layout[1].center);
 });
 
+test('usa o polígono GeoJSON persistido e mantém a grade automática para pilhas restantes', () => {
+  const blocks = buildStacks(positions, [{
+    id: 94,
+    linhaDestino: 1,
+    colunaDestino: 1,
+    camadaDestino: 'T2',
+    statusOrdem: 'PENDENTE'
+  }]);
+  const geometry = {
+    id: 10,
+    codigo: 'PILHA-A1-1-1',
+    tipo: 'PILHA',
+    bloco: 'A1',
+    linha: 1,
+    coluna: 1,
+    geoJson: {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [-43.83740, -22.93310],
+          [-43.83735, -22.93310],
+          [-43.83735, -22.93320],
+          [-43.83740, -22.93320],
+          [-43.83740, -22.93310]
+        ]]
+      }
+    }
+  };
+
+  assert.equal(geometryPath(geometry).length, 4);
+  const persisted = buildPersistedYardMapLayout(blocks, [geometry]);
+  const resolved = buildResolvedYardMapLayout(blocks, config, [geometry]);
+
+  assert.equal(persisted.length, 1);
+  assert.equal(persisted[0].state, 'reserved');
+  assert.equal(persisted[0].stack.coluna, 1);
+  assert.equal(resolved.length, 2);
+  assert.equal(resolved.filter((entry) => entry.geometry).length, 1);
+  assert.equal(resolved.filter((entry) => !entry.geometry)[0].stack.coluna, 2);
+});
+
 test('normaliza limites geográficos e rejeita chave de exemplo', () => {
-  const config = normalizeYardMapConfig({
+  const normalizedConfig = normalizeYardMapConfig({
     googleMaps: {
       apiKey: ' SUA_CHAVE_AQUI ',
       center: { lat: 999, lng: -999 },
@@ -124,11 +172,11 @@ test('normaliza limites geográficos e rejeita chave de exemplo', () => {
     }
   });
 
-  assert.equal(config.center.lat, 85);
-  assert.equal(config.center.lng, -180);
-  assert.equal(config.zoom, 22);
-  assert.equal(config.blockColumns, 1);
-  assert.equal(config.rotationDegrees, 180);
-  assert.equal(hasGoogleMapsApiKey(config), false);
+  assert.equal(normalizedConfig.center.lat, 85);
+  assert.equal(normalizedConfig.center.lng, -180);
+  assert.equal(normalizedConfig.zoom, 22);
+  assert.equal(normalizedConfig.blockColumns, 1);
+  assert.equal(normalizedConfig.rotationDegrees, 180);
+  assert.equal(hasGoogleMapsApiKey(normalizedConfig), false);
   assert.equal(hasGoogleMapsApiKey({ apiKey: 'AIza-valid-test-key' }), true);
 });

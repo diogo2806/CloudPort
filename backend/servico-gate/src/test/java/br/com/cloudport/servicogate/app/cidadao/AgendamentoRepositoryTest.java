@@ -180,16 +180,16 @@ class AgendamentoRepositoryTest {
     }
 
     private Agendamento criarAgendamento(String codigo,
-                                           Transportadora transportadora,
-                                           Motorista motorista,
-                                           Veiculo veiculo,
-                                           JanelaAtendimento janela,
-                                           TipoOperacao tipoOperacao,
-                                           StatusAgendamento status,
-                                           LocalDateTime previstoChegada,
-                                           LocalDateTime previstoSaida,
-                                           LocalDateTime realChegada,
-                                           LocalDateTime realSaida) {
+                                          Transportadora transportadora,
+                                          Motorista motorista,
+                                          Veiculo veiculo,
+                                          JanelaAtendimento janela,
+                                          TipoOperacao tipoOperacao,
+                                          StatusAgendamento status,
+                                          LocalDateTime previstoChegada,
+                                          LocalDateTime previstoSaida,
+                                          LocalDateTime realChegada,
+                                          LocalDateTime realSaida) {
         Agendamento agendamento = new Agendamento();
         agendamento.setCodigo(codigo);
         agendamento.setTransportadora(transportadora);

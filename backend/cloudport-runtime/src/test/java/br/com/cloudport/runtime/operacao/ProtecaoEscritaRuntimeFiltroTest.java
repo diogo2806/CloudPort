@@ -29,12 +29,26 @@ class ProtecaoEscritaRuntimeFiltroTest {
         JsonNode erro = objectMapper.readTree(response.getContentAsString());
         assertThat(erro.path("codigo").asText()).isEqualTo("RUNTIME_SOMENTE_LEITURA");
         assertThat(erro.path("caminho").asText()).isEqualTo("/navios");
+        assertThat(erro.path("metodo").asText()).isEqualTo("POST");
     }
 
     @Test
     void devePermitirLeituraMesmoQuandoEscritaEstaDesabilitada() throws Exception {
         ProtecaoEscritaRuntimeFiltro filtro = new ProtecaoEscritaRuntimeFiltro(false, objectMapper);
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/navios/1");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean executouCadeia = new AtomicBoolean(false);
+
+        filtro.doFilter(request, response, (requisicao, resposta) -> executouCadeia.set(true));
+
+        assertThat(executouCadeia).isTrue();
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void devePermitirLoginMesmoQuandoRuntimeEstaEmObservacao() throws Exception {
+        ProtecaoEscritaRuntimeFiltro filtro = new ProtecaoEscritaRuntimeFiltro(false, objectMapper);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/auth/login");
         MockHttpServletResponse response = new MockHttpServletResponse();
         AtomicBoolean executouCadeia = new AtomicBoolean(false);
 

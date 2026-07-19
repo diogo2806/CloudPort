@@ -7,6 +7,7 @@ import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } fr
 import { BillingPage, CapPage } from './pages/BillingCapPages.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
 import { ControlRoomEquipamentosPage } from './pages/ControlRoomEquipamentosPage.jsx';
+import { EdiMonitorPage } from './pages/EdiMonitorPage.jsx';
 import { GateDirectVesselPage } from './pages/GateDirectVesselPage.jsx';
 import { GateDirectVesselReleasePage } from './pages/GateDirectVesselReleasePage.jsx';
 import { GateOperationsPage } from './pages/GateOperationsPage.jsx';
@@ -14,6 +15,7 @@ import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
 import { GeneralCargoPage } from './pages/GeneralCargoPage.jsx';
 import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
 import { LostFoundPage } from './pages/LostFoundPage.jsx';
+import { PublicApiDiagnosticsPage } from './pages/PublicApiDiagnosticsPage.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
@@ -95,6 +97,10 @@ const FALLBACK_NAVIGATION = [
     { label: 'Recursos', path: '/home/patio/recursos', roles: [] },
     { label: 'Indicadores', path: '/home/patio/dashboard-kpi', roles: [] },
     { label: 'Automação', path: '/home/patio/automacao', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }
+  ] },
+  { group: 'Integrações', items: [
+    { label: 'Painel EDI', path: '/home/integracoes/edi', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
+    { label: 'Diagnóstico da API pública', path: '/home/integracoes/api-publica', roles: ['ADMIN_PORTO'] }
   ] },
   { group: 'Navio e embarque', items: [
     { label: 'Line-up de navios', path: '/home/navio/line-up', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
@@ -190,6 +196,8 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/patio/recursos') return <YardResourcesPage navigate={navigate} />;
   if (path === '/home/patio/dashboard-kpi') return <YardKpiPage navigate={navigate} />;
   if (path === '/home/patio/automacao' || path === '/home/patio/simulador') return <YardAutomationPage navigate={navigate} session={session} />;
+  if (path === '/home/integracoes' || path === '/home/integracoes/edi') return <EdiMonitorPage />;
+  if (path === '/home/integracoes/api-publica') return <PublicApiDiagnosticsPage />;
   if (path === '/home/embarque' || path === '/home/embarque/planejamento') return <ContainerVesselPlannerPage session={session} />;
   if (path === '/home/embarque/steel-coils') return <SteelCoilPlannerPage />;
   const definition = DATASET_ROUTES[path] ?? Object.entries(DATASET_ROUTES).find(([route]) => path.startsWith(`${route}/`))?.[1];

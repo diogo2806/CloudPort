@@ -239,6 +239,12 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 3. Recepção assíncrona e idempotente.
 4. Worker com reivindicação transacional, retentativa e quarentena.
 5. Eventos internos publicados após persistência.
+6. Painel unificado de mensagens EDI no portal React (`/home/integracoes/edi`), com recepção, tentativas, erro, correlação e efeito produzido por mensagem, filtros por tipo e status, paginação do backend, inspeção detalhada e reprocessamento motivado via `GET/POST /api/edi/processamentos*`.
+
+## Integrações e API pública
+
+1. Tela de diagnóstico dos contratos `/api/public/v1/*` no portal React (`/home/integracoes/api-publica`), com catálogo dos contratos GET expostos, execução real autenticada pelos headers `X-CloudPort-Client-Id`/`X-CloudPort-Client-Secret`, validação de parâmetros obrigatórios, status, latência, correlationId e histórico da sessão.
+2. Abas `INTEGRACOES` semeadas em `configuracoes_navegacao` (migração `V305`), restritas a `ROLE_ADMIN_PORTO` e `ROLE_PLANEJADOR` (painel EDI) e `ROLE_ADMIN_PORTO` (diagnóstico da API pública).
 
 ## Frontend compartilhado
 

@@ -1,6 +1,6 @@
 # Requisitos pendentes - CloudPort
 
-Status: atualizado em 2026-07-18 após a implementação da prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-19 após a entrega do painel unificado de EDI e da tela de diagnóstico dos contratos `/api/public/v1/*` no portal React.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -56,9 +56,8 @@ Não há pendências funcionais P0 comprovadas no código atual. A promoção da
 1. Adotar `backend/cloudport-contracts` nos módulos que ainda mantêm DTOs e enums equivalentes locais.
 2. Remover conversões duplicadas sem quebrar os contratos externos existentes.
 3. Gerar tipos TypeScript no pipeline e comparar o snapshot publicado.
-4. Criar tela de diagnóstico dos contratos `/api/public/v1/*`.
-5. Implementar escopos por cliente, rotação e expiração de segredo, rate limit e auditoria de chamadas.
-6. Validar automaticamente rotas, schemas e `operationId` duplicados no OpenAPI consolidado.
+4. Implementar escopos por cliente, rotação e expiração de segredo, rate limit e auditoria de chamadas.
+5. Validar automaticamente rotas, schemas e `operationId` duplicados no OpenAPI consolidado.
 
 ### 2. Visibilidade orientada a dados reais
 
@@ -74,7 +73,6 @@ Não há pendências funcionais P0 comprovadas no código atual. A promoção da
 2. Publicar eventos externos específicos de estiva, reserva, ordem, movimento, gate, rail e work queue.
 3. Implementar outbox transacional para eventos que atravessam a fronteira da aplicação.
 4. Definir política operacional de retenção, quarentena, reprocessamento e descarte de mensagens.
-5. Disponibilizar painel unificado de recepção, tentativa, erro, correlação e efeito produzido por mensagem.
 
 ### 4. Relatórios operacionais
 

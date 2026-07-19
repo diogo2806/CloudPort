@@ -4,6 +4,7 @@ import { DataTable, Loading, Message, MetricCard, Section, StatusBadge } from '.
 import { GoogleYardMap } from './GoogleYardMap.jsx';
 import { OperationalYardViews } from './OperationalYardViews.jsx';
 import { YardAllocationEditor } from './YardAllocationEditor.jsx';
+import { yardGeometryApi } from './yardGeometryApi.js';
 import { yardOperationalApi } from './yardOperationalApi.js';
 import { YardReeferPanel } from './YardReeferPanel.jsx';
 import { mergeYardEquipment, yardRestrictionSummary } from './yardLiveMap.js';
@@ -16,9 +17,10 @@ export function YardMapPage({ navigate }) {
   const [selectedStack, setSelectedStack] = useState(null);
   const session = readSession();
   const canOperate = hasAnyRole(session, 'ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO');
+  const canEditGeometry = hasAnyRole(session, 'ADMIN_PORTO', 'PLANEJADOR');
   const remote = useRemote(async () => {
     const query = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
-    const [map, positions, availableFilters, orders, movements, telemetry, allContainers, reeferTelemetry] = await Promise.all([
+    const [map, positions, availableFilters, orders, movements, telemetry, allContainers, reeferTelemetry, geometries] = await Promise.all([
       api.obterMapaPatio(query),
       api.listarPosicoesReservaveisPatio(),
       api.obterFiltrosMapaPatio(),
@@ -26,7 +28,8 @@ export function YardMapPage({ navigate }) {
       api.listarMovimentacoesPatio(),
       api.listarTelemetriaEquipamentosPatio(),
       api.listarConteineresPatio(),
-      yardOperationalApi.listarTelemetriaReefers()
+      yardOperationalApi.listarTelemetriaReefers(),
+      yardGeometryApi.listar()
     ]);
     return {
       map: map ?? {},
@@ -36,7 +39,8 @@ export function YardMapPage({ navigate }) {
       movements: movements ?? [],
       telemetry: telemetry ?? [],
       allContainers: allContainers ?? [],
-      reeferTelemetry: reeferTelemetry ?? []
+      reeferTelemetry: reeferTelemetry ?? [],
+      geometries: geometries ?? []
     };
   }, [filters.status, filters.tipoCarga, filters.destino, filters.camada, filters.tipoEquipamento]);
 
@@ -87,6 +91,20 @@ export function YardMapPage({ navigate }) {
     return remote.data?.filters?.[key] ?? [];
   }
 
+  async function saveGeometry(payload) {
+    const { id, ...body } = payload;
+    const saved = id
+      ? await yardGeometryApi.atualizar(id, body)
+      : await yardGeometryApi.criar(body);
+    await remote.reload();
+    return saved;
+  }
+
+  async function deleteGeometry(id, reason) {
+    await yardGeometryApi.excluir(id, reason);
+    await remote.reload();
+  }
+
   return <>
     <YardPageHeader path="/home/patio/mapa" navigate={navigate} title="Mapa operacional" description="Vistas de bloco, seção, scan e microvisão com heatmaps, rotas, reefers, CHEs, allocations, workspaces e simulação antes da movimentação." actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
     <Message type="error">{remote.error}</Message>
@@ -99,9 +117,19 @@ export function YardMapPage({ navigate }) {
       <FilterField label="Equipamento"><select value={filters.tipoEquipamento} onChange={(event) => setFilters((current) => ({ ...current, tipoEquipamento: event.target.value }))}><option value="">Todos</option>{optionList('tiposEquipamentoDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
     </div></Section>
     {remote.loading ? <Loading label="Carregando mapa, rotas e telemetria..." /> : <>
-      <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label="CHEs em tempo real" value={equipment.length} detail={`${routes.length} rota(s) ativa(s)`} /><MetricCard label="Pilhas bloqueadas" value={restrictions.blocked} detail={`${restrictions.interdicted} interditada(s)`} /></div>
-      <Section title="Pátio georreferenciado" description="O Google Maps desenha pilhas, áreas bloqueadas e interditadas, rotas planejadas e a posição atual dos CHEs.">
-        <GoogleYardMap blocks={stacks} selectedStack={selectedStack} onSelectStack={setSelectedStack} routes={routes} equipment={equipment} />
+      <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Geometrias" value={remote.data?.geometries?.length ?? 0} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label="CHEs em tempo real" value={equipment.length} detail={`${routes.length} rota(s) ativa(s)`} /><MetricCard label="Pilhas bloqueadas" value={restrictions.blocked} detail={`${restrictions.interdicted} interditada(s)`} /></div>
+      <Section title="Pátio georreferenciado" description="Polígonos GeoJSON persistidos aparecem sobre o Google Maps. Planejadores e administradores podem criar e ajustar o desenho clicando diretamente no mapa.">
+        <GoogleYardMap
+          blocks={stacks}
+          selectedStack={selectedStack}
+          onSelectStack={setSelectedStack}
+          routes={routes}
+          equipment={equipment}
+          geometries={remote.data?.geometries}
+          canEditGeometry={canEditGeometry}
+          onSaveGeometry={saveGeometry}
+          onDeleteGeometry={deleteGeometry}
+        />
         {!!routes.length && <div className="yard-route-summary">{routes.slice(0, 20).map((route) => <span key={route.id}>WI #{route.id} · {sanitizeText(route.codigoConteiner)} · L{route.origem.linha}/C{route.origem.coluna} → L{route.destino.linha}/C{route.destino.coluna}</span>)}</div>}
       </Section>
       <Section title="Console operacional do pátio" description="A seleção é sincronizada com o mapa. Arraste um contêiner para uma posição livre; o sistema simula e só persiste após confirmação motivada.">

@@ -30,6 +30,7 @@ import org.springframework.util.StringUtils;
 @Service
 public class TokenService {
     private static final String PAPEL_ROOT = "ROLE_ROOT";
+    private static final String PAPEL_TRANSPORTADORA = "ROLE_TRANSPORTADORA";
 
     private final String secret;
     private final Duration tokenExpiration;
@@ -62,6 +63,9 @@ public class TokenService {
                             ? nomePapel
                             : "ROLE_" + nomePapel.toUpperCase())
                     .collect(Collectors.toCollection(LinkedHashSet::new));
+            if (!StringUtils.hasText(usuario.getTransportadoraDocumento())) {
+                papeis.remove(PAPEL_TRANSPORTADORA);
+            }
 
             String perfil = papeis.contains(PAPEL_ROOT)
                     ? PAPEL_ROOT

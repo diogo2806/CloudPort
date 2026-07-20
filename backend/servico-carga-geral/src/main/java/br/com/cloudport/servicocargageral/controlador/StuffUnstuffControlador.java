@@ -1,17 +1,20 @@
 package br.com.cloudport.servicocargageral.controlador;
 
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.CancelarOperacaoRequest;
+import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.ConfirmarPesagemStuffingRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.ConcluirOperacaoRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.CriarOperacaoRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.CriarVersaoPlanoRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.LacreOperacaoResposta;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.LiberarPlanoRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.OperacaoResposta;
+import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.PesagemStuffingResposta;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.PlanoVersaoResposta;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.RegistrarExecucaoRequest;
 import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.RegistrarLacreRequest;
 import br.com.cloudport.servicocargageral.servico.FluxoStuffUnstuffServico;
 import br.com.cloudport.servicocargageral.servico.LacreStuffUnstuffServico;
+import br.com.cloudport.servicocargageral.servico.PesagemStuffingServico;
 import br.com.cloudport.servicocargageral.servico.PlanoStuffUnstuffServico;
 import br.com.cloudport.servicocargageral.servico.StuffUnstuffServico;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,16 +48,19 @@ public class StuffUnstuffControlador {
     private final PlanoStuffUnstuffServico planoServico;
     private final FluxoStuffUnstuffServico fluxoServico;
     private final LacreStuffUnstuffServico lacreServico;
+    private final PesagemStuffingServico pesagemServico;
 
     public StuffUnstuffControlador(
             StuffUnstuffServico servico,
             PlanoStuffUnstuffServico planoServico,
             FluxoStuffUnstuffServico fluxoServico,
-            LacreStuffUnstuffServico lacreServico) {
+            LacreStuffUnstuffServico lacreServico,
+            PesagemStuffingServico pesagemServico) {
         this.servico = servico;
         this.planoServico = planoServico;
         this.fluxoServico = fluxoServico;
         this.lacreServico = lacreServico;
+        this.pesagemServico = pesagemServico;
     }
 
     @GetMapping
@@ -76,6 +82,13 @@ public class StuffUnstuffControlador {
     @Operation(summary = "Consultar ciclo persistido de lacres da operação")
     public List<LacreOperacaoResposta> listarLacres(@PathVariable UUID id) {
         return lacreServico.listar(id);
+    }
+
+    @GetMapping("/{id}/pesagem")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE')")
+    @Operation(summary = "Consultar pesagem, VGM e estado de liberação do stuffing")
+    public PesagemStuffingResposta obterPesagem(@PathVariable UUID id) {
+        return pesagemServico.obter(id);
     }
 
     @GetMapping("/{id}/planos")
@@ -148,9 +161,22 @@ public class StuffUnstuffControlador {
         return lacreServico.registrar(id, request);
     }
 
+    @PostMapping("/{id}/pesagem")
+    @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'OPERADOR_GATE')")
+    @Operation(summary = "Confirmar pesagem física, método e VGM antes da conclusão do stuffing")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Pesagem registrada com liberação ou bloqueio por excesso"),
+        @ApiResponse(responseCode = "409", description = "Operação, valores ou reconciliação de peso incompatíveis")
+    })
+    public PesagemStuffingResposta confirmarPesagem(
+            @PathVariable UUID id,
+            @Valid @RequestBody ConfirmarPesagemStuffingRequest request) {
+        return pesagemServico.confirmar(id, request);
+    }
+
     @PostMapping("/{id}/concluir")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO', 'OPERADOR_GATE')")
-    @Operation(summary = "Concluir operação integralmente executada e sem divergência de lacre aberta")
+    @Operation(summary = "Concluir operação integralmente executada, sem divergência de lacre e com VGM liberado")
     public OperacaoResposta concluir(
             @PathVariable UUID id,
             @Valid @RequestBody ConcluirOperacaoRequest request) {

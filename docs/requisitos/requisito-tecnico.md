@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-20 após a conclusão dos BUS1380 e BUS1390 na branch `main`.
+Status: atualizado em 2026-07-20 após a conclusão do BUS1290 no PR #601.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -12,17 +12,9 @@ Nenhuma pendência técnica permanece nesta seção. O BUS1380 foi concluído no
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| BUS1290 | Exigir verificação operacional de motorista e credencial antes de avançar a visita no Gate. | PIN, documento ou credencial válida é conferido contra motorista, transportadora e visita; tentativas, bloqueios e override autorizado são persistidos. | ⬜ Pendente |
 | BUS1300 | Implementar fila de pré-gate com chamada, aceite e expiração. | Chegada antecipada cria posição persistida; chamada, aceite, rechamada, expiração, cancelamento e entrada física mantêm ordem e prioridade sem duplicar visita ativa. | ⬜ Pendente |
 | BUS1310 | Implementar handoff de custódia em exchange areas do pátio. | Entrega e recebimento registram unidade, área, posição, equipamento, operador, condição, lacres e instante; a custódia muda uma única vez e divergência gera bloqueio. | ⬜ Pendente |
 | BUS1320 | Confirmar grounding e ungrounding por equipamento e posição física. | Cada retirada ou colocação confirma CHE, work instruction, origem, destino e leitura da unidade; eventos repetidos ou fora de sequência não alteram inventário. | ⬜ Pendente |
-
-### BUS1290 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/gestor/GateFlowService.java` | avanço de estágios da visita | O fluxo valida dados operacionais, mas não há desafio persistido de PIN ou credencial associado à decisão de entrada. | Criar novo método sugerido: `verificarCredencialMotorista()` e impedir avanço enquanto a verificação estiver ausente, expirada ou bloqueada. |
-| `frontend/cloudport/src/pages/GateOperationsPage.jsx` | processamento da visita | A interface não apresenta etapa de autenticação operacional do motorista com tentativas e override. | Adicionar etapa de verificação antes da autorização da pista. |
 
 ### BUS1300 — arquivos e métodos
 

@@ -1,7 +1,23 @@
 import { request, sanitizeText } from './api.js';
 
+const PLANOS_POSICAO_404_COOLDOWN_MS = 60_000;
+let planosPosicaoIndisponivelAte = 0;
+
+async function listarPlanos(query = {}) {
+  if (Date.now() < planosPosicaoIndisponivelAte) return [];
+
+  try {
+    return await request('/api/scheduler/planos-posicao', { query });
+  } catch (error) {
+    if (error?.status === 404) {
+      planosPosicaoIndisponivelAte = Date.now() + PLANOS_POSICAO_404_COOLDOWN_MS;
+    }
+    throw error;
+  }
+}
+
 export const yardPredictiveApi = {
-  listarPlanos: (query = {}) => request('/api/scheduler/planos-posicao', { query }),
+  listarPlanos,
   listarHistorico: (planoId) => request(`/api/scheduler/planos-posicao/${Number(planoId)}/historico`),
   alterarEstado: (planoId, estadoDestino, motivo, operador) => request(`/api/scheduler/planos-posicao/${Number(planoId)}/estado`, {
     method: 'POST',

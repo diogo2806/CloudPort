@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import { loadRuntimeConfig } from './api.js';
+import '@fontsource-variable/inter';
 import './styles.css';
 import './gateVisual.css';
 import './steel-coil-planner.css';

@@ -36,8 +36,6 @@ class PlanoPosicaoOperacionalServicoTest {
     @BeforeEach
     void configurar() {
         servico = new PlanoPosicaoOperacionalServico(repositorio, historicoRepositorio);
-        when(repositorio.saveAndFlush(any(PlanoPosicaoOperacional.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -46,6 +44,8 @@ class PlanoPosicaoOperacionalServicoTest {
         OrdemTrabalhoPatio ordem = ordem();
         when(repositorio.findFirstByCodigoContainerIgnoreCaseAndEstadoInOrderByAtualizadoEmDesc(
                 eq("MSCU1000001"), anyCollection())).thenReturn(Optional.of(plano));
+        when(repositorio.saveAndFlush(any(PlanoPosicaoOperacional.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         servico.revalidarParaDispatch(ordem, "planejador");
 

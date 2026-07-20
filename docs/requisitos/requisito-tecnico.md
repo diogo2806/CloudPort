@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-20 após a conclusão do BUS1320 no PR #605.
+Status: atualizado em 2026-07-20 após a conclusão dos BUS1400 e BUS1410 no PR #607.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -56,24 +56,7 @@ Nenhuma pendência técnica permanece nesta seção. O BUS1320 foi concluído no
 
 ## 5. Planejamento preditivo de pátio
 
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| BUS1400 | Implementar estados de planejamento tentativo, definitivo e iminente para posições e work instructions. | Toda proposta de posição registra horizonte, estado, validade e origem; a conversão entre tentativo e definitivo é auditada, e o dispatch só usa posição definitiva ou revalida a posição tentativa transacionalmente. | ⬜ Pendente |
-| BUS1410 | Implementar Yard Impact com previsão de ocupação, movimentos e demanda de CHE por bloco e POW. | O sistema projeta ao menos seis horas de entradas, saídas, rehandles, reservas e work instructions, identifica saturação e falta de equipamento e permite drill-down até as unidades responsáveis. | ⬜ Pendente |
-
-### BUS1400 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/scheduler/servico/PredictiveSchedulerService.java` | proposta de posição e horizonte operacional | O scheduler calcula propostas, mas não persiste estados operacionais equivalentes a tentativo, definitivo e iminente por work instruction. | Criar agregado sugerido `PlanoPosicaoOperacional`, com `TENTATIVO`, `DEFINITIVO`, `IMINENTE`, expiração, versão, motivo e revalidação no dispatch. |
-| `frontend/cloudport/src/pages/yard/YardReceivingPlanPage.jsx` | visualização do planejamento | A tela apresenta planejamento e propostas sem uma linha do tempo operacional formal por estado. | Adicionar filtros, badges, conversão motivada e contagem regressiva para o horizonte iminente. |
-
-### BUS1410 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/scheduler/servico/RealYardReplanningOptimizerService.java` | cálculo de impacto futuro | O otimizador avalia posições e custo da proposta, mas não publica uma projeção temporal consolidada por bloco, POW e equipamento. | Criar serviço sugerido `YardImpactServico`, agregando ocupação futura, reservas, filas, produtividade e demanda de CHE em janelas configuráveis. |
-| `frontend/cloudport/src/pages/yard/OperationalYardViews.jsx` | painel de impacto | As vistas operacionais não exibem recap temporal de movimentos futuros, saturação e déficit de equipamento. | Criar visão Yard Impact com heatmap temporal, slider de tempo, comparação atual versus futuro, animação, recap por bloco/POW e drill-down das unidades e ordens. |
+Nenhuma pendência técnica permanece nesta seção. O BUS1400 e o BUS1410 foram concluídos no PR #607 e estão registrados no documento canônico de requisitos implementados.
 
 ## 6. Dispatch e equipamentos
 

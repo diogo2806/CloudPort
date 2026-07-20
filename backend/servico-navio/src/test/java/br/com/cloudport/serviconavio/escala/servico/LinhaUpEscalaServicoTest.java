@@ -1,23 +1,23 @@
 package br.com.cloudport.serviconavio.escala.servico;
 
-import br.com.cloudport.serviconavio.comum.validacao.SanitizadorEntrada;
-import br.com.cloudport.serviconavio.escala.dto.LinhaUpEscalaDTO;
-import br.com.cloudport.serviconavio.escala.entidade.Escala;
-import br.com.cloudport.serviconavio.escala.entidade.FaseEscala;
-import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
-import br.com.cloudport.serviconavio.navio.entidade.Navio;
-import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
-import org.junit.jupiter.api.Test;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import br.com.cloudport.serviconavio.comum.validacao.SanitizadorEntrada;
+import br.com.cloudport.serviconavio.escala.dto.LinhaUpEscalaDTO;
+import br.com.cloudport.serviconavio.escala.entidade.Escala;
+import br.com.cloudport.serviconavio.escala.entidade.FaseEscala;
+import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
+import br.com.cloudport.serviconavio.escala.repositorio.ProntidaoBercoRepositorio;
+import br.com.cloudport.serviconavio.navio.entidade.Navio;
+import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 class LinhaUpEscalaServicoTest {
 
@@ -25,12 +25,13 @@ class LinhaUpEscalaServicoTest {
     void listarLineUpRetornaJanelaOperacionalCompleta() {
         EscalaRepositorio escalaRepositorio = mock(EscalaRepositorio.class);
         NavioRepositorio navioRepositorio = mock(NavioRepositorio.class);
+        ProntidaoBercoRepositorio prontidaoBercoRepositorio = mock(ProntidaoBercoRepositorio.class);
         SanitizadorEntrada sanitizadorEntrada = mock(SanitizadorEntrada.class);
         EscalaServico escalaServico = new EscalaServico(
                 escalaRepositorio,
                 navioRepositorio,
-                sanitizadorEntrada
-        );
+                prontidaoBercoRepositorio,
+                sanitizadorEntrada);
 
         Navio navio = new Navio();
         navio.setIdentificador(15L);

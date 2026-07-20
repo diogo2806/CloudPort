@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-20 com a conclusão do BUS1320, BUS1310, BUS1300 e BUS1290, além dos BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-20 com a conclusão dos BUS1350 e BUS1360 no PR #612, dos BUS1400 e BUS1410 no PR #607, além dos BUS1320, BUS1310, BUS1300, BUS1290, BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -91,6 +91,25 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 9. Divergências são reabertas quando as fontes mudam e resolvidas automaticamente quando voltam a ficar consistentes.
 10. O Vessel Planner disponibiliza fila visual e endpoints autenticados para consulta, reconciliação e resolução.
 
+## Prontidão de berço e eventos de guindaste — BUS1350 e BUS1360
+
+1. Cada escala atracada possui checklist versionado de prontidão com berço, calado, defensas, amarração, acesso, recursos, restrições, liberações, observações, responsável e instante.
+2. Cada nova confirmação cria uma versão imutável e preserva o histórico integral da escala.
+3. A transição de `ATRACADO` para `OPERANDO` utiliza bloqueio pessimista e exige que a versão mais recente esteja integralmente pronta.
+4. A resposta funcional informa exatamente os itens críticos pendentes e impede alteração parcial da fase.
+5. Paralisações planejadas e operacionais são persistidas por execução e guindaste com início, fim, motivo, impacto, turno, pendências, observações e responsável.
+6. Paralisações planejadas exigem fim; paralisações operacionais podem permanecer abertas até a liberação do equipamento.
+7. Intervalos sobrepostos são rejeitados e uma restrição parcial permite somente uma paralisação aberta por execução e guindaste.
+8. O início de movimento é bloqueado quando seu guindaste estiver em paralisação ativa no instante informado.
+9. O encerramento da paralisação registra fim, responsável e observação sem sobrescrever o evento original.
+10. O handover registra turno de origem, turno de destino, responsável que recebe, pendências e instante da passagem.
+11. Eventos operacionais possuem controle otimista de versão e permanecem separados do plano aprovado, preservando a reconciliação entre planejado e realizado.
+12. O Control Room reúne prontidão, bloqueios, execução, métricas, paralisações, handover e linha do tempo, mantendo disponível o monitor incorporado legado.
+13. O console continua operacional quando a URL do iframe não está configurada e restringe comandos aos perfis autorizados.
+14. A tela possui manual contextual com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e link para o processo completo.
+15. As migrations `V4__prontidao_operacional_berco.sql` e `V220__paralisacoes_handover_guindastes.sql` criam tabelas, restrições, índices, histórico e controles de concorrência.
+16. Testes unitários cobrem ausência e conclusão da prontidão, paralisação planejada, bloqueio de movimento por paralisação e handover com pendências.
+
 ## Operações administrativas de Navio
 
 1. A visita e seus itens podem ser editados no portal pelos contratos `PUT` existentes.
@@ -125,6 +144,24 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 12. A aplicação reutiliza o fluxo idempotente existente e revalida transacionalmente ocupação, reservas, restrições, peso, altura, ordem e posição antes de persistir.
 13. Conflitos encontrados na confirmação impedem alteração parcial e retornam erro funcional.
 14. A interface recarrega reservas, ordens, filas e plano após uma aplicação confirmada.
+
+## Planejamento preditivo de pátio — BUS1400 e BUS1410
+
+1. O `PredictiveSchedulerService` registra propostas persistidas por unidade no agregado `PlanoPosicaoOperacional`, vinculando posição, equipamento sugerido, horizonte operacional, validade, origem e assinatura reproduzível da entrada.
+2. Os planos utilizam os estados `TENTATIVO`, `DEFINITIVO`, `IMINENTE`, `EXPIRADO` e `CANCELADO`, com transições controladas e motivo obrigatório.
+3. A versão otimista do plano impede sobrescrita concorrente, e cada conversão registra estado anterior, estado novo, motivo, operador, instante e versão no histórico.
+4. Planos vencidos são expirados antes da consulta ou utilização operacional e não podem ser convertidos sem novo cálculo.
+5. Durante o dispatch, uma posição tentativa é revalidada na mesma transação; a conversão para definitiva só ocorre quando o plano está válido e o destino da work instruction coincide integralmente com a posição planejada.
+6. Expiração, divergência de destino ou estado incompatível retornam conflito funcional e impedem o dispatch.
+7. A API autenticada permite listar planos, filtrar por estado ou bloco, consultar histórico e executar conversões motivadas.
+8. O Yard Impact projeta horizontes configuráveis de seis a vinte e quatro horas com base em posições, capacidade, inventário, reservas, planos ativos, work queues, work instructions e equipamentos operacionais.
+9. A projeção consolida entradas, saídas, rehandles, reservas, ocupação atual e futura, percentual projetado, saturação e motivos de bloqueio por bloco.
+10. A demanda e a cobertura de CHE são calculadas por POW, indicando déficit quando a quantidade requerida supera a disponibilidade operacional.
+11. O drill-down identifica unidade, posição, movimento, estado, POW, fila e equipamento responsáveis por cada impacto previsto.
+12. As telas `Pátio > Planejamento de recebimento` e `Pátio > Yard Impact` apresentam filtros, badges de estado, conversão motivada, validade, horizonte temporal, comparação atual versus futuro, saturação, déficit e detalhamento operacional.
+13. As telas possuem ícone de manual contextual com finalidade, fluxo operacional, explicação dos campos, permissões, estados, motivos de bloqueio, exemplos, atalhos e link para o processo completo.
+14. A migration `V219__planejamento_preditivo_yard_impact.sql` cria as tabelas de plano e histórico, restrições, índices e controle de versão.
+15. Testes unitários cobrem conversão transacional válida, expiração e divergência entre o destino da work instruction e a posição planejada.
 
 ## Yard, inventário e dispatch
 

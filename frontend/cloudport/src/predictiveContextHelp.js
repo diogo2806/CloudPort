@@ -8,6 +8,7 @@ const HELP_BY_PATH = {
     flow: [
       'Selecione a instalação e uma truck visit ativa carregada pelo Gate.',
       'Revise as transações, unidades, bookings, Bills of Lading, ordens e pré-avisos vinculados.',
+      'Confira status, vigência, saldo, transportadora e regras de acesso antes da simulação.',
       'Corrija no Gate transações sem unidade, com trouble, em estado final ou sem autorização comercial compatível.',
       'Simule o planejamento somente com as transações elegíveis.',
       'Revise grupos, segregações, alertas e propostas de posição.',
@@ -15,7 +16,7 @@ const HELP_BY_PATH = {
     ],
     fields: [
       'Truck visit: visita operacional que fornece veículo, transportadora, pista, estágio e transações.',
-      'Referência comercial: booking, Bill of Lading, ordem ou pré-aviso usado para justificar a movimentação.',
+      'Referência comercial: booking, Bill of Lading, ordem ou pré-aviso, incluindo status, vigência, saldo e vínculo com a transportadora.',
       'Elegibilidade: resultado da validação anterior ao planejamento.',
       'Grupo sugerido: conjunto compatível por fluxo, armador, viagem, equipamento, peso e segregação.',
       'Posição: proposta persistida como TENTATIVO, DEFINITIVO ou IMINENTE no painel preditivo.',
@@ -40,10 +41,14 @@ const HELP_BY_PATH = {
       'Transação cancelada, concluída ou finalizada.',
       'Importação sem Bill of Lading ou ordem.',
       'Exportação ou vazio sem booking, ordem ou pré-aviso.',
+      'Referência ausente do catálogo, em status incompatível, ainda não vigente ou expirada.',
+      'Booking ou Bill of Lading sem saldo disponível.',
+      'Booking ou ordem pertencente a outra transportadora.',
+      'Regra de acesso vigente para motorista, transportadora ou veículo.',
       'ISO type ou peso ausente exige validação antes da posição definitiva.',
       'Perfil sem permissão ou versão do plano alterada concorrentemente.'
     ],
-    example: 'Uma truck visit de exportação possui duas transações. A primeira tem unidade, booking e pré-aviso e entra na simulação. A segunda está com trouble e aparece bloqueada com o motivo, sem ser enviada ao agrupador.',
+    example: 'Uma truck visit de exportação possui duas transações. A primeira tem unidade, booking vigente com saldo e pré-aviso ativo e entra na simulação. A segunda usa booking expirado ou possui regra de acesso vigente e aparece bloqueada com o motivo, sem ser enviada ao agrupador.',
     shortcuts: ['F1 ou Shift + ?: abrir esta ajuda.', 'Esc: fechar a ajuda.', 'Atualizar: recarregar visitas e referências.', 'Simular planejamento: calcular apenas as transações elegíveis.', 'Clique no grupo: abrir o inspector da decisão.'],
     processPath: '/home/patio/yard-impact',
     processLabel: 'Abrir Yard Impact',

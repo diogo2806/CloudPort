@@ -7,6 +7,11 @@ const TERMINAL_TRANSACTION_STATUSES = new Set([
   'FINALIZADO'
 ]);
 
+const BOOKING_STATUSES = new Set(['ABERTO', 'PARCIAL']);
+const BILL_OF_LADING_STATUSES = new Set(['ATIVO', 'PARCIAL']);
+const ORDER_STATUSES = new Set(['ATIVA']);
+const PREADVICE_STATUSES = new Set(['ATIVO']);
+
 function normalized(value) {
   return String(value ?? '').trim().toUpperCase();
 }
@@ -60,27 +65,124 @@ function referenceLabel({ booking, billOfLading, order, preadvice }) {
   return labels.join(' · ') || 'Sem referência comercial';
 }
 
-function validateReferences(category, context) {
+function timestamp(value) {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function validateStatus(label, reference, allowedStatuses) {
+  if (!reference) return [];
+  const status = normalized(reference.status);
+  if (!status) return [`${label} sem status operacional.`];
+  return allowedStatuses.has(status) ? [] : [`${label} em status ${reference.status} não permite planejamento.`];
+}
+
+function validateValidity(label, reference, now) {
+  if (!reference) return [];
   const blockers = [];
-  if (category === 'IMPORTACAO' && !context.billOfLading && !context.order) {
-    blockers.push('Importação sem Bill of Lading ou ordem vinculada.');
-  }
-  if (category === 'EXPORTACAO' && !context.booking && !context.order && !context.preadvice) {
-    blockers.push('Exportação sem booking, ordem ou pré-aviso vinculado.');
-  }
-  if (category === 'VAZIO' && !context.booking && !context.order && !context.preadvice) {
-    blockers.push('Movimento de vazio sem booking, ordem ou pré-aviso vinculado.');
-  }
+  const start = timestamp(reference.validadeInicio);
+  const end = timestamp(reference.validadeFim);
+  if (start !== null && now < start) blockers.push(`${label} ainda não está vigente.`);
+  if (end !== null && now > end) blockers.push(`${label} está expirado.`);
   return blockers;
 }
 
-export function buildReceivingRows(visit, references = {}, complements = {}) {
+function validateBalance(label, reference, totalField, usedField) {
+  if (!reference) return [];
+  const total = Number(reference[totalField]);
+  const used = Number(reference[usedField]);
+  if (!Number.isFinite(total) || !Number.isFinite(used)) return [`${label} sem saldo verificável.`];
+  return used < total ? [] : [`${label} sem saldo disponível.`];
+}
+
+function validateCarrier(label, reference, visit) {
+  if (!reference || reference.transportadoraId === undefined || reference.transportadoraId === null) return [];
+  if (visit?.transportadoraId === undefined || visit?.transportadoraId === null) {
+    return [`${label} possui transportadora, mas a truck visit não informa a transportadora responsável.`];
+  }
+  return sameId(reference.transportadoraId, visit.transportadoraId)
+    ? []
+    : [`${label} pertence a outra transportadora.`];
+}
+
+function validateReferenceId(label, id, reference) {
+  return id !== undefined && id !== null && !reference
+    ? [`${label} vinculado não foi encontrado no catálogo do Gate.`]
+    : [];
+}
+
+function validateReferences(category, context, visit, now) {
+  const blockers = [];
+  const { transaction, booking, billOfLading, order, preadvice } = context;
+
+  blockers.push(...validateReferenceId('Booking', transaction.bookingId, booking));
+  blockers.push(...validateReferenceId('Bill of Lading', transaction.billOfLadingId, billOfLading));
+  blockers.push(...validateReferenceId('Ordem', transaction.orderId, order));
+  blockers.push(...validateReferenceId('Pré-aviso', transaction.preadviceId, preadvice));
+
+  if (category === 'IMPORTACAO' && !billOfLading && !order) {
+    blockers.push('Importação sem Bill of Lading ou ordem vinculada.');
+  }
+  if (category === 'EXPORTACAO' && !booking && !order && !preadvice) {
+    blockers.push('Exportação sem booking, ordem ou pré-aviso vinculado.');
+  }
+  if (category === 'VAZIO' && !booking && !order && !preadvice) {
+    blockers.push('Movimento de vazio sem booking, ordem ou pré-aviso vinculado.');
+  }
+
+  blockers.push(...validateStatus('Booking', booking, BOOKING_STATUSES));
+  blockers.push(...validateValidity('Booking', booking, now));
+  blockers.push(...validateBalance('Booking', booking, 'quantidadeTotal', 'quantidadeUtilizada'));
+  blockers.push(...validateCarrier('Booking', booking, visit));
+
+  blockers.push(...validateStatus('Bill of Lading', billOfLading, BILL_OF_LADING_STATUSES));
+  blockers.push(...validateValidity('Bill of Lading', billOfLading, now));
+  blockers.push(...validateBalance('Bill of Lading', billOfLading, 'quantidadeTotal', 'quantidadeLiberada'));
+
+  blockers.push(...validateStatus('Ordem', order, ORDER_STATUSES));
+  blockers.push(...validateValidity('Ordem', order, now));
+  blockers.push(...validateCarrier('Ordem', order, visit));
+
+  blockers.push(...validateStatus('Pré-aviso', preadvice, PREADVICE_STATUSES));
+  return blockers;
+}
+
+function accessRuleBlockers(visit, rules, now) {
+  if (!visit) return [];
+  const referencesByScope = {
+    MOTORISTA: visit.motoristaId,
+    TRANSPORTADORA: visit.transportadoraId,
+    VEICULO: visit.veiculoId
+  };
+
+  return (rules ?? [])
+    .filter((rule) => rule?.ativo !== false)
+    .filter((rule) => normalized(rule?.tipo) === 'BLOQUEIO')
+    .filter((rule) => sameId(rule?.gateId, visit.gateId))
+    .filter((rule) => {
+      const scope = normalized(rule?.escopo);
+      return sameId(rule?.referenciaId, referencesByScope[scope]);
+    })
+    .filter((rule) => {
+      const start = timestamp(rule?.inicioVigencia);
+      const end = timestamp(rule?.fimVigencia);
+      return (start === null || now >= start) && (end === null || now <= end);
+    })
+    .map((rule) => `Regra de acesso do Gate: ${rule.motivo || 'bloqueio operacional ativo'}.`);
+}
+
+export function buildReceivingRows(visit, references = {}, complements = {}, options = {}) {
   if (!visit) return [];
 
   const bookings = references.bookings ?? [];
   const orders = references.ordens ?? [];
   const preadvices = references.preAvisos ?? [];
   const billsOfLading = complements.billsOfLading ?? references.billsOfLading ?? [];
+  const now = timestamp(options.now) ?? Date.now();
+  const visitAccessBlockers = accessRuleBlockers(visit, complements.regrasAcesso, now);
 
   return (visit.transacoes ?? []).map((transaction) => {
     const preadvice = findById(preadvices, transaction.preadviceId);
@@ -90,7 +192,7 @@ export function buildReceivingRows(visit, references = {}, complements = {}) {
     const unit = transaction.unidadeReferencia || preadvice?.unidadeReferencia || order?.unidadeReferencia || '';
     const category = operationCategory(transaction.tipoOperacao, preadvice?.tipo);
     const iso = isoProfile(preadvice?.isoType);
-    const blockers = [];
+    const blockers = [...visitAccessBlockers];
     const warnings = [];
 
     if (!unit.trim()) blockers.push('Transação sem unidade identificada.');
@@ -98,7 +200,13 @@ export function buildReceivingRows(visit, references = {}, complements = {}) {
     if (TERMINAL_TRANSACTION_STATUSES.has(normalized(transaction.status))) {
       blockers.push(`Transação em estado final ${transaction.status}.`);
     }
-    blockers.push(...validateReferences(category, { booking, billOfLading, order, preadvice }));
+    blockers.push(...validateReferences(category, {
+      transaction,
+      booking,
+      billOfLading,
+      order,
+      preadvice
+    }, visit, now));
 
     if (!preadvice?.isoType) warnings.push('ISO type não informado; comprimento e tipo serão validados antes da posição definitiva.');
     if (preadvice?.pesoBrutoKg === undefined || preadvice?.pesoBrutoKg === null) {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Operational2DCommandCenter } from '../../components/Operational2DCommandCenter.jsx';
+import { submitOperational2DCommand } from '../../operational-2d-api.js';
 import { publishOperationalSelection, useOperationalSelection } from '../../operational-selection.js';
 import {
   createOperationalViewport,
@@ -144,10 +145,17 @@ export function OperationalYardViews(properties) {
     return allStacks.find((stack) => stackKey(stack) === sharedSelection.active.stackKey) ?? null;
   }, [allStacks, sharedSelection.active]);
   const effectiveSelectedStack = externalStack ?? properties.selectedStack;
+  const operationalData = { ...properties, onOperational2DCommand: undefined };
 
   function selectStack(stack) {
     if (stack) publishOperationalSelection(selectionForStack(stack, properties));
     properties.onSelectStack?.(stack);
+  }
+
+  function submitCommand(command) {
+    const result = submitOperational2DCommand(command);
+    properties.onOperational2DCommand?.(command, result);
+    return result;
   }
 
   useEffect(() => {
@@ -285,7 +293,7 @@ export function OperationalYardViews(properties) {
   return <div className="integrated-operational-workspace yard-integrated-workspace" tabIndex={0} onKeyDown={keyDown}>
     <OperationalWorkspaceManual scope="workspace hierárquico do pátio" />
     <OperationalSelectionPanel title="Composição operacional do pátio" />
-    <Operational2DCommandCenter data={properties} scope="Pátio · Navio, Yard, Rail, work queues e equipamentos" onCommand={properties.onOperational2DCommand} />
+    <Operational2DCommandCenter data={operationalData} scope="Pátio · Navio, Yard, Rail, work queues e equipamentos" onCommand={submitCommand} />
     <section className="operational-viewport-controller" aria-label="Ferramentas do viewport 2D">
       <div className="operational-viewport-toolbar">
         <div>{Object.entries(TOOL_LABELS).map(([value, label]) => <button type="button" key={value} className={tool === value ? 'active' : 'secondary'} onClick={() => setTool(value)}>{label}</button>)}</div>

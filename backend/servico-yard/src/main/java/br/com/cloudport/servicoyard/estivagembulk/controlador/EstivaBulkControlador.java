@@ -12,7 +12,7 @@ import br.com.cloudport.servicoyard.estivagembulk.dto.TacktopDto;
 import br.com.cloudport.servicoyard.estivagembulk.dto.ValidacaoPlanoBulkDto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.BobinaManifesto;
 import br.com.cloudport.servicoyard.estivagembulk.modelo.NavioGranel;
-import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
+import br.com.cloudport.servicoyard.estivagembulk.servico.NavioGranelConsultaServico;
 import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkIdentidadeServico;
 import br.com.cloudport.servicoyard.estivagembulk.servico.ValidacaoPlanoBulkException;
 import br.com.cloudport.servicoyard.seguranca.PoliticaAutorizacaoEstiva;
@@ -36,13 +36,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class EstivaBulkControlador {
 
     private final PlanoEstivaBulkIdentidadeServico servico;
-    private final NavioGranelRepositorio navioRepositorio;
+    private final NavioGranelConsultaServico consultaNavios;
 
     public EstivaBulkControlador(
             PlanoEstivaBulkIdentidadeServico servico,
-            NavioGranelRepositorio navioRepositorio) {
+            NavioGranelConsultaServico consultaNavios) {
         this.servico = servico;
-        this.navioRepositorio = navioRepositorio;
+        this.consultaNavios = consultaNavios;
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
@@ -53,14 +53,14 @@ public class EstivaBulkControlador {
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/navios")
-    public ResponseEntity<List<NavioGranel>> listarNavios() {
-        return ResponseEntity.ok(navioRepositorio.findByIsTemplateFalseOrderByNomeAsc());
+    public ResponseEntity<List<NavioGranelDto>> listarNavios() {
+        return ResponseEntity.ok(consultaNavios.listarPerfis());
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
     @GetMapping("/navios/templates")
-    public ResponseEntity<List<NavioGranel>> listarTemplates() {
-        return ResponseEntity.ok(navioRepositorio.findByIsTemplateTrue());
+    public ResponseEntity<List<NavioGranelDto>> listarTemplates() {
+        return ResponseEntity.ok(consultaNavios.listarModelos());
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)

@@ -2,11 +2,12 @@ import { request } from './api.js';
 
 export const masterDataApi = {
   listarNavios: () => request('/navios'),
+  obterNavio: (id) => request(`/navios/${id}`),
   criarNavio: (payload) => request('/navios', { method: 'POST', body: payload }),
   atualizarNavio: (id, payload) => request(`/navios/${id}`, { method: 'PUT', body: payload }),
   removerNavio: (id) => request(`/navios/${id}`, { method: 'DELETE' }),
 
-  listarBercos: () => request('/yard/recursos/bercos'),
+  listarBercos: () => request('/yard/recursos/bercos/cadastros'),
   criarBerco: (payload) => request('/yard/recursos/bercos', { method: 'POST', body: payload }),
   atualizarBerco: (id, payload) => request(`/yard/recursos/bercos/${id}`, { method: 'PUT', body: payload }),
   removerBerco: (id) => request(`/yard/recursos/bercos/${id}`, { method: 'DELETE' }),

@@ -17,13 +17,9 @@ export function YardImpactPage({ navigate }) {
 
   const unidadesFiltradas = useMemo(() => unidades.filter((unidade) => {
     if (blocoSelecionado && unidade.bloco !== blocoSelecionado) return false;
-    if (powSelecionado) {
-      const pow = pows.find((item) => item.pow === powSelecionado);
-      if (!pow) return false;
-      return Boolean(unidade.equipamentoId) || pow.workInstructions > 0;
-    }
+    if (powSelecionado && unidade.pow !== powSelecionado) return false;
     return true;
-  }), [blocoSelecionado, powSelecionado, pows, unidades]);
+  }), [blocoSelecionado, powSelecionado, unidades]);
 
   return <>
     <YardPageHeader
@@ -99,6 +95,7 @@ export function YardImpactPage({ navigate }) {
           columns={[
             { key: 'codigoContainer', label: 'Unidade' },
             { key: 'bloco', label: 'Bloco' },
+            { key: 'pow', label: 'POW' },
             { key: 'posicao', label: 'Posição', render: (row) => `${row.linha ?? '—'} / ${row.coluna ?? '—'} / ${sanitizeText(row.camada) || '—'}` },
             { key: 'estado', label: 'Plano', render: (row) => <StatusBadge value={row.estado} /> },
             { key: 'equipamentoId', label: 'CHE' },

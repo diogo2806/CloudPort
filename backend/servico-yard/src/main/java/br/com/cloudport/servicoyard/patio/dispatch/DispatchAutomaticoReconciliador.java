@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class DispatchAutomaticoReconciliador {
@@ -21,7 +22,7 @@ public class DispatchAutomaticoReconciliador {
     private final WorkQueuePatioRepositorio filaRepositorio;
     private final EtapaWorkInstructionServico etapaServico;
     private final SelecaoEquipamentoAuxiliarServico auxiliarServico;
-    private final DispatchDinamicoServico dispatchServico;
+    private final DispatchAutomaticoExecutor executor;
     private final NamedParameterJdbcTemplate jdbc;
 
     public DispatchAutomaticoReconciliador(
@@ -29,13 +30,13 @@ public class DispatchAutomaticoReconciliador {
             WorkQueuePatioRepositorio filaRepositorio,
             EtapaWorkInstructionServico etapaServico,
             SelecaoEquipamentoAuxiliarServico auxiliarServico,
-            DispatchDinamicoServico dispatchServico,
+            DispatchAutomaticoExecutor executor,
             NamedParameterJdbcTemplate jdbc) {
         this.ordemRepositorio = ordemRepositorio;
         this.filaRepositorio = filaRepositorio;
         this.etapaServico = etapaServico;
         this.auxiliarServico = auxiliarServico;
-        this.dispatchServico = dispatchServico;
+        this.executor = executor;
         this.jdbc = jdbc;
     }
 
@@ -72,7 +73,7 @@ public class DispatchAutomaticoReconciliador {
                 .addValue("ordemId", ordem.getId())
                 .addValue("evento", evento)
                 .addValue("assinatura", assinatura)
-                .addValue("resultado", ordem.getResultadoVmt()));
+                .addValue("resultado", limitar(ordem.getResultadoVmt())));
         if (inseridos == 0) {
             return;
         }
@@ -87,13 +88,49 @@ public class DispatchAutomaticoReconciliador {
                 .addValue("ordemId", ordem.getId()));
         auxiliarServico.devolverDaOrdem(ordem.getId(), "scheduler-automatico");
         if (ordem.getWorkQueueId() == null) {
+            registrarResultado(assinatura, "Encerramento processado sem work queue associada.");
             return;
         }
         WorkQueuePatio fila = filaRepositorio.findById(ordem.getWorkQueueId()).orElse(null);
         if (fila == null || fila.getEquipamentoPatioId() == null) {
+            registrarResultado(assinatura, "Encerramento processado sem CHE apto para encadeamento.");
             return;
         }
-        dispatchServico.despacharProximaAutomaticamente(
-                fila.getId(), fila.getEquipamentoPatioId(), assinatura);
+        try {
+            boolean despachada = executor.despacharProxima(
+                    fila.getId(), fila.getEquipamentoPatioId(), assinatura).isPresent();
+            registrarResultado(assinatura, despachada
+                    ? "Encerramento processado e proxima work instruction despachada."
+                    : "Encerramento processado; modo nao automatico ou nenhuma instrucao elegivel.");
+        } catch (RuntimeException exception) {
+            registrarResultado(assinatura,
+                    "Encerramento preservado; falha ao selecionar a proxima instrucao: "
+                            + mensagem(exception));
+        }
+    }
+
+    private void registrarResultado(String assinatura, String resultado) {
+        jdbc.update("""
+                UPDATE gatilho_dispatch_processado
+                SET resultado = :resultado
+                WHERE assinatura = :assinatura
+                """, new MapSqlParameterSource()
+                .addValue("assinatura", assinatura)
+                .addValue("resultado", limitar(resultado)));
+    }
+
+    private String mensagem(RuntimeException exception) {
+        if (exception == null || !StringUtils.hasText(exception.getMessage())) {
+            return exception == null ? "erro nao identificado" : exception.getClass().getSimpleName();
+        }
+        return exception.getMessage().trim();
+    }
+
+    private String limitar(String valor) {
+        if (!StringUtils.hasText(valor)) {
+            return null;
+        }
+        String normalizado = valor.trim();
+        return normalizado.length() <= 1000 ? normalizado : normalizado.substring(0, 1000);
     }
 }

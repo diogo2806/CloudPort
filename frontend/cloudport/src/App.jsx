@@ -146,6 +146,22 @@ function normalizeBackendTabs(tabs) {
   return Array.from(groups, ([group, items]) => ({ group, items }));
 }
 
+function mergeNavigation(fallbackNavigation, dynamicNavigation) {
+  const groups = new Map();
+  const paths = new Set();
+
+  [...fallbackNavigation, ...dynamicNavigation].forEach((group) => {
+    if (!groups.has(group.group)) groups.set(group.group, []);
+    group.items.forEach((item) => {
+      if (paths.has(item.path)) return;
+      paths.add(item.path);
+      groups.get(group.group).push(item);
+    });
+  });
+
+  return Array.from(groups, ([group, items]) => ({ group, items }));
+}
+
 function safeReturnPath(path) {
   const normalized = String(path ?? '');
   return normalized === '/home' || normalized.startsWith('/home/') ? normalized : '/home/dashboard';
@@ -240,7 +256,7 @@ function PortalShell({ path, navigate, session, onLogout }) {
     api.listarAbas().then((tabs) => { if (active) setDynamicNavigation(normalizeBackendTabs(tabs)); }).catch(() => { if (active) setDynamicNavigation([]); });
     return () => { active = false; };
   }, []);
-  const navigation = dynamicNavigation.length ? dynamicNavigation : FALLBACK_NAVIGATION;
+  const navigation = useMemo(() => mergeNavigation(FALLBACK_NAVIGATION, dynamicNavigation), [dynamicNavigation]);
   const visibleNavigation = useMemo(() => navigation.map((group) => ({ ...group, items: group.items.filter((item) => !item.roles?.length || hasAnyRole(session, ...item.roles)) })).filter((group) => group.items.length), [navigation, session]);
   const breadcrumb = path === '/home/patio/lost-found' ? 'Pátio / Unidades não localizadas' : path.replace('/home/', '').replaceAll('/', ' / ') || 'Painel';
   function open(pathToOpen) { navigate(pathToOpen); setMobileMenu(false); }

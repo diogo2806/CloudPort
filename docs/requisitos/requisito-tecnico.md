@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-20 após a conclusão dos BUS1400 e BUS1410 no PR #607.
+Status: atualizado em 2026-07-20 após a conclusão dos BUS1400 e BUS1410 no PR #607 e a auditoria de exposição dos modelos do backend no frontend.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -68,6 +68,16 @@ Nenhuma pendência técnica permanece nesta seção. O BUS1400 e o BUS1410 foram
 | BUS1450 | Implementar parâmetros operacionais versionados e alteráveis em runtime. | Pesos, penalidades, velocidades, tempos, tolerâncias, regras de pool, overrides e políticas de dispatch podem ser ativados por escopo, possuem validação, auditoria, vigência e rollback. | ⬜ Pendente |
 | BUS1460 | Incorporar GPS, rotas e congestionamento à decisão de dispatch. | O score considera posição atual, distância de rota, sentido, bloqueios, interdições, zonas de transferência, limite regional de CHE e tempo estimado; telemetria atrasada impede decisão automática. | ⬜ Pendente |
 | BUS1470 | Selecionar automaticamente chassis e equipamentos auxiliares durante o dispatch. | Chassis, bomb cart, cassette e acessórios são escolhidos por origem, destino, tipo de movimento, pool, armador e disponibilidade; movimentos auxiliares e associações físicas são persistidos. | ⬜ Pendente |
+| BUS1740 | Sincronizar navegação dinâmica, catálogo de rotas e componentes do portal. | Toda aba retornada por `/api/navegacao/abas` é validada contra um registro central de telas; menu, breadcrumb, autorização e resolução de componente usam a mesma definição, sem rota válida terminar em 404. | ⬜ Pendente |
+| BUS1750 | Organizar contratos e modelos do frontend por domínio. | DTOs de entrada, resposta, enum, comando e resumo são tipados e gerados ou validados contra o OpenAPI; adapters normalizam paginação, datas, identificadores e campos legados, detectando quebra de contrato antes da execução. | ⬜ Pendente |
+| BUS1760 | Expor a Visibilidade Operacional completa no portal. | Navios, detalhes, ocupação do pátio, throughput do Gate, busca de contêineres, rastreamento e histórico possuem telas, filtros, inspector, timeline e navegação contextual. | ⬜ Pendente |
+| BUS1770 | Completar a configuração operacional do Gate. | Estágios, tarefas, regras de acesso, bookings, Bills of Lading, ordens e pré-avisos podem ser consultados e administrados conforme permissões, com sequência, validade, saldo, impacto e bloqueios visíveis. | ⬜ Pendente |
+| BUS1780 | Completar as ações da operação do Gate. | O portal cria truck visit, anexa evidências, consulta e reimprime documentos, recebe transferências e registra override, trouble, inspeção e resolução por formulários estruturados e auditáveis. | ⬜ Pendente |
+| BUS1790 | Completar os comandos do inventário canônico no inspector da unidade. | Propriedade, posição, documentos, avarias, manutenção, reefer, montagem, desmontagem, contagem e divergências podem ser operados na interface com motivo, permissão, estado e histórico. | ⬜ Pendente |
+| BUS1800 | Expor operações intermodais de carga geral. | Transload, reservas de Gate, allocations, planos modais, identificações por código ou QR e inventário físico possuem telas com consulta, execução, compensação, cancelamento e rastreabilidade. | ⬜ Pendente |
+| BUS1810 | Expor movimentos ferroviários internos. | Planejamento, consulta, autorização, início, conclusão e cancelamento de movimentos internos ficam disponíveis por visita, com recursos, conflitos, responsáveis e timeline de estados. | ⬜ Pendente |
+| BUS1820 | Expor capacidade e reservas de cargo lot no Yard. | Capacidade total, reservada, ocupada e disponível por posição é configurável e consultável; reservas podem ser criadas, confirmadas e canceladas a partir do pátio e da carga geral. | ⬜ Pendente |
+| BUS1830 | Criar operação controlada de contingência do Gate. | Quando a funcionalidade estiver habilitada no backend, o portal permite agendamento e liberação emergencial com indicação visual, justificativa, confirmação, operador e auditoria; quando desabilitada, nenhuma ação é oferecida. | ⬜ Pendente |
 
 ### BUS1420 e BUS1430 — arquivos e métodos
 
@@ -103,6 +113,78 @@ Nenhuma pendência técnica permanece nesta seção. O BUS1400 e o BUS1410 foram
 |---|---|---|---|
 | `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/inventario/modelo/UnidadeInventario.java` | vínculos de equipamentos auxiliares | O inventário representa unidades e vínculos, mas o dispatch não comprova seleção automática de chassis, bomb cart ou cassette. | Criar serviço `SelecaoEquipamentoAuxiliarServico`, reserva concorrente, associação, desassociação e geração de movimentos auxiliares. |
 | `frontend/cloudport/src/pages/yard/YardWorkPages.jsx` | detalhe da work instruction | A instrução não apresenta equipamento auxiliar escolhido, alternativas rejeitadas ou etapas de coleta e devolução. | Exibir seleção, vínculo físico, estado e comandos de substituição motivada. |
+
+### Exposição e organização dos modelos já disponíveis no backend
+
+As pendências BUS1740 a BUS1830 são predominantemente de frontend e devem consumir contratos já disponíveis, sem transformar entidades técnicas, outbox, idempotência ou históricos imutáveis em CRUD comum.
+
+### BUS1740 e BUS1750 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `frontend/cloudport/src/App.jsx` | `FALLBACK_NAVIGATION`, `normalizeBackendTabs()` e `RouteContent()` | O menu aceita rotas dinâmicas do backend, mas a resolução das páginas permanece em uma sequência fixa de condicionais; uma aba publicada pode abrir a tela 404. | Criar catálogo único de rotas com caminho, componente, aliases, papéis, breadcrumb e metadados de ajuda; validar as abas antes de exibi-las. |
+| `frontend/cloudport/src/api.js` | clientes e normalização de respostas | Contratos de vários domínios ficam concentrados ou são consumidos com campos alternativos e inferência em tempo de execução. | Separar contratos e adapters por domínio, gerar ou validar tipos a partir do OpenAPI e adicionar verificação de compatibilidade dos contratos. |
+| `frontend/cloudport/package.json` | toolchain JavaScript/JSX | O projeto não possui etapa de geração ou validação de modelos tipados. | Adicionar geração de contratos, checagem estática e comando de validação executável no build do frontend. |
+
+### BUS1760 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-visibilidade/src/main/java/br/com/cloudport/visibilidade/controller/VisibilidadeController.java` | navios, ocupação, throughput, busca, rastreamento e histórico | O backend expõe os modelos operacionais, mas o portal consome principalmente o resumo do dashboard e a central de alertas. | Criar clientes e rotas para contêineres, navios, ocupação e throughput, com filtros, inspector, timeline e links para os módulos relacionados. |
+| `frontend/cloudport/src/pages/OperationalPages.jsx` | `HomeDashboard()` | A visão geral apresenta métricas agregadas sem drill-down completo para os modelos de visibilidade. | Vincular cada indicador ao detalhamento correspondente e preservar filtros e contexto na navegação. |
+
+### BUS1770 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `frontend/cloudport/src/pages/MasterDataPages.jsx` | `GateInfrastructurePage()` | A configuração cobre instalação, Gate e pista, mas não administra o fluxo operacional e suas referências. | Organizar abas ou telas para estágios, tarefas, regras de acesso, bookings, Bills of Lading, ordens e pré-avisos. |
+| `frontend/cloudport/src/gateOperationsApi.js` | `salvarStage()`, `salvarTask()`, `salvarRegraAcesso()`, `salvarBooking()`, `salvarBillOfLading()`, `vincularBillOfLading()`, `salvarOrder()` e `salvarPreadvice()` | Os comandos já existem no cliente, porém não são acionados pelas páginas do portal. | Criar formulários, listagens, vínculos, ordenação, ativação, validação de impacto e mensagens de bloqueio conforme o contrato. |
+
+### BUS1780 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `frontend/cloudport/src/gateOperationsApi.js` | `criarVisita()`, `anexar()`, `reimprimirDocumento()` e `receberTransferencia()` | Os contratos existem no cliente, mas não estão disponíveis no fluxo visual principal. | Expor criação de visita, anexos, histórico e reimpressão de documentos e recebimento da transferência. |
+| `frontend/cloudport/src/pages/GateOperationsPage.jsx` | override, trouble, inspeção e resolução | As ações usam `window.prompt()`, sem campos estruturados, catálogo de opções ou resumo para confirmação. | Substituir prompts por modais acessíveis, validação de domínio, motivo obrigatório, confirmação e retorno auditável. |
+
+### BUS1790 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `frontend/cloudport/src/inventoryReportsApi.js` | comandos do inventário canônico | O cliente já altera propriedade, posição, documentos, avarias, manutenção, reefer, montagens, contagens e divergências. | Manter os comandos no domínio de inventário e padronizar payload, motivo, atualização otimista segura e tratamento de conflito. |
+| `frontend/cloudport/src/pages/InventoryReportsPages.jsx` | `UnitInspector()` | O inspector permite somente parte das operações e apresenta os demais modelos principalmente como consulta. | Adicionar formulários e transições para todos os comandos existentes, exibindo permissões, estados, bloqueios e histórico após cada atualização. |
+
+### BUS1800 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/controlador/OperacoesIntermodaisControlador.java` | transload, reservas, allocations, planos, avarias, identificações e inventário | O backend possui o ciclo operacional completo, mas esses contratos não estão organizados no portal React. | Criar clientes e telas de operação intermodal, com seleção de cargo lot, saldos, estados, comandos motivados e rastreabilidade. |
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/controlador/TransloadControlador.java` | execução e consulta de transload recuperável | Existe contrato específico de execução atômica e consulta, sem fluxo correspondente no frontend. | Integrar o transload à tela intermodal, exibindo origem, destino, quantidade, resultado, compensações e identificador da operação. |
+| `frontend/cloudport/src/pages/GeneralCargoPage.jsx` | operação de carga geral | A página cobre conhecimentos, itens, lotes, movimentações e referências, mas não centraliza os modelos intermodais. | Adicionar navegação contextual para transload, allocations, planos modais, identificações e inventário físico. |
+
+### BUS1810 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/movimento/controlador/MovimentoFerroviarioInternoControlador.java` | ciclo do movimento interno | Planejar, consultar, listar por visita, autorizar, iniciar, concluir e cancelar já estão expostos pelo backend. | Criar cliente ferroviário para todos os comandos e normalizar permissões e transições. |
+| `frontend/cloudport/src/railApi.js` | contratos ferroviários | O cliente cobre visitas, ordens, replanejamento de contêiner e partida, sem movimentos internos. | Adicionar os endpoints de movimento interno e integrá-los ao line-up e à lista de trabalho. |
+| `frontend/cloudport/src/pages/RailLineUpPage.jsx` | planejamento e execução | A tela não apresenta o ciclo operacional dos movimentos internos. | Criar quadro por visita com origem, destino, composição, recursos, conflito, estado, responsáveis e ações permitidas. |
+
+### BUS1820 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/inventario/controlador/CapacidadeCargoLotControlador.java` | capacidade, saldos e reservas | Configuração, consulta de saldos, reserva, confirmação e cancelamento já existem no backend, sem cliente dedicado no portal. | Criar API de frontend e integrar capacidade às posições, ao mapa, ao cargo lot, às allocations e ao inventário físico. |
+| `frontend/cloudport/src/pages/yard/YardMapPages.jsx` | posição e ocupação | A posição não apresenta o saldo específico de carga geral nem comandos de reserva de cargo lot. | Exibir capacidade total, reservada, confirmada e disponível, restrições e operações permitidas. |
+
+### BUS1830 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/administracao/ContingenciaController.java` | `/gate/contingencia/agendar` e `/gate/contingencia/liberar` | Os comandos são condicionais por propriedade de ambiente e não possuem cliente ou tela no portal. | Criar cliente e modo de contingência somente quando o recurso estiver disponível, com destaque visual, justificativa, confirmação e auditoria. |
+| `frontend/cloudport/src/App.jsx` | navegação e disponibilidade | Não existe rota específica nem mecanismo visual para indicar que o Gate está operando em contingência. | Exibir a rota apenas para usuários autorizados e ambientes habilitados, sem oferecer fallback inseguro quando o backend responder indisponível. |
+
+Todas as telas criadas ou ampliadas pelos BUS1740 a BUS1830 devem reutilizar `PageHeader`, a grade operacional, a central de alertas e o manual contextual com finalidade, fluxo operacional, explicação dos campos, permissões necessárias, estados possíveis, motivos de bloqueio, exemplos, atalhos e link para o processo completo.
 
 ## 7. Integração física e operação de campo
 

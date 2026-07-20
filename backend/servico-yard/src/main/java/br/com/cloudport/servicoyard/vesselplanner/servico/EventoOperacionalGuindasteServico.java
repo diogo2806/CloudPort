@@ -70,6 +70,7 @@ public class EventoOperacionalGuindasteServico {
             Long eventoId,
             EncerrarParalisacaoRequest request,
             String usuario) {
+        buscarExecucao(execucaoId);
         EventoOperacionalGuindaste evento = eventoRepositorio.findLockedById(eventoId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -118,7 +119,7 @@ public class EventoOperacionalGuindasteServico {
         return mapear(eventoRepositorio.saveAndFlush(evento));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<EventoOperacionalGuindasteResponse> listar(Long execucaoId) {
         buscarExecucao(execucaoId);
         return eventoRepositorio.findByExecucaoIdOrderByInicioDesc(execucaoId).stream()

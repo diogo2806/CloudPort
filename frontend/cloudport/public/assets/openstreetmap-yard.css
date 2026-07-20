@@ -1,0 +1,59 @@
+.yard-google-map-shell .yard-google-map-loading {
+  z-index: 1100;
+}
+
+.yard-google-map-shell .yard-geometry-editor {
+  z-index: 1000;
+}
+
+.yard-google-map-shell .yard-google-map-empty,
+.yard-google-map-shell .yard-google-map-legend {
+  z-index: 900;
+}
+
+.yard-leaflet-label-icon {
+  border: 0;
+  background: transparent;
+}
+
+.yard-geometry-vertex-icon {
+  border: 0;
+  background: transparent;
+}
+
+.yard-geometry-vertex-icon span {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .45);
+}
+
+.yard-equipment-label {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.yard-equipment-label::before {
+  display: none;
+}
+
+.yard-map-provider {
+  margin-left: auto;
+  color: #475569;
+}
+
+.leaflet-container {
+  background: #dce7ef;
+  font-family: inherit;
+}
+
+.leaflet-control-attribution {
+  font-size: 10px;
+}

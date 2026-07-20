@@ -32,7 +32,7 @@ class OperacaoStuffUnstuffLacreTest {
 
     private OperacaoStuffUnstuff novaOperacao() {
         OperacaoStuffUnstuff operacao = new OperacaoStuffUnstuff();
-        operacao.setTipo(CargaGeralTipos.TipoOperacaoStuffUnstuff.STUFF);
+        operacao.setTipo(CargaGeralTipos.TipoOperacaoStuffUnstuff.UNSTUFF);
         operacao.setConteinerId("CONT-01");
         return operacao;
     }

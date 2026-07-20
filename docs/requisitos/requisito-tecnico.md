@@ -1,24 +1,137 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-20 após a conclusão dos BUS1330 e BUS1340 no PR #610, dos BUS1400 e BUS1410 no PR #607, dos BUS1420 a BUS1470 no PR #614 e a auditoria de exposição dos modelos do backend no frontend, incluindo a conclusão dos BUS1350 e BUS1360 no PR #612.
+Status: atualizado em 2026-07-20 após auditoria da branch main no commit `0865caed56669e0f42f8d7f25f39ea6251273551`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
 ## 1. Carga geral, stuff e unstuff
 
-Nenhuma pendência técnica permanece nesta seção. O BUS1380 foi concluído no PR #598 e o BUS1390 no PR #599; ambos estão registrados no documento canônico de requisitos implementados.
+| ID | Tarefa técnica | Critério de conclusão | Status |
+|---|---|---|---|
+| BUS1840 | Vincular stuff e unstuff a ordens e liberações comerciais com saldo controlado. | A operação somente é planejada e iniciada quando existe Bill of Lading, delivery order, ordem de stuffing ou ordem de stripping válida, vigente, sem hold e com saldo suficiente; execução parcial consome saldo atomicamente, cancelamento compensa a reserva e reenvio idempotente não duplica consumo. | ⬜ Pendente |
+| BUS1850 | Implementar split e reconsignação de Bill of Lading e cargo lot preservando operações em curso. | O usuário divide ou reconsigna quantidades com origem, destino, motivo e autorização; saldos, reservas, avarias, planos, ordens de trabalho e operações de stuff/unstuff são migrados ou bloqueados de forma transacional, mantendo histórico imutável e impedindo quantidade negativa ou dupla utilização. | ⬜ Pendente |
+
+### BUS1840 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/dto/StuffUnstuffDTOs.java` | `CriarOperacaoRequest`, `CriarItemOperacaoRequest` e `OperacaoResposta` | A operação recebe contêiner, armazém, posição, recurso e cargo lots, mas não carrega identificador, vigência, hold, autorização ou saldo de uma ordem comercial. | Acrescentar contrato de origem operacional com tipo, identificador, versão, quantidade autorizada, vigência e snapshot; bloquear criação e início quando a origem estiver inválida ou sem saldo. |
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/controlador/StuffUnstuffControlador.java` | `criar()`, `iniciar()`, `registrarExecucao()`, `concluir()` e `cancelar()` | O ciclo físico é versionado, parcial e idempotente, porém pode ser aberto diretamente por contêiner e lote sem reservar uma autorização comercial persistida. | Criar agregado `OrdemLiberacaoStuffUnstuff` e serviço transacional para reservar, consumir, concluir e compensar saldo junto com a operação física. |
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/FluxoStuffUnstuffServico.java` | fluxo de criação, execução e cancelamento | O serviço controla plano, doca, execução e compensações internas, sem reconciliar o saldo da ordem que autorizou o serviço. | Integrar a ordem de liberação ao mesmo limite transacional, com lock, commandId, outbox de alteração e motivo de bloqueio observável. |
+
+### BUS1850 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/controlador/CargaGeralControlador.java` | `/conhecimentos`, `/conhecimentos/{id}/itens`, `/itens/{id}/lotes` e `/lotes/{id}/movimentacoes` | O contrato cria Bill of Lading, itens e cargo lots e registra movimentações, mas não expõe split ou reconsignação com efeitos sobre vínculos ativos. | Criar endpoints sugeridos `dividirConhecimento()`, `dividirLote()` e `reconsignarLote()`, com comando idempotente, motivo, destino, quantidades e resumo do impacto. |
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/dominio/LoteCarga.java` | ownership do item, saldo e estado | O lote permanece ligado ao item original; não há linhagem persistida de origem/destino para divisão ou reconsignação. | Persistir relação de linhagem, versão, quantidade transferida, responsável e estado da operação, sem apagar o lote de origem. |
+| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/PlanoStuffUnstuffServico.java` | reservas dos lotes em planos liberados | Planos versionados reservam cargo lots, mas não existe regra para migrar ou bloquear essas reservas quando o BL ou o lote for dividido ou reconsignado. | Validar dependências sob lock e migrar somente saldos não executados; quando houver execução incompatível, bloquear com lista concreta das operações afetadas. |
 
 ## 2. Gate e pátio
 
-Nenhuma pendência técnica permanece nesta seção. O BUS1320 foi concluído no PR #605 e está registrado no documento canônico de requisitos implementados.
+| ID | Tarefa técnica | Critério de conclusão | Status |
+|---|---|---|---|
+| BUS1860 | Implementar fila de purgatório para work instructions inconsistentes. | Toda instrução sem destino válido, com conflito de inventário, equipamento, posição, sequência ou dependência é retirada do dispatch normal e persistida com motivo, origem, severidade e snapshot; resolução, revalidação, reentrada, substituição ou cancelamento são auditáveis e idempotentes. | ⬜ Pendente |
+| BUS1870 | Implementar zonas temporárias de segurança para pessoas trabalhando no pátio. | Áreas poligonais ou posições são bloqueadas por período, responsável, equipe e motivo; rotas, allocations e dispatch rejeitam movimentos incompatíveis, o mapa mostra a vigência e a liberação encerra o bloqueio sem apagar o histórico. | ⬜ Pendente |
+| BUS1880 | Implementar ciclo persistido de avisos de estivagem do pátio. | Violações de peso, altura, tipo, reefer, perigoso, reserva, capacidade ou regra de pilha geram aviso identificado; correção é atribuída, revalidada e encerrada somente quando a condição desaparece, reabrindo automaticamente em caso de recorrência. | ⬜ Pendente |
+| BUS1890 | Implementar conjuntos de regras e grupos de prioridade para appointments do Gate. | Regras por transação, transportadora, carga, janela, antecedência, tolerância, prioridade e capacidade determinam elegibilidade, check-in antecipado ou tardio, no-show e realocação; decisão e override ficam persistidos e explicáveis. | ⬜ Pendente |
+| BUS1900 | Implementar gestão operacional de exchange areas do Gate. | Cada exchange area possui capacidade, serviços aceitos, filas, atraso previsto, indisponibilidade e vínculo com Gates e lanes; atribuição e liberação são transacionais, conflitos bloqueiam a visita e o histórico permite medir permanência real. | ⬜ Pendente |
+| BUS1910 | Implementar ciclo auditável de balança no Gate. | Peso bruto, tara, líquido, dispositivo, leitura original, operador, ticket, tolerância e repesagens são persistidos; divergência ou equipamento indisponível abre trouble, override exige permissão e a visita não avança antes de uma leitura válida. | ⬜ Pendente |
+
+### BUS1860 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueuePatioServico.java` | `listar()`, `despachar()`, `resetarInstrucao()` e `cancelarInstrucao()` | Ordens sem fila podem aparecer em filas derivadas e instruções podem ser resetadas ou canceladas, mas não existe caso persistido de purgatório com causa, evidência, resolução e revalidação. | Criar agregado `CasoPurgatorioWorkInstruction`, classificador de falha e comandos `resolver()`, `revalidar()`, `reencaminhar()` e `cancelarComCompensacao()`. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/modelo/OrdemTrabalhoPatio.java` | `statusOrdem` e `workQueueId` | O estado da instrução não identifica quarentena operacional nem preserva o snapshot do conflito que impediu o dispatch. | Adicionar vínculo opcional ao caso de purgatório e impedir dispatch enquanto houver caso aberto. |
+| `frontend/cloudport/src/pages/yard/YardWorkPages.jsx` | filas e job lists | O operador não possui uma fila específica para triagem, diagnóstico e retorno seguro das instruções inválidas. | Criar tela de purgatório com filtros por motivo e severidade, comparação do snapshot, ação recomendada e comandos conforme permissão. |
+
+### BUS1870 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/controlroom/ControlRoomEquipamentoServico.java` | equipamentos, telemetria, alarmes, comandos e indisponibilidades | O Control Room acompanha equipamentos e falhas, mas não mantém áreas temporárias de segurança ocupadas por pessoas. | Criar agregado `ZonaSegurancaPatio`, com geometria, posições afetadas, início, fim, responsável, equipe, motivo, estado e auditoria. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/dispatch/DispatchDinamicoServico.java` | seleção e despacho | O dispatch não consulta um contrato de zonas humanas antes de atribuir origem, destino ou rota. | Incluir validação obrigatória da zona na reserva e imediatamente antes do dispatch; invalidar propostas abertas quando uma zona for ativada. |
+| `frontend/cloudport/src/pages/ControlRoomEquipamentosPage.jsx` | mapa e controle operacional | Não há comando para desenhar, ativar, prorrogar ou liberar uma área de pessoas trabalhando. | Adicionar editor de área temporária, indicador de vigência, responsável, conflitos ativos e confirmação de liberação. |
+
+### BUS1880 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/scheduler/servico/RealYardReplanningOptimizerService.java` | validação e proposta de posições | Restrições influenciam a escolha e o replanejamento, mas a violação encontrada no estado físico não vira um caso operacional persistido com responsável e ciclo de correção. | Criar detector reproduzível e agregado `AvisoEstivagemPatio`, usando chave estável por unidade, posição e regra para abrir, atualizar, resolver e reabrir avisos. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/OrdemTrabalhoPatioServico.java` | criação e conclusão de movimentos | A execução não comprova revalidação automática dos avisos relacionados à pilha após cada movimento. | Reavaliar posições de origem, destino e vizinhança dentro da transação ou por outbox idempotente, sem encerrar aviso apenas pela conclusão da WI. |
+| `frontend/cloudport/src/pages/yard/OperationalYardViews.jsx` | overlays de ocupação e restrição | A interface apresenta estado do pátio, mas não uma fila acionável de avisos com ciclo de correção e verificação. | Exibir badges por pilha e unidade, inspector do aviso, responsável, ação corretiva, histórico e resultado da última revalidação. |
+
+### BUS1890 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalService.java` | capacidade de appointments e abertura da truck visit | A capacidade da janela é consumida sob lock, porém não há modelo de rule set, prioridade, tolerância, no-show ou decisão explicável por tipo de transação. | Criar `AppointmentRuleSet`, `AppointmentPriorityGroup` e avaliador versionado usado na reserva, alteração, check-in e no-show. |
+| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalController.java` | configuração operacional | A API administra facilities, Gates, lanes, stages e tasks, sem contratos de manutenção e simulação das regras de appointment. | Criar endpoints de regra, prioridade, calendário, simulação e override motivado, preservando a versão aplicada ao agendamento. |
+| `frontend/cloudport/src/pages/GateVisualPage.jsx` | calendário de capacidade | O calendário mostra ocupação e janelas, mas não explica elegibilidade, prioridade, tolerância ou motivo de rejeição e realocação. | Adicionar editor e simulador de regras, grupos de prioridade e inspector da decisão aplicada. |
+
+### BUS1900 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalService.java` | `salvarGate()`, `salvarLane()` e fluxo da visita | Gate e lane são configurados, mas exchange area não possui agregado com capacidade, serviços, atraso, indisponibilidade, ocupação e liberação. | Criar `GateExchangeArea`, associações por Gate e lane e serviço de ocupação com lock, timeout, transferência e compensação. |
+| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/gestor/GateFlowService.java` | avanço da visita | A seleção automática de exchange area ainda é pendente no BUS1510 e não existe fonte operacional que informe capacidade e atraso atuais. | Consumir a nova fonte canônica na seleção e bloquear avanço quando a reserva não puder ser confirmada. |
+| `frontend/cloudport/src/pages/GateOperationsPage.jsx` | lane monitor e jornada | A operação não apresenta mapa ou quadro de exchange areas com vagas, fila, atraso, serviços e visitas ocupantes. | Criar painel operacional com atribuição sugerida, override motivado, liberação e timeline da permanência. |
+
+### BUS1910 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/GateOperacionalService.java` | `salvarLane()` e business task de balança | A lane registra apenas se possui balança; não há entidade de leitura, ticket, repesagem, tolerância, dispositivo ou override. | Criar agregado `PesagemGate`, integração de dispositivo e comandos de capturar, confirmar, rejeitar, repesar e autorizar override. |
+| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/operacional/dto/GateOperacionalDtos.java` | truck visit, transaction e task result | O contrato não preserva bruto, tara, líquido, leitura original, unidade, ticket e histórico de repesagens. | Expor resultado estruturado e motivo de bloqueio, mantendo as leituras anteriores imutáveis. |
+| `frontend/cloudport/src/pages/GateOperationsPage.jsx` | estágio Balança | A tela permite avançar tarefas, mas não opera leitura física, comparação, repesagem e autorização. | Criar painel de balança com estado do dispositivo, leitura ao vivo, ticket, tolerância, divergência e override conforme papel. |
 
 ## 3. Ferrovia
 
-Nenhuma pendência técnica permanece nesta seção. O BUS1330 e o BUS1340 foram concluídos no PR #610 e estão registrados no documento canônico de requisitos implementados.
+| ID | Tarefa técnica | Critério de conclusão | Status |
+|---|---|---|---|
+| BUS1920 | Implementar spotting físico e recuperação de falhas ferroviárias. | Vagões e plataformas são posicionados por linha, segmento, spot, subspot, meter mark ou transfer point; confirmação física divergente abre falha de spotting, bloqueia carga/descarga e permite corrigir composição, posição ou plano com histórico completo. | ⬜ Pendente |
+| BUS1930 | Validar pinos, cones e limites seguros antes da carga ferroviária. | Cada plataforma possui geometria e estado de pinos ou cones; tipo, comprimento, peso, operador e incompatibilidades do contêiner são avaliados antes da liberação, gerando hold operacional até correção ou override autorizado. | ⬜ Pendente |
+
+### BUS1920 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/controlador/VisitaTremControlador.java` | visita, carga, descarga, replanejamento e partida | O contrato administra composição e contêineres, mas não recebe confirmação física do spotting nem representa linha, segmento, meter mark, transfer point e falha de posicionamento. | Criar agregado `SpottingFerroviario`, endpoints de planejar, confirmar, rejeitar, corrigir e concluir e bloquear a operação da visita enquanto houver falha aberta. |
+| `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/movimento/controlador/MovimentoFerroviarioInternoControlador.java` | movimentos internos | O ciclo movimenta a composição entre origens e destinos lógicos sem reconciliar posição física detalhada do vagão ou plataforma. | Vincular o movimento ao plano de spotting e exigir confirmação idempotente por leitura de campo ou operador. |
+| `frontend/cloudport/src/pages/RailLineUpPage.jsx` | composição e ocupação de linhas | A tela organiza vagões, porém não oferece track plan operacional com posição pretendida versus confirmada e recuperação de failed spotting. | Criar vista de linha e segmentos, leitura móvel, divergência, bloqueios e ações de recuperação. |
+
+### BUS1930 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/listatrabalho/servico/OrdemMovimentacaoServico.java` | criação e liberação das ordens | A ordem não comprova validação persistida de geometria de pinos ou cones e limite seguro da plataforma antes de carregar. | Criar `ConfiguracaoPlataformaFerroviaria`, `EstadoPinoCone` e validador de compatibilidade executado sob lock antes da liberação e novamente na confirmação física. |
+| `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/listatrabalho/controlador/ListaTrabalhoTremControlador.java` | work list ferroviária | A API não expõe motivo de incompatibilidade, hold, correção do estado físico ou override de segurança. | Acrescentar contratos de inspeção, hold e liberação motivada, sem converter incompatibilidade em aviso não bloqueante. |
+| `frontend/cloudport/src/pages/RailWorkListPage.jsx` | execução da lista | A interface não mostra mapa de pinos ou cones, peso seguro, incompatibilidade por plataforma e ação corretiva. | Adicionar inspector visual da plataforma, checklist, evidência, bloqueio e confirmação por usuário autorizado. |
 
 ## 4. Navio
 
-Nenhuma pendência técnica permanece nesta seção. O BUS1350 e o BUS1360 foram concluídos no PR #612 e estão registrados no documento canônico de requisitos implementados.
+| ID | Tarefa técnica | Critério de conclusão | Status |
+|---|---|---|---|
+| BUS1940 | Implementar reconciliação operacional das listas de carga e descarga do navio. | Lista planejada, manifesto, BAPLIE, inventário e execução são comparados por unidade e quantidade; ausência, excesso, visita, porto, operação ou status divergente cria caso persistido, impede publicação ou fechamento quando crítico e exige resolução auditável. | ⬜ Pendente |
+| BUS1950 | Implementar planejamento e execução de convés RoRo e carga autopropelida. | Classes de navio modelam conveses, lanes, rampas, limites de altura, largura, peso, inclinação e segregação; veículos são sequenciados, posicionados e confirmados fisicamente, e a retirada direta pelo Gate usa a mesma posição e custódia sem criar fonte concorrente. | ⬜ Pendente |
+
+### BUS1940 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/servico/ReconciliacaoBaplieExecucaoServico.java` | `reconciliar()`, `resolver()` e `exigirSemDivergenciasCriticas()` | A reconciliação existente compara BAPLIE, slots, inventário e execução por posição e peso, mas não mantém uma fonte canônica de listas de carga e descarga nem compara quantidade, visita, porto e tipo de operação. | Ampliar o contrato ou criar `ReconciliacaoListaCargaDescargaServico`, com snapshot de cada fonte, chave estável, severidade, resolução e bloqueio de publicação e encerramento. |
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/edi/servico/BayPlanServico.java` | importação e atualização de planos | O Bay Plan é uma fonte do planner, sem ciclo explícito de discrepância contra listas operacionais de load e discharge. | Persistir a lista canônica por visita e versão e disparar reconciliação idempotente após importação, alteração de plano e confirmação de movimento. |
+| `frontend/cloudport/src/pages/ContainerVesselPlannerCompletePage.jsx` | divergências do planner | A tela exibe alertas técnicos, mas não uma fila consolidada de discrepâncias de lista com todas as fontes e decisões. | Criar inspector de load/discharge discrepancy, filtros, comparação campo a campo, responsável, decisão e revalidação. |
+
+### BUS1950 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/servico/GeometriaNavioServico.java` | geometria de classe e visita | A geometria é orientada a bays, rows, tiers, porões e slots de contêiner; não representa conveses de veículos, lanes e rampas RoRo. | Estender o template versionado do BUS1530 com `ConvesRoro`, `LaneRoro`, `RampaRoro`, limites e snapshot imutável por visita. |
+| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/gestor/RetiradaDiretaNavioService.java` | retirada direta de carga autopropelida | O fluxo integra navio, custódia e Gate, mas não consome um plano geométrico RoRo nem sequência física de descarga por lane e rampa. | Vincular a autorização à posição e sequência canônicas do navio, confirmar cada handoff e compensar o Gate quando a descarga for cancelada ou replanejada. |
+| `frontend/cloudport/src/pages/VesselPlannerWorkspace.jsx` | vistas e drag-and-drop | O workspace não possui vista de convés RoRo com veículos, rampas, direção, obstruções e sequência. | Criar modo RoRo sincronizado com execução, custódia, Hatch Clerk e retirada direta. |
+
 ## 5. Planejamento preditivo de pátio
 
 Nenhuma pendência técnica permanece nesta seção. O BUS1400 e o BUS1410 foram concluídos no PR #607 e estão registrados no documento canônico de requisitos implementados.
@@ -310,4 +423,4 @@ Todas as telas criadas ou ampliadas pelos BUS1740 a BUS1830 devem reutilizar `Pa
 | `frontend/cloudport/src/pages/RailLineUpPage.jsx` | composição e pátio ferroviário | A tela permite organizar vagões e contêineres dentro do domínio ferroviário, mas não compartilha um canvas operacional com Yard e CHE. | Criar vista combinada de linhas, vagões, posições do pátio, equipamentos, rotas e work instructions com drag-and-drop validado entre os domínios. |
 | `backend/servico-rail/src/main/java/br/com/cloudport/servicorail/ferrovia/listatrabalho/controlador/ListaTrabalhoTremControlador.java` | planejamento visual integrado | Os contratos não expõem uma proposta gráfica consolidada com origem Yard, vagão, sequência e CHE. | Criar DTO de plano Rail × Yard, simulação, validação de conflito, assinatura reproduzível e confirmação coordenada com o BUS1560. |
 
-Todas as novas telas e modos visuais desta seção devem apresentar ícone de manual contextual contendo finalidade, fluxo operacional, explicação dos campos, permissões necessárias, estados possíveis, motivos de bloqueio, exemplos, atalhos e link para o processo completo.
+Todas as novas telas e modos visuais, inclusive as criadas ou ampliadas pelos BUS1840 a BUS1950, devem apresentar ícone de manual contextual contendo finalidade, fluxo operacional, explicação dos campos, permissões necessárias, estados possíveis, motivos de bloqueio, exemplos, atalhos e link para o processo completo.

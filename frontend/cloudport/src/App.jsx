@@ -38,6 +38,7 @@ import {
   RailImportPage,
   RailVisitsPage
 } from './pages/OperationalPages.jsx';
+import { DispatchEquipamentosPage } from './pages/yard/DispatchEquipamentosPage.jsx';
 import {
   YardAutomationPage,
   YardImpactPage,
@@ -114,7 +115,8 @@ const FALLBACK_NAVIGATION = [
     { label: 'Instruções de trabalho', path: '/home/patio/instrucoes', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
     { label: 'Movimentações', path: '/home/patio/movimentacoes', roles: [] },
     { label: 'Indicadores', path: '/home/patio/dashboard-kpi', roles: [] },
-    { label: 'Automação', path: '/home/patio/automacao', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }
+    { label: 'Automação', path: '/home/patio/automacao', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
+    { label: 'Dispatch e equipamentos', path: '/home/patio/dispatch-equipamentos', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] }
   ] },
   { group: 'Integrações', items: [
     { label: 'Painel EDI', path: '/home/integracoes/edi', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
@@ -220,6 +222,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/patio/recursos') return <YardResourcesPage navigate={navigate} />;
   if (path === '/home/patio/dashboard-kpi') return <YardKpiPage navigate={navigate} />;
   if (path === '/home/patio/automacao' || path === '/home/patio/simulador') return <YardAutomationPage navigate={navigate} session={session} />;
+  if (path === '/home/patio/dispatch-equipamentos') return <DispatchEquipamentosPage navigate={navigate} session={session} />;
   if (path === '/home/integracoes' || path === '/home/integracoes/edi') return <EdiMonitorPage />;
   if (path === '/home/integracoes/api-publica') return <PublicApiDiagnosticsPage />;
   if (path === '/home/embarque' || path === '/home/embarque/planejamento') return <ContainerVesselPlannerPage session={session} />;

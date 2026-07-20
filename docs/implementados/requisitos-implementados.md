@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-20 com a conclusão dos BUS1350 e BUS1360 no PR #612, dos BUS1400 e BUS1410 no PR #607, além dos BUS1320, BUS1310, BUS1300, BUS1290, BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-20 com a conclusão dos BUS1330 e BUS1340 no PR #610, dos BUS1350 e BUS1360 no PR #612, dos BUS1400 e BUS1410 no PR #607, além dos BUS1320, BUS1310, BUS1300, BUS1290, BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -258,6 +258,20 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 12. Sobreposições de visita ou recurso retornam conflito funcional e são protegidas por restrições de exclusão no PostgreSQL.
 13. A conclusão atualiza a posição ferroviária corrente da visita.
 14. A API permite planejar, autorizar, iniciar, concluir, cancelar, consultar e listar o histórico por visita.
+15. O BUS1330 persiste o agregado `PlanoManobraFerroviaria` por visita e sequência, com origem, destino, composição, linha, trecho, início e fim previstos, auditoria temporal e controle otimista de versão.
+16. As manobras usam os estados `PLANEJADA`, `BLOQUEADA_CONFLITO`, `AUTORIZADA`, `EM_EXECUCAO`, `CONCLUIDA` e `CANCELADA`, com transições ordenadas e motivo obrigatório no cancelamento.
+17. A autorização revalida conflitos antes de registrar usuário e instante, e somente uma manobra autorizada pode iniciar a execução.
+18. A migration `V8__plano_manobra_e_inspecao_vagao.sql` cria restrição de exclusão `gist` por linha, trecho e intervalo, impedindo duas reservas ativas sobrepostas mesmo sob concorrência.
+19. Conflitos detectados antes da persistência mantêm a manobra visível como `BLOQUEADA_CONFLITO`, com identificação da reserva impeditiva e sua janela.
+20. O BUS1340 persiste `InspecaoVagao` por visita e vagão, mantendo a inspeção mais recente sem apagar o histórico anterior.
+21. O checklist registra rodas, freios, engates, estrutura e lacres, além de responsável, observação e instante da inspeção.
+22. Defeitos registram código, descrição, severidade baixa, média, alta ou crítica e evidência operacional.
+23. Somente checklist integralmente aprovado e sem defeitos produz estado `APROVADA`; qualquer não conformidade produz `REPROVADA`.
+24. Vagões sem inspeção ou com inspeção reprovada são retirados da lista de trabalho, e o backend revalida a elegibilidade antes de iniciar ou concluir a ordem.
+25. O override preserva a reprovação e registra responsável, motivo e instante no estado `LIBERADA_OVERRIDE`, sem apagar defeitos ou evidências.
+26. A tela Ferrovia visual incorpora quadro de manobras, reservas, conflitos, transições, checklist, defeitos, inspeções e liberação excepcional.
+27. A tela possui manual contextual e processo completo com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos e atalhos.
+28. Testes unitários cobrem reserva sem conflito, bloqueio temporal, aprovação do checklist, exclusão da ordem reprovada e bloqueio quando não existe inspeção.
 
 ## Carga Geral e carga siderúrgica
 

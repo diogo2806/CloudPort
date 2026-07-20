@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-20 após a conclusão dos BUS1330 e BUS1340 no PR #610, dos BUS1350 e BUS1360 no PR #612, dos BUS1400 e BUS1410 no PR #607 e a auditoria de exposição dos modelos do backend no frontend.
+Status: atualizado em 2026-07-20 após a conclusão dos BUS1330 e BUS1340 no PR #610, dos BUS1400 e BUS1410 no PR #607, dos BUS1420 a BUS1470 no PR #614 e a auditoria de exposição dos modelos do backend no frontend.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -18,7 +18,24 @@ Nenhuma pendência técnica permanece nesta seção. O BUS1330 e o BUS1340 foram
 
 ## 4. Navio
 
-Nenhuma pendência técnica permanece nesta seção. O BUS1350 e o BUS1360 foram concluídos no PR #612 e estão registrados no documento canônico de requisitos implementados.
+| ID | Tarefa técnica | Critério de conclusão | Status |
+|---|---|---|---|
+| BUS1350 | Implementar prontidão de berço e autorização operacional antes do início da escala. | Berço, calado, defensas, amarração, acesso, recursos, restrições e liberações são confirmados; operação de carga não inicia com item crítico pendente. | ⬜ Pendente |
+| BUS1360 | Registrar paralisações, trocas de turno e handover por guindaste. | Início, fim, motivo, responsável, impacto, turno e pendências são persistidos e reconciliados com a execução real sem sobrescrever o plano. | ⬜ Pendente |
+
+### BUS1350 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-navio/src/main/java/br/com/cloudport/serviconavio/escala/servico/EscalaServico.java` | início da operação da escala | O cadastro e a evolução da escala não comprovam checklist bloqueante de prontidão do berço e liberações operacionais. | Criar novo método sugerido: `confirmarProntidaoBerco()` e validar itens críticos antes de autorizar início. |
+| `frontend/cloudport/src/pages/OperationalPages.jsx` | operação de navio | Não há painel consolidado de prontidão com bloqueios e responsáveis. | Criar checklist de berço versionado e visível antes do início da operação. |
+
+### BUS1360 — arquivos e métodos
+
+| Caminho completo | Método/campo/contrato | Como está | O que fazer |
+|---|---|---|---|
+| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/vesselplanner/servico/VesselPlannerServico.java` | execução por guindaste | A execução acompanha movimentos e progresso, mas não há entidade específica para paralisação, troca de turno e handover de pendências. | Criar novos métodos sugeridos: `registrarParalisacaoGuindaste()` e `registrarHandoverTurno()`. |
+| `frontend/cloudport/src/pages/OperationalPages.jsx` | monitor operacional | O painel não registra handover estruturado nem separa indisponibilidade planejada de paralisação operacional. | Adicionar timeline de paralisações, turnos, responsáveis e pendências abertas. |
 
 ## 5. Planejamento preditivo de pátio
 
@@ -26,14 +43,10 @@ Nenhuma pendência técnica permanece nesta seção. O BUS1400 e o BUS1410 foram
 
 ## 6. Dispatch e equipamentos
 
+Os BUS1420 a BUS1470 foram concluídos no PR #614 e estão registrados no documento de implementação e no manual operacional de Dispatch e equipamentos. Permanecem nesta seção apenas as pendências de exposição e organização dos modelos já disponíveis no backend.
+
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| BUS1420 | Implementar scheduler de dispatch dinâmico por família de CHE. | Straddle carrier, terminal tractor, RTG/RMG, ASC, equipamento de cais e ferroviário usam perfis próprios de tempo, velocidade, capacidade, pool, POW, distância, atraso e restrições. | ⬜ Pendente |
-| BUS1430 | Implementar dispatch automático e semiautomático com job steps persistidos. | A conclusão ou falha de um trabalho seleciona o próximo elegível; cada instrução registra etapas de deslocamento, chegada, coleta, transporte, entrega e confirmação física, impedindo avanço antecipado ou fora de sequência. | ⬜ Pendente |
-| BUS1440 | Implementar autodespacho controlado pelo operador do equipamento. | O operador informa unidade ou trabalho, e o backend valida fila, pool, POW, fase da visita, equipamento, prioridade, holds e concorrência antes de atribuir a instrução. | ⬜ Pendente |
-| BUS1450 | Implementar parâmetros operacionais versionados e alteráveis em runtime. | Pesos, penalidades, velocidades, tempos, tolerâncias, regras de pool, overrides e políticas de dispatch podem ser ativados por escopo, possuem validação, auditoria, vigência e rollback. | ⬜ Pendente |
-| BUS1460 | Incorporar GPS, rotas e congestionamento à decisão de dispatch. | O score considera posição atual, distância de rota, sentido, bloqueios, interdições, zonas de transferência, limite regional de CHE e tempo estimado; telemetria atrasada impede decisão automática. | ⬜ Pendente |
-| BUS1470 | Selecionar automaticamente chassis e equipamentos auxiliares durante o dispatch. | Chassis, bomb cart, cassette e acessórios são escolhidos por origem, destino, tipo de movimento, pool, armador e disponibilidade; movimentos auxiliares e associações físicas são persistidos. | ⬜ Pendente |
 | BUS1740 | Sincronizar navegação dinâmica, catálogo de rotas e componentes do portal. | Toda aba retornada por `/api/navegacao/abas` é validada contra um registro central de telas; menu, breadcrumb, autorização e resolução de componente usam a mesma definição, sem rota válida terminar em 404. | ⬜ Pendente |
 | BUS1750 | Organizar contratos e modelos do frontend por domínio. | DTOs de entrada, resposta, enum, comando e resumo são tipados e gerados ou validados contra o OpenAPI; adapters normalizam paginação, datas, identificadores e campos legados, detectando quebra de contrato antes da execução. | ⬜ Pendente |
 | BUS1760 | Expor a Visibilidade Operacional completa no portal. | Navios, detalhes, ocupação do pátio, throughput do Gate, busca de contêineres, rastreamento e histórico possuem telas, filtros, inspector, timeline e navegação contextual. | ⬜ Pendente |
@@ -44,41 +57,6 @@ Nenhuma pendência técnica permanece nesta seção. O BUS1400 e o BUS1410 foram
 | BUS1810 | Expor movimentos ferroviários internos. | Planejamento, consulta, autorização, início, conclusão e cancelamento de movimentos internos ficam disponíveis por visita, com recursos, conflitos, responsáveis e timeline de estados. | ⬜ Pendente |
 | BUS1820 | Expor capacidade e reservas de cargo lot no Yard. | Capacidade total, reservada, ocupada e disponível por posição é configurável e consultável; reservas podem ser criadas, confirmadas e canceladas a partir do pátio e da carga geral. | ⬜ Pendente |
 | BUS1830 | Criar operação controlada de contingência do Gate. | Quando a funcionalidade estiver habilitada no backend, o portal permite agendamento e liberação emergencial com indicação visual, justificativa, confirmação, operador e auditoria; quando desabilitada, nenhuma ação é oferecida. | ⬜ Pendente |
-
-### BUS1420 e BUS1430 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueuePatioServico.java` | `dispatch` e ciclo da work instruction | O serviço despacha filas e mantém estados principais, mas não aplica schedulers especializados por família nem uma cadeia persistida de job steps. | Introduzir estratégia `DispatchScheduler` por tipo de CHE, score explicável e agregado `EtapaWorkInstruction` com transições idempotentes. |
-| `frontend/cloudport/src/pages/yard/YardWorkPages.jsx` | filas, job list e comandos | A interface permite dispatch e comandos manuais, mas não mostra score, motivos, etapas, previsão de chegada ou seleção automática contínua. | Exibir ranking, memória de cálculo, job steps, modo automático/semiautomático e próximo trabalho previsto. |
-
-### BUS1440 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/controlador/WorkQueueOperacaoControlador.java` | atribuição de trabalho | Os contratos operacionais não comprovam solicitação de autodespacho por unidade iniciada pelo operador do CHE. | Criar endpoint sugerido `POST /work-instructions/auto-dispatch`, exigindo operador, equipamento, unidade, fase, pool, POW e chave idempotente. |
-| `frontend/cloudport/src/pages/ControlRoomEquipamentosPage.jsx` | operação do equipamento | O Control Room acompanha equipamento e instrução atual, mas não oferece solicitação de trabalho pelo operador com bloqueios explicados. | Adicionar fluxo de autodespacho com validação, rejeição funcional e auditoria. |
-
-### BUS1450 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/dto/RegraAutomacaoDto.java` | regras de automação | Existem regras pontuais, mas não há catálogo versionado de parâmetros do scheduler com escopo, vigência e rollback. | Criar agregado `ConfiguracaoDispatch`, resolução hierárquica por terminal, pátio, bloco, POW, pool, fila e tipo de CHE. |
-| `frontend/cloudport/src/pages/yard/YardWorkPages.jsx` | administração do dispatch | Os parâmetros usados pelo motor não são administrados em tela operacional própria. | Criar editor com comparação de versões, simulação, ativação, rollback e permissões administrativas. |
-
-### BUS1460 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/controlroom/ControlRoomEquipamentoServico.java` | telemetria e posição de CHE | Latitude, longitude, coordenadas, heading e posição próxima são armazenados, mas não há comprovação de uso obrigatório no score transacional de cada dispatch. | Criar porta `RoteamentoEquipamentoServico` e integrar rota, congestionamento, bloqueios e frescor da telemetria ao scheduler. |
-| `frontend/cloudport/src/pages/ControlRoomEquipamentosPage.jsx` | mapa e recomendação | A tela mostra estado operacional, mas não explica rota recomendada, ETA, congestionamento ou motivo da escolha do CHE. | Exibir rota, tempo estimado, conflitos e justificativa do dispatch. |
-
-### BUS1470 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/inventario/modelo/UnidadeInventario.java` | vínculos de equipamentos auxiliares | O inventário representa unidades e vínculos, mas o dispatch não comprova seleção automática de chassis, bomb cart ou cassette. | Criar serviço `SelecaoEquipamentoAuxiliarServico`, reserva concorrente, associação, desassociação e geração de movimentos auxiliares. |
-| `frontend/cloudport/src/pages/yard/YardWorkPages.jsx` | detalhe da work instruction | A instrução não apresenta equipamento auxiliar escolhido, alternativas rejeitadas ou etapas de coleta e devolução. | Exibir seleção, vínculo físico, estado e comandos de substituição motivada. |
 
 ### Exposição e organização dos modelos já disponíveis no backend
 

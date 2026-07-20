@@ -7,6 +7,7 @@ import { collectDatasetKeys, humanizeDatasetKey } from '../operationalDataset.js
 import { GateVisualPage } from './GateVisualPage.jsx';
 import { NavioOperationalConsole } from './NavioOperationalConsole.jsx';
 import { RailLineUpPage } from './RailLineUpPage.jsx';
+import { RailRegistrationsPage } from './RailRegistrationsPage.jsx';
 import { YardInstructionCreateModal } from './yard/YardInstructionsPage.jsx';
 
 function displayValue(value) {
@@ -76,8 +77,8 @@ export function GateDashboardPage() {
   return <GateVisualPage />;
 }
 
-export function RailVisitsPage() {
-  return <RailLineUpPage />;
+export function RailVisitsPage({ session }) {
+  return <RailRegistrationsPage session={session} />;
 }
 
 export function RailImportPage() {

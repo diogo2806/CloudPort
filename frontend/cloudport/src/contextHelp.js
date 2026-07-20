@@ -105,7 +105,20 @@ const PAGES = {
     processLabel: 'Abrir carga geral',
     documentationUrl: 'https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/carga-geral-avarias.md'
   },
-  '/home/gate/dashboard': ['Central de ação do Gate', 'Priorizar filas, atendimentos e ocorrências do Gate.'],
+  '/home/gate/dashboard': {
+    title: 'Central de ação do Gate e pré-gate',
+    purpose: 'Organizar veículos antes da entrada física, mantendo posição, prioridade, chamada, aceite, expiração, rechamada e atendimento em uma fila persistida.',
+    flow: ['Confirme a chegada antecipada do agendamento.', 'Confira posição e prioridade na aba Pré-gate.', 'Chame o veículo informando gate ou pista e validade.', 'Registre o aceite dentro do tempo restante.', 'Inicie o atendimento ou efetue rechamada após expiração.', 'Conclua a entrada física para retirar o veículo da fila de entrada sem duplicar a visita.'],
+    fields: ['Posição atual e original: ordem operacional e referência de auditoria.', 'Prioridade: normal, alta ou emergencial.', 'GatePass: passagem vinculada ao agendamento.', 'Gate ou pista: destino informado ao motorista.', 'Validade e tempo restante: prazo para aceite.', 'Aceite e rechamadas: confirmação e quantidade de novas tentativas.'],
+    permissions: ['ADMIN_PORTO: supervisão e todas as ações.', 'OPERADOR_GATE: operação da fila e das chamadas.', 'PLANEJADOR: confirmação da chegada antecipada conforme autorização.'],
+    states: ['AGUARDANDO: veículo posicionado.', 'CHAMADO: aguardando aceite.', 'ACEITO: motorista confirmou.', 'EM_ATENDIMENTO: atendimento iniciado.', 'EXPIRADO: prazo encerrado.', 'CANCELADO ou FINALIZADO: ciclo encerrado.'],
+    blockers: ['Agendamento em estado terminal.', 'GatePass inexistente ou fora de fila ativa.', 'Outra chamada ativa para o mesmo GatePass.', 'Chamada expirada ou transição incompatível.', 'Gate, pista ou justificativa obrigatória ausente.', 'Perfil sem permissão.'],
+    example: 'Confirme uma chegada antecipada, chame o veículo da posição 3 para a Pista 2 por cinco minutos e inicie o atendimento após o aceite.',
+    shortcuts: ['F1: abrir esta ajuda.', 'Shift + ?: abrir esta ajuda.', 'Pré-gate: abrir a fila consolidada.', 'Atualizar agora: recarregar filas e chamados.'],
+    processPath: '/home/gate/operacao',
+    processLabel: 'Abrir operação completa do Gate',
+    documentationUrl: 'https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/gate-fila-pre-gate.md'
+  },
   '/home/gate/operacao': {
     title: 'Operação completa do Gate',
     purpose: 'Validar a identidade do motorista e executar a truck visit por estágios sem liberar avanço operacional indevido.',

@@ -1,21 +1,5 @@
 package br.com.cloudport.serviconavio.escala.servico;
 
-import br.com.cloudport.serviconavio.comum.validacao.SanitizadorEntrada;
-import br.com.cloudport.serviconavio.escala.dto.AtualizacaoEscalaDTO;
-import br.com.cloudport.serviconavio.escala.dto.CadastroEscalaDTO;
-import br.com.cloudport.serviconavio.escala.dto.EscalaDetalheDTO;
-import br.com.cloudport.serviconavio.escala.entidade.Escala;
-import br.com.cloudport.serviconavio.escala.entidade.FaseEscala;
-import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
-import br.com.cloudport.serviconavio.navio.entidade.Navio;
-import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,10 +9,28 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import br.com.cloudport.serviconavio.comum.validacao.SanitizadorEntrada;
+import br.com.cloudport.serviconavio.escala.dto.AtualizacaoEscalaDTO;
+import br.com.cloudport.serviconavio.escala.dto.CadastroEscalaDTO;
+import br.com.cloudport.serviconavio.escala.dto.EscalaDetalheDTO;
+import br.com.cloudport.serviconavio.escala.entidade.Escala;
+import br.com.cloudport.serviconavio.escala.entidade.FaseEscala;
+import br.com.cloudport.serviconavio.escala.entidade.ProntidaoBerco;
+import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
+import br.com.cloudport.serviconavio.escala.repositorio.ProntidaoBercoRepositorio;
+import br.com.cloudport.serviconavio.navio.entidade.Navio;
+import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.web.server.ResponseStatusException;
+
 class EscalaServicoTest {
 
     private EscalaRepositorio escalaRepositorio;
     private NavioRepositorio navioRepositorio;
+    private ProntidaoBercoRepositorio prontidaoBercoRepositorio;
     private SanitizadorEntrada sanitizadorEntrada;
     private EscalaServico escalaServico;
 
@@ -36,13 +38,18 @@ class EscalaServicoTest {
     void preparar() {
         escalaRepositorio = mock(EscalaRepositorio.class);
         navioRepositorio = mock(NavioRepositorio.class);
+        prontidaoBercoRepositorio = mock(ProntidaoBercoRepositorio.class);
         sanitizadorEntrada = mock(SanitizadorEntrada.class);
         when(sanitizadorEntrada.limparTextoObrigatorio(anyString(), anyString()))
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
         when(sanitizadorEntrada.limparTexto(anyString()))
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
         when(escalaRepositorio.save(any(Escala.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
-        escalaServico = new EscalaServico(escalaRepositorio, navioRepositorio, sanitizadorEntrada);
+        escalaServico = new EscalaServico(
+                escalaRepositorio,
+                navioRepositorio,
+                prontidaoBercoRepositorio,
+                sanitizadorEntrada);
     }
 
     private Navio navio() {
@@ -61,6 +68,20 @@ class EscalaServicoTest {
         escala.setFase(fase);
         escala.setChegadaPrevista(LocalDateTime.of(2026, 5, 23, 8, 0));
         return escala;
+    }
+
+    private ProntidaoBerco prontidaoCompleta(Escala escala) {
+        ProntidaoBerco prontidao = new ProntidaoBerco();
+        prontidao.setEscala(escala);
+        prontidao.setBercoConfirmado(true);
+        prontidao.setCaladoConfirmado(true);
+        prontidao.setDefensasConfirmadas(true);
+        prontidao.setAmarracaoConfirmada(true);
+        prontidao.setAcessoConfirmado(true);
+        prontidao.setRecursosConfirmados(true);
+        prontidao.setRestricoesAvaliadas(true);
+        prontidao.setLiberacoesConfirmadas(true);
+        return prontidao;
     }
 
     @Test
@@ -104,7 +125,8 @@ class EscalaServicoTest {
 
     @Test
     void avancarFaseParaAtracadoCarimbaTemposEfetivos() {
-        when(escalaRepositorio.findById(1L)).thenReturn(Optional.of(escalaComFase(FaseEscala.PREVISTA)));
+        when(escalaRepositorio.findLockedById(1L))
+                .thenReturn(Optional.of(escalaComFase(FaseEscala.PREVISTA)));
 
         EscalaDetalheDTO resultado = escalaServico.avancarFase(1L, FaseEscala.ATRACADO);
 
@@ -115,8 +137,35 @@ class EscalaServicoTest {
     }
 
     @Test
+    void deveBloquearInicioDaOperacaoSemProntidao() {
+        when(escalaRepositorio.findLockedById(1L))
+                .thenReturn(Optional.of(escalaComFase(FaseEscala.ATRACADO)));
+        when(prontidaoBercoRepositorio.findTopByEscalaIdOrderByVersaoChecklistDesc(1L))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> escalaServico.avancarFase(1L, FaseEscala.OPERANDO))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("checklist de prontidão");
+
+        verify(escalaRepositorio, never()).save(any());
+    }
+
+    @Test
+    void deveIniciarOperacaoQuandoProntidaoEstiverCompleta() {
+        Escala escala = escalaComFase(FaseEscala.ATRACADO);
+        when(escalaRepositorio.findLockedById(1L)).thenReturn(Optional.of(escala));
+        when(prontidaoBercoRepositorio.findTopByEscalaIdOrderByVersaoChecklistDesc(1L))
+                .thenReturn(Optional.of(prontidaoCompleta(escala)));
+
+        EscalaDetalheDTO resultado = escalaServico.avancarFase(1L, FaseEscala.OPERANDO);
+
+        assertThat(resultado.getFase()).isEqualTo(FaseEscala.OPERANDO);
+    }
+
+    @Test
     void avancarFaseParaPartiuCarimbaPartidaEfetiva() {
-        when(escalaRepositorio.findById(1L)).thenReturn(Optional.of(escalaComFase(FaseEscala.OPERANDO)));
+        when(escalaRepositorio.findLockedById(1L))
+                .thenReturn(Optional.of(escalaComFase(FaseEscala.OPERANDO)));
 
         EscalaDetalheDTO resultado = escalaServico.avancarFase(1L, FaseEscala.PARTIU);
 
@@ -126,7 +175,8 @@ class EscalaServicoTest {
 
     @Test
     void avancarFaseRejeitaTransicaoInvalida() {
-        when(escalaRepositorio.findById(1L)).thenReturn(Optional.of(escalaComFase(FaseEscala.PREVISTA)));
+        when(escalaRepositorio.findLockedById(1L))
+                .thenReturn(Optional.of(escalaComFase(FaseEscala.PREVISTA)));
 
         assertThatThrownBy(() -> escalaServico.avancarFase(1L, FaseEscala.OPERANDO))
                 .isInstanceOf(ResponseStatusException.class);
@@ -136,7 +186,8 @@ class EscalaServicoTest {
 
     @Test
     void atualizarRejeitaEscalaTerminal() {
-        when(escalaRepositorio.findById(1L)).thenReturn(Optional.of(escalaComFase(FaseEscala.ENCERRADA)));
+        when(escalaRepositorio.findLockedById(1L))
+                .thenReturn(Optional.of(escalaComFase(FaseEscala.ENCERRADA)));
 
         assertThatThrownBy(() -> escalaServico.atualizar(1L, new AtualizacaoEscalaDTO()))
                 .isInstanceOf(ResponseStatusException.class);

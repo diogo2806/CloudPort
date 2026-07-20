@@ -1,5 +1,7 @@
 package br.com.cloudport.servicoyard.patio.servico;
 
+import br.com.cloudport.servicoyard.patio.custodia.dto.CustodiaExchangeAreaRespostaDto;
+import br.com.cloudport.servicoyard.patio.custodia.modelo.StatusCustodiaExchangeArea;
 import br.com.cloudport.servicoyard.patio.dto.EventoMovimentoPatioDto;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -15,7 +17,10 @@ import org.springframework.stereotype.Component;
 public class PublicadorEventoMovimentoPatio {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PublicadorEventoMovimentoPatio.class);
-    private static final String TIPO_EVENTO = "yard.movimento.registrado";
+    private static final String EVENTO_MOVIMENTO = "yard.movimento.registrado";
+    private static final String EVENTO_CUSTODIA_ENTREGUE = "yard.custodia.exchange-area.entregue";
+    private static final String EVENTO_CUSTODIA_RECEBIDA = "yard.custodia.exchange-area.recebida";
+    private static final String EVENTO_CUSTODIA_DIVERGENTE = "yard.custodia.exchange-area.divergente";
     private static final int VERSAO_EVENTO = 1;
 
     private final RabbitTemplate rabbitTemplate;
@@ -24,9 +29,9 @@ public class PublicadorEventoMovimentoPatio {
     private final boolean rabbitEnabled;
 
     public PublicadorEventoMovimentoPatio(RabbitTemplate rabbitTemplate,
-                                          @Value("${cloudport.yard.eventos.exchange}") String exchange,
-                                          @Value("${cloudport.yard.eventos.routing-movimento}") String routingKey,
-                                          @Value("${cloudport.messaging.rabbit.enabled:false}") boolean rabbitEnabled) {
+                                           @Value("${cloudport.yard.eventos.exchange}") String exchange,
+                                           @Value("${cloudport.yard.eventos.routing-movimento}") String routingKey,
+                                           @Value("${cloudport.messaging.rabbit.enabled:false}") boolean rabbitEnabled) {
         this.rabbitTemplate = rabbitTemplate;
         this.exchange = exchange;
         this.routingKey = routingKey;
@@ -34,18 +39,33 @@ public class PublicadorEventoMovimentoPatio {
     }
 
     public void publicar(EventoMovimentoPatioDto evento) {
+        publicar(EVENTO_MOVIMENTO, evento);
+    }
+
+    public void entregarNaExchangeArea(CustodiaExchangeAreaRespostaDto custodia) {
+        publicar(EVENTO_CUSTODIA_ENTREGUE, custodia);
+    }
+
+    public void receberDaExchangeArea(CustodiaExchangeAreaRespostaDto custodia) {
+        String tipoEvento = custodia.getStatus() == StatusCustodiaExchangeArea.DIVERGENTE
+                ? EVENTO_CUSTODIA_DIVERGENTE
+                : EVENTO_CUSTODIA_RECEBIDA;
+        publicar(tipoEvento, custodia);
+    }
+
+    private void publicar(String tipoEvento, Object dados) {
         if (!rabbitEnabled) {
-            LOGGER.debug("Evento de movimento do pátio não publicado porque o RabbitMQ está desabilitado.");
+            LOGGER.debug("Evento {} não publicado porque o RabbitMQ está desabilitado.", tipoEvento);
             return;
         }
 
         Map<String, Object> envelope = new LinkedHashMap<>();
         envelope.put("eventId", UUID.randomUUID().toString());
-        envelope.put("eventType", TIPO_EVENTO);
+        envelope.put("eventType", tipoEvento);
         envelope.put("eventVersion", VERSAO_EVENTO);
         envelope.put("occurredAt", Instant.now().toString());
         envelope.put("source", "servico-yard");
-        envelope.put("data", evento);
+        envelope.put("data", dados);
         rabbitTemplate.convertAndSend(exchange, routingKey, envelope);
     }
 }

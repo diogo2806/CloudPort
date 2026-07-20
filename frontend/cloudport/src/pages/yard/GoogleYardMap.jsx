@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loading, Message } from '../../components.jsx';
 import {
-  hasGoogleMapsApiKey,
-  loadGoogleMaps,
+  loadLeaflet,
   loadYardMapConfig,
+  OPEN_STREET_MAP_ATTRIBUTION,
   YARD_MAP_STATE_COLORS,
   YARD_MAP_STATE_LABELS
-} from './yardGoogleMaps.js';
+} from './yardOpenStreetMap.js';
 import { buildResolvedYardMapLayout } from './yardGeoJson.js';
 import { YardGeometryEditor } from './YardGeometryEditor.jsx';
 import { buildEquipmentMapEntries } from './yardLiveMap.js';
@@ -72,41 +72,22 @@ function createEquipmentInfoContent(entry) {
   return root;
 }
 
-function createLabelOverlay(maps, map, entry, selected, onActivate) {
-  let element = null;
-  const overlay = new maps.OverlayView();
-  overlay.onAdd = () => {
-    element = document.createElement('button');
-    element.type = 'button';
-    element.className = `yard-google-stack-label ${entry.state}${selected ? ' selected' : ''}`;
-    element.textContent = entry.stack
-      ? `L${entry.stack.linha} C${entry.stack.coluna}`
-      : entry.geometry?.codigo ?? 'Área';
-    element.title = entry.label;
-    element.setAttribute('aria-label', entry.label);
-    element.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      onActivate();
-    });
-    overlay.getPanes().overlayMouseTarget.appendChild(element);
-  };
-  overlay.draw = () => {
-    if (!element) return;
-    const point = overlay.getProjection().fromLatLngToDivPixel(entry.center);
-    if (!point) return;
-    element.style.left = `${point.x}px`;
-    element.style.top = `${point.y}px`;
-  };
-  overlay.onRemove = () => {
-    element?.remove();
-    element = null;
-  };
-  overlay.setMap(map);
-  return overlay;
+function createStackLabel(leaflet, entry, selected) {
+  const element = document.createElement('span');
+  element.className = `yard-google-stack-label ${entry.state}${selected ? ' selected' : ''}`;
+  element.textContent = entry.stack
+    ? `L${entry.stack.linha} C${entry.stack.coluna}`
+    : entry.geometry?.codigo ?? 'Área';
+  element.title = entry.label;
+  return leaflet.divIcon({
+    className: 'yard-leaflet-label-icon',
+    html: element,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0]
+  });
 }
 
-export function GoogleYardMap({
+export function OpenStreetMapYardMap({
   blocks,
   selectedStack,
   onSelectStack,
@@ -144,27 +125,27 @@ export function GoogleYardMap({
   }, []);
 
   useEffect(() => {
-    if (!config || !hasGoogleMapsApiKey(config) || !mapElementRef.current) return undefined;
+    if (!config || !mapElementRef.current) return undefined;
     let active = true;
     setMapError('');
-    loadGoogleMaps(config.apiKey)
-      .then(async (maps) => {
-        const { Map } = await maps.importLibrary('maps');
+    loadLeaflet()
+      .then((leaflet) => {
         if (!active || !mapElementRef.current) return;
-        const options = {
-          center: config.center,
+        const map = leaflet.map(mapElementRef.current, {
+          center: [config.center.lat, config.center.lng],
           zoom: config.zoom,
-          mapTypeId: config.mapTypeId,
-          gestureHandling: 'cooperative',
-          streetViewControl: false,
-          fullscreenControl: true,
-          mapTypeControl: true,
-          tilt: 0
-        };
-        if (config.mapId) options.mapId = config.mapId;
-        const map = new Map(mapElementRef.current, options);
+          minZoom: config.minZoom,
+          maxZoom: config.maxZoom,
+          zoomControl: true,
+          attributionControl: true
+        });
+        leaflet.tileLayer(config.tileUrl, {
+          minZoom: config.minZoom,
+          maxZoom: config.maxZoom,
+          attribution: OPEN_STREET_MAP_ATTRIBUTION
+        }).addTo(map);
         mapInstanceRef.current = map;
-        setMapContext({ map, maps });
+        setMapContext({ map, leaflet });
       })
       .catch((reason) => {
         if (active) setMapError(reason instanceof Error ? reason.message : String(reason));
@@ -172,20 +153,17 @@ export function GoogleYardMap({
 
     return () => {
       active = false;
-      if (mapInstanceRef.current && globalThis.google?.maps?.event) {
-        globalThis.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
-      }
+      setMapContext(null);
+      mapInstanceRef.current?.remove();
       mapInstanceRef.current = null;
     };
   }, [config]);
 
   useEffect(() => {
     if (!mapContext) return undefined;
-    const { map, maps } = mapContext;
-    const bounds = new maps.LatLngBounds();
-    const infoWindow = new maps.InfoWindow();
-    const overlays = [];
-    const listeners = [];
+    const { map, leaflet } = mapContext;
+    const overlays = leaflet.layerGroup().addTo(map);
+    const bounds = leaflet.latLngBounds([]);
     const centers = new Map(layout
       .filter((entry) => entry.stack)
       .map((entry) => [routePositionKey(entry.stack), entry.center]));
@@ -195,105 +173,80 @@ export function GoogleYardMap({
         ? sameStack(entry.stack, selectedStack)
         : Boolean(entry.geometry && String(entry.geometry.id) === String(selectedGeometry?.id));
       const color = entry.color ?? YARD_MAP_STATE_COLORS[entry.state] ?? '#334155';
-      const polygon = new maps.Polygon({
-        map,
-        paths: entry.path,
-        clickable: true,
-        strokeColor: selected ? '#0f172a' : color,
-        strokeOpacity: 1,
-        strokeWeight: selected ? 4 : 2,
+      const path = entry.path.map((point) => [point.lat, point.lng]);
+      const polygon = leaflet.polygon(path, {
+        color: selected ? '#0f172a' : color,
+        opacity: 1,
+        weight: selected ? 4 : 2,
         fillColor: color,
-        fillOpacity: selected ? 0.78 : 0.48,
-        zIndex: selected ? 30 : entry.geometry ? 15 : 10
-      });
-      entry.path.forEach((point) => bounds.extend(point));
+        fillOpacity: selected ? 0.78 : 0.48
+      }).addTo(overlays);
+      path.forEach((point) => bounds.extend(point));
 
       const activate = () => {
         if (entry.stack) onSelectStack(entry.stack);
         if (entry.geometry) setSelectedGeometry(entry.geometry);
-        infoWindow.setContent(createInfoContent(entry));
-        infoWindow.setPosition(entry.center);
-        infoWindow.open({ map });
       };
-      listeners.push(polygon.addListener('click', activate));
-      overlays.push(polygon, createLabelOverlay(maps, map, entry, selected, activate));
+      polygon.on('click', activate);
+      polygon.bindPopup(createInfoContent(entry));
+
+      const label = leaflet.marker([entry.center.lat, entry.center.lng], {
+        icon: createStackLabel(leaflet, entry, selected),
+        keyboard: true,
+        riseOnHover: true
+      }).addTo(overlays);
+      label.on('click', activate);
+      label.bindPopup(createInfoContent(entry));
     });
 
     routes.forEach((route) => {
       const origin = centers.get(routePositionKey(route.origem));
       const destination = centers.get(routePositionKey(route.destino));
       if (!origin || !destination || origin === destination) return;
-      const polyline = new maps.Polyline({
-        map,
-        path: [origin, destination],
-        strokeColor: '#0f4c81',
-        strokeOpacity: 0.9,
-        strokeWeight: 4,
-        zIndex: 40,
-        icons: [{
-          icon: { path: maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3 },
-          offset: '100%'
-        }]
-      });
-      overlays.push(polyline);
+      leaflet.polyline([
+        [origin.lat, origin.lng],
+        [destination.lat, destination.lng]
+      ], {
+        color: '#0f4c81',
+        opacity: 0.9,
+        weight: 4,
+        dashArray: '10 7'
+      }).addTo(overlays);
     });
 
     equipmentEntries.forEach((entry) => {
-      bounds.extend(entry.position);
-      const marker = new maps.Marker({
-        map,
-        position: entry.position,
-        title: `${entry.type} ${entry.id} · ${entry.status}`,
-        label: { text: entry.id.slice(-4), color: '#ffffff', fontSize: '10px', fontWeight: '700' },
-        icon: {
-          path: maps.SymbolPath.CIRCLE,
-          scale: 13,
-          fillColor: entry.status.includes('FALHA') || entry.status.includes('PARADO') ? '#dc2626' : '#0f4c81',
-          fillOpacity: 0.95,
-          strokeColor: '#ffffff',
-          strokeWeight: 3
-        },
-        animation: maps.Animation?.DROP,
-        zIndex: 80
-      });
-      listeners.push(marker.addListener('click', () => {
+      bounds.extend([entry.position.lat, entry.position.lng]);
+      const failure = entry.status.includes('FALHA') || entry.status.includes('PARADO');
+      const marker = leaflet.circleMarker([entry.position.lat, entry.position.lng], {
+        radius: 11,
+        color: '#ffffff',
+        weight: 3,
+        fillColor: failure ? '#dc2626' : '#0f4c81',
+        fillOpacity: 0.95
+      }).addTo(overlays);
+      marker.on('click', () => {
         if (entry.nearestStack) onSelectStack(entry.nearestStack);
-        infoWindow.setContent(createEquipmentInfoContent(entry));
-        infoWindow.setPosition(entry.position);
-        infoWindow.open({ map });
-      }));
-      overlays.push(marker);
+      });
+      marker.bindPopup(createEquipmentInfoContent(entry));
+      marker.bindTooltip(entry.id.slice(-4), { permanent: true, direction: 'center', className: 'yard-equipment-label' });
     });
 
     const layoutSignature = `${layout.map((entry) => entry.key).join('|')}::${equipmentEntries.map((entry) => entry.id).join('|')}`;
-    if ((layout.length || equipmentEntries.length) && fittedLayoutRef.current !== layoutSignature) {
+    if (bounds.isValid() && fittedLayoutRef.current !== layoutSignature) {
       fittedLayoutRef.current = layoutSignature;
-      map.fitBounds(bounds, 48);
-      listeners.push(maps.event.addListenerOnce(map, 'idle', () => {
-        if ((map.getZoom() ?? config.zoom) > config.zoom) map.setZoom(config.zoom);
-      }));
+      map.fitBounds(bounds, { padding: [48, 48], maxZoom: config.zoom });
     }
 
-    return () => {
-      infoWindow.close();
-      listeners.forEach((listener) => maps.event.removeListener(listener));
-      overlays.forEach((overlay) => overlay.setMap(null));
-    };
+    return () => overlays.remove();
   }, [mapContext, layout, selectedStack, selectedGeometry, onSelectStack, config, routes, equipmentEntries]);
 
   if (configError) return <Message type="error">{configError}</Message>;
   if (!config) return <Loading label="Carregando configuração geográfica do pátio..." />;
-  if (!hasGoogleMapsApiKey(config)) {
-    return <div className="yard-google-map-not-configured">
-      <Message type="warning">Informe googleMaps.apiKey no arquivo assets/configuracao.json do ambiente. Sem a chave, não é possível desenhar sobre o mapa.</Message>
-      <code>googleMaps.apiKey</code>
-    </div>;
-  }
 
   return <div className="yard-google-map-shell">
     <Message type="error">{mapError}</Message>
-    <div ref={mapElementRef} className="yard-google-map" aria-label="Mapa georreferenciado do pátio de contêineres" />
-    {!mapContext && !mapError && <div className="yard-google-map-loading"><Loading label="Carregando Google Maps..." /></div>}
+    <div ref={mapElementRef} className="yard-google-map" aria-label="Mapa gratuito OpenStreetMap do pátio de contêineres" />
+    {!mapContext && !mapError && <div className="yard-google-map-loading"><Loading label="Carregando OpenStreetMap..." /></div>}
     {!layout.length && mapContext && <div className="yard-google-map-empty">Nenhuma geometria cadastrada. Use “Novo polígono” para desenhar o pátio diretamente no mapa.</div>}
     <YardGeometryEditor
       mapContext={mapContext}
@@ -308,6 +261,7 @@ export function GoogleYardMap({
       {!!geometries.length && <span><i className="geometry" />Geometria persistida</span>}
       {!!routes.length && <span><i className="route" />Rotas planejadas</span>}
       {!!equipmentEntries.length && <span><i className="equipment" />CHE em tempo real</span>}
+      <span className="yard-map-provider">Mapa: OpenStreetMap</span>
     </div>
   </div>;
 }

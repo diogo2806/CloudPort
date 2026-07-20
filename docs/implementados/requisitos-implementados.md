@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-20 com a conclusão dos BUS1380 e BUS1390, além dos BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-20 com a conclusão do BUS1290, além dos BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -169,6 +169,15 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 10. Embarque direto Gate → navio e saída direta de carga autopropelida.
 11. Controle de entrada e saída de pessoas serializado por documento.
 12. Rejeições transacionais conhecidas retornam `409` ou `422`, sem exposição de SQL.
+13. O BUS1290 persiste credenciais operacionais do motorista vinculadas à transportadora, com tipo, hash, salt, vigência, revogação e auditoria.
+14. Documento, PIN ou credencial são conferidos contra motorista, transportadora e chave operacional da truck visit ou do agendamento.
+15. Cada tentativa é persistida com método, resultado, motivo, operador e instante.
+16. Três tentativas inválidas bloqueiam a verificação por 15 minutos; aprovações e overrides expiram após 30 minutos.
+17. O avanço da truck visit e o processamento de entrada são interceptados antes da execução e rejeitados quando a verificação está pendente, bloqueada ou expirada.
+18. O override é restrito a `ADMIN_PORTO`, exige motivo e preserva responsável, instante e histórico.
+19. A tela Gate > Operação completa mostra estado, método, tentativas restantes, bloqueio e validade, desabilitando o avanço até a autorização.
+20. A API autenticada permite consultar e validar por visita ou agendamento e cadastrar credenciais administrativas.
+21. A tela possui ajuda contextual e manual com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e processo completo.
 
 ## Ferrovia
 

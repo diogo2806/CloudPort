@@ -16,7 +16,8 @@ const YARD_ROUTES = [
   ['/home/patio/movimentacoes', 'Movimentações'],
   ['/home/patio/recursos', 'Recursos'],
   ['/home/patio/dashboard-kpi', 'Indicadores'],
-  ['/home/patio/automacao', 'Automação']
+  ['/home/patio/automacao', 'Automação'],
+  ['/home/patio/dispatch-equipamentos', 'Dispatch']
 ];
 
 export function displayValue(value) {

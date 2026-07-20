@@ -1,4 +1,5 @@
 const MANUAL_URL = 'https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/patio-planejamento-preditivo-yard-impact.md';
+const DISPATCH_MANUAL_URL = 'https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/patio-dispatch-equipamentos.md';
 
 const HELP_BY_PATH = {
   '/home/patio/planejamento-recebimento': {
@@ -74,6 +75,56 @@ const HELP_BY_PATH = {
     processPath: '/home/patio/planejamento-recebimento',
     processLabel: 'Abrir planejamento preditivo',
     documentationUrl: MANUAL_URL
+  },
+  '/home/patio/dispatch-equipamentos': {
+    title: 'Dispatch e equipamentos',
+    purpose: 'Ordenar e atribuir work instructions conforme família de CHE, prioridade, atraso, rota, telemetria, capacidade e restrições operacionais.',
+    flow: [
+      'Selecione uma work queue ativa com POW, pool e CHE real associado.',
+      'Calcule o ranking e revise score, ETA, rota, telemetria e motivos de bloqueio.',
+      'Selecione uma work instruction elegível e confirme o autodespacho.',
+      'Acompanhe as seis etapas persistidas até a confirmação física.',
+      'No modo automático, permita que a conclusão ou falha VMT acione a próxima seleção.',
+      'Administre versões de configuração, rotas, interdições, congestionamento e rollback.'
+    ],
+    fields: [
+      'Work queue: fila operacional que fornece POW, pool, visita, zona e CHE.',
+      'Score: soma auditável de prioridade, atraso e ajuste da família, descontando distância e congestionamento.',
+      'ETA: deslocamento previsto acrescido dos tempos médios de coleta e entrega.',
+      'Telemetria: posição, heading e data de recebimento usadas para validar atualização.',
+      'Configuração: escopo, versão, modo, pesos, capacidade, tolerância e seleção de auxiliar.',
+      'Rota: origem, destino, distância, sentido, congestionamento, interdição e limite regional.',
+      'Auxiliar: chassis, bomb cart, cassette ou acessório reservado para a instrução.'
+    ],
+    permissions: [
+      'ADMIN_PORTO: consulta, autodespacho, configuração, ativação, rollback e rotas.',
+      'PLANEJADOR: consulta, autodespacho e manutenção parametrizada.',
+      'OPERADOR_PATIO: consulta, ranking, autodespacho e avanço de etapas.',
+      'SERVICE_NAVIO: consulta operacional para integração.'
+    ],
+    states: [
+      'RECOMENDADA: decisão calculada antes da atribuição.',
+      'ATRIBUÍDA: work instruction despachada para o CHE.',
+      'CONCLUÍDA ou FALHA: estado final sincronizado com o VMT.',
+      'PENDENTE, EM_EXECUÇÃO, CONCLUÍDA, FALHA ou IGNORADA: estados de cada etapa.',
+      'RASCUNHO, ATIVA ou INATIVA: estados de configuração.',
+      'RESERVADO, ASSOCIADO, DEVOLVIDO ou CANCELADO: estados do auxiliar.'
+    ],
+    blockers: [
+      'Fila inativa, sem POW, pool, visita, plano ou recurso de cais.',
+      'CHE inexistente, divergente, indisponível ou acima da capacidade simultânea.',
+      'Visita fora de fase operacional.',
+      'Unidade com hold ou instrução concorrente ativa.',
+      'Telemetria ausente ou atrasada no modo automático.',
+      'Rota interditada, congestionada acima do limite ou região saturada de CHE.',
+      'Configuração ativa inexistente ou validade encerrada.',
+      'Equipamento auxiliar obrigatório indisponível.'
+    ],
+    example: 'Uma work queue de trator portuário em modo automático classifica as unidades. A primeira elegível recebe chassis livre do mesmo armador, cria seis etapas e, após a conclusão VMT, libera o chassis e seleciona a próxima instrução.',
+    shortcuts: ['F1 ou Shift + ?: abrir esta ajuda.', 'Esc: fechar a ajuda.', 'Calcular ranking: atualizar a ordem recomendada.', 'Clique na linha: selecionar a work instruction.', 'Atualizar: recarregar decisões, configurações e rotas.'],
+    processPath: '/home/patio/lista-trabalho',
+    processLabel: 'Abrir lista de trabalho',
+    documentationUrl: DISPATCH_MANUAL_URL
   }
 };
 

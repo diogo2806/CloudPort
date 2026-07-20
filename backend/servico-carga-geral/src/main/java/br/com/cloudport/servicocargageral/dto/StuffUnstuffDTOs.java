@@ -120,6 +120,17 @@ public final class StuffUnstuffDTOs {
             String lacreInicial,
             String lacreFinal,
             String motivoCancelamento,
+            OffsetDateTime criadoEm,
+            OffsetDateTime iniciadoEm,
+            OffsetDateTime concluidoEm,
+            OffsetDateTime canceladoEm,
+            List<ItemOperacaoResposta> itens,
+            List<EventoOperacaoResposta> historico) {
+    }
+
+    public record PesagemStuffingResposta(
+            UUID operacaoId,
+            String conteinerId,
             MetodoPesagemVgm metodoPesagem,
             StatusPesagemVgm statusPesagemVgm,
             BigDecimal taraKg,
@@ -130,12 +141,7 @@ public final class StuffUnstuffDTOs {
             String responsavelPesagem,
             OffsetDateTime pesagemConfirmadaEm,
             String motivoBloqueioPeso,
-            OffsetDateTime criadoEm,
-            OffsetDateTime iniciadoEm,
-            OffsetDateTime concluidoEm,
-            OffsetDateTime canceladoEm,
-            List<ItemOperacaoResposta> itens,
-            List<EventoOperacaoResposta> historico) {
+            boolean liberadoParaConclusao) {
     }
 
     public record PlanoVersaoResposta(

@@ -136,14 +136,21 @@ Este arquivo contém somente pendências técnicas implementáveis e comprovadas
 
 Nenhuma pendência técnica permanece nesta seção. O BUS1400 e o BUS1410 foram concluídos no PR #607 e estão registrados no documento canônico de requisitos implementados.
 
-## 6. Dispatch e equipamentos
+## 6. Exposição no portal dos modelos operacionais
 
-Os BUS1420 a BUS1470 foram concluídos no PR #614 e estão registrados no documento de implementação e no manual operacional de Dispatch e equipamentos. Permanecem nesta seção apenas as pendências de exposição e organização dos modelos já disponíveis no backend.
+Os BUS1420 a BUS1470, referentes ao núcleo de Dispatch e equipamentos, foram concluídos no PR #614 e estão registrados no documento de implementação e no manual operacional correspondente. Esta seção não representa pendências do motor de dispatch; reúne somente pendências de arquitetura transversal do frontend e de exposição, no portal, de modelos operacionais já disponíveis no backend.
+
+### Arquitetura transversal do frontend
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
 | BUS1740 | Sincronizar navegação dinâmica, catálogo de rotas e componentes do portal. | Toda aba retornada por `/api/navegacao/abas` é validada contra um registro central de telas; menu, breadcrumb, autorização e resolução de componente usam a mesma definição, sem rota válida terminar em 404. | ⬜ Pendente |
 | BUS1750 | Organizar contratos e modelos do frontend por domínio. | DTOs de entrada, resposta, enum, comando e resumo são tipados e gerados ou validados contra o OpenAPI; adapters normalizam paginação, datas, identificadores e campos legados, detectando quebra de contrato antes da execução. | ⬜ Pendente |
+
+### Exposição operacional no portal
+
+| ID | Tarefa técnica | Critério de conclusão | Status |
+|---|---|---|---|
 | BUS1760 | Expor a Visibilidade Operacional completa no portal. | Navios, detalhes, ocupação do pátio, throughput do Gate, busca de contêineres, rastreamento e histórico possuem telas, filtros, inspector, timeline e navegação contextual. | ⬜ Pendente |
 | BUS1770 | Completar a configuração operacional do Gate. | Estágios, tarefas, regras de acesso, bookings, Bills of Lading, ordens e pré-avisos podem ser consultados e administrados conforme permissões, com sequência, validade, saldo, impacto e bloqueios visíveis. | ⬜ Pendente |
 | BUS1780 | Completar as ações da operação do Gate. | O portal cria truck visit, anexa evidências, consulta e reimprime documentos, recebe transferências e registra override, trouble, inspeção e resolução por formulários estruturados e auditáveis. | ⬜ Pendente |
@@ -153,9 +160,9 @@ Os BUS1420 a BUS1470 foram concluídos no PR #614 e estão registrados no docume
 | BUS1820 | Expor capacidade e reservas de cargo lot no Yard. | Capacidade total, reservada, ocupada e disponível por posição é configurável e consultável; reservas podem ser criadas, confirmadas e canceladas a partir do pátio e da carga geral. | ⬜ Pendente |
 | BUS1830 | Criar operação controlada de contingência do Gate. | Quando a funcionalidade estiver habilitada no backend, o portal permite agendamento e liberação emergencial com indicação visual, justificativa, confirmação, operador e auditoria; quando desabilitada, nenhuma ação é oferecida. | ⬜ Pendente |
 
-### Exposição e organização dos modelos já disponíveis no backend
+### Diretrizes de implementação
 
-As pendências BUS1740 a BUS1830 são predominantemente de frontend e devem consumir contratos já disponíveis, sem transformar entidades técnicas, outbox, idempotência ou históricos imutáveis em CRUD comum.
+BUS1740 e BUS1750 são pendências transversais de arquitetura do frontend e afetam todas as telas do portal. BUS1760 a BUS1830 são pendências de exposição operacional e devem consumir contratos já disponíveis, sem transformar entidades técnicas, outbox, idempotência ou históricos imutáveis em CRUD comum.
 
 ### BUS1740 e BUS1750 — arquivos e métodos
 

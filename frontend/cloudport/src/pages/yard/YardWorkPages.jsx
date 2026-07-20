@@ -1,7 +1,117 @@
 import { useMemo, useState } from 'react';
-import { api, formatError, hasAnyRole } from '../../api.js';
+import { api, createCorrelationId, formatError, hasAnyRole, request } from '../../api.js';
 import { DataTable, EmptyState, JsonDetails, Loading, Message, Section, StatusBadge } from '../../components.jsx';
 import { CommandPanel, DetailGrid, displayValue, FilterField, normalized, Pagination, useCommand, usePagination, useRemote, YardPageHeader } from './YardShared.jsx';
+
+function expectedPhysicalAction(order) {
+  return ['REMOCAO', 'LIBERACAO'].includes(order?.tipoMovimento) ? 'UNGROUNDING' : 'GROUNDING';
+}
+
+function numberOrNull(value) {
+  if (value === '' || value === undefined || value === null) return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : null;
+}
+
+function localTimestamp() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+}
+
+function physicalForm(order, detail) {
+  return {
+    tipoAcaoFisica: expectedPhysicalAction(order),
+    codigoUnidadeLido: order?.codigoConteiner ?? '',
+    equipamentoPatioId: detail?.equipamentoPatioId ?? '',
+    equipamentoIdentificador: detail?.equipamentoIdentificador ?? '',
+    origem: order?.tipoOrigem ?? '',
+    destino: order?.destino ?? order?.tipoDestino ?? '',
+    linhaOrigem: '',
+    colunaOrigem: '',
+    camadaOrigem: '',
+    linhaDestino: order?.linhaDestino ?? '',
+    colunaDestino: order?.colunaDestino ?? '',
+    camadaDestino: order?.camadaDestino ?? '',
+    sequenciaOperacional: order?.sequenciaNavio ?? ''
+  };
+}
+
+function ManualConfirmacaoFisica() {
+  return <details className="json-details">
+    <summary>📘 Manual — confirmação física de grounding e ungrounding</summary>
+    <div className="content-card">
+      <h3>Finalidade da tela</h3>
+      <p>Confirmar a retirada ou a colocação física de uma unidade somente após conferir a work instruction, o CHE, a origem, o destino, a posição e a sequência operacional.</p>
+      <h3>Fluxo operacional</h3>
+      <ol>
+        <li>Selecione uma work instruction despachada e com o ciclo VMT em execução.</li>
+        <li>Abra a confirmação física e faça nova leitura da unidade e do CHE.</li>
+        <li>Confirme origem, destino, coordenadas e sequência.</li>
+        <li>O backend valida a job list, o equipamento e o inventário sob bloqueio transacional.</li>
+        <li>Somente uma confirmação válida conclui a instrução e altera o inventário.</li>
+      </ol>
+      <h3>Explicação dos campos</h3>
+      <ul>
+        <li>Ação física: GROUNDING coloca a unidade na posição; UNGROUNDING retira a unidade da posição atual.</li>
+        <li>Unidade lida: identificação física conferida novamente pelo operador.</li>
+        <li>CHE: ID e identificador do equipamento associado à work queue.</li>
+        <li>Origem e destino: áreas operacionais envolvidas na transferência.</li>
+        <li>Linha, coluna e camada: posição física utilizada para validar inventário e work instruction.</li>
+        <li>Sequência: ordem oficial da instrução na job list.</li>
+      </ul>
+      <h3>Permissões necessárias</h3>
+      <p>ADMIN_PORTO, PLANEJADOR ou OPERADOR_PATIO podem confirmar. Outros perfis permanecem em consulta.</p>
+      <h3>Estados possíveis</h3>
+      <ul><li>PENDENTE, ACEITA e EM_EXECUCAO no ciclo VMT.</li><li>CONCLUIDA após confirmação física válida.</li><li>BLOQUEADA quando uma falha operacional é registrada.</li></ul>
+      <h3>Motivos de bloqueio</h3>
+      <ul><li>Evento repetido ou timestamp fora de ordem.</li><li>Unidade ou CHE divergente.</li><li>CHE indisponível ou não associado à fila.</li><li>Origem ou destino incompatível com o inventário e a instrução.</li><li>Instrução anterior ainda aberta.</li><li>Ação física incompatível com o tipo de movimento.</li></ul>
+      <h3>Exemplo</h3>
+      <p>Para a unidade CONT-001 destinada ao bloco A, o operador lê CONT-001 e RTG-01, confirma GROUNDING na posição linha 10, coluna 3, camada T2 e a sequência 4. O inventário é atualizado e a instrução é concluída na mesma transação.</p>
+      <h3>Atalhos</h3>
+      <ul><li>F1 ou Shift + ?: abrir a ajuda contextual.</li><li>Esc: cancelar a confirmação sem enviar dados.</li><li>Atualizar: recarregar o estado persistido.</li></ul>
+      <p><a href="https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/patio-confirmacao-grounding-ungrounding.md" target="_blank" rel="noreferrer">Abrir processo completo</a></p>
+    </div>
+  </details>;
+}
+
+function PhysicalConfirmationPanel({ order, detail, form, onChange, busy, onCancel, onConfirm }) {
+  if (!order) return null;
+  const ungrounding = form.tipoAcaoFisica === 'UNGROUNDING';
+  function update(field, value) {
+    onChange({ ...form, [field]: value });
+  }
+  const ready = order.statusOrdem === 'EM_EXECUCAO'
+    && order.statusConfirmacaoVmt === 'EM_EXECUCAO'
+    && form.codigoUnidadeLido.trim()
+    && form.equipamentoPatioId !== ''
+    && form.equipamentoIdentificador.trim()
+    && form.origem.trim()
+    && form.destino.trim()
+    && form.sequenciaOperacional !== ''
+    && (!ungrounding || (form.linhaOrigem !== '' && form.colunaOrigem !== '' && form.camadaOrigem.trim()))
+    && (ungrounding || (form.linhaDestino !== '' && form.colunaDestino !== '' && form.camadaDestino.trim()));
+
+  return <Section title={`Confirmação física da work instruction #${order.id}`} description="A instrução somente será concluída após o backend validar a transferência e atualizar o inventário.">
+    <Message type="warning">Estado VMT atual: {order.statusConfirmacaoVmt ?? 'PENDENTE'}. A confirmação exige EM_EXECUCAO.</Message>
+    {!detail?.equipamentoPatioId && <Message type="warning">A work queue não retornou um CHE real associado. Reassocie os recursos antes de confirmar.</Message>}
+    <div className="inline-form">
+      <label className="field"><span>Ação física</span><select value={form.tipoAcaoFisica} onChange={(event) => update('tipoAcaoFisica', event.target.value)} disabled={busy}><option value="GROUNDING">GROUNDING — colocar</option><option value="UNGROUNDING">UNGROUNDING — retirar</option></select></label>
+      <label className="field"><span>Unidade lida</span><input value={form.codigoUnidadeLido} onChange={(event) => update('codigoUnidadeLido', event.target.value)} maxLength={40} disabled={busy} required /></label>
+      <label className="field"><span>ID do CHE</span><input type="number" min="1" value={form.equipamentoPatioId} onChange={(event) => update('equipamentoPatioId', event.target.value)} disabled={busy} required /></label>
+      <label className="field"><span>Identificador do CHE</span><input value={form.equipamentoIdentificador} onChange={(event) => update('equipamentoIdentificador', event.target.value)} maxLength={80} disabled={busy} required /></label>
+      <label className="field"><span>Origem</span><input value={form.origem} onChange={(event) => update('origem', event.target.value)} maxLength={120} disabled={busy} required /></label>
+      <label className="field"><span>Destino</span><input value={form.destino} onChange={(event) => update('destino', event.target.value)} maxLength={120} disabled={busy} required /></label>
+      <label className="field"><span>Linha de origem</span><input type="number" min="0" value={form.linhaOrigem} onChange={(event) => update('linhaOrigem', event.target.value)} disabled={busy} required={ungrounding} /></label>
+      <label className="field"><span>Coluna de origem</span><input type="number" min="0" value={form.colunaOrigem} onChange={(event) => update('colunaOrigem', event.target.value)} disabled={busy} required={ungrounding} /></label>
+      <label className="field"><span>Camada de origem</span><input value={form.camadaOrigem} onChange={(event) => update('camadaOrigem', event.target.value)} maxLength={40} disabled={busy} required={ungrounding} /></label>
+      <label className="field"><span>Linha de destino</span><input type="number" min="0" value={form.linhaDestino} onChange={(event) => update('linhaDestino', event.target.value)} disabled={busy} required={!ungrounding} /></label>
+      <label className="field"><span>Coluna de destino</span><input type="number" min="0" value={form.colunaDestino} onChange={(event) => update('colunaDestino', event.target.value)} disabled={busy} required={!ungrounding} /></label>
+      <label className="field"><span>Camada de destino</span><input value={form.camadaDestino} onChange={(event) => update('camadaDestino', event.target.value)} maxLength={40} disabled={busy} required={!ungrounding} /></label>
+      <label className="field"><span>Sequência operacional</span><input type="number" min="0" value={form.sequenciaOperacional} onChange={(event) => update('sequenciaOperacional', event.target.value)} disabled={busy} required /></label>
+    </div>
+    <div className="actions"><button className="secondary" type="button" disabled={busy} onClick={onCancel}>Cancelar</button><button type="button" disabled={busy || !ready} onClick={onConfirm}>{busy ? 'Confirmando...' : 'Confirmar transferência física'}</button></div>
+  </Section>;
+}
 
 export function YardWorkListPage({ navigate, session }) {
   const [status, setStatus] = useState('');
@@ -9,6 +119,9 @@ export function YardWorkListPage({ navigate, session }) {
   const [selectedQueue, setSelectedQueue] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [physicalOrder, setPhysicalOrder] = useState(null);
+  const [physicalData, setPhysicalData] = useState(() => physicalForm(null, null));
+  const [physicalBusy, setPhysicalBusy] = useState(false);
   const canAdminister = hasAnyRole(session, 'ADMIN_PORTO', 'PLANEJADOR');
   const canOperate = canAdminister || hasAnyRole(session, 'OPERADOR_PATIO');
   const remote = useRemote(async () => {
@@ -34,6 +147,7 @@ export function YardWorkListPage({ navigate, session }) {
   async function openOrder(order) {
     setSelectedOrder(order);
     setDetail(null);
+    setPhysicalOrder(null);
     try {
       setDetail(await api.obterDrillDownWorkInstructionPatio(order.id));
     } catch (reason) {
@@ -72,7 +186,6 @@ export function YardWorkListPage({ navigate, session }) {
       suspend: ['Suspender', api.suspenderWorkInstructionPatio],
       resume: ['Retomar', api.retomarWorkInstructionPatio],
       block: ['Bloquear', api.bloquearWorkInstructionPatio],
-      complete: ['Concluir', api.concluirWorkInstructionPatio],
       reset: ['Resetar', api.resetarWorkInstructionPatio],
       cancel: ['Cancelar', api.cancelarWorkInstructionPatio]
     };
@@ -81,7 +194,6 @@ export function YardWorkListPage({ navigate, session }) {
       suspend: 'Work instruction suspensa',
       resume: 'Work instruction retomada',
       block: 'Work instruction bloqueada',
-      complete: 'Work instruction concluída',
       reset: 'Work instruction resetada',
       cancel: 'Work instruction cancelada'
     };
@@ -93,16 +205,68 @@ export function YardWorkListPage({ navigate, session }) {
     });
   }
 
+  function openPhysicalConfirmation(order) {
+    if (!canOperate) return;
+    setPhysicalOrder(order);
+    setPhysicalData(physicalForm(order, detail));
+    commands.setError('');
+    commands.setSuccess('');
+  }
+
+  async function confirmPhysicalTransfer() {
+    if (!physicalOrder || physicalBusy) return;
+    setPhysicalBusy(true);
+    commands.setError('');
+    commands.setSuccess('');
+    try {
+      const body = {
+        eventId: createCorrelationId(),
+        tipoEvento: 'CONCLUSAO',
+        statusEsperado: physicalOrder.statusConfirmacaoVmt,
+        timestamp: localTimestamp(),
+        resultado: 'TRANSFERENCIA_FISICA_CONFIRMADA_NO_PORTAL',
+        operador: session?.nome ?? 'operador',
+        tipoAcaoFisica: physicalData.tipoAcaoFisica,
+        codigoUnidadeLido: physicalData.codigoUnidadeLido.trim(),
+        equipamentoPatioId: numberOrNull(physicalData.equipamentoPatioId),
+        equipamentoIdentificador: physicalData.equipamentoIdentificador.trim(),
+        origem: physicalData.origem.trim(),
+        destino: physicalData.destino.trim(),
+        linhaOrigem: numberOrNull(physicalData.linhaOrigem),
+        colunaOrigem: numberOrNull(physicalData.colunaOrigem),
+        camadaOrigem: physicalData.camadaOrigem.trim() || null,
+        linhaDestino: numberOrNull(physicalData.linhaDestino),
+        colunaDestino: numberOrNull(physicalData.colunaDestino),
+        camadaDestino: physicalData.camadaDestino.trim() || null,
+        sequenciaOperacional: numberOrNull(physicalData.sequenciaOperacional)
+      };
+      const response = await request(`/yard/patio/work-instructions/${physicalOrder.id}/vmt-events`, { method: 'POST', body });
+      const refreshed = await remote.reload();
+      if (refreshed === undefined) throw new Error('A transferência foi confirmada, mas o estado persistido não pôde ser recarregado.');
+      const persisted = response?.instrucao ?? physicalOrder;
+      setSelectedOrder(persisted);
+      setDetail(await api.obterDrillDownWorkInstructionPatio(physicalOrder.id));
+      setPhysicalOrder(null);
+      commands.setSuccess('Transferência física confirmada, inventário atualizado e work instruction concluída.');
+    } catch (reason) {
+      commands.setError(formatError(reason));
+    } finally {
+      setPhysicalBusy(false);
+    }
+  }
+
   return <>
-    <YardPageHeader path="/home/patio/lista-trabalho" navigate={navigate} title="Lista de trabalho" description="Work queues e work instructions persistidas, com drill-down e comandos motivados conforme o perfil autenticado." actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
+    <YardPageHeader path="/home/patio/lista-trabalho" navigate={navigate} title="Lista de trabalho" description="Work queues e work instructions persistidas, com confirmação física, drill-down e comandos motivados conforme o perfil autenticado." actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
     <Message type="error">{remote.error || commands.error}</Message>
     <Message type="success">{commands.success}</Message>
     {!canAdminister && !canOperate && <Message type="warning">Seu perfil possui acesso de consulta. Os comandos operacionais permanecem ocultos e o backend continua aplicando a autorização.</Message>}
+    <ManualConfirmacaoFisica />
     <Section title="Filtros"><div className="filter-grid">
       <FilterField label="Busca"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Fila, zona, equipamento ou contêiner" /></FilterField>
       <FilterField label="Status"><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Todos</option>{['ATIVA', 'INATIVA', 'PENDENTE', 'EM_EXECUCAO', 'BLOQUEADA', 'SUSPENSA', 'CONCLUIDA', 'CANCELADA'].map((value) => <option key={value}>{value}</option>)}</select></FilterField>
     </div></Section>
     <CommandPanel command={commands.command} busy={commands.busy} onCancel={() => commands.setCommand(null)} onConfirm={commands.confirm} />
+    <PhysicalConfirmationPanel order={physicalOrder} detail={detail} form={physicalData} onChange={setPhysicalData} busy={physicalBusy} onCancel={() => setPhysicalOrder(null)} onConfirm={confirmPhysicalTransfer} />
     {remote.loading ? <Loading label="Carregando filas e instruções..." /> : <>
       <Section title={`Work queues (${queues.length})`} description="Selecione uma fila para abrir sua job list e os comandos permitidos.">
         <DataTable rows={queuePage.rows} rowKey={(row) => row.id ?? row.identificador} onRowClick={setSelectedQueue} columns={[
@@ -149,10 +313,10 @@ export function YardWorkListPage({ navigate, session }) {
           {!selectedOrder ? <EmptyState title="Selecione uma work instruction" /> : <>
             <DetailGrid value={selectedOrder} fields={[
               ['id', 'ID'], ['codigoConteiner', 'Unidade'], ['tipoMovimento', 'Movimento'], ['statusOrdem', 'Status'],
-              ['tipoOrigem', 'Origem'], ['tipoDestino', 'Destino'], ['linhaDestino', 'Linha'], ['colunaDestino', 'Coluna'],
-              ['camadaDestino', 'Camada'], ['prioridadeOperacional', 'Prioridade']
+              ['statusConfirmacaoVmt', 'Estado VMT'], ['tipoOrigem', 'Origem'], ['tipoDestino', 'Destino'], ['linhaDestino', 'Linha'], ['colunaDestino', 'Coluna'],
+              ['camadaDestino', 'Camada'], ['sequenciaNavio', 'Sequência'], ['prioridadeOperacional', 'Prioridade']
             ]} />
-            {canOperate && <div className="actions"><button className="small" onClick={() => instructionCommand(selectedOrder, 'suspend')}>Suspender</button><button className="small" onClick={() => instructionCommand(selectedOrder, 'resume')}>Retomar</button><button className="warning small" onClick={() => instructionCommand(selectedOrder, 'block')}>Bloquear</button><button className="small" onClick={() => instructionCommand(selectedOrder, 'complete')}>Concluir</button><button className="secondary small" onClick={() => instructionCommand(selectedOrder, 'reset')}>Resetar</button><button className="danger small" onClick={() => instructionCommand(selectedOrder, 'cancel')}>Cancelar</button></div>}
+            {canOperate && <div className="actions"><button className="small" onClick={() => instructionCommand(selectedOrder, 'suspend')}>Suspender</button><button className="small" onClick={() => instructionCommand(selectedOrder, 'resume')}>Retomar</button><button className="warning small" onClick={() => instructionCommand(selectedOrder, 'block')}>Bloquear</button><button className="small" disabled={selectedOrder.statusOrdem !== 'EM_EXECUCAO' || selectedOrder.statusConfirmacaoVmt !== 'EM_EXECUCAO'} onClick={() => openPhysicalConfirmation(selectedOrder)}>Confirmar transferência física</button><button className="secondary small" onClick={() => instructionCommand(selectedOrder, 'reset')}>Resetar</button><button className="danger small" onClick={() => instructionCommand(selectedOrder, 'cancel')}>Cancelar</button></div>}
             <JsonDetails value={{ drillDown: detail, matrizEstados: remote.data?.matrix?.[selectedOrder.statusOrdem] ?? [] }} title="Drill-down persistido e transições oficiais" />
           </>}
         </Section>

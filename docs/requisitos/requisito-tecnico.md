@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-20 após a conclusão do BUS1310 no PR #603.
+Status: atualizado em 2026-07-20 após a conclusão do BUS1320 no PR #605.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -10,16 +10,7 @@ Nenhuma pendência técnica permanece nesta seção. O BUS1380 foi concluído no
 
 ## 2. Gate e pátio
 
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| BUS1320 | Confirmar grounding e ungrounding por equipamento e posição física. | Cada retirada ou colocação confirma CHE, work instruction, origem, destino e leitura da unidade; eventos repetidos ou fora de sequência não alteram inventário. | ⬜ Pendente |
-
-### BUS1320 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/listatrabalho/servico/WorkQueuePatioServico.java` | conclusão de work instruction | A conclusão atualiza o trabalho, mas não comprova confirmação física separada de grounding ou ungrounding com leitura da unidade e sequência do equipamento. | Criar novo método sugerido: `confirmarTransferenciaFisica()` com chave idempotente e validação do estado anterior. |
-| `frontend/cloudport/src/pages/OperationalPages.jsx` | confirmação de instruções | A interface não exige leitura da unidade e confirmação explícita da ação física. | Adicionar confirmação operacional por unidade, CHE, posição e tipo de ação. |
+Nenhuma pendência técnica permanece nesta seção. O BUS1320 foi concluído no PR #605 e está registrado no documento canônico de requisitos implementados.
 
 ## 3. Ferrovia
 

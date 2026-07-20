@@ -6,6 +6,10 @@ import br.com.cloudport.servicoyard.vesselplanner.dto.AlocacaoSlotRespostaDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.CriarEstivagemPlanRequisicaoDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.EstabilidadeDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.EstivagemPlanDto;
+import br.com.cloudport.servicoyard.vesselplanner.dto.EventoOperacionalGuindasteDtos.EncerrarParalisacaoRequest;
+import br.com.cloudport.servicoyard.vesselplanner.dto.EventoOperacionalGuindasteDtos.EventoOperacionalGuindasteResponse;
+import br.com.cloudport.servicoyard.vesselplanner.dto.EventoOperacionalGuindasteDtos.RegistrarHandoverRequest;
+import br.com.cloudport.servicoyard.vesselplanner.dto.EventoOperacionalGuindasteDtos.RegistrarParalisacaoRequest;
 import br.com.cloudport.servicoyard.vesselplanner.dto.ExecucaoSequenciaGuindasteDtos.ConcluirMovimentoRequest;
 import br.com.cloudport.servicoyard.vesselplanner.dto.ExecucaoSequenciaGuindasteDtos.CriarExecucaoRequest;
 import br.com.cloudport.servicoyard.vesselplanner.dto.ExecucaoSequenciaGuindasteDtos.ExecucaoResponse;
@@ -17,10 +21,12 @@ import br.com.cloudport.servicoyard.vesselplanner.dto.ReconciliacaoBaplieExecuca
 import br.com.cloudport.servicoyard.vesselplanner.dto.ResolverDivergenciaRequisicaoDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.RestowAnaliseDto;
 import br.com.cloudport.servicoyard.vesselplanner.dto.SequenciamentoGuindasteDto;
+import br.com.cloudport.servicoyard.vesselplanner.servico.EventoOperacionalGuindasteServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.ExecucaoSequenciaGuindasteServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.ReconciliacaoBaplieExecucaoServico;
 import br.com.cloudport.servicoyard.vesselplanner.servico.VesselPlannerServico;
 import java.security.Principal;
+import java.util.List;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,14 +45,17 @@ public class VesselPlannerControlador {
 
     private final VesselPlannerServico servico;
     private final ExecucaoSequenciaGuindasteServico execucaoGuindasteServico;
+    private final EventoOperacionalGuindasteServico eventoOperacionalGuindasteServico;
     private final ReconciliacaoBaplieExecucaoServico reconciliacaoServico;
 
     public VesselPlannerControlador(
             VesselPlannerServico servico,
             ExecucaoSequenciaGuindasteServico execucaoGuindasteServico,
+            EventoOperacionalGuindasteServico eventoOperacionalGuindasteServico,
             ReconciliacaoBaplieExecucaoServico reconciliacaoServico) {
         this.servico = servico;
         this.execucaoGuindasteServico = execucaoGuindasteServico;
+        this.eventoOperacionalGuindasteServico = eventoOperacionalGuindasteServico;
         this.reconciliacaoServico = reconciliacaoServico;
     }
 
@@ -123,6 +132,53 @@ public class VesselPlannerControlador {
     @GetMapping("/planos/{id}/execucao-guindastes")
     public ResponseEntity<ExecucaoResponse> buscarExecucaoGuindastes(@PathVariable Long id) {
         return ResponseEntity.ok(execucaoGuindasteServico.buscarPorPlano(id));
+    }
+
+    @PreAuthorize(PoliticaAutorizacaoEstiva.LEITURA)
+    @GetMapping("/execucoes-guindastes/{execucaoId}/eventos-operacionais")
+    public ResponseEntity<List<EventoOperacionalGuindasteResponse>> listarEventosOperacionais(
+            @PathVariable Long execucaoId) {
+        return ResponseEntity.ok(eventoOperacionalGuindasteServico.listar(execucaoId));
+    }
+
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
+    @PostMapping("/execucoes-guindastes/{execucaoId}/paralisacoes")
+    public ResponseEntity<EventoOperacionalGuindasteResponse> registrarParalisacaoGuindaste(
+            @PathVariable Long execucaoId,
+            @Valid @RequestBody RegistrarParalisacaoRequest request,
+            Principal principal) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                eventoOperacionalGuindasteServico.registrarParalisacao(
+                        execucaoId,
+                        request,
+                        usuario(principal)));
+    }
+
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
+    @PostMapping("/execucoes-guindastes/{execucaoId}/paralisacoes/{eventoId}/encerrar")
+    public ResponseEntity<EventoOperacionalGuindasteResponse> encerrarParalisacaoGuindaste(
+            @PathVariable Long execucaoId,
+            @PathVariable Long eventoId,
+            @Valid @RequestBody EncerrarParalisacaoRequest request,
+            Principal principal) {
+        return ResponseEntity.ok(eventoOperacionalGuindasteServico.encerrarParalisacao(
+                execucaoId,
+                eventoId,
+                request,
+                usuario(principal)));
+    }
+
+    @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)
+    @PostMapping("/execucoes-guindastes/{execucaoId}/handovers")
+    public ResponseEntity<EventoOperacionalGuindasteResponse> registrarHandoverTurno(
+            @PathVariable Long execucaoId,
+            @Valid @RequestBody RegistrarHandoverRequest request,
+            Principal principal) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                eventoOperacionalGuindasteServico.registrarHandover(
+                        execucaoId,
+                        request,
+                        usuario(principal)));
     }
 
     @PreAuthorize(PoliticaAutorizacaoEstiva.COMANDO)

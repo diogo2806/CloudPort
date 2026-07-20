@@ -49,7 +49,7 @@ public class CustodiaExchangeAreaControlador {
     @PostMapping("/{custodiaId}/recebimentos")
     @PreAuthorize(AUTORIZACAO_OPERACAO)
     public CustodiaExchangeAreaRespostaDto receber(
-            @PathVariable Long custodiaId,
+            @PathVariable("custodiaId") Long custodiaId,
             @Valid @RequestBody CustodiaExchangeAreaComandoDto comando) {
         return servico.receberDaExchangeArea(custodiaId, comando);
     }

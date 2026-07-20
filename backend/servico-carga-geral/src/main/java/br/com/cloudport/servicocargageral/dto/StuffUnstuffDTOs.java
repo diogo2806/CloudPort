@@ -4,6 +4,7 @@ import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.MetodoPesagemV
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusLacreStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusOperacaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusPesagemVgm;
+import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusProgramacaoDocaCarga;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoEventoLacreStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoEventoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoOperacaoStuffUnstuff;
@@ -96,6 +97,23 @@ public final class StuffUnstuffDTOs {
             @Size(max = 1000) String observacao) {
     }
 
+    public record ReservarProgramacaoDocaRequest(
+            @NotBlank @Size(max = 80) String docaId,
+            @NotBlank @Size(max = 80) String areaEsperaId,
+            @NotBlank @Size(max = 120) String recursoId,
+            @NotNull OffsetDateTime janelaInicio,
+            @NotNull OffsetDateTime janelaFim,
+            @NotBlank @Size(max = 120) String usuario,
+            @Size(max = 120) String correlationId,
+            @Size(max = 1000) String observacao) {
+    }
+
+    public record CancelarProgramacaoDocaRequest(
+            @NotBlank @Size(max = 1000) String motivo,
+            @NotBlank @Size(max = 120) String usuario,
+            @Size(max = 120) String correlationId) {
+    }
+
     public record ConcluirOperacaoRequest(
             @Size(max = 80) String lacreFinal,
             @NotBlank @Size(max = 120) String usuario,
@@ -142,6 +160,39 @@ public final class StuffUnstuffDTOs {
             OffsetDateTime pesagemConfirmadaEm,
             String motivoBloqueioPeso,
             boolean liberadoParaConclusao) {
+    }
+
+    public record ProgramacaoDocaResposta(
+            UUID id,
+            UUID operacaoId,
+            TipoOperacaoStuffUnstuff tipoOperacao,
+            String conteinerId,
+            String docaId,
+            String areaEsperaId,
+            String recursoId,
+            OffsetDateTime janelaInicio,
+            OffsetDateTime janelaFim,
+            StatusProgramacaoDocaCarga status,
+            String reservadoPor,
+            OffsetDateTime reservadoEm,
+            String observacaoReserva,
+            String iniciadoPor,
+            OffsetDateTime iniciadoEm,
+            String concluidoPor,
+            OffsetDateTime concluidoEm,
+            String canceladoPor,
+            OffsetDateTime canceladoEm,
+            String motivoCancelamento,
+            boolean ocupandoRecursos,
+            List<ReservaLoteProgramacaoResposta> lotes) {
+    }
+
+    public record ReservaLoteProgramacaoResposta(
+            UUID loteId,
+            String loteCodigo,
+            BigDecimal quantidadeReservada,
+            BigDecimal volumeReservadoM3,
+            BigDecimal pesoReservadoKg) {
     }
 
     public record PlanoVersaoResposta(

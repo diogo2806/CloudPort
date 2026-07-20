@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { formatError } from '../api.js';
 import { Message, PageHeader } from '../components.jsx';
 import { generalCargoApi } from '../generalCargoApi.js';
+import { StuffUnstuffDockSchedulePanel } from './StuffUnstuffDockSchedulePanel.jsx';
 import { StuffUnstuffPanel } from './StuffUnstuffPanel.jsx';
 import { StuffUnstuffSealPanel } from './StuffUnstuffSealPanel.jsx';
 import { StuffUnstuffWeighingPanel } from './StuffUnstuffWeighingPanel.jsx';
@@ -33,14 +34,15 @@ export function StuffUnstuffPage() {
     <PageHeader
       eyebrow="Carga geral"
       title="Stuff e unstuff"
-      description="Planejamento e execução persistida de estufagem e desova por contêiner canônico, cargo lot, local, equipe, lacres, divergências, avarias, pesagem e VGM."
+      description="Planejamento, staging por doca e janela, execução persistida, lacres, pesagem e VGM de estufagem e desova por contêiner canônico e cargo lot."
       actions={<>
-        <a className="secondary" href={MANUAL_URL} target="_blank" rel="noreferrer" aria-label="Abrir manual de stuff, unstuff, pesagem e VGM"><span aria-hidden="true">?</span> Manual</a>
+        <a className="secondary" href={MANUAL_URL} target="_blank" rel="noreferrer" aria-label="Abrir manual de stuff, unstuff, staging, pesagem e VGM"><span aria-hidden="true">?</span> Manual</a>
         <button type="button" className="secondary" onClick={reloadData}>Atualizar dados</button>
       </>}
     />
     <Message type="error">{error}</Message>
     <StuffUnstuffPanel lotes={lotes} conteineres={conteineres} onChanged={reloadData} />
+    <StuffUnstuffDockSchedulePanel onChanged={reloadData} />
     <StuffUnstuffWeighingPanel onChanged={reloadData} />
     <StuffUnstuffSealPanel onChanged={reloadData} />
   </>;

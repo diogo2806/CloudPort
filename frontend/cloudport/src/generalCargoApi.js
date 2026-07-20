@@ -37,6 +37,10 @@ export const generalCargoApi = {
   listarPlanosStuffUnstuff: (id) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/planos`),
   criarVersaoPlanoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/planos`, { method: 'POST', body }),
   liberarPlanoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/planos/liberar`, { method: 'POST', body }),
+  listarProgramacoesDocaStuffUnstuff: (query) => request(`${STUFF_UNSTUFF}/programacoes-doca`, { query }),
+  obterProgramacaoDocaStuffUnstuff: (id) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/programacao-doca`),
+  reservarProgramacaoDocaStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/programacao-doca`, { method: 'POST', body }),
+  cancelarProgramacaoDocaStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/programacao-doca/cancelar`, { method: 'POST', body }),
   iniciarOperacaoStuffUnstuff: (id, usuario, correlationId) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/iniciar`, {
     method: 'POST', query: { usuario, correlationId }
   }),

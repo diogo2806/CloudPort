@@ -6,21 +6,24 @@ import br.com.cloudport.serviconavio.escala.dto.CadastroEscalaDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaDetalheDTO;
 import br.com.cloudport.serviconavio.escala.dto.EscalaResumoDTO;
 import br.com.cloudport.serviconavio.escala.dto.LinhaUpEscalaDTO;
+import br.com.cloudport.serviconavio.escala.dto.ProntidaoBercoDtos.ConfirmarProntidaoBercoRequest;
+import br.com.cloudport.serviconavio.escala.dto.ProntidaoBercoDtos.ProntidaoBercoResponse;
 import br.com.cloudport.serviconavio.escala.entidade.Escala;
 import br.com.cloudport.serviconavio.escala.entidade.FaseEscala;
+import br.com.cloudport.serviconavio.escala.entidade.ProntidaoBerco;
 import br.com.cloudport.serviconavio.escala.repositorio.EscalaRepositorio;
+import br.com.cloudport.serviconavio.escala.repositorio.ProntidaoBercoRepositorio;
 import br.com.cloudport.serviconavio.navio.entidade.Navio;
 import br.com.cloudport.serviconavio.navio.repositorio.NavioRepositorio;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
 
 @Service
 public class EscalaServico {
@@ -32,13 +35,16 @@ public class EscalaServico {
 
     private final EscalaRepositorio escalaRepositorio;
     private final NavioRepositorio navioRepositorio;
+    private final ProntidaoBercoRepositorio prontidaoBercoRepositorio;
     private final SanitizadorEntrada sanitizadorEntrada;
 
     public EscalaServico(EscalaRepositorio escalaRepositorio,
                          NavioRepositorio navioRepositorio,
+                         ProntidaoBercoRepositorio prontidaoBercoRepositorio,
                          SanitizadorEntrada sanitizadorEntrada) {
         this.escalaRepositorio = escalaRepositorio;
         this.navioRepositorio = navioRepositorio;
+        this.prontidaoBercoRepositorio = prontidaoBercoRepositorio;
         this.sanitizadorEntrada = sanitizadorEntrada;
     }
 
@@ -100,7 +106,7 @@ public class EscalaServico {
 
     @Transactional
     public EscalaDetalheDTO atualizar(Long id, AtualizacaoEscalaDTO dto) {
-        Escala escala = obterEscala(id);
+        Escala escala = obterEscalaBloqueada(id);
         if (escala.getFase().isTerminal()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Não é possível alterar uma escala já encerrada ou cancelada.");
@@ -138,8 +144,66 @@ public class EscalaServico {
     }
 
     @Transactional
+    public ProntidaoBercoResponse confirmarProntidaoBerco(
+            Long escalaId,
+            ConfirmarProntidaoBercoRequest request,
+            String usuario) {
+        Escala escala = obterEscalaBloqueada(escalaId);
+        if (escala.getFase() != FaseEscala.ATRACADO) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "A prontidão do berço somente pode ser confirmada quando a escala estiver ATRACADO.");
+        }
+
+        ProntidaoBerco anterior = prontidaoBercoRepositorio
+                .findTopByEscalaIdOrderByVersaoChecklistDesc(escalaId)
+                .orElse(null);
+        ProntidaoBerco prontidao = new ProntidaoBerco();
+        prontidao.setEscala(escala);
+        prontidao.setVersaoChecklist(anterior == null ? 1 : anterior.getVersaoChecklist() + 1);
+        prontidao.setBerco(sanitizadorEntrada.limparTextoObrigatorio(request.berco(), "berço"));
+        prontidao.setCaladoMetros(request.caladoMetros());
+        prontidao.setBercoConfirmado(request.bercoConfirmado());
+        prontidao.setCaladoConfirmado(request.caladoConfirmado());
+        prontidao.setDefensasConfirmadas(request.defensasConfirmadas());
+        prontidao.setAmarracaoConfirmada(request.amarracaoConfirmada());
+        prontidao.setAcessoConfirmado(request.acessoConfirmado());
+        prontidao.setRecursosConfirmados(request.recursosConfirmados());
+        prontidao.setRestricoesAvaliadas(request.restricoesAvaliadas());
+        prontidao.setLiberacoesConfirmadas(request.liberacoesConfirmadas());
+        prontidao.setRecursos(tratarTextoOpcional(request.recursos()));
+        prontidao.setRestricoes(tratarTextoOpcional(request.restricoes()));
+        prontidao.setLiberacoes(tratarTextoOpcional(request.liberacoes()));
+        prontidao.setObservacoes(tratarTextoOpcional(request.observacoes()));
+        prontidao.setResponsavel(sanitizadorEntrada.limparTextoObrigatorio(usuario, "responsável"));
+        prontidao.setConfirmadoEm(LocalDateTime.now());
+
+        escala.setBercoAtual(prontidao.getBerco());
+        escalaRepositorio.save(escala);
+        return mapearProntidao(prontidaoBercoRepositorio.save(prontidao));
+    }
+
+    @Transactional(readOnly = true)
+    public ProntidaoBercoResponse buscarProntidaoBercoAtual(Long escalaId) {
+        obterEscala(escalaId);
+        return prontidaoBercoRepositorio.findTopByEscalaIdOrderByVersaoChecklistDesc(escalaId)
+                .map(this::mapearProntidao)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "A escala ainda não possui confirmação de prontidão do berço."));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProntidaoBercoResponse> listarHistoricoProntidaoBerco(Long escalaId) {
+        obterEscala(escalaId);
+        return prontidaoBercoRepositorio.findByEscalaIdOrderByVersaoChecklistDesc(escalaId).stream()
+                .map(this::mapearProntidao)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
     public EscalaDetalheDTO avancarFase(Long id, FaseEscala destino) {
-        Escala escala = obterEscala(id);
+        Escala escala = obterEscalaBloqueada(id);
         if (destino == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe a fase de destino.");
         }
@@ -151,6 +215,9 @@ public class EscalaServico {
                     String.format(Locale.ROOT, "Transição de fase inválida: de %s para %s.",
                             escala.getFase(), destino));
         }
+        if (destino == FaseEscala.OPERANDO) {
+            validarProntidaoParaOperar(escala);
+        }
 
         LocalDateTime agora = LocalDateTime.now();
         carimbarTemposEfetivos(escala, destino, agora);
@@ -160,7 +227,45 @@ public class EscalaServico {
 
     @Transactional
     public void remover(Long id) {
-        escalaRepositorio.delete(obterEscala(id));
+        escalaRepositorio.delete(obterEscalaBloqueada(id));
+    }
+
+    private void validarProntidaoParaOperar(Escala escala) {
+        ProntidaoBerco prontidao = prontidaoBercoRepositorio
+                .findTopByEscalaIdOrderByVersaoChecklistDesc(escala.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "A operação não pode iniciar sem checklist de prontidão do berço."));
+        if (!prontidao.isPronto()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "A operação não pode iniciar. " + String.join(" ", prontidao.motivosBloqueio()));
+        }
+    }
+
+    private ProntidaoBercoResponse mapearProntidao(ProntidaoBerco prontidao) {
+        return new ProntidaoBercoResponse(
+                prontidao.getId(),
+                prontidao.getEscala().getId(),
+                prontidao.getVersaoChecklist(),
+                prontidao.getBerco(),
+                prontidao.getCaladoMetros(),
+                prontidao.getBercoConfirmado(),
+                prontidao.getCaladoConfirmado(),
+                prontidao.getDefensasConfirmadas(),
+                prontidao.getAmarracaoConfirmada(),
+                prontidao.getAcessoConfirmado(),
+                prontidao.getRecursosConfirmados(),
+                prontidao.getRestricoesAvaliadas(),
+                prontidao.getLiberacoesConfirmadas(),
+                prontidao.getRecursos(),
+                prontidao.getRestricoes(),
+                prontidao.getLiberacoes(),
+                prontidao.getObservacoes(),
+                prontidao.getResponsavel(),
+                prontidao.getConfirmadoEm(),
+                prontidao.isPronto(),
+                prontidao.motivosBloqueio());
     }
 
     private void carimbarTemposEfetivos(Escala escala, FaseEscala destino, LocalDateTime agora) {
@@ -191,8 +296,8 @@ public class EscalaServico {
     }
 
     private void validarOrdemTempos(LocalDateTime chegada,
-                                    LocalDateTime atracacao,
-                                    LocalDateTime partida) {
+                                     LocalDateTime atracacao,
+                                     LocalDateTime partida) {
         if (chegada == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A chegada prevista é obrigatória.");
         }
@@ -223,6 +328,11 @@ public class EscalaServico {
 
     private Escala obterEscala(Long id) {
         return escalaRepositorio.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Escala não encontrada."));
+    }
+
+    private Escala obterEscalaBloqueada(Long id) {
+        return escalaRepositorio.findLockedById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Escala não encontrada."));
     }
 

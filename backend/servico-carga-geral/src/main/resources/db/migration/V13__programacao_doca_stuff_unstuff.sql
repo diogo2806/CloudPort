@@ -29,7 +29,8 @@ CREATE TABLE programacao_doca_carga (
         status IN ('RESERVADA', 'EM_USO', 'CONCLUIDA', 'CANCELADA')
     ),
     CONSTRAINT ck_programacao_doca_inicio CHECK (
-        status = 'RESERVADA' OR (iniciado_por IS NOT NULL AND iniciado_em IS NOT NULL)
+        status IN ('RESERVADA', 'CANCELADA')
+        OR (iniciado_por IS NOT NULL AND iniciado_em IS NOT NULL)
     ),
     CONSTRAINT ck_programacao_doca_conclusao CHECK (
         status <> 'CONCLUIDA' OR (concluido_por IS NOT NULL AND concluido_em IS NOT NULL)

@@ -11,6 +11,7 @@ import {
   StatusBadge
 } from '../components.jsx';
 import { railApi } from '../railApi.js';
+import { RailOperationsPanels } from './RailOperationsPanels.jsx';
 import {
   LINHAS_FERROVIARIAS,
   LINHAS_PLANEJAMENTO,
@@ -528,6 +529,8 @@ export function RailLineUpPage() {
           <PatioFerroviario ocupacoes={ocupacoesComposicao} bloqueios={bloqueios} onMover={moverVagao} />
         </>}
       </Section>
+
+      <RailOperationsPanels idVisita={visitaSelecionadaId} composicao={composicao} />
 
       <Section title="Cronograma e ocupação das linhas" description={`Cenário simulado em ${formatarDataHora(instante)}. O tempo avança de cima para baixo.`}>
         <TimelineFerroviaria visitas={visitas} segmentos={segmentos} instante={instante} />

@@ -1,0 +1,318 @@
+.operational-timeframes-shell {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 16px;
+  background: var(--surface, #fff);
+}
+
+.operational-timeframe-toolbar,
+.operational-timeframe-toolbar > div,
+.operational-timeframe-heading,
+.operational-timeframe-controls,
+.operational-timeframe-pane > header,
+.operational-timeframe-inspector > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.operational-timeframe-heading {
+  align-items: flex-start;
+}
+
+.operational-timeframe-heading span {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted, #667085);
+}
+
+.operational-timeframe-heading h3 {
+  margin: 3px 0 0;
+}
+
+.operational-timeframe-controls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.operational-timeframe-controls label {
+  display: grid;
+  gap: 4px;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.operational-timeframe-controls select {
+  min-width: 132px;
+}
+
+.operational-timeframe-checkbox {
+  display: flex !important;
+  align-items: center;
+  grid-template-columns: auto 1fr;
+  min-height: 38px;
+}
+
+.operational-timeframe-manual {
+  position: relative;
+}
+
+.operational-timeframe-manual > summary {
+  cursor: pointer;
+  list-style: none;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-weight: 800;
+}
+
+.operational-timeframe-manual > div {
+  position: absolute;
+  z-index: 30;
+  right: 0;
+  width: min(440px, 86vw);
+  max-height: 70vh;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, .18);
+}
+
+.operational-timeframe-manual h4 {
+  margin: 12px 0 4px;
+}
+
+.operational-timeframe-manual p {
+  margin: 0;
+  color: var(--muted, #667085);
+}
+
+.operational-state-legend,
+.operational-timeframe-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.operational-state-legend span,
+.operational-timeframe-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 999px;
+  font-size: .75rem;
+}
+
+.operational-state-legend i,
+.operational-timeframe-summary i,
+.operational-timeframe-inspector i {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.operational-timeframe-comparison {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+
+.operational-timeframe-comparison.panes-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.operational-timeframe-pane {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 14px;
+  background: var(--surface-subtle, #f8fafc);
+}
+
+.operational-timeframe-pane > header {
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.operational-timeframe-pane > header div {
+  display: grid;
+  gap: 2px;
+}
+
+.operational-timeframe-pane > header span,
+.operational-timeframe-pane > header small {
+  color: var(--muted, #667085);
+  font-size: .75rem;
+}
+
+.operational-yard-timeframe-blocks,
+.operational-vessel-timeframe-bays {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  max-height: 620px;
+  overflow: auto;
+}
+
+.operational-yard-timeframe-blocks > article,
+.operational-vessel-timeframe-bays > article {
+  display: grid;
+  gap: 8px;
+}
+
+.operational-yard-timeframe-blocks h4,
+.operational-vessel-timeframe-bays h4 {
+  margin: 0;
+}
+
+.operational-yard-timeframe-blocks > article > div,
+.operational-vessel-timeframe-bays > article > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+}
+
+.operational-yard-timeframe-stack {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+}
+
+.operational-yard-timeframe-stack > header {
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.operational-yard-timeframe-stack > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+  gap: 5px;
+}
+
+.operational-timeframe-cell {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  min-height: 58px;
+  padding: 5px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #eef2f6;
+  color: #172033;
+  text-align: center;
+}
+
+.operational-timeframe-cell span,
+.operational-timeframe-cell small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .66rem;
+}
+
+.operational-timeframe-cell i {
+  font-style: normal;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.operational-timeframe-cell.dimmed {
+  opacity: .45;
+}
+
+.operational-timeframe-cell.selected {
+  border-color: #111827;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, .16);
+}
+
+.state-proposta { background: #eef2ff; color: #3730a3; }
+.state-tentativo { background: #fff7ed; color: #9a3412; }
+.state-definitivo { background: #ecfdf3; color: #166534; }
+.state-reservado { background: #f5f3ff; color: #6d28d9; }
+.state-atribuido { background: #eff6ff; color: #1d4ed8; }
+.state-despachado { background: #ecfeff; color: #0e7490; }
+.state-em-execucao { background: #f0fdfa; color: #0f766e; }
+.state-bloqueado { background: #fff1f2; color: #be123c; }
+.state-falha { background: #fef2f2; color: #b91c1c; }
+.state-concluido { background: #f0fdf4; color: #15803d; }
+.state-livre { background: #f8fafc; color: #64748b; }
+
+.operational-timeframe-inspector {
+  padding: 12px;
+  border: 1px solid var(--border, #d7dde5);
+  border-radius: 12px;
+}
+
+.operational-timeframe-inspector.empty {
+  color: var(--muted, #667085);
+}
+
+.operational-timeframe-inspector ol {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.operational-timeframe-inspector li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.operational-timeframe-inspector li div {
+  display: grid;
+}
+
+.operational-timeframe-inspector span,
+.operational-timeframe-inspector small {
+  color: var(--muted, #667085);
+}
+
+.operational-timeframe-error {
+  padding: 10px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.operational-timeframe-empty {
+  padding: 18px;
+  text-align: center;
+  color: var(--muted, #667085);
+}
+
+@media (max-width: 1000px) {
+  .operational-timeframe-toolbar,
+  .operational-timeframe-comparison.panes-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .operational-timeframe-toolbar {
+    display: grid;
+  }
+
+  .operational-timeframe-controls {
+    justify-content: flex-start;
+  }
+}

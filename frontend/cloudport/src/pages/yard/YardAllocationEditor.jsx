@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { formatError, sanitizeText } from '../../api.js';
+import { YardOperationalTimeframes } from '../../components/OperationalTimeframes.jsx';
 import { EmptyState, Message, StatusBadge } from '../../components.jsx';
 import { yardOperationalApi } from './yardOperationalApi.js';
 
@@ -57,36 +58,35 @@ export function YardAllocationEditor({ blocks, canOperate, onReload }) {
     }
   }
 
-  if (!allocations.length) {
-    return <EmptyState title="Nenhuma allocation ativa" description="Work instructions pendentes aparecerão aqui para replanejamento gráfico." />;
-  }
+  return <>
+    <YardOperationalTimeframes blocks={blocks} />
+    {!allocations.length ? <EmptyState title="Nenhuma allocation ativa" description="Work instructions pendentes aparecerão aqui para replanejamento gráfico." /> : <div className="yard-allocation-editor">
+      <Message type="error">{error}</Message>
+      <Message type="success">{success}</Message>
+      <div className="yard-allocation-selector">
+        <label>Work instruction<select value={selectedId} onChange={(event) => { setSelectedId(event.target.value); setTarget(null); }}>
+          <option value="">Selecione</option>
+          {allocations.map((item) => <option key={item.order.id} value={item.order.id}>WI #{item.order.id} · {sanitizeText(item.order.codigoConteiner)} · {item.block} L{item.position.linha}/C{item.position.coluna}/{item.position.camadaOperacional}</option>)}
+        </select></label>
+        {selected && <div className="yard-allocation-current"><StatusBadge value={selected.order.statusOrdem} /><span>Destino atual: {selected.block} L{selected.position.linha}/C{selected.position.coluna}/{selected.position.camadaOperacional}</span></div>}
+      </div>
 
-  return <div className="yard-allocation-editor">
-    <Message type="error">{error}</Message>
-    <Message type="success">{success}</Message>
-    <div className="yard-allocation-selector">
-      <label>Work instruction<select value={selectedId} onChange={(event) => { setSelectedId(event.target.value); setTarget(null); }}>
-        <option value="">Selecione</option>
-        {allocations.map((item) => <option key={item.order.id} value={item.order.id}>WI #{item.order.id} · {sanitizeText(item.order.codigoConteiner)} · {item.block} L{item.position.linha}/C{item.position.coluna}/{item.position.camadaOperacional}</option>)}
-      </select></label>
-      {selected && <div className="yard-allocation-current"><StatusBadge value={selected.order.statusOrdem} /><span>Destino atual: {selected.block} L{selected.position.linha}/C{selected.position.coluna}/{selected.position.camadaOperacional}</span></div>}
-    </div>
+      {selected && <div className="yard-allocation-blocks">{blocksAvailable.map((blockName) => <section key={blockName}>
+        <header><strong>{blockName}</strong><span>{positions.filter((position) => position.bloco === blockName).length} posição(ões) elegíveis</span></header>
+        <div>{positions.filter((position) => position.bloco === blockName).map((position) => <button
+          type="button"
+          key={position.id}
+          className={target?.id === position.id ? 'selected' : 'secondary'}
+          onClick={() => setTarget(position)}
+        >L{position.linha} · C{position.coluna} · {position.camadaOperacional}</button>)}</div>
+      </section>)}</div>}
 
-    {selected && <div className="yard-allocation-blocks">{blocksAvailable.map((blockName) => <section key={blockName}>
-      <header><strong>{blockName}</strong><span>{positions.filter((position) => position.bloco === blockName).length} posição(ões) elegíveis</span></header>
-      <div>{positions.filter((position) => position.bloco === blockName).map((position) => <button
-        type="button"
-        key={position.id}
-        className={target?.id === position.id ? 'selected' : 'secondary'}
-        onClick={() => setTarget(position)}
-      >L{position.linha} · C{position.coluna} · {position.camadaOperacional}</button>)}</div>
-    </section>)}</div>}
-
-    {selected && target && <section className="yard-simulation-panel valid">
-      <header><strong>Simulação da nova allocation</strong><span>Nenhuma alteração foi persistida</span></header>
-      <p>WI <strong>#{selected.order.id}</strong>: {selected.block} L{selected.position.linha}/C{selected.position.coluna}/{selected.position.camadaOperacional} → {target.bloco} L{target.linha}/C{target.coluna}/{target.camadaOperacional}</p>
-      <label>Motivo operacional<textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={255} /></label>
-      <div><button type="button" disabled={!canOperate || busy} onClick={confirm}>Confirmar allocation</button><button type="button" className="secondary" onClick={() => setTarget(null)}>Cancelar</button></div>
-    </section>}
-  </div>;
+      {selected && target && <section className="yard-simulation-panel valid">
+        <header><strong>Simulação da nova allocation</strong><span>Nenhuma alteração foi persistida</span></header>
+        <p>WI <strong>#{selected.order.id}</strong>: {selected.block} L{selected.position.linha}/C{selected.position.coluna}/{selected.position.camadaOperacional} → {target.bloco} L{target.linha}/C{target.coluna}/{target.camadaOperacional}</p>
+        <label>Motivo operacional<textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={255} /></label>
+        <div><button type="button" disabled={!canOperate || busy} onClick={confirm}>Confirmar allocation</button><button type="button" className="secondary" onClick={() => setTarget(null)}>Cancelar</button></div>
+      </section>}
+    </div>}
+  </>;
 }

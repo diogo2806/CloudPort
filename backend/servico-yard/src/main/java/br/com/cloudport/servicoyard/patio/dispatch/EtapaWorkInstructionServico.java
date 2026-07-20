@@ -12,6 +12,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -77,12 +78,15 @@ public class EtapaWorkInstructionServico {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O comando da etapa deve ser informado.");
         }
         Etapa etapa = buscar(ordemId, tipo);
-        buscarPorChave(request.getChaveIdempotencia()).ifPresent(existente -> {
+        Optional<Etapa> idempotente = buscarPorChave(request.getChaveIdempotencia());
+        if (idempotente.isPresent()) {
+            Etapa existente = idempotente.get();
             if (!Objects.equals(existente.id(), etapa.id())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "A chave idempotente ja foi usada em outra etapa.");
             }
-        });
+            return existente;
+        }
         validarTransicao(etapa, request.getStatusDestino());
         if (request.getStatusDestino() == StatusEtapa.EM_EXECUCAO) {
             validarAnterioresConcluidas(ordemId, etapa.ordem());
@@ -273,9 +277,9 @@ public class EtapaWorkInstructionServico {
                         "Etapa da work instruction nao encontrada."));
     }
 
-    private java.util.Optional<Etapa> buscarPorChave(String chave) {
+    private Optional<Etapa> buscarPorChave(String chave) {
         if (!StringUtils.hasText(chave)) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
         return jdbc.query("""
                 SELECT * FROM etapa_work_instruction WHERE chave_idempotencia = :chave

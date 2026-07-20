@@ -24,12 +24,15 @@ public class GateFlowController {
 
     private final GateFlowService gateFlowService;
     private final GateFlowOrchestrator gateFlowOrchestrator;
+    private final PreGateQueueService preGateQueueService;
 
     public GateFlowController(
             GateFlowService gateFlowService,
-            GateFlowOrchestrator gateFlowOrchestrator) {
+            GateFlowOrchestrator gateFlowOrchestrator,
+            PreGateQueueService preGateQueueService) {
         this.gateFlowService = gateFlowService;
         this.gateFlowOrchestrator = gateFlowOrchestrator;
+        this.preGateQueueService = preGateQueueService;
     }
 
     @PostMapping("/entrada")
@@ -64,10 +67,10 @@ public class GateFlowController {
     }
 
     @PostMapping("/agendamentos/{id}/confirmar-chegada")
-    @Operation(summary = "Confirma chegada antecipada do motorista antes da janela")
+    @Operation(summary = "Confirma chegada antecipada e inclui o veículo na fila persistida de pré-gate")
     @PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_GATE','PLANEJADOR')")
     public ResponseEntity<AgendamentoDTO> confirmarChegada(@PathVariable("id") Long agendamentoId) {
-        AgendamentoDTO atualizado = gateFlowService.confirmarChegadaAntecipada(agendamentoId);
+        AgendamentoDTO atualizado = preGateQueueService.confirmarChegadaAntecipada(agendamentoId);
         return ResponseEntity.ok(atualizado);
     }
 }

@@ -95,6 +95,20 @@ public class YardImpactServico {
                         plano -> plano,
                         (primeiro, segundo) -> segundo,
                         LinkedHashMap::new));
+        Map<Long, String> powPorFila = filas.stream()
+                .filter(fila -> fila.getId() != null)
+                .collect(Collectors.toMap(
+                        WorkQueuePatio::getId,
+                        fila -> StringUtils.hasText(fila.getPow()) ? fila.getPow().trim() : "SEM_POW",
+                        (primeiro, segundo) -> primeiro,
+                        LinkedHashMap::new));
+        Map<String, String> powPorUnidade = ordens.stream()
+                .filter(ordem -> StringUtils.hasText(ordem.getCodigoConteiner()))
+                .collect(Collectors.toMap(
+                        ordem -> normalizar(ordem.getCodigoConteiner()),
+                        ordem -> powPorFila.getOrDefault(ordem.getWorkQueueId(), "SEM_POW"),
+                        (primeiro, segundo) -> primeiro,
+                        LinkedHashMap::new));
 
         YardImpactRespostaDto resposta = new YardImpactRespostaDto();
         resposta.setGeradoEm(inicio);
@@ -116,7 +130,11 @@ public class YardImpactServico {
         resposta.setDeficitChe(Math.max(0, demandaChe - cheDisponiveis));
         resposta.setBlocos(montarBlocos(posicoes, conteineres, planos, ordens, planoPorUnidade, inicio));
         resposta.setPows(montarPows(filas, ordens, equipamentos));
-        resposta.setUnidades(planos.stream().map(this::montarUnidade).toList());
+        resposta.setUnidades(planos.stream()
+                .map(plano -> montarUnidade(
+                        plano,
+                        powPorUnidade.getOrDefault(normalizar(plano.getCodigoContainer()), "SEM_POW")))
+                .toList());
         resposta.setAlertas(montarAlertas(resposta));
         return resposta;
     }
@@ -239,11 +257,12 @@ public class YardImpactServico {
                 .toList();
     }
 
-    private UnidadeImpactoDto montarUnidade(PlanoPosicaoOperacional plano) {
+    private UnidadeImpactoDto montarUnidade(PlanoPosicaoOperacional plano, String pow) {
         UnidadeImpactoDto dto = new UnidadeImpactoDto();
         dto.setPlanoId(plano.getId());
         dto.setCodigoContainer(plano.getCodigoContainer());
         dto.setBloco(bloco(plano.getBloco()));
+        dto.setPow(pow);
         dto.setLinha(plano.getLinha());
         dto.setColuna(plano.getColuna());
         dto.setCamada(plano.getCamada());

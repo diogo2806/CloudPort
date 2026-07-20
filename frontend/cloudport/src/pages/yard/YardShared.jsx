@@ -9,6 +9,7 @@ export const PAGE_SIZE = 20;
 const YARD_ROUTES = [
   ['/home/patio/mapa', 'Mapa'],
   ['/home/patio/planejamento-recebimento', 'Recebimento'],
+  ['/home/patio/yard-impact', 'Yard Impact'],
   ['/home/patio/posicoes', 'Posições'],
   ['/home/patio/lista-trabalho', 'Lista de trabalho'],
   ['/home/patio/instrucoes', 'Instruções'],

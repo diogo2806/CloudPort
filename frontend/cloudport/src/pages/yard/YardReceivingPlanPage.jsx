@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { formatError, request, sanitizeText } from '../../api.js';
 import { DataTable, EmptyState, JsonDetails, Message, MetricCard, Section, StatusBadge } from '../../components.jsx';
 import { displayValue, YardPageHeader } from './YardShared.jsx';
+import { PredictivePositionPlansPanel } from './PredictivePositionPlansPanel.jsx';
 
 const SAMPLE_CONTAINERS = [
   {
@@ -96,7 +97,7 @@ export function YardReceivingPlanPage({ navigate }) {
       path="/home/patio/planejamento-recebimento"
       navigate={navigate}
       title="Planejamento de recebimento"
-      description="Agrupa contêineres por compatibilidade operacional e janela de chegada antes da reserva das posições do pátio."
+      description="Agrupa contêineres por compatibilidade e acompanha posições tentativas, definitivas e iminentes antes do dispatch."
       actions={<button type="button" disabled={busy} onClick={generatePlan}>{busy ? 'Planejando...' : 'Gerar agrupamento'}</button>}
     />
     <Message type="error">{error}</Message>
@@ -175,5 +176,6 @@ export function YardReceivingPlanPage({ navigate }) {
         </Section>
       </div>
     </>}
+    <PredictivePositionPlansPanel />
   </>;
 }

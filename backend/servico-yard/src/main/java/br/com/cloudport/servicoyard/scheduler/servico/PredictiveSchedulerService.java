@@ -24,6 +24,7 @@ public class PredictiveSchedulerService {
     private final EquipmentRouteOptimizerService routeOptimizer;
     private final VesselArrivalSchedulerService vesselScheduler;
     private final RealYardReplanningOptimizerService realReplanningOptimizer;
+    private final PlanoPosicaoOperacionalServico planoPosicaoOperacionalServico;
 
     public PredictiveSchedulerService(
             DualCycleOptimizationService dualCycleOptimizer,
@@ -33,7 +34,21 @@ public class PredictiveSchedulerService {
                 dualCycleOptimizer,
                 routeOptimizer,
                 vesselScheduler,
-                new RealYardReplanningOptimizerService());
+                new RealYardReplanningOptimizerService(),
+                null);
+    }
+
+    public PredictiveSchedulerService(
+            DualCycleOptimizationService dualCycleOptimizer,
+            EquipmentRouteOptimizerService routeOptimizer,
+            VesselArrivalSchedulerService vesselScheduler,
+            RealYardReplanningOptimizerService realReplanningOptimizer) {
+        this(
+                dualCycleOptimizer,
+                routeOptimizer,
+                vesselScheduler,
+                realReplanningOptimizer,
+                null);
     }
 
     @Autowired
@@ -41,11 +56,13 @@ public class PredictiveSchedulerService {
             DualCycleOptimizationService dualCycleOptimizer,
             EquipmentRouteOptimizerService routeOptimizer,
             VesselArrivalSchedulerService vesselScheduler,
-            RealYardReplanningOptimizerService realReplanningOptimizer) {
+            RealYardReplanningOptimizerService realReplanningOptimizer,
+            PlanoPosicaoOperacionalServico planoPosicaoOperacionalServico) {
         this.dualCycleOptimizer = dualCycleOptimizer;
         this.routeOptimizer = routeOptimizer;
         this.vesselScheduler = vesselScheduler;
         this.realReplanningOptimizer = realReplanningOptimizer;
+        this.planoPosicaoOperacionalServico = planoPosicaoOperacionalServico;
     }
 
     public SchedulerResultDto gerarPlanoOperacional(SchedulerPlanoOperacionalRequisicaoDto requisicao) {
@@ -93,6 +110,12 @@ public class PredictiveSchedulerService {
             resultado.setStatusGeral("OTIMIZADO_REAL");
             resultado.setObservacoes(resultado.getObservacoes()
                     + ". Replanejamento real gerado com mapa, restricoes, reservas, equipamentos e memoria de calculo.");
+            if (planoPosicaoOperacionalServico != null) {
+                planoPosicaoOperacionalServico.registrarPropostas(
+                        requisicao,
+                        resultadoReal.atribuicoes(),
+                        resultadoReal.assinaturaEntrada());
+            }
         }
         return resultado;
     }
@@ -141,8 +164,8 @@ public class PredictiveSchedulerService {
     }
 
     private void validarTotaisManifestados(VesselArrivalDto navio,
-                                             List<ContainerComPosicao> importacao,
-                                             List<ContainerComPosicao> exportacao) {
+                                              List<ContainerComPosicao> importacao,
+                                              List<ContainerComPosicao> exportacao) {
         if (navio.getQuantidadeContainersImportacao() != null
                 && navio.getQuantidadeContainersImportacao() != importacao.size()) {
             throw new IllegalArgumentException("A quantidade de contêineres de importação difere da lista informada.");

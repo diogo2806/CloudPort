@@ -120,6 +120,7 @@ public class YardImpactRespostaDto {
         private Long planoId;
         private String codigoContainer;
         private String bloco;
+        private String pow;
         private Integer linha;
         private Integer coluna;
         private String camada;
@@ -137,6 +138,8 @@ public class YardImpactRespostaDto {
         public void setCodigoContainer(String codigoContainer) { this.codigoContainer = codigoContainer; }
         public String getBloco() { return bloco; }
         public void setBloco(String bloco) { this.bloco = bloco; }
+        public String getPow() { return pow; }
+        public void setPow(String pow) { this.pow = pow; }
         public Integer getLinha() { return linha; }
         public void setLinha(Integer linha) { this.linha = linha; }
         public Integer getColuna() { return coluna; }

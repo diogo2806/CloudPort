@@ -33,13 +33,20 @@ class FluxoStuffUnstuffServicoTest {
     private PlanoStuffUnstuffServico planoServico;
 
     @Mock
+    private ProgramacaoDocaCargaServico programacaoDocaServico;
+
+    @Mock
     private OperacaoStuffUnstuffRepositorio operacaoRepositorio;
 
     private FluxoStuffUnstuffServico fluxoServico;
 
     @BeforeEach
     void configurar() {
-        fluxoServico = new FluxoStuffUnstuffServico(operacaoServico, planoServico, operacaoRepositorio);
+        fluxoServico = new FluxoStuffUnstuffServico(
+                operacaoServico,
+                planoServico,
+                programacaoDocaServico,
+                operacaoRepositorio);
     }
 
     @Test
@@ -69,7 +76,7 @@ class FluxoStuffUnstuffServicoTest {
     }
 
     @Test
-    void deveExigirPlanoLiberadoAntesDeIniciar() {
+    void deveExigirPlanoEProgramacaoAntesDeIniciar() {
         UUID operacaoId = UUID.randomUUID();
         OperacaoResposta resposta = resposta(operacaoId);
         when(operacaoServico.iniciar(operacaoId, "operador", "corr-2")).thenReturn(resposta);
@@ -77,13 +84,14 @@ class FluxoStuffUnstuffServicoTest {
         OperacaoResposta resultado = fluxoServico.iniciar(operacaoId, "operador", "corr-2");
 
         assertSame(resposta, resultado);
-        InOrder ordem = inOrder(planoServico, operacaoServico);
+        InOrder ordem = inOrder(planoServico, programacaoDocaServico, operacaoServico);
         ordem.verify(planoServico).exigirPlanoLiberado(operacaoId);
+        ordem.verify(programacaoDocaServico).iniciarParaOperacao(operacaoId, "operador", "corr-2");
         ordem.verify(operacaoServico).iniciar(operacaoId, "operador", "corr-2");
     }
 
     @Test
-    void deveExigirPlanoLiberadoAntesDoApontamento() {
+    void deveExigirPlanoEProgramacaoEmUsoAntesDoApontamento() {
         UUID operacaoId = UUID.randomUUID();
         RegistrarExecucaoRequest request = new RegistrarExecucaoRequest(
                 UUID.randomUUID(),
@@ -102,8 +110,9 @@ class FluxoStuffUnstuffServicoTest {
         OperacaoResposta resultado = fluxoServico.registrarExecucao(operacaoId, request);
 
         assertSame(resposta, resultado);
-        InOrder ordem = inOrder(planoServico, operacaoServico);
+        InOrder ordem = inOrder(planoServico, programacaoDocaServico, operacaoServico);
         ordem.verify(planoServico).exigirPlanoLiberado(operacaoId);
+        ordem.verify(programacaoDocaServico).exigirEmUso(operacaoId);
         ordem.verify(operacaoServico).registrarExecucao(operacaoId, request);
     }
 

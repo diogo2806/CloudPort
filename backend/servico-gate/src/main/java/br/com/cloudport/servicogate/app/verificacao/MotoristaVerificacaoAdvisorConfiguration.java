@@ -11,9 +11,11 @@ import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.aop.support.StaticMethodMatcherPointcut;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.core.Ordered;
 
 @Configuration
+@EnableAspectJAutoProxy(proxyTargetClass = true)
 public class MotoristaVerificacaoAdvisorConfiguration {
 
     @Bean
@@ -46,7 +48,7 @@ public class MotoristaVerificacaoAdvisorConfiguration {
                         && method.getParameterCount() == 1;
             }
         };
-        Advice advice = (MethodInterceptor) invocation -> {
+n        Advice advice = (MethodInterceptor) invocation -> {
             GateFlowRequest request = (GateFlowRequest) invocation.getArguments()[0];
             verificacaoService.exigirVerificacaoEntrada(request);
             return invocation.proceed();

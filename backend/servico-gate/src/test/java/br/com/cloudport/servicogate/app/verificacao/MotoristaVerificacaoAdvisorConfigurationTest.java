@@ -50,7 +50,7 @@ class MotoristaVerificacaoAdvisorConfigurationTest {
         DefaultPointcutAdvisor advisor = (DefaultPointcutAdvisor)
                 configuration.motoristaVerificacaoEntradaAdvisor(service);
         Method method = GateFlowService.class.getMethod("registrarEntrada", GateFlowRequest.class);
-        GateFlowRequest request = mock(GateFlowRequest.class);
+        GateFlowRequest request = new GateFlowRequest();
 
         assertTrue(advisor.getPointcut().getMethodMatcher()
                 .matches(method, GateFlowService.class));

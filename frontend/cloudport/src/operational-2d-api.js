@@ -1,6 +1,9 @@
 import { createCorrelationId, request } from './api.js';
 
 export function submitOperational2DCommand(command = {}) {
+  if (command.type === 'SALVAR_WORKSPACE_2D' && command.workspace) {
+    return saveOperational2DWorkspace(command.workspace);
+  }
   const commandId = command.commandId ?? createCorrelationId();
   return request('/api/operacao-2d/comandos', {
     method: 'POST',

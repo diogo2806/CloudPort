@@ -1,7 +1,9 @@
 package br.com.cloudport.servicocargageral.servico;
 
+import br.com.cloudport.servicocargageral.dominio.ConsumoOrdemLiberacaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.OrdemLiberacaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dto.OrdemLiberacaoStuffUnstuffDTOs.OrigemOperacionalRequest;
+import br.com.cloudport.servicocargageral.repositorio.ConsumoOrdemLiberacaoStuffUnstuffRepositorio;
 import br.com.cloudport.servicocargageral.repositorio.OrdemLiberacaoStuffUnstuffRepositorio;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -15,9 +17,13 @@ import org.springframework.web.server.ResponseStatusException;
 public class OrdemLiberacaoStuffUnstuffServico {
 
     private final OrdemLiberacaoStuffUnstuffRepositorio repositorio;
+    private final ConsumoOrdemLiberacaoStuffUnstuffRepositorio consumoRepositorio;
 
-    public OrdemLiberacaoStuffUnstuffServico(OrdemLiberacaoStuffUnstuffRepositorio repositorio) {
+    public OrdemLiberacaoStuffUnstuffServico(
+            OrdemLiberacaoStuffUnstuffRepositorio repositorio,
+            ConsumoOrdemLiberacaoStuffUnstuffRepositorio consumoRepositorio) {
         this.repositorio = repositorio;
+        this.consumoRepositorio = consumoRepositorio;
     }
 
     @Transactional
@@ -46,10 +52,18 @@ public class OrdemLiberacaoStuffUnstuffServico {
     }
 
     @Transactional
-    public void consumir(UUID operacaoId, BigDecimal quantidade) {
+    public void consumir(UUID operacaoId, UUID commandId, BigDecimal quantidade) {
         OrdemLiberacaoStuffUnstuff ordem = buscarComBloqueio(operacaoId);
+        if (consumoRepositorio.existsByOperacaoIdAndCommandId(operacaoId, commandId)) {
+            return;
+        }
         executar(() -> ordem.consumir(quantidade));
+        ConsumoOrdemLiberacaoStuffUnstuff consumo = new ConsumoOrdemLiberacaoStuffUnstuff();
+        consumo.setOperacaoId(operacaoId);
+        consumo.setCommandId(commandId);
+        consumo.setQuantidade(quantidade);
         repositorio.save(ordem);
+        consumoRepositorio.save(consumo);
     }
 
     @Transactional

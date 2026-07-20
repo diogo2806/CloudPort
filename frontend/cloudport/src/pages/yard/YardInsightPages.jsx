@@ -1,6 +1,7 @@
 import { api, hasAnyRole } from '../../api.js';
 import { DataTable, EmptyState, JsonDetails, Loading, Message, MetricCard, Section, StatusBadge } from '../../components.jsx';
 import { CommandPanel, DetailGrid, displayValue, FINAL_ORDER_STATUSES, normalized, useCommand, useRemote, YardPageHeader } from './YardShared.jsx';
+import { YardCustodyPanel } from './YardCustodyPanel.jsx';
 
 export function YardKpiPage({ navigate }) {
   const remote = useRemote(async () => {
@@ -68,6 +69,7 @@ export function YardKpiPage({ navigate }) {
         { key: 'prioridade', label: 'Prioridade', render: (row) => <StatusBadge value={row.prioridade} /> }
       ]} emptyTitle="Nenhuma rota prioritária" /></Section>
     </>}
+    <YardCustodyPanel />
   </>;
 }
 

@@ -2,7 +2,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input, select { font: inherit; }
-button { border: 0; border-radius: 9px; padding: 9px 13px; background: #2563eb; color: #fff; font-weight: 800; cursor: pointer; }
+button { border: 0; border-radius: 9px; padding: 9px 13px; background: #1261a0; color: #fff; font-weight: 800; cursor: pointer; }
 button:hover:not(:disabled) { filter: brightness(.96); }
 button:disabled { cursor: not-allowed; opacity: .55; }
 button.secondary { background: #e2e8f0; color: #334155; }
@@ -41,7 +41,7 @@ progress { width: 100%; height: 9px; }
 .status { display: inline-flex; width: fit-content; border-radius: 999px; padding: 4px 8px; background: #e2e8f0; color: #334155; font-size: 11px; font-weight: 900; white-space: nowrap; }
 .status-ativa, .status-concluida, .status-concluido, .status-baixa, .status-valido, .status-conectado, .status-controlado, .status-otimizado { background: #dcfce7; color: #166534; }
 .status-pendente, .status-prevista, .status-media, .status-conectando, .status-reconectando, .status-valido-com-alertas, .status-otimizado-parcialmente { background: #fef3c7; color: #92400e; }
-.status-em-execucao, .status-operando, .status-alta { background: #dbeafe; color: #1d4ed8; }
+.status-em-execucao, .status-operando, .status-alta { background: #dbeafe; color: #1160a2; }
 .status-bloqueada, .status-cancelada, .status-critica, .status-invalido, .status-critico, .status-desconectado { background: #fee2e2; color: #991b1b; }
 .status-suspensa, .status-fundeada, .status-atracada, .status-operacao-concluida, .status-sem-plano { background: #f3e8ff; color: #7e22ce; }
 .columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }

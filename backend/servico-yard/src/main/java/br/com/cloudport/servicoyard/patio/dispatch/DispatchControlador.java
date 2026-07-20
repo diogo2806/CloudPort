@@ -9,17 +9,19 @@ import br.com.cloudport.servicoyard.patio.dispatch.DispatchDtos.EtapaRequest;
 import br.com.cloudport.servicoyard.patio.dispatch.DispatchDtos.Ranking;
 import br.com.cloudport.servicoyard.patio.dispatch.DispatchDtos.Resumo;
 import br.com.cloudport.servicoyard.patio.dispatch.DispatchEnums.TipoEtapa;
+import br.com.cloudport.servicoyard.patio.dispatch.SegmentoRotaDispatchDto.Requisicao;
+import br.com.cloudport.servicoyard.patio.dispatch.SegmentoRotaDispatchDto.Resposta;
 import java.util.List;
 import javax.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.util.StringUtils;
 
 @RestController
 public class DispatchControlador {
@@ -34,14 +36,17 @@ public class DispatchControlador {
     private final DispatchDinamicoServico dispatchServico;
     private final ConfiguracaoDispatchServico configuracaoServico;
     private final EtapaWorkInstructionServico etapaServico;
+    private final SegmentoRotaDispatchServico segmentoRotaServico;
 
     public DispatchControlador(
             DispatchDinamicoServico dispatchServico,
             ConfiguracaoDispatchServico configuracaoServico,
-            EtapaWorkInstructionServico etapaServico) {
+            EtapaWorkInstructionServico etapaServico,
+            SegmentoRotaDispatchServico segmentoRotaServico) {
         this.dispatchServico = dispatchServico;
         this.configuracaoServico = configuracaoServico;
         this.etapaServico = etapaServico;
+        this.segmentoRotaServico = segmentoRotaServico;
     }
 
     @GetMapping("/api/dispatch/resumo")
@@ -118,6 +123,20 @@ public class DispatchControlador {
             @RequestParam(name = "motivo") String motivo,
             Authentication authentication) {
         return configuracaoServico.rollback(id, usuario(authentication), motivo);
+    }
+
+    @GetMapping("/api/dispatch/rotas")
+    @PreAuthorize(LEITURA)
+    public List<Resposta> listarRotas() {
+        return segmentoRotaServico.listar();
+    }
+
+    @PostMapping("/api/dispatch/rotas")
+    @PreAuthorize(ADMINISTRACAO)
+    public Resposta criarVersaoRota(
+            @Valid @RequestBody Requisicao request,
+            Authentication authentication) {
+        return segmentoRotaServico.criarVersao(request, usuario(authentication));
     }
 
     private String usuario(Authentication authentication) {

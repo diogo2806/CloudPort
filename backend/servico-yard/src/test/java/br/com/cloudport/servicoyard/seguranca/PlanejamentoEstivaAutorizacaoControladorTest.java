@@ -11,9 +11,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import br.com.cloudport.servicoyard.configuracao.ConfiguracaoSeguranca;
 import br.com.cloudport.servicoyard.configuracao.InternalServiceAuthenticationFilter;
 import br.com.cloudport.servicoyard.estivagembulk.controlador.EstivaBulkControlador;
-import br.com.cloudport.servicoyard.estivagembulk.dto.ValidacaoPlanoBulkDto;
-import br.com.cloudport.servicoyard.estivagembulk.repositorio.NavioGranelRepositorio;
+import br.com.cloudport.servicoyard.estivagembulk.servico.NavioGranelConsultaServico;
 import br.com.cloudport.servicoyard.estivagembulk.servico.PlanoEstivaBulkIdentidadeServico;
+import br.com.cloudport.servicoyard.estivagembulk.dto.NavioGranelDto;
+import br.com.cloudport.servicoyard.estivagembulk.dto.ValidacaoPlanoBulkDto;
 import br.com.cloudport.servicoyard.vesselplanner.controlador.VesselPlannerControlador;
 import br.com.cloudport.servicoyard.vesselplanner.dto.EstivagemPlanDto;
 import br.com.cloudport.servicoyard.vesselplanner.servico.ExecucaoSequenciaGuindasteServico;
@@ -62,7 +63,7 @@ class PlanejamentoEstivaAutorizacaoControladorTest {
     private PlanoEstivaBulkIdentidadeServico planoEstivaBulkServico;
 
     @MockBean
-    private NavioGranelRepositorio navioGranelRepositorio;
+    private NavioGranelConsultaServico navioGranelConsultaServico;
 
     @Test
     void deveRetornar403QuandoOperadorTentarCriarPlanoDoVesselPlanner() throws Exception {
@@ -108,6 +109,30 @@ class PlanejamentoEstivaAutorizacaoControladorTest {
                 .andExpect(status().isOk());
 
         verify(planoEstivaBulkServico).listarPlanos(7L, 91L);
+    }
+
+    @Test
+    void deveListarModelosDeNavioParaPlanejador() throws Exception {
+        NavioGranelDto modelo = new NavioGranelDto();
+        modelo.setId(7L);
+        modelo.setNome("Modelo Panamax");
+        modelo.setTemplate(true);
+        when(navioGranelConsultaServico.listarModelos()).thenReturn(List.of(modelo));
+
+        mockMvc.perform(get("/api/estivagem-bulk/navios/templates")
+                        .with(jwtComRole("PLANEJADOR")))
+                .andExpect(status().isOk());
+
+        verify(navioGranelConsultaServico).listarModelos();
+    }
+
+    @Test
+    void deveRetornar403QuandoTransportadoraTentarListarModelosDeNavio() throws Exception {
+        mockMvc.perform(get("/api/estivagem-bulk/navios/templates")
+                        .with(jwtComRole("TRANSPORTADORA")))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(navioGranelConsultaServico);
     }
 
     @Test

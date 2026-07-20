@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { Operational2DCommandCenter } from '../components/Operational2DCommandCenter.jsx';
 import { clearOperationalSelection, publishOperationalSelection, useOperationalSelection } from '../operational-selection.js';
 import { OperationalSelectionPanel, OperationalWorkspaceManual } from './OperationalSelectionPanel.jsx';
 import { VesselPlannerWorkspace as VesselPlannerWorkspaceBase } from './VesselPlannerWorkspaceBase.jsx';
@@ -114,6 +115,7 @@ export function VesselPlannerWorkspace(properties) {
   return <div className="integrated-operational-workspace vessel-integrated-workspace">
     <OperationalWorkspaceManual scope="workspace gráfico integrado do Vessel Planner" />
     <OperationalSelectionPanel title="Composição operacional do Vessel Planner" />
+    <Operational2DCommandCenter data={properties} scope="Vessel Planner · Navio, cais, Yard, Rail e equipamentos" onCommand={properties.onOperational2DCommand} />
     <VesselPlannerWorkspaceBase
       {...properties}
       selectedSlotId={effectiveSelectedSlotId}

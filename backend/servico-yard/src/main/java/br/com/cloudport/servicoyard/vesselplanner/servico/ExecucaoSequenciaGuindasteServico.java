@@ -41,16 +41,19 @@ public class ExecucaoSequenciaGuindasteServico {
     private final ExecucaoSequenciaGuindasteRepositorio execucaoRepositorio;
     private final SequenciamentoGuindasteServico sequenciamentoServico;
     private final TampaPoraoServico tampaPoraoServico;
+    private final EventoOperacionalGuindasteServico eventoOperacionalServico;
 
     public ExecucaoSequenciaGuindasteServico(
             EstivagemPlanRepositorio planRepositorio,
             ExecucaoSequenciaGuindasteRepositorio execucaoRepositorio,
             SequenciamentoGuindasteServico sequenciamentoServico,
-            TampaPoraoServico tampaPoraoServico) {
+            TampaPoraoServico tampaPoraoServico,
+            EventoOperacionalGuindasteServico eventoOperacionalServico) {
         this.planRepositorio = planRepositorio;
         this.execucaoRepositorio = execucaoRepositorio;
         this.sequenciamentoServico = sequenciamentoServico;
         this.tampaPoraoServico = tampaPoraoServico;
+        this.eventoOperacionalServico = eventoOperacionalServico;
     }
 
     @Transactional
@@ -128,6 +131,10 @@ public class ExecucaoSequenciaGuindasteServico {
         ExecucaoSequenciaGuindaste execucao = buscarExecucao(execucaoId);
         MovimentoExecucaoGuindaste movimento = buscarMovimento(execucao, movimentoId);
         validarVersao(movimento.getVersao(), request.versao(), "movimento");
+        eventoOperacionalServico.validarGuindasteDisponivel(
+                execucaoId,
+                movimento.getGuindasteId(),
+                request.ocorridoEm());
         executarTransicao(() -> {
             SlotNavio slot = buscarSlotDoMovimento(execucao.getEstivagem(), movimento);
             tampaPoraoServico.validarInicioMovimento(

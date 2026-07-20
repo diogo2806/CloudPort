@@ -69,7 +69,7 @@ public class FluxoStuffUnstuffServico {
         planoServico.exigirPlanoLiberado(id);
         programacaoDocaServico.exigirEmUso(id);
         OperacaoResposta resposta = operacaoServico.registrarExecucao(id, request);
-        ordemLiberacaoServico.consumir(id, request.quantidade());
+        ordemLiberacaoServico.consumir(id, request.commandId(), request.quantidade());
         return resposta;
     }
 

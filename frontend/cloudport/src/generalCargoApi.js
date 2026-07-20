@@ -43,6 +43,8 @@ export const generalCargoApi = {
   registrarExecucaoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/execucoes`, { method: 'POST', body }),
   listarLacresStuffUnstuff: (id) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/lacres`),
   registrarLacreStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/lacres`, { method: 'POST', body }),
+  obterPesagemStuffing: (id) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/pesagem`),
+  confirmarPesagemStuffing: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/pesagem`, { method: 'POST', body }),
   concluirOperacaoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/concluir`, { method: 'POST', body }),
   cancelarOperacaoStuffUnstuff: (id, body) => request(`${STUFF_UNSTUFF}/${encodeURIComponent(id)}/cancelar`, { method: 'POST', body })
 };

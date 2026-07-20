@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-20 após a conclusão do BUS1290 no PR #601.
+Status: atualizado em 2026-07-20 após a conclusão do BUS1300 no PR #602.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -12,16 +12,8 @@ Nenhuma pendência técnica permanece nesta seção. O BUS1380 foi concluído no
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| BUS1300 | Implementar fila de pré-gate com chamada, aceite e expiração. | Chegada antecipada cria posição persistida; chamada, aceite, rechamada, expiração, cancelamento e entrada física mantêm ordem e prioridade sem duplicar visita ativa. | ⬜ Pendente |
 | BUS1310 | Implementar handoff de custódia em exchange areas do pátio. | Entrega e recebimento registram unidade, área, posição, equipamento, operador, condição, lacres e instante; a custódia muda uma única vez e divergência gera bloqueio. | ⬜ Pendente |
 | BUS1320 | Confirmar grounding e ungrounding por equipamento e posição física. | Cada retirada ou colocação confirma CHE, work instruction, origem, destino e leitura da unidade; eventos repetidos ou fora de sequência não alteram inventário. | ⬜ Pendente |
-
-### BUS1300 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-gate/src/main/java/br/com/cloudport/servicogate/app/gestor/GateFlowService.java` | chegada antecipada e entrada | Estados da visita não representam uma fila de chamada com posição, aceite e expiração persistidos. | Criar novo agregado sugerido: `FilaPreGate`, com ordenação transacional e idempotência por visita. |
-| `frontend/cloudport/src/pages/GateVisualPage.jsx` | filas e pistas | O quadro mostra operação de Gate, mas não possui contrato persistido de chamada e aceite pelo motorista. | Exibir posição, prioridade, chamada, tempo restante, aceite e rechamada. |
 
 ### BUS1310 — arquivos e métodos
 

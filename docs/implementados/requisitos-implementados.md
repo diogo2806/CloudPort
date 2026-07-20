@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-20 com a conclusão do BUS1290, além dos BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-20 com a conclusão do BUS1300 e BUS1290, além dos BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -178,6 +178,15 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 19. A tela Gate > Operação completa mostra estado, método, tentativas restantes, bloqueio e validade, desabilitando o avanço até a autorização.
 20. A API autenticada permite consultar e validar por visita ou agendamento e cadastrar credenciais administrativas.
 21. A tela possui ajuda contextual e manual com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e processo completo.
+22. O BUS1300 integra a confirmação de chegada antecipada à fila persistida de pré-gate dentro da mesma transação operacional.
+23. A inclusão reutiliza a fila ativa do GatePass e a restrição única do banco, impedindo duplicidade de visita ou posição ativa.
+24. A ordenação preserva posição original, posição atual e prioridade normal, alta ou emergencial, com justificativa e operador nas mudanças manuais.
+25. O ciclo da chamada persiste gate ou pista, validade, aceite, expiração, rechamada, cancelamento, início e conclusão do atendimento.
+26. A expiração ou o cancelamento retorna o veículo ao estado de espera sem perder posição e prioridade; a rechamada mantém o histórico e a contagem de tentativas.
+27. A entrada física remove a fila de entrada e cria a fila de saída de forma idempotente, sem criar outra visita ativa.
+28. A central do Gate exibe posição, prioridade, chamada, pista, tempo restante, aceite, rechamadas e ações compatíveis com o estado.
+29. A central possui ajuda contextual e manual específico da fila de pré-gate com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e processo completo.
+30. Testes unitários cobrem a inclusão após chegada antecipada e o bloqueio de reinclusão quando a entrada física já foi registrada.
 
 ## Ferrovia
 

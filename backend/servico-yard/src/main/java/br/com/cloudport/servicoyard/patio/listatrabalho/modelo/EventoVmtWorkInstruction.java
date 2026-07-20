@@ -47,6 +47,46 @@ public class EventoVmtWorkInstruction {
     @Column(name = "payload")
     private String payload;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_acao_fisica", length = 30)
+    private TipoAcaoFisicaPatio tipoAcaoFisica;
+
+    @Column(name = "codigo_unidade_lido", length = 40)
+    private String codigoUnidadeLido;
+
+    @Column(name = "equipamento_patio_id")
+    private Long equipamentoPatioId;
+
+    @Column(name = "equipamento_identificador", length = 80)
+    private String equipamentoIdentificador;
+
+    @Column(name = "origem_fisica", length = 120)
+    private String origem;
+
+    @Column(name = "destino_fisico", length = 120)
+    private String destino;
+
+    @Column(name = "linha_origem")
+    private Integer linhaOrigem;
+
+    @Column(name = "coluna_origem")
+    private Integer colunaOrigem;
+
+    @Column(name = "camada_origem", length = 40)
+    private String camadaOrigem;
+
+    @Column(name = "linha_destino")
+    private Integer linhaDestino;
+
+    @Column(name = "coluna_destino")
+    private Integer colunaDestino;
+
+    @Column(name = "camada_destino", length = 40)
+    private String camadaDestino;
+
+    @Column(name = "sequencia_operacional")
+    private Integer sequenciaOperacional;
+
     @Column(name = "processado_em", nullable = false)
     private LocalDateTime processadoEm;
 
@@ -74,5 +114,31 @@ public class EventoVmtWorkInstruction {
     public void setResultado(String resultado) { this.resultado = resultado; }
     public String getPayload() { return payload; }
     public void setPayload(String payload) { this.payload = payload; }
+    public TipoAcaoFisicaPatio getTipoAcaoFisica() { return tipoAcaoFisica; }
+    public void setTipoAcaoFisica(TipoAcaoFisicaPatio tipoAcaoFisica) { this.tipoAcaoFisica = tipoAcaoFisica; }
+    public String getCodigoUnidadeLido() { return codigoUnidadeLido; }
+    public void setCodigoUnidadeLido(String codigoUnidadeLido) { this.codigoUnidadeLido = codigoUnidadeLido; }
+    public Long getEquipamentoPatioId() { return equipamentoPatioId; }
+    public void setEquipamentoPatioId(Long equipamentoPatioId) { this.equipamentoPatioId = equipamentoPatioId; }
+    public String getEquipamentoIdentificador() { return equipamentoIdentificador; }
+    public void setEquipamentoIdentificador(String equipamentoIdentificador) { this.equipamentoIdentificador = equipamentoIdentificador; }
+    public String getOrigem() { return origem; }
+    public void setOrigem(String origem) { this.origem = origem; }
+    public String getDestino() { return destino; }
+    public void setDestino(String destino) { this.destino = destino; }
+    public Integer getLinhaOrigem() { return linhaOrigem; }
+    public void setLinhaOrigem(Integer linhaOrigem) { this.linhaOrigem = linhaOrigem; }
+    public Integer getColunaOrigem() { return colunaOrigem; }
+    public void setColunaOrigem(Integer colunaOrigem) { this.colunaOrigem = colunaOrigem; }
+    public String getCamadaOrigem() { return camadaOrigem; }
+    public void setCamadaOrigem(String camadaOrigem) { this.camadaOrigem = camadaOrigem; }
+    public Integer getLinhaDestino() { return linhaDestino; }
+    public void setLinhaDestino(Integer linhaDestino) { this.linhaDestino = linhaDestino; }
+    public Integer getColunaDestino() { return colunaDestino; }
+    public void setColunaDestino(Integer colunaDestino) { this.colunaDestino = colunaDestino; }
+    public String getCamadaDestino() { return camadaDestino; }
+    public void setCamadaDestino(String camadaDestino) { this.camadaDestino = camadaDestino; }
+    public Integer getSequenciaOperacional() { return sequenciaOperacional; }
+    public void setSequenciaOperacional(Integer sequenciaOperacional) { this.sequenciaOperacional = sequenciaOperacional; }
     public LocalDateTime getProcessadoEm() { return processadoEm; }
 }

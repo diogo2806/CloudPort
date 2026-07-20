@@ -27,13 +27,16 @@ public class EventoVmtWorkInstructionServico {
     private final EventoVmtWorkInstructionRepositorio eventoRepositorio;
     private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
     private final HistoricoWorkInstructionRepositorio historicoRepositorio;
+    private final ConfirmacaoTransferenciaFisicaServico confirmacaoTransferenciaFisicaServico;
 
     public EventoVmtWorkInstructionServico(EventoVmtWorkInstructionRepositorio eventoRepositorio,
-                                            OrdemTrabalhoPatioRepositorio ordemRepositorio,
-                                            HistoricoWorkInstructionRepositorio historicoRepositorio) {
+                                             OrdemTrabalhoPatioRepositorio ordemRepositorio,
+                                             HistoricoWorkInstructionRepositorio historicoRepositorio,
+                                             ConfirmacaoTransferenciaFisicaServico confirmacaoTransferenciaFisicaServico) {
         this.eventoRepositorio = eventoRepositorio;
         this.ordemRepositorio = ordemRepositorio;
         this.historicoRepositorio = historicoRepositorio;
+        this.confirmacaoTransferenciaFisicaServico = confirmacaoTransferenciaFisicaServico;
     }
 
     @Transactional
@@ -68,15 +71,8 @@ public class EventoVmtWorkInstructionServico {
         ordem.setAtualizadoEm(LocalDateTime.now());
         OrdemTrabalhoPatio ordemSalva = ordemRepositorio.saveAndFlush(ordem);
 
-        EventoVmtWorkInstruction evento = new EventoVmtWorkInstruction();
-        evento.setEventId(eventId);
-        evento.setOrdemTrabalhoPatioId(instructionId);
-        evento.setTipoEvento(request.getTipoEvento());
-        evento.setStatusEsperado(estadoAtual);
-        evento.setStatusResultante(estadoResultante);
-        evento.setOcorridoEm(request.getTimestamp());
-        evento.setResultado(normalizar(request.getResultado(), 1000));
-        evento.setPayload(normalizar(request.getPayload(), 10000));
+        EventoVmtWorkInstruction evento = criarEvento(instructionId, eventId, estadoAtual,
+                estadoResultante, request);
 
         try {
             EventoVmtWorkInstruction eventoSalvo = eventoRepositorio.saveAndFlush(evento);
@@ -101,6 +97,36 @@ public class EventoVmtWorkInstructionServico {
                 .stream()
                 .map(evento -> EventoVmtWorkInstructionRespostaDto.deEntidades(evento, instrucao))
                 .toList();
+    }
+
+    private EventoVmtWorkInstruction criarEvento(Long instructionId,
+                                                  String eventId,
+                                                  StatusConfirmacaoVmt estadoAtual,
+                                                  StatusConfirmacaoVmt estadoResultante,
+                                                  EventoVmtWorkInstructionRequest request) {
+        EventoVmtWorkInstruction evento = new EventoVmtWorkInstruction();
+        evento.setEventId(eventId);
+        evento.setOrdemTrabalhoPatioId(instructionId);
+        evento.setTipoEvento(request.getTipoEvento());
+        evento.setStatusEsperado(estadoAtual);
+        evento.setStatusResultante(estadoResultante);
+        evento.setOcorridoEm(request.getTimestamp());
+        evento.setResultado(normalizar(request.getResultado(), 1000));
+        evento.setPayload(normalizar(request.getPayload(), 10000));
+        evento.setTipoAcaoFisica(request.getTipoAcaoFisica());
+        evento.setCodigoUnidadeLido(normalizar(request.getCodigoUnidadeLido(), 40));
+        evento.setEquipamentoPatioId(request.getEquipamentoPatioId());
+        evento.setEquipamentoIdentificador(normalizar(request.getEquipamentoIdentificador(), 80));
+        evento.setOrigem(normalizar(request.getOrigem(), 120));
+        evento.setDestino(normalizar(request.getDestino(), 120));
+        evento.setLinhaOrigem(request.getLinhaOrigem());
+        evento.setColunaOrigem(request.getColunaOrigem());
+        evento.setCamadaOrigem(normalizar(request.getCamadaOrigem(), 40));
+        evento.setLinhaDestino(request.getLinhaDestino());
+        evento.setColunaDestino(request.getColunaDestino());
+        evento.setCamadaDestino(normalizar(request.getCamadaDestino(), 40));
+        evento.setSequenciaOperacional(request.getSequenciaOperacional());
+        return evento;
     }
 
     private StatusConfirmacaoVmt aplicarTransicao(OrdemTrabalhoPatio ordem,
@@ -130,6 +156,7 @@ public class EventoVmtWorkInstructionServico {
                 return StatusConfirmacaoVmt.FALHA;
             case CONCLUSAO:
                 exigirEstado(request.getStatusEsperado(), StatusConfirmacaoVmt.EM_EXECUCAO, tipoEvento);
+                confirmacaoTransferenciaFisicaServico.confirmar(ordem, request);
                 ordem.setVmtConcluidoEm(request.getTimestamp());
                 ordem.setResultadoVmt(normalizar(request.getResultado(), 1000));
                 ordem.setStatusOrdem(StatusOrdemTrabalhoPatio.CONCLUIDA);
@@ -185,13 +212,24 @@ public class EventoVmtWorkInstructionServico {
         historico.setUsuario(StringUtils.hasText(request.getOperador())
                 ? request.getOperador().trim()
                 : "integracao-vmt");
-        historico.setMotivo("Confirmacao recebida do VMT.");
+        historico.setMotivo(evento.getTipoEvento() == TipoEventoVmt.CONCLUSAO
+                ? "Transferencia fisica confirmada pelo operador."
+                : "Confirmacao recebida do VMT.");
         historico.setDetalhes(normalizar(
                 "eventId=" + evento.getEventId()
                         + "; estadoEsperado=" + evento.getStatusEsperado()
                         + "; estadoResultante=" + evento.getStatusResultante()
                         + "; timestamp=" + evento.getOcorridoEm()
                         + "; resultado=" + valor(evento.getResultado(), "NAO_INFORMADO")
+                        + "; tipoAcaoFisica=" + valor(
+                                evento.getTipoAcaoFisica() == null ? null : evento.getTipoAcaoFisica().name(),
+                                "NAO_INFORMADA")
+                        + "; unidadeLida=" + valor(evento.getCodigoUnidadeLido(), "NAO_INFORMADA")
+                        + "; equipamentoPatioId=" + evento.getEquipamentoPatioId()
+                        + "; equipamento=" + valor(evento.getEquipamentoIdentificador(), "NAO_INFORMADO")
+                        + "; origem=" + valor(evento.getOrigem(), "NAO_INFORMADA")
+                        + "; destino=" + valor(evento.getDestino(), "NAO_INFORMADO")
+                        + "; sequenciaOperacional=" + evento.getSequenciaOperacional()
                         + "; correlationId=" + valor(request.getCorrelationId(), "NAO_INFORMADO"),
                 2000));
         historico.setCriadoEm(LocalDateTime.now());

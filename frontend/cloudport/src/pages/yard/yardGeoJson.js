@@ -1,5 +1,5 @@
 import { sanitizeText } from '../../api.js';
-import { buildYardMapLayout } from './yardGoogleMaps.js';
+import { buildYardMapLayout } from './yardOpenStreetMap.js';
 import { stackClass } from './yardModel.js';
 
 export const YARD_GEOMETRY_TYPE_COLORS = Object.freeze({

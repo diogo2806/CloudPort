@@ -2,15 +2,20 @@ import { sanitizeText } from '../../api.js';
 import { stackClass } from './yardModel.js';
 
 const METERS_PER_DEGREE_LATITUDE = 111_320;
-const GOOGLE_MAPS_SCRIPT_ID = 'cloudport-google-maps-script';
-const GOOGLE_MAPS_CALLBACK = '__cloudPortGoogleMapsReady';
+const LEAFLET_SCRIPT_ID = 'cloudport-leaflet-script';
+const LEAFLET_STYLE_ID = 'cloudport-leaflet-style';
+const LEAFLET_VERSION = '1.9.4';
+const LEAFLET_SCRIPT_URL = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.js`;
+const LEAFLET_STYLE_URL = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.css`;
+
+export const OPEN_STREET_MAP_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>';
 
 export const DEFAULT_YARD_MAP_CONFIG = Object.freeze({
-  apiKey: '',
-  mapId: '',
+  tileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   center: Object.freeze({ lat: -22.93315, lng: -43.83731 }),
   zoom: 19,
-  mapTypeId: 'satellite',
+  minZoom: 2,
+  maxZoom: 19,
   slotWidthMeters: 3.2,
   slotLengthMeters: 12.2,
   stackGapMeters: 1,
@@ -37,8 +42,7 @@ export const YARD_MAP_STATE_COLORS = Object.freeze({
   interdicted: '#7c3aed'
 });
 
-let googleMapsPromise = null;
-let loadingApiKey = '';
+let leafletPromise = null;
 
 function finiteNumber(value, fallback) {
   const number = Number(value);
@@ -49,25 +53,25 @@ function clamp(value, minimum, maximum, fallback) {
   return Math.min(maximum, Math.max(minimum, finiteNumber(value, fallback)));
 }
 
-function normalizeMapType(value) {
-  const normalized = sanitizeText(value).toLowerCase();
-  return ['roadmap', 'satellite', 'hybrid', 'terrain'].includes(normalized)
-    ? normalized
-    : DEFAULT_YARD_MAP_CONFIG.mapTypeId;
+function safeTileUrl(value) {
+  const normalized = String(value ?? '').trim();
+  return normalized.startsWith('https://') ? normalized : DEFAULT_YARD_MAP_CONFIG.tileUrl;
 }
 
 export function normalizeYardMapConfig(payload = {}) {
-  const source = payload?.googleMaps ?? payload?.yardMap ?? {};
+  const source = payload?.openStreetMap ?? payload?.yardMap ?? payload?.googleMaps ?? {};
   const center = source?.center ?? {};
+  const minZoom = Math.round(clamp(source.minZoom, 1, 22, DEFAULT_YARD_MAP_CONFIG.minZoom));
+  const maxZoom = Math.round(clamp(source.maxZoom, minZoom, 22, DEFAULT_YARD_MAP_CONFIG.maxZoom));
   return {
-    apiKey: sanitizeText(source.apiKey ?? payload?.googleMapsApiKey),
-    mapId: sanitizeText(source.mapId),
+    tileUrl: safeTileUrl(source.tileUrl),
     center: {
       lat: clamp(center.lat, -85, 85, DEFAULT_YARD_MAP_CONFIG.center.lat),
       lng: clamp(center.lng, -180, 180, DEFAULT_YARD_MAP_CONFIG.center.lng)
     },
-    zoom: Math.round(clamp(source.zoom, 1, 22, DEFAULT_YARD_MAP_CONFIG.zoom)),
-    mapTypeId: normalizeMapType(source.mapTypeId),
+    zoom: Math.round(clamp(source.zoom, minZoom, maxZoom, DEFAULT_YARD_MAP_CONFIG.zoom)),
+    minZoom,
+    maxZoom,
     slotWidthMeters: clamp(source.slotWidthMeters, 1, 30, DEFAULT_YARD_MAP_CONFIG.slotWidthMeters),
     slotLengthMeters: clamp(source.slotLengthMeters, 2, 60, DEFAULT_YARD_MAP_CONFIG.slotLengthMeters),
     stackGapMeters: clamp(source.stackGapMeters, 0, 20, DEFAULT_YARD_MAP_CONFIG.stackGapMeters),
@@ -80,82 +84,57 @@ export function normalizeYardMapConfig(payload = {}) {
 export async function loadYardMapConfig() {
   const response = await fetch('/assets/configuracao.json', { cache: 'no-store' });
   if (!response.ok) {
-    throw new Error(`Não foi possível carregar a configuração do Google Maps (status ${response.status}).`);
+    throw new Error(`Não foi possível carregar a configuração do mapa do pátio (status ${response.status}).`);
   }
   return normalizeYardMapConfig(await response.json());
 }
 
-export function hasGoogleMapsApiKey(config) {
-  const key = sanitizeText(config?.apiKey);
-  return Boolean(key) && !/^(YOUR_|SUA_|COLOQUE_|CHANGE_ME)/i.test(key);
-}
+export function loadLeaflet() {
+  if (globalThis.L?.map) return Promise.resolve(globalThis.L);
+  if (typeof document === 'undefined') return Promise.reject(new Error('O mapa somente pode ser carregado no navegador.'));
+  if (leafletPromise) return leafletPromise;
 
-export function loadGoogleMaps(apiKey) {
-  const normalizedKey = sanitizeText(apiKey);
-  if (!normalizedKey) return Promise.reject(new Error('A chave da API Google Maps não foi configurada.'));
-  if (globalThis.google?.maps?.importLibrary) return Promise.resolve(globalThis.google.maps);
-  if (typeof document === 'undefined') return Promise.reject(new Error('O Google Maps somente pode ser carregado no navegador.'));
-
-  if (googleMapsPromise) {
-    if (loadingApiKey !== normalizedKey) {
-      return Promise.reject(new Error('A API Google Maps já está sendo carregada com outra chave.'));
+  leafletPromise = new Promise((resolve, reject) => {
+    if (!document.getElementById(LEAFLET_STYLE_ID)) {
+      const style = document.createElement('link');
+      style.id = LEAFLET_STYLE_ID;
+      style.rel = 'stylesheet';
+      style.href = LEAFLET_STYLE_URL;
+      style.crossOrigin = '';
+      document.head.appendChild(style);
     }
-    return googleMapsPromise;
-  }
 
-  loadingApiKey = normalizedKey;
-  googleMapsPromise = new Promise((resolve, reject) => {
-    let settled = false;
-    const clearCallback = () => {
-      if (globalThis[GOOGLE_MAPS_CALLBACK]) delete globalThis[GOOGLE_MAPS_CALLBACK];
-    };
+    let script = document.getElementById(LEAFLET_SCRIPT_ID);
     const finish = () => {
-      if (settled) return;
-      settled = true;
-      clearCallback();
-      if (globalThis.google?.maps?.importLibrary) {
-        resolve(globalThis.google.maps);
-      } else {
-        googleMapsPromise = null;
-        loadingApiKey = '';
-        reject(new Error('A API Google Maps foi carregada sem disponibilizar a biblioteca de mapas.'));
+      if (globalThis.L?.map) resolve(globalThis.L);
+      else {
+        leafletPromise = null;
+        reject(new Error('A biblioteca do mapa foi carregada sem disponibilizar o Leaflet.'));
       }
     };
     const fail = () => {
-      if (settled) return;
-      settled = true;
-      clearCallback();
-      googleMapsPromise = null;
-      loadingApiKey = '';
-      reject(new Error('Não foi possível carregar a API Google Maps. Verifique a chave, o faturamento e as restrições por referenciador.'));
+      leafletPromise = null;
+      reject(new Error('Não foi possível carregar a biblioteca gratuita do mapa.'));
     };
 
-    globalThis[GOOGLE_MAPS_CALLBACK] = finish;
-
-    let script = document.getElementById(GOOGLE_MAPS_SCRIPT_ID);
-    let appendScript = false;
     if (!script) {
-      const query = new URLSearchParams({
-        key: normalizedKey,
-        loading: 'async',
-        callback: GOOGLE_MAPS_CALLBACK,
-        v: 'quarterly',
-        language: 'pt-BR',
-        region: 'BR',
-        auth_referrer_policy: 'origin'
-      });
       script = document.createElement('script');
-      script.id = GOOGLE_MAPS_SCRIPT_ID;
+      script.id = LEAFLET_SCRIPT_ID;
+      script.src = LEAFLET_SCRIPT_URL;
       script.async = true;
-      script.src = `https://maps.googleapis.com/maps/api/js?${query}`;
-      appendScript = true;
+      script.crossOrigin = '';
+      script.addEventListener('load', finish, { once: true });
+      script.addEventListener('error', fail, { once: true });
+      document.head.appendChild(script);
+      return;
     }
+
     script.addEventListener('load', finish, { once: true });
     script.addEventListener('error', fail, { once: true });
-    if (appendScript) document.head.appendChild(script);
+    if (globalThis.L?.map) finish();
   });
 
-  return googleMapsPromise;
+  return leafletPromise;
 }
 
 function compareCoordinate(left, right) {
@@ -192,7 +171,7 @@ function stackLabel(stack, occupied, total) {
 }
 
 export function buildYardMapLayout(blocks, inputConfig = DEFAULT_YARD_MAP_CONFIG) {
-  const config = normalizeYardMapConfig({ googleMaps: inputConfig });
+  const config = normalizeYardMapConfig({ openStreetMap: inputConfig });
   const metrics = (blocks ?? [])
     .filter((block) => Array.isArray(block?.stacks) && block.stacks.length)
     .map((block) => {

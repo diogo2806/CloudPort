@@ -92,39 +92,58 @@ export function YardGeometryEditor({
 
   useEffect(() => {
     if (!mapContext || !editing) return undefined;
-    const listener = mapContext.map.addListener('click', (event) => {
-      if (!event.latLng) return;
-      setVertices((current) => [...current, { lat: event.latLng.lat(), lng: event.latLng.lng() }]);
-    });
-    return () => mapContext.maps.event.removeListener(listener);
+    const { map } = mapContext;
+    const addVertex = (event) => {
+      if (!event.latlng) return;
+      setVertices((current) => [...current, { lat: event.latlng.lat, lng: event.latlng.lng }]);
+    };
+    map.on('click', addVertex);
+    return () => map.off('click', addVertex);
   }, [mapContext, editing]);
 
   useEffect(() => {
     if (!mapContext || !editing || !vertices.length) return undefined;
-    const { map, maps } = mapContext;
-    const polygon = new maps.Polygon({
-      map,
-      paths: vertices,
-      clickable: false,
-      editable: vertices.length >= 3,
-      strokeColor: '#0f172a',
-      strokeOpacity: 1,
-      strokeWeight: 3,
+    const { map, leaflet } = mapContext;
+    const group = leaflet.layerGroup().addTo(map);
+    const latLngs = vertices.map((point) => [point.lat, point.lng]);
+    const polygon = leaflet.polygon(latLngs, {
+      color: '#0f172a',
+      opacity: 1,
+      weight: 3,
       fillColor: '#f59e0b',
       fillOpacity: 0.32,
-      zIndex: 120
+      interactive: false
+    }).addTo(group);
+
+    const vertexIcon = leaflet.divIcon({
+      className: 'yard-geometry-vertex-icon',
+      html: '<span aria-hidden="true"></span>',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
     });
-    const path = polygon.getPath();
-    const syncVertices = () => {
-      setVertices(path.getArray().map((point) => ({ lat: point.lat(), lng: point.lng() })));
-    };
-    const listeners = vertices.length >= 3
-      ? ['set_at', 'insert_at', 'remove_at'].map((eventName) => path.addListener(eventName, syncVertices))
-      : [];
-    return () => {
-      listeners.forEach((listener) => maps.event.removeListener(listener));
-      polygon.setMap(null);
-    };
+
+    vertices.forEach((point, index) => {
+      const marker = leaflet.marker([point.lat, point.lng], {
+        draggable: true,
+        icon: vertexIcon,
+        keyboard: true,
+        title: `Vértice ${index + 1}`
+      }).addTo(group);
+      marker.on('drag', () => {
+        const next = latLngs.map((value, currentIndex) => currentIndex === index
+          ? [marker.getLatLng().lat, marker.getLatLng().lng]
+          : value);
+        polygon.setLatLngs(next);
+      });
+      marker.on('dragend', () => {
+        const position = marker.getLatLng();
+        setVertices((current) => current.map((value, currentIndex) => currentIndex === index
+          ? { lat: position.lat, lng: position.lng }
+          : value));
+      });
+    });
+
+    return () => group.remove();
   }, [mapContext, editing, vertices]);
 
   if (!canEdit) return null;
@@ -279,7 +298,7 @@ export function YardGeometryEditor({
         <label><span>Coluna</span><input type="number" value={form.coluna} onChange={(event) => updateField('coluna', event.target.value)} /></label>
       </div>
       <label><span>Motivo da alteração</span><input value={form.motivo} onChange={(event) => updateField('motivo', event.target.value)} maxLength={500} /></label>
-      <p className="yard-geometry-editor-hint">Clique no mapa para adicionar pontos. Com três ou mais pontos, arraste os vértices para ajustar o desenho.</p>
+      <p className="yard-geometry-editor-hint">Clique no mapa para adicionar pontos. Com três ou mais pontos, arraste os marcadores dos vértices para ajustar o desenho.</p>
       <div className="yard-geometry-editor-actions">
         <button type="button" className="secondary" onClick={() => setVertices((current) => current.slice(0, -1))} disabled={!vertices.length || busy}>Desfazer ponto</button>
         <button type="button" onClick={save} disabled={busy || vertices.length < 3}>{busy ? 'Salvando...' : 'Salvar polígono'}</button>

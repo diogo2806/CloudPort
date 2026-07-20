@@ -7,9 +7,9 @@ import {
 } from './pages/yard/yardModel.js';
 import {
   buildYardMapLayout,
-  hasGoogleMapsApiKey,
+  DEFAULT_YARD_MAP_CONFIG,
   normalizeYardMapConfig
-} from './pages/yard/yardGoogleMaps.js';
+} from './pages/yard/yardOpenStreetMap.js';
 import {
   buildPersistedYardMapLayout,
   buildResolvedYardMapLayout,
@@ -54,8 +54,7 @@ const positions = [
 ];
 
 const config = normalizeYardMapConfig({
-  googleMaps: {
-    apiKey: 'AIza-valid-test-key',
+  openStreetMap: {
     center: { lat: -22.93315, lng: -43.83731 },
     slotWidthMeters: 3.2,
     slotLengthMeters: 12.2,
@@ -161,22 +160,26 @@ test('usa o polígono GeoJSON persistido e mantém a grade automática para pilh
   assert.equal(resolved.filter((entry) => !entry.geometry)[0].stack.coluna, 2);
 });
 
-test('normaliza limites geográficos e rejeita chave de exemplo', () => {
+test('normaliza limites geográficos e usa tiles gratuitos sem chave de API', () => {
   const normalizedConfig = normalizeYardMapConfig({
-    googleMaps: {
-      apiKey: ' SUA_CHAVE_AQUI ',
+    openStreetMap: {
+      tileUrl: 'http://servidor-inseguro/{z}/{x}/{y}.png',
       center: { lat: 999, lng: -999 },
       zoom: 99,
+      minZoom: 0,
+      maxZoom: 99,
       blockColumns: 0,
       rotationDegrees: 999
     }
   });
 
+  assert.equal(normalizedConfig.tileUrl, DEFAULT_YARD_MAP_CONFIG.tileUrl);
   assert.equal(normalizedConfig.center.lat, 85);
   assert.equal(normalizedConfig.center.lng, -180);
+  assert.equal(normalizedConfig.minZoom, 1);
+  assert.equal(normalizedConfig.maxZoom, 22);
   assert.equal(normalizedConfig.zoom, 22);
   assert.equal(normalizedConfig.blockColumns, 1);
   assert.equal(normalizedConfig.rotationDegrees, 180);
-  assert.equal(hasGoogleMapsApiKey(normalizedConfig), false);
-  assert.equal(hasGoogleMapsApiKey({ apiKey: 'AIza-valid-test-key' }), true);
+  assert.equal('apiKey' in normalizedConfig, false);
 });

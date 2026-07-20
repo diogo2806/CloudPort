@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/yard/patio/geometrias")
 public class GeometriaPatioControlador {
 
-    private static final String AUTORIZACAO_EDICAO = "hasAnyRole('ADMIN_PORTO','PLANEJADOR')";
+    private static final String AUTORIZACAO_EDICAO = "hasAnyRole('ROOT','ADMIN_PORTO','PLANEJADOR')";
 
     private final GeometriaPatioServico geometriaPatioServico;
 

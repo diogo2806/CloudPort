@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, hasAnyRole, readSession, sanitizeText } from '../../api.js';
 import { DataTable, Loading, Message, MetricCard, Section, StatusBadge } from '../../components.jsx';
-import { GoogleYardMap } from './GoogleYardMap.jsx';
+import { OpenStreetMapYardMap } from './GoogleYardMap.jsx';
 import { OperationalYardViews } from './OperationalYardViews.jsx';
 import { YardAllocationEditor } from './YardAllocationEditor.jsx';
 import { yardGeometryApi } from './yardGeometryApi.js';
@@ -16,8 +16,8 @@ export function YardMapPage({ navigate }) {
   const [filters, setFilters] = useState({ status: '', tipoCarga: '', destino: '', camada: '', tipoEquipamento: '' });
   const [selectedStack, setSelectedStack] = useState(null);
   const session = readSession();
-  const canOperate = hasAnyRole(session, 'ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO');
-  const canEditGeometry = hasAnyRole(session, 'ADMIN_PORTO', 'PLANEJADOR');
+  const canOperate = hasAnyRole(session, 'ROOT', 'ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO');
+  const canEditGeometry = hasAnyRole(session, 'ROOT', 'ADMIN_PORTO', 'PLANEJADOR');
   const remote = useRemote(async () => {
     const query = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
     const [map, positions, availableFilters, orders, movements, telemetry, allContainers, reeferTelemetry, geometries] = await Promise.all([
@@ -118,8 +118,8 @@ export function YardMapPage({ navigate }) {
     </div></Section>
     {remote.loading ? <Loading label="Carregando mapa, rotas e telemetria..." /> : <>
       <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Geometrias" value={remote.data?.geometries?.length ?? 0} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label="CHEs em tempo real" value={equipment.length} detail={`${routes.length} rota(s) ativa(s)`} /><MetricCard label="Pilhas bloqueadas" value={restrictions.blocked} detail={`${restrictions.interdicted} interditada(s)`} /></div>
-      <Section title="Pátio georreferenciado" description="Polígonos GeoJSON persistidos aparecem sobre o Google Maps. Planejadores e administradores podem criar e ajustar o desenho clicando diretamente no mapa.">
-        <GoogleYardMap
+      <Section title="Pátio georreferenciado" description="Polígonos GeoJSON persistidos aparecem sobre o OpenStreetMap gratuito. Root, planejadores e administradores podem criar e ajustar o desenho clicando diretamente no mapa.">
+        <OpenStreetMapYardMap
           blocks={stacks}
           selectedStack={selectedStack}
           onSelectStack={setSelectedStack}

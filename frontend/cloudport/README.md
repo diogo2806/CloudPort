@@ -78,7 +78,7 @@ Atalhos disponíveis: `F1`, `Shift + ?` e `Esc`.
 
 #### Pátio e inventário
 
-- mapa georreferenciado no Google Maps e grade de contingência;
+- mapa georreferenciado gratuito com OpenStreetMap e grade de contingência;
 - vistas de bloco, seção, scan e microvisão;
 - heatmaps de ocupação e dwell time;
 - workspaces, notas, bloqueios, interdições e permissões;
@@ -129,15 +129,15 @@ A configuração é carregada de `public/assets/configuracao.json` antes da rend
 {
   "baseApiUrl": "http://localhost:8080",
   "navioControlRoomUrl": "http://localhost:8086",
-  "googleMaps": {
-    "apiKey": "",
-    "mapId": "",
+  "openStreetMap": {
+    "tileUrl": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     "center": {
       "lat": -22.93315,
       "lng": -43.83731
     },
     "zoom": 19,
-    "mapTypeId": "satellite",
+    "minZoom": 2,
+    "maxZoom": 19,
     "slotWidthMeters": 3.2,
     "slotLengthMeters": 12.2,
     "stackGapMeters": 1,
@@ -150,17 +150,14 @@ A configuração é carregada de `public/assets/configuracao.json` antes da rend
 
 - `baseApiUrl`: origem única para os contratos do portal;
 - `navioControlRoomUrl`: endereço do Control Room incorporado por iframe e SSO;
-- `googleMaps.apiKey`: chave de navegador da Maps JavaScript API;
-- `googleMaps.mapId`: identificador opcional de estilo do mapa;
-- `googleMaps.center`: ponto de ancoragem usado para desenhar o pátio;
-- `googleMaps.zoom` e `mapTypeId`: aproximação inicial e camada base;
+- `openStreetMap.tileUrl`: servidor HTTPS de tiles compatível com o padrão OpenStreetMap;
+- `openStreetMap.center`: ponto de ancoragem usado para desenhar o pátio;
+- `zoom`, `minZoom` e `maxZoom`: limites de aproximação inicial e navegação;
 - `slotWidthMeters` e `slotLengthMeters`: dimensões do polígono de uma pilha;
 - `stackGapMeters`, `blockGapMeters` e `blockColumns`: espaçamento e distribuição visual dos blocos;
 - `rotationDegrees`: rotação do conjunto para alinhar o desenho às vias e aos blocos.
 
-Quando `googleMaps.apiKey` está vazia, o mapa externo não é carregado e a grade operacional permanece disponível.
-
-A chave do Google Maps é entregue ao navegador. Restrinja-a por referenciador HTTP aos domínios do CloudPort e limite sua utilização à Maps JavaScript API.
+O mapa padrão usa tiles públicos do OpenStreetMap, não exige chave de API nem faturamento. A atribuição aos colaboradores do OpenStreetMap é exibida automaticamente no mapa. Para ambientes com grande volume, configure um servidor de tiles próprio ou um provedor compatível no campo `openStreetMap.tileUrl`, respeitando a política de uso do provedor.
 
 Em produção, `assets/configuracao.json` pode ser substituído sem reconstruir os artefatos estáticos.
 
@@ -218,18 +215,3 @@ Use uma aplicação GitHub com:
 | Caminho de Build | `/frontend` |
 | Construção | `Dockerfile` |
 | Arquivo | `Dockerfile` |
-| Porta | `80` |
-| Health check | `/health` |
-
-O `frontend/Dockerfile` usa Node 22 no estágio de build e Nginx no estágio final. O `frontend/nginx.conf` entrega os arquivos estáticos, expõe `/health` e usa fallback para `index.html` nas rotas da SPA.
-
-## Regras para novos contratos e telas
-
-- usar caminhos relativos à `baseApiUrl`;
-- manter autenticação e `X-Correlation-Id` no cliente compartilhado;
-- não reproduzir no frontend a decisão entre chamada local e remota do backend;
-- consumir erros padronizados;
-- preservar as rotas funcionais durante a migração do backend;
-- não introduzir dependências Angular;
-- reutilizar `OperationalDataGrid`, `PageHeader`, ajuda contextual e central de alertas antes de criar componentes paralelos;
-- manter alternativa acessível para interações baseadas em drag-and-drop.

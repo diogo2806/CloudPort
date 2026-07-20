@@ -11,11 +11,13 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkInstructionDrill
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.WorkQueuePatioRespostaDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.EventoOperacaoPatioPublicador;
 import br.com.cloudport.servicoyard.patio.listatrabalho.servico.WorkQueueOperacaoServico;
+import br.com.cloudport.servicoyard.scheduler.servico.ValidacaoPlanejamentoDispatchServico;
 import java.util.List;
 import java.util.Map;
 import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,17 +40,21 @@ public class WorkQueueOperacaoControlador {
 
     private final WorkQueueOperacaoServico servico;
     private final EventoOperacaoPatioPublicador eventoPublicador;
+    private final ValidacaoPlanejamentoDispatchServico validacaoPlanejamentoDispatch;
 
-    public WorkQueueOperacaoControlador(WorkQueueOperacaoServico servico,
-                                          EventoOperacaoPatioPublicador eventoPublicador) {
+    public WorkQueueOperacaoControlador(
+            WorkQueueOperacaoServico servico,
+            EventoOperacaoPatioPublicador eventoPublicador,
+            ValidacaoPlanejamentoDispatchServico validacaoPlanejamentoDispatch) {
         this.servico = servico;
         this.eventoPublicador = eventoPublicador;
+        this.validacaoPlanejamentoDispatch = validacaoPlanejamentoDispatch;
     }
 
     @PatchMapping("/work-queues/{id}/recursos-operacionais")
     @PreAuthorize(AUTORIZACAO_ADMINISTRACAO_PATIO)
     public WorkQueuePatioRespostaDto associarRecursos(@PathVariable Long id,
-                                                        @Valid @RequestBody AtualizacaoWorkQueueRecursosDto dto) {
+                                                         @Valid @RequestBody AtualizacaoWorkQueueRecursosDto dto) {
         WorkQueuePatioRespostaDto resposta = servico.associarRecursos(id, dto);
         eventoPublicador.publicarWorkQueue(resposta, "WORK_QUEUE_RECURSOS_ASSOCIADOS", dto.getCorrelationId());
         return resposta;
@@ -56,8 +62,10 @@ public class WorkQueueOperacaoControlador {
 
     @PostMapping("/work-queues/{id}/dispatch")
     @PreAuthorize(AUTORIZACAO_OPERACAO_PATIO)
+    @Transactional
     public ResultadoDispatchWorkQueueDto despachar(@PathVariable Long id,
-                                                     @Valid @RequestBody DispatchWorkQueueDto dto) {
+                                                      @Valid @RequestBody DispatchWorkQueueDto dto) {
+        validacaoPlanejamentoDispatch.revalidar(id, dto);
         ResultadoDispatchWorkQueueDto resposta = servico.despachar(id, dto);
         eventoPublicador.publicarDispatch(resposta, dto.getCorrelationId());
         return resposta;
@@ -66,28 +74,28 @@ public class WorkQueueOperacaoControlador {
     @PostMapping("/work-instructions/{id}/suspender")
     @PreAuthorize(AUTORIZACAO_OPERACAO_PATIO)
     public OrdemTrabalhoPatioRespostaDto suspender(@PathVariable Long id,
-                                                     @Valid @RequestBody ComandoWorkInstructionDto dto) {
+                                                      @Valid @RequestBody ComandoWorkInstructionDto dto) {
         return publicar(servico.suspender(id, dto), "WORK_INSTRUCTION_SUSPENSA", dto.getCorrelationId());
     }
 
     @PostMapping("/work-instructions/{id}/retomar")
     @PreAuthorize(AUTORIZACAO_OPERACAO_PATIO)
     public OrdemTrabalhoPatioRespostaDto retomar(@PathVariable Long id,
-                                                   @Valid @RequestBody ComandoWorkInstructionDto dto) {
+                                                    @Valid @RequestBody ComandoWorkInstructionDto dto) {
         return publicar(servico.retomar(id, dto), "WORK_INSTRUCTION_RETOMADA", dto.getCorrelationId());
     }
 
     @PostMapping("/work-instructions/{id}/bloquear")
     @PreAuthorize(AUTORIZACAO_OPERACAO_PATIO)
     public OrdemTrabalhoPatioRespostaDto bloquear(@PathVariable Long id,
-                                                    @Valid @RequestBody ComandoWorkInstructionDto dto) {
+                                                     @Valid @RequestBody ComandoWorkInstructionDto dto) {
         return publicar(servico.bloquear(id, dto), "WORK_INSTRUCTION_BLOQUEADA", dto.getCorrelationId());
     }
 
     @PostMapping("/work-instructions/{id}/concluir")
     @PreAuthorize(AUTORIZACAO_OPERACAO_PATIO)
     public OrdemTrabalhoPatioRespostaDto concluir(@PathVariable Long id,
-                                                    @Valid @RequestBody ComandoWorkInstructionDto dto) {
+                                                     @Valid @RequestBody ComandoWorkInstructionDto dto) {
         throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "A conclusao da work instruction exige um evento VMT CONCLUSAO idempotente e persistido.");
     }
@@ -95,14 +103,14 @@ public class WorkQueueOperacaoControlador {
     @PostMapping("/work-instructions/{id}/reset")
     @PreAuthorize(AUTORIZACAO_OPERACAO_PATIO)
     public OrdemTrabalhoPatioRespostaDto resetar(@PathVariable Long id,
-                                                   @Valid @RequestBody ComandoWorkInstructionDto dto) {
+                                                    @Valid @RequestBody ComandoWorkInstructionDto dto) {
         return publicar(servico.resetar(id, dto), "WORK_INSTRUCTION_RESETADA", dto.getCorrelationId());
     }
 
     @PostMapping("/work-instructions/{id}/cancelar")
     @PreAuthorize(AUTORIZACAO_OPERACAO_PATIO)
     public OrdemTrabalhoPatioRespostaDto cancelar(@PathVariable Long id,
-                                                    @Valid @RequestBody ComandoWorkInstructionDto dto) {
+                                                     @Valid @RequestBody ComandoWorkInstructionDto dto) {
         return publicar(servico.cancelar(id, dto), "WORK_INSTRUCTION_CANCELADA", dto.getCorrelationId());
     }
 
@@ -139,8 +147,8 @@ public class WorkQueueOperacaoControlador {
     }
 
     private OrdemTrabalhoPatioRespostaDto publicar(OrdemTrabalhoPatioRespostaDto resposta,
-                                                     String tipoAlteracao,
-                                                     String correlationId) {
+                                                      String tipoAlteracao,
+                                                      String correlationId) {
         eventoPublicador.publicarInstrucao(resposta, tipoAlteracao, correlationId);
         return resposta;
     }

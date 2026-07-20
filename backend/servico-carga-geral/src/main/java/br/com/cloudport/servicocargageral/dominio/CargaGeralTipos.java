@@ -73,10 +73,21 @@ public final class CargaGeralTipos {
         BLOQUEADA_EXCESSO
     }
 
+    public enum StatusProgramacaoDocaCarga {
+        RESERVADA,
+        EM_USO,
+        CONCLUIDA,
+        CANCELADA
+    }
+
     public enum TipoEventoStuffUnstuff {
         CRIADA,
         PLANO_VERSIONADO,
         PLANO_LIBERADO,
+        PROGRAMACAO_DOCA_RESERVADA,
+        PROGRAMACAO_DOCA_CANCELADA,
+        STAGING_INICIADO,
+        STAGING_CONCLUIDO,
         INICIADA,
         EXECUCAO_REGISTRADA,
         DIVERGENCIA_REGISTRADA,

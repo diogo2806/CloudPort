@@ -5,9 +5,9 @@ import { gateOperationsApi } from '../gateOperationsApi.js';
 import './GateOperationsTabs.css';
 
 const TABS = [
-  { id: 'trocas', label: 'Troca de Cavalo' },
+  { id: 'filas', label: 'Pré-gate' },
   { id: 'chamados', label: 'Chamados' },
-  { id: 'filas', label: 'Filas' }
+  { id: 'trocas', label: 'Troca de Cavalo' }
 ];
 
 function dateTime(value) {
@@ -16,8 +16,24 @@ function dateTime(value) {
   return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString('pt-BR');
 }
 
+function remainingTime(call, now) {
+  if (!call) return 'Não chamado';
+  if (call.status === 'ACEITO') return 'Aceita';
+  if (call.status === 'EM_ATENDIMENTO') return 'Em atendimento';
+  if (call.status === 'EXPIRADO') return 'Expirada';
+  if (call.status === 'CANCELADO') return 'Cancelada';
+  if (call.status === 'FINALIZADO') return 'Finalizada';
+  if (call.status !== 'CHAMADO' || !call.expiraEm) return '—';
+  const expiration = new Date(call.expiraEm).getTime();
+  if (Number.isNaN(expiration)) return '—';
+  const seconds = Math.max(0, Math.ceil((expiration - now.getTime()) / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = String(seconds % 60).padStart(2, '0');
+  return seconds > 0 ? `${minutes}:${remainder}` : 'Expirando';
+}
+
 export function GateOperationsTabs() {
-  const [tab, setTab] = useState('trocas');
+  const [tab, setTab] = useState('filas');
   const [trocas, setTrocas] = useState([]);
   const [chamados, setChamados] = useState([]);
   const [fila, setFila] = useState([]);
@@ -27,6 +43,7 @@ export function GateOperationsTabs() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [now, setNow] = useState(() => new Date());
   const [trocaForm, setTrocaForm] = useState({ cpfMotorista: '', numeroCnh: '', cavaloAtual: '', gatePassId: '' });
   const [callForm, setCallForm] = useState({ gatePassId: '', prioridade: 'NORMAL', gatePista: '', validadeMinutos: '5' });
   const [queueForm, setQueueForm] = useState({ gatePassId: '' });
@@ -35,11 +52,11 @@ export function GateOperationsTabs() {
     setLoading(true);
     setError('');
     try {
-      const [trocaResponse, callResponse, queueResponse] = await Promise.all([
+      const [trocaResponse, callResponse] = await Promise.all([
         gateOperationsApi.listarTrocas(),
-        gateOperationsApi.listarChamados(),
-        gateOperationsApi.listarFila(sentido)
+        gateOperationsApi.listarChamados()
       ]);
+      const queueResponse = await gateOperationsApi.listarFila(sentido);
       setTrocas(Array.isArray(trocaResponse) ? trocaResponse : []);
       setChamados(Array.isArray(callResponse) ? callResponse : []);
       setFila(Array.isArray(queueResponse) ? queueResponse : []);
@@ -51,11 +68,23 @@ export function GateOperationsTabs() {
   }, [sentido]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const filteredTrocas = useMemo(() => {
     const query = filter.trim().toLowerCase();
     return !query ? trocas : trocas.filter((item) => `${item.cpfMotorista} ${item.numeroCnh} ${item.cavaloAtual} ${item.status}`.toLowerCase().includes(query));
   }, [filter, trocas]);
+
+  const latestCallByGatePass = useMemo(() => {
+    const result = new Map();
+    chamados.forEach((item) => {
+      if (!result.has(item.gatePassId)) result.set(item.gatePassId, item);
+    });
+    return result;
+  }, [chamados]);
 
   async function execute(action, message) {
     setSaving(true);
@@ -94,6 +123,11 @@ export function GateOperationsTabs() {
       validadeMinutos: Number(callForm.validadeMinutos),
       operador: readSession()?.nome
     }), 'Veículo chamado.');
+  }
+
+  function prepareCall(item) {
+    setCallForm((current) => ({ ...current, gatePassId: String(item.gatePassId), prioridade: item.prioridade || 'NORMAL' }));
+    setTab('chamados');
   }
 
   function acceptCall(item) {
@@ -172,14 +206,14 @@ export function GateOperationsTabs() {
           <label>Prioridade<select value={callForm.prioridade} onChange={(event) => setCallForm({ ...callForm, prioridade: event.target.value })}><option>NORMAL</option><option>ALTA</option><option>EMERGENCIAL</option></select></label>
           <button disabled={saving} type="submit">Chamar veículo</button>
         </form>
-        {chamados.length ? <div className="gate-operation-table"><table><thead><tr><th>GatePass</th><th>Posição</th><th>Gate / pista</th><th>Prioridade</th><th>Status</th><th>Chamada</th><th>Aceite / expiração</th><th>Rechamadas</th><th>Ações</th></tr></thead><tbody>{chamados.map((item) => <tr key={item.id}>
+        {chamados.length ? <div className="gate-operation-table"><table><thead><tr><th>GatePass</th><th>Posição</th><th>Gate / pista</th><th>Prioridade</th><th>Status</th><th>Chamada</th><th>Aceite / tempo restante</th><th>Rechamadas</th><th>Ações</th></tr></thead><tbody>{chamados.map((item) => <tr key={item.id}>
           <td>{item.codigoGatePass || item.gatePassId}</td>
           <td>{item.posicaoFila ?? '—'}</td>
           <td>{item.gatePista || '—'}</td>
           <td><StatusBadge value={item.prioridade} /></td>
           <td><StatusBadge value={item.status} /></td>
           <td>{dateTime(item.chamadoEm)}<small>Expira: {dateTime(item.expiraEm)}</small></td>
-          <td>{item.aceitoEm ? dateTime(item.aceitoEm) : item.expiradoEm ? `Expirada em ${dateTime(item.expiradoEm)}` : 'Aguardando aceite'}</td>
+          <td>{item.aceitoEm ? dateTime(item.aceitoEm) : remainingTime(item, now)}</td>
           <td>{item.quantidadeRechamadas ?? 0}{item.ultimaRechamadaEm && <small>Última: {dateTime(item.ultimaRechamadaEm)}</small>}</td>
           <td className="gate-operation-actions">
             {item.status === 'CHAMADO' && <button type="button" disabled={saving} onClick={() => acceptCall(item)}>Aceitar</button>}
@@ -197,7 +231,31 @@ export function GateOperationsTabs() {
           <label>GatePass ID<input required min="1" type="number" value={queueForm.gatePassId} onChange={(event) => setQueueForm({ gatePassId: event.target.value })} /></label>
           <button disabled={saving} type="submit">Adicionar à fila</button>
         </form>
-        {fila.length ? <div className="gate-operation-table"><table><thead><tr><th>Posição</th><th>GatePass</th><th>Prioridade</th><th>Status</th><th>Entrada</th><th>Ações</th></tr></thead><tbody>{fila.map((item) => <tr key={item.id}><td>{item.posicaoAtual}<small>Original: {item.posicaoOriginal}</small></td><td>{item.codigoGatePass || item.gatePassId}</td><td><StatusBadge value={item.prioridade} /></td><td><StatusBadge value={item.status} /></td><td>{dateTime(item.entrouEm)}</td><td className="gate-operation-actions"><button type="button" className="secondary" disabled={saving} onClick={() => prioritize(item)}>Prioridade</button><button type="button" className="secondary" disabled={saving} onClick={() => reorder(item)}>Reordenar</button></td></tr>)}</tbody></table></div> : <EmptyState title="Fila vazia" />}
+        {fila.length ? <div className="gate-operation-table"><table><thead><tr><th>Posição</th><th>GatePass</th><th>Prioridade</th><th>Status</th><th>Entrada</th><th>Chamada</th><th>Tempo restante</th><th>Aceite / rechamadas</th><th>Ações</th></tr></thead><tbody>{fila.map((item) => {
+          const call = latestCallByGatePass.get(item.gatePassId);
+          const canCall = !call || ['CANCELADO', 'FINALIZADO'].includes(call.status);
+          return <tr key={item.id}>
+            <td>{item.posicaoAtual}<small>Original: {item.posicaoOriginal}</small></td>
+            <td>{item.codigoGatePass || item.gatePassId}</td>
+            <td><StatusBadge value={item.prioridade} /></td>
+            <td><StatusBadge value={item.status} /></td>
+            <td>{dateTime(item.entrouEm)}</td>
+            <td>{call ? <><StatusBadge value={call.status} /><small>{call.gatePista || 'Pista não informada'}</small></> : 'Ainda não chamado'}</td>
+            <td>{remainingTime(call, now)}{call?.expiraEm && <small>Até {dateTime(call.expiraEm)}</small>}</td>
+            <td>{call?.aceitoEm ? dateTime(call.aceitoEm) : 'Sem aceite'}<small>{call?.quantidadeRechamadas ?? 0} rechamada(s)</small></td>
+            <td className="gate-operation-actions">
+              {canCall && <button type="button" disabled={saving} onClick={() => prepareCall(item)}>Chamar</button>}
+              {call?.status === 'CHAMADO' && <button type="button" disabled={saving} onClick={() => acceptCall(call)}>Aceitar</button>}
+              {call?.status === 'CHAMADO' && <button type="button" className="secondary" disabled={saving} onClick={() => expireCall(call)}>Expirar</button>}
+              {call?.status === 'EXPIRADO' && <button type="button" disabled={saving} onClick={() => recallCall(call)}>Rechamar</button>}
+              {call?.status === 'ACEITO' && <button type="button" disabled={saving} onClick={() => execute(() => gateOperationsApi.iniciarChamado(call.id), 'Atendimento iniciado.')}>Iniciar</button>}
+              {call?.status === 'EM_ATENDIMENTO' && <button type="button" disabled={saving} onClick={() => execute(() => gateOperationsApi.finalizarChamado(call.id), 'Atendimento finalizado.')}>Finalizar</button>}
+              {['CHAMADO', 'ACEITO', 'EM_ATENDIMENTO'].includes(call?.status) && <button type="button" className="secondary" disabled={saving} onClick={() => cancelCall(call)}>Cancelar</button>}
+              <button type="button" className="secondary" disabled={saving} onClick={() => prioritize(item)}>Prioridade</button>
+              <button type="button" className="secondary" disabled={saving} onClick={() => reorder(item)}>Reordenar</button>
+            </td>
+          </tr>;
+        })}</tbody></table></div> : <EmptyState title="Fila vazia" description={sentido === 'ENTRADA' ? 'Confirme a chegada antecipada para incluir o veículo automaticamente no pré-gate.' : 'Nenhum veículo aguarda saída.'} />}
       </div>}
     </>}
   </div>;

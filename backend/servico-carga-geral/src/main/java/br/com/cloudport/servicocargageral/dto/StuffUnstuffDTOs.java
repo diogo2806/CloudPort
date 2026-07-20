@@ -1,7 +1,9 @@
 package br.com.cloudport.servicocargageral.dto;
 
+import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.MetodoPesagemVgm;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusLacreStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusOperacaoStuffUnstuff;
+import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusPesagemVgm;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoEventoLacreStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoEventoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoOperacaoStuffUnstuff;
@@ -81,6 +83,19 @@ public final class StuffUnstuffDTOs {
             boolean overrideAutorizado) {
     }
 
+    public record ConfirmarPesagemStuffingRequest(
+            @NotNull MetodoPesagemVgm metodoPesagem,
+            @NotNull @DecimalMin("0.001") BigDecimal taraKg,
+            @NotNull @DecimalMin("0.001") BigDecimal pesoBrutoKg,
+            @NotNull @DecimalMin("0.001") BigDecimal vgmKg,
+            @NotNull @DecimalMin("0.001") BigDecimal capacidadeMaximaKg,
+            @NotBlank @Size(max = 120) String equipamentoPesagem,
+            @NotBlank @Size(max = 120) String responsavelPesagem,
+            @NotBlank @Size(max = 120) String usuario,
+            @Size(max = 120) String correlationId,
+            @Size(max = 1000) String observacao) {
+    }
+
     public record ConcluirOperacaoRequest(
             @Size(max = 80) String lacreFinal,
             @NotBlank @Size(max = 120) String usuario,
@@ -111,6 +126,22 @@ public final class StuffUnstuffDTOs {
             OffsetDateTime canceladoEm,
             List<ItemOperacaoResposta> itens,
             List<EventoOperacaoResposta> historico) {
+    }
+
+    public record PesagemStuffingResposta(
+            UUID operacaoId,
+            String conteinerId,
+            MetodoPesagemVgm metodoPesagem,
+            StatusPesagemVgm statusPesagemVgm,
+            BigDecimal taraKg,
+            BigDecimal pesoBrutoKg,
+            BigDecimal vgmKg,
+            BigDecimal capacidadeMaximaKg,
+            String equipamentoPesagem,
+            String responsavelPesagem,
+            OffsetDateTime pesagemConfirmadaEm,
+            String motivoBloqueioPeso,
+            boolean liberadoParaConclusao) {
     }
 
     public record PlanoVersaoResposta(

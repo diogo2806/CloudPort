@@ -62,6 +62,17 @@ public final class CargaGeralTipos {
         CANCELADA
     }
 
+    public enum MetodoPesagemVgm {
+        METODO_1,
+        METODO_2
+    }
+
+    public enum StatusPesagemVgm {
+        PENDENTE,
+        CONFIRMADA,
+        BLOQUEADA_EXCESSO
+    }
+
     public enum TipoEventoStuffUnstuff {
         CRIADA,
         PLANO_VERSIONADO,
@@ -75,6 +86,8 @@ public final class CargaGeralTipos {
         LACRE_ROMPIDO,
         LACRE_SUBSTITUIDO,
         LACRE_CONFERIDO,
+        PESAGEM_CONFIRMADA,
+        PESAGEM_BLOQUEADA,
         CONCLUIDA,
         CANCELADA
     }

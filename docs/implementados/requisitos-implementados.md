@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-20 com a conclusão do BUS1300 e BUS1290, além dos BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-20 com a conclusão do BUS1310, BUS1300 e BUS1290, além dos BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -142,6 +142,16 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 12. Reset, cancelamento, prioridade, suspensão, retomada, bloqueio e conclusão.
 13. Auditoria por usuário, motivo, origem e `correlationId`.
 14. Reshuffling com posição real, reserva e idempotência.
+15. O BUS1310 persiste o handoff bilateral de custódia em exchange areas com unidade, área, posição, equipamento, operador, condição, lacres e instante em cada lado da transferência.
+16. A entrega cria uma custódia `ENTREGUE`; o recebimento usa bloqueio pessimista e controle otimista de versão para impedir mudança concorrente ou repetida.
+17. Chaves idempotentes independentes preservam o resultado de entrega e recebimento e rejeitam reutilização com conteúdo diferente.
+18. Uma restrição parcial no PostgreSQL permite somente uma custódia ativa, `ENTREGUE` ou `DIVERGENTE`, por unidade.
+19. Unidade, área, posição, condição e conjunto normalizado de lacres são conferidos na segunda confirmação sem depender da ordem digitada dos lacres.
+20. Conferência equivalente conclui a custódia como `RECEBIDA`; divergência persiste a segunda leitura, altera o estado para `DIVERGENTE` e mantém bloqueio com memória detalhada dos campos incompatíveis.
+21. Eventos versionados distinguem entrega, recebimento e divergência de custódia na exchange area.
+22. A API autenticada permite listar custódias, registrar entregas e confirmar recebimentos para os perfis operacionais autorizados.
+23. O painel em Pátio > Indicadores mostra entregues, recebidas, divergentes e bloqueadas, preserva a chave idempotente em retentativas e possui manual completo com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e processo completo.
+24. Testes unitários cobrem entrega, recebimento equivalente e divergência bloqueante.
 
 ## Control Room e Visibilidade
 

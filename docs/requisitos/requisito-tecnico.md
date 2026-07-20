@@ -1,6 +1,6 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-20 após a conclusão do BUS1300 no PR #602.
+Status: atualizado em 2026-07-20 após a conclusão do BUS1310 no PR #603.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
@@ -12,15 +12,7 @@ Nenhuma pendência técnica permanece nesta seção. O BUS1380 foi concluído no
 
 | ID | Tarefa técnica | Critério de conclusão | Status |
 |---|---|---|---|
-| BUS1310 | Implementar handoff de custódia em exchange areas do pátio. | Entrega e recebimento registram unidade, área, posição, equipamento, operador, condição, lacres e instante; a custódia muda uma única vez e divergência gera bloqueio. | ⬜ Pendente |
 | BUS1320 | Confirmar grounding e ungrounding por equipamento e posição física. | Cada retirada ou colocação confirma CHE, work instruction, origem, destino e leitura da unidade; eventos repetidos ou fora de sequência não alteram inventário. | ⬜ Pendente |
-
-### BUS1310 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-yard/src/main/java/br/com/cloudport/servicoyard/patio/servico/PublicadorEventoMovimentoPatio.java` | eventos de movimento | Publica movimentações de pátio, mas não há contrato específico de entrega e recebimento bilateral de custódia em exchange area. | Criar novos métodos sugeridos: `entregarNaExchangeArea()` e `receberDaExchangeArea()`, com condição e conferência física. |
-| `frontend/cloudport/src/pages/yard/YardInsightPages.jsx` | operação de áreas | Não existe fluxo de handoff com duas confirmações e divergência de condição. | Criar painel de custódia pendente, entregue, recebida e divergente. |
 
 ### BUS1320 — arquivos e métodos
 

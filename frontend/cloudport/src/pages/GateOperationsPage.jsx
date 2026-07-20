@@ -50,12 +50,95 @@ function StageBoard({ stages, visits, selectedStageId }) {
   </div>;
 }
 
-function VisitInspector({ visit, stages, busy, onAdvance, onTrouble, onInspect, onIssueDocument, onTransfer }) {
+function DriverVerification({ verification, loading, busy, canOverride, onVerify, onOverride }) {
+  const [method, setMethod] = useState('DOCUMENTO');
+  const [value, setValue] = useState('');
+  const authorized = ['VERIFICADA', 'OVERRIDE'].includes(verification?.status);
+
+  useEffect(() => {
+    setMethod('DOCUMENTO');
+    setValue('');
+  }, [verification?.truckVisitId]);
+
+  function submit(event) {
+    event.preventDefault();
+    if (!value.trim()) return;
+    onVerify(method, value.trim());
+    setValue('');
+  }
+
+  if (loading) return <Loading label="Consultando verificação do motorista..." />;
+
+  return <div className="gate-task-list">
+    <div className="gate-visit-summary">
+      <div>
+        <span className="eyebrow">Identidade operacional</span>
+        <h4>Verificação do motorista</h4>
+        <p>{verification?.motorista || 'Motorista não identificado'} · {verification?.transportadora || 'Transportadora não identificada'}</p>
+      </div>
+      <StatusBadge value={verification?.status || 'PENDENTE'} />
+    </div>
+
+    <div className="gate-inspector-grid">
+      <div><span>Método aprovado</span><strong>{verification?.metodo || '—'}</strong></div>
+      <div><span>Tentativas restantes</span><strong>{verification?.tentativasRestantes ?? '—'}</strong></div>
+      <div><span>Verificado em</span><strong>{dateTime(verification?.verificadoEm)}</strong></div>
+      <div><span>Expira em</span><strong>{dateTime(verification?.expiraEm)}</strong></div>
+    </div>
+
+    {verification?.bloqueadoAte && <Message type="error">Verificação bloqueada até {dateTime(verification.bloqueadoAte)}.</Message>}
+    {verification?.ultimoMotivo && <Message type="error">{verification.ultimoMotivo}</Message>}
+    {verification?.motivoOverride && <Message>Override autorizado por {verification.overridePor}: {verification.motivoOverride}</Message>}
+
+    <form className="gate-document-actions" onSubmit={submit}>
+      <label>Método
+        <select value={method} onChange={(event) => { setMethod(event.target.value); setValue(''); }} disabled={busy}>
+          <option value="DOCUMENTO">Documento</option>
+          <option value="PIN">PIN</option>
+          <option value="CREDENCIAL">Credencial</option>
+        </select>
+      </label>
+      <label>Valor
+        <input
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          type={method === 'DOCUMENTO' ? 'text' : 'password'}
+          inputMode={method === 'DOCUMENTO' || method === 'PIN' ? 'numeric' : 'text'}
+          autoComplete="off"
+          placeholder={method === 'DOCUMENTO' ? 'Documento do motorista' : method === 'PIN' ? 'PIN operacional' : 'Código da credencial'}
+          disabled={busy || verification?.status === 'BLOQUEADA'}
+        />
+      </label>
+      <button type="submit" disabled={busy || !value.trim() || verification?.status === 'BLOQUEADA'}>
+        {busy ? 'Processando...' : authorized ? 'Verificar novamente' : 'Verificar motorista'}
+      </button>
+    </form>
+
+    {canOverride && !authorized && <button type="button" className="secondary" disabled={busy} onClick={onOverride}>Autorizar override motivado</button>}
+  </div>;
+}
+
+function VisitInspector({
+  visit,
+  stages,
+  busy,
+  verification,
+  verificationLoading,
+  canOverride,
+  onVerify,
+  onOverride,
+  onAdvance,
+  onTrouble,
+  onInspect,
+  onIssueDocument,
+  onTransfer
+}) {
   const [completedTasks, setCompletedTasks] = useState([]);
   const [documentType, setDocumentType] = useState('EIR');
   const [destinationFacility, setDestinationFacility] = useState('');
   const stage = stages.find((item) => item.id === visit?.stageAtualId);
   const requiredTasks = stage?.tarefas?.filter((task) => task.ativa && task.obrigatoria) ?? [];
+  const driverAuthorized = ['VERIFICADA', 'OVERRIDE'].includes(verification?.status);
 
   useEffect(() => {
     setCompletedTasks([]);
@@ -81,6 +164,16 @@ function VisitInspector({ visit, stages, busy, onAdvance, onTrouble, onInspect, 
       <div><span>Transações</span><strong>{visit.transacoes?.length ?? 0}</strong></div>
     </div>
 
+    <h4>Verificação operacional</h4>
+    <DriverVerification
+      verification={verification}
+      loading={verificationLoading}
+      busy={busy}
+      canOverride={canOverride}
+      onVerify={onVerify}
+      onOverride={onOverride}
+    />
+
     <h4>Business tasks do estágio</h4>
     <div className="gate-task-list">
       {(stage?.tarefas ?? []).map((task) => <label key={task.id}>
@@ -89,7 +182,8 @@ function VisitInspector({ visit, stages, busy, onAdvance, onTrouble, onInspect, 
       </label>)}
       {!stage?.tarefas?.length && <p>Nenhuma tarefa configurada neste estágio.</p>}
     </div>
-    <button disabled={busy || !allRequiredCompleted || visit.status === 'TROUBLE'} onClick={() => onAdvance(visit, completedTasks)}>
+    {!driverAuthorized && <Message type="error">A visita só pode avançar após a verificação válida do motorista ou um override autorizado.</Message>}
+    <button disabled={busy || verificationLoading || !driverAuthorized || !allRequiredCompleted || visit.status === 'TROUBLE'} onClick={() => onAdvance(visit, completedTasks)}>
       {busy ? 'Processando...' : 'Concluir estágio e avançar'}
     </button>
 
@@ -120,6 +214,8 @@ export function GateOperationsPage({ session }) {
   const [dashboard, setDashboard] = useState(null);
   const [complements, setComplements] = useState({ billsOfLading: [], regrasAcesso: [] });
   const [selectedVisitId, setSelectedVisitId] = useState(null);
+  const [verification, setVerification] = useState(null);
+  const [verificationLoading, setVerificationLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -144,7 +240,24 @@ export function GateOperationsPage({ session }) {
     }
   }, [facilityId]);
 
+  const loadVerification = useCallback(async (visitaId) => {
+    if (!visitaId) {
+      setVerification(null);
+      return;
+    }
+    setVerificationLoading(true);
+    try {
+      setVerification(await gateOperationsApi.consultarVerificacaoMotorista(visitaId));
+    } catch (reason) {
+      setVerification(null);
+      setError(formatError(reason));
+    } finally {
+      setVerificationLoading(false);
+    }
+  }, []);
+
   useEffect(() => { load(''); }, []);
+  useEffect(() => { loadVerification(selectedVisitId); }, [selectedVisitId, loadVerification]);
 
   const visits = dashboard?.visitasAtivas ?? [];
   const stages = dashboard?.stages ?? [];
@@ -154,6 +267,10 @@ export function GateOperationsPage({ session }) {
   const billsOfLading = complements.billsOfLading ?? [];
   const accessRules = complements.regrasAcesso ?? [];
   const operator = session?.nome || 'operador';
+  const roles = [...(Array.isArray(session?.roles) ? session.roles : []), session?.perfil]
+    .filter(Boolean)
+    .map((role) => String(role).replace(/^ROLE_/, '').toUpperCase());
+  const canOverrideDriver = roles.includes('ADMIN_PORTO');
 
   async function execute(action, successMessage) {
     if (busy) return;
@@ -164,6 +281,44 @@ export function GateOperationsPage({ session }) {
       await load(facilityId);
     } catch (reason) {
       setError(formatError(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyDriver(method, value) {
+    if (!selectedVisit || busy) return;
+    setBusy(true); setError(''); setSuccess('');
+    try {
+      const result = await gateOperationsApi.validarMotorista(selectedVisit.id, { metodo: method, valor: value, usuario: operator });
+      setVerification(result);
+      if (['VERIFICADA', 'OVERRIDE'].includes(result.status)) {
+        setSuccess('Motorista verificado para esta operação.');
+      } else {
+        setError(result.ultimoMotivo || 'A verificação do motorista não foi aprovada.');
+      }
+    } catch (reason) {
+      setError(formatError(reason));
+      await loadVerification(selectedVisit.id);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function overrideDriver() {
+    if (!selectedVisit || busy || !canOverrideDriver) return;
+    const reason = window.prompt('Informe o motivo obrigatório do override da verificação:');
+    if (!reason || reason.trim().length < 10) {
+      setError('O motivo do override deve possuir ao menos 10 caracteres.');
+      return;
+    }
+    setBusy(true); setError(''); setSuccess('');
+    try {
+      const result = await gateOperationsApi.autorizarOverrideMotorista(selectedVisit.id, { motivo: reason.trim(), usuario: operator });
+      setVerification(result);
+      setSuccess('Override da verificação autorizado e auditado.');
+    } catch (reasonError) {
+      setError(formatError(reasonError));
     } finally {
       setBusy(false);
     }
@@ -215,7 +370,7 @@ export function GateOperationsPage({ session }) {
   ], []);
 
   return <>
-    <PageHeader eyebrow="Gate" title="Operação completa" description="Lane monitor, capacidade, truck visits com múltiplas transações, estágios configuráveis, trouble, inspeções, documentos e transferências." actions={<div className="inline"><select value={facilityId} onChange={(event) => { setFacilityId(event.target.value); load(event.target.value); }}>{(dashboard?.facilities ?? []).map((facility) => <option value={facility.id} key={facility.id}>{facility.nome}</option>)}</select><button className="secondary" onClick={() => load(facilityId)} disabled={loading || busy}>Atualizar</button></div>} />
+    <PageHeader eyebrow="Gate" title="Operação completa" description="Lane monitor, verificação do motorista, truck visits, estágios, trouble, inspeções, documentos e transferências." actions={<div className="inline"><select value={facilityId} onChange={(event) => { setFacilityId(event.target.value); load(event.target.value); }}>{(dashboard?.facilities ?? []).map((facility) => <option value={facility.id} key={facility.id}>{facility.nome}</option>)}</select><button className="secondary" onClick={() => load(facilityId)} disabled={loading || busy}>Atualizar</button></div>} />
     <Message type="error">{error}</Message><Message type="success">{success}</Message>
     {loading ? <Loading label="Carregando operação do Gate..." /> : !dashboard ? null : <>
       <div className="metrics-grid">
@@ -228,7 +383,7 @@ export function GateOperationsPage({ session }) {
       <Section title="Fluxo configurado"><StageBoard stages={stages} visits={visits} selectedStageId={selectedVisit?.stageAtualId} /></Section>
       <div className="gate-operations-layout">
         <Section title="Truck visits"><DataTable rows={visits} columns={visitColumns} rowKey={(row) => row.id} emptyTitle="Nenhuma truck visit ativa" gridId="gate-operacional-visitas" exportFileName="truck-visits-gate" /></Section>
-        <Section title="Inspector"><VisitInspector visit={selectedVisit} stages={stages} busy={busy} onAdvance={advanceVisit} onTrouble={openTrouble} onInspect={inspectTransaction} onIssueDocument={issueDocument} onTransfer={transferVisit} /></Section>
+        <Section title="Inspector"><VisitInspector visit={selectedVisit} stages={stages} busy={busy} verification={verification} verificationLoading={verificationLoading} canOverride={canOverrideDriver} onVerify={verifyDriver} onOverride={overrideDriver} onAdvance={advanceVisit} onTrouble={openTrouble} onInspect={inspectTransaction} onIssueDocument={issueDocument} onTransfer={transferVisit} /></Section>
       </div>
       <Section title="Trouble transactions">
         {(dashboard.troublesAbertos ?? []).length ? <DataTable rows={dashboard.troublesAbertos} columns={[

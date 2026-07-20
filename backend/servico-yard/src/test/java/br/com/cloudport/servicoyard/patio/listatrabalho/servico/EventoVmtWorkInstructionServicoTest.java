@@ -36,6 +36,8 @@ class EventoVmtWorkInstructionServicoTest {
     private OrdemTrabalhoPatioRepositorio ordemRepositorio;
     @Mock
     private HistoricoWorkInstructionRepositorio historicoRepositorio;
+    @Mock
+    private ConfirmacaoTransferenciaFisicaServico confirmacaoTransferenciaFisicaServico;
 
     private EventoVmtWorkInstructionServico servico;
 
@@ -44,7 +46,8 @@ class EventoVmtWorkInstructionServicoTest {
         servico = new EventoVmtWorkInstructionServico(
                 eventoRepositorio,
                 ordemRepositorio,
-                historicoRepositorio);
+                historicoRepositorio,
+                confirmacaoTransferenciaFisicaServico);
     }
 
     @Test
@@ -62,6 +65,7 @@ class EventoVmtWorkInstructionServicoTest {
         assertEquals("vmt-aceite-1", ordem.getUltimoEventoVmtId());
         verify(eventoRepositorio).saveAndFlush(any(EventoVmtWorkInstruction.class));
         verify(historicoRepositorio).save(any(HistoricoOperacaoPatio.class));
+        verify(confirmacaoTransferenciaFisicaServico, never()).confirmar(any(), any());
     }
 
     @Test
@@ -76,6 +80,7 @@ class EventoVmtWorkInstructionServicoTest {
 
         assertEquals(HttpStatus.CONFLICT, excecao.getStatus());
         verify(ordemRepositorio, never()).saveAndFlush(any(OrdemTrabalhoPatio.class));
+        verify(confirmacaoTransferenciaFisicaServico, never()).confirmar(any(), any());
     }
 
     @Test
@@ -90,18 +95,21 @@ class EventoVmtWorkInstructionServicoTest {
         assertEquals(HttpStatus.CONFLICT, excecao.getStatus());
         verify(ordemRepositorio, never()).saveAndFlush(any(OrdemTrabalhoPatio.class));
         verify(eventoRepositorio, never()).saveAndFlush(any(EventoVmtWorkInstruction.class));
+        verify(confirmacaoTransferenciaFisicaServico, never()).confirmar(any(), any());
     }
 
     @Test
-    void deveConcluirInstrucaoSomentePeloEventoVmtOrdenado() {
+    void deveConcluirInstrucaoSomenteAposConfirmacaoFisicaOrdenada() {
         OrdemTrabalhoPatio ordem = ordemEmExecucao(StatusConfirmacaoVmt.EM_EXECUCAO);
         LocalDateTime timestamp = LocalDateTime.of(2026, 7, 18, 10, 15);
+        EventoVmtWorkInstructionRequest request = request("vmt-conclusao-1", TipoEventoVmt.CONCLUSAO,
+                StatusConfirmacaoVmt.EM_EXECUCAO, timestamp);
         prepararConsulta(ordem);
         prepararPersistencia();
 
-        servico.processar(10L, request("vmt-conclusao-1", TipoEventoVmt.CONCLUSAO,
-                StatusConfirmacaoVmt.EM_EXECUCAO, timestamp));
+        servico.processar(10L, request);
 
+        verify(confirmacaoTransferenciaFisicaServico).confirmar(ordem, request);
         assertEquals(StatusConfirmacaoVmt.CONCLUIDA, ordem.getStatusConfirmacaoVmt());
         assertEquals(StatusOrdemTrabalhoPatio.CONCLUIDA, ordem.getStatusOrdem());
         assertEquals(timestamp, ordem.getVmtConcluidoEm());

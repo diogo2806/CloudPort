@@ -48,7 +48,7 @@ public class MotoristaVerificacaoAdvisorConfiguration {
                         && method.getParameterCount() == 1;
             }
         };
-n        Advice advice = (MethodInterceptor) invocation -> {
+        Advice advice = (MethodInterceptor) invocation -> {
             GateFlowRequest request = (GateFlowRequest) invocation.getArguments()[0];
             verificacaoService.exigirVerificacaoEntrada(request);
             return invocation.proceed();

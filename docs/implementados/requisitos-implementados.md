@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-18 com a conclusão dos BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e a prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-20 com a conclusão dos BUS1380 e BUS1390, além dos BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -221,6 +221,16 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 30. O endpoint simplificado `POST /api/carga-geral/lotes/{id}/avarias` retorna `410 Gone` e direciona ao contrato canônico `/api/carga-geral/intermodal/avarias`.
 31. A tela possui ajuda contextual e manual operacional com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e referências do processo completo.
 32. Testes de domínio cobrem o ciclo completo, a obrigatoriedade da inspeção e a manutenção do bloqueio.
+33. O BUS1380 exige pesagem física após a execução integral do stuffing, persistindo método, tara, peso bruto, VGM, capacidade máxima, equipamento, responsável, instante e observação.
+34. O método 1 reconcilia peso bruto e VGM; o método 2 reconcilia tara, carga executada e VGM com tolerância operacional de 1 kg.
+35. VGM ausente, inconsistente ou superior à capacidade máxima impede a conclusão e mantém o contêiner bloqueado para embarque.
+36. O BUS1390 persiste `ProgramacaoDocaCarga` com doca, área de espera, recurso, contêiner, janela operacional, cargo lots, auditoria e estados `RESERVADA`, `EM_USO`, `CONCLUIDA` e `CANCELADA`.
+37. Sobreposições de doca, área de espera, recurso, contêiner ou cargo lot são rejeitadas no serviço e protegidas por restrições de exclusão `gist` no PostgreSQL.
+38. O início exige plano liberado, programação reservada e janela aberta; apontamentos exigem programação em uso.
+39. Alterações do plano são bloqueadas enquanto houver programação ativa, preservando a correspondência entre cargo lots planejados e reservados.
+40. Conclusão ou cancelamento libera doca, área de espera, recurso, contêiner e cargo lots na mesma transação do fluxo operacional.
+41. O portal possui agenda de docas e staging com estado da janela, conflitos explicados, reprogramação, cancelamento e manual contextual completo.
+42. Testes cobrem o ciclo da programação, bloqueio antes da janela, cancelamento prévio e exigência de staging na orquestração.
 
 ## Billing e portal CAP
 

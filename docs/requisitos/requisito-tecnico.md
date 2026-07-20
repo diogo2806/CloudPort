@@ -1,29 +1,12 @@
 # Requisitos técnicos pendentes — CloudPort
 
-Status: atualizado em 2026-07-20 após validação da branch main e comparação da interface gráfica 2D com o XPS.
+Status: atualizado em 2026-07-20 após a conclusão dos BUS1380 e BUS1390 na branch `main`.
 
 Este arquivo contém somente pendências técnicas implementáveis e comprovadas no sistema. Não inclui CI/CD, testes, QA, métricas observacionais, publicação ou marketing.
 
 ## 1. Carga geral, stuff e unstuff
 
-| ID | Tarefa técnica | Critério de conclusão | Status |
-|---|---|---|---|
-| BUS1380 | Confirmar pesagem e VGM após a conclusão física do stuffing. | A operação concluída registra tara, peso bruto, método de pesagem, equipamento, responsável e VGM; o contêiner não é liberado para embarque quando o peso exceder limites ou não estiver confirmado. | ⬜ Pendente |
-| BUS1390 | Implementar staging de carga por doca e janela operacional antes de stuff e unstuff. | Doca, área de espera, janela, recurso, lotes e contêiner são reservados sem conflito; início e conclusão atualizam ocupação e liberam recursos de forma transacional. | ⬜ Pendente |
-
-### BUS1380 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/StuffUnstuffServico.java` | conclusão de stuffing | A conclusão não exige pesagem física nem produz VGM operacional vinculado ao contêiner. | Criar novo método sugerido: `confirmarPesagemStuffing()` e validar tara, peso bruto, capacidade e método de pesagem antes da liberação. |
-| `frontend/cloudport/src/pages/StuffUnstuffPage.jsx` | confirmação da operação | A tela não captura equipamento de pesagem, responsável, método nem VGM. | Adicionar etapa de pesagem e estado de liberação por peso confirmado. |
-
-### BUS1390 — arquivos e métodos
-
-| Caminho completo | Método/campo/contrato | Como está | O que fazer |
-|---|---|---|---|
-| `backend/servico-carga-geral/src/main/java/br/com/cloudport/servicocargageral/servico/StuffUnstuffServico.java` | criação da operação | A operação referencia carga e contêiner, mas não reserva doca, área de espera, janela ou recurso operacional. | Criar novo agregado sugerido: `ProgramacaoDocaCarga`, com reserva concorrente, início, conclusão e cancelamento. |
-| `frontend/cloudport/src/pages/StuffUnstuffPage.jsx` | planejamento | Não há quadro de docas, filas, janelas ou conflitos de ocupação. | Criar agenda operacional de docas e staging ligada às operações. |
+Nenhuma pendência técnica permanece nesta seção. O BUS1380 foi concluído no PR #598 e o BUS1390 no PR #599; ambos estão registrados no documento canônico de requisitos implementados.
 
 ## 2. Gate e pátio
 

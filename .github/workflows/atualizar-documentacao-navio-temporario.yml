@@ -1,0 +1,101 @@
+name: Atualizar documentação Navio temporariamente
+
+on:
+  push:
+    branches:
+      - docs/bus1350-bus1360-navio-20260720
+
+permissions:
+  contents: write
+
+jobs:
+  atualizar-documentacao:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Atualizar documentos canônicos
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def incluir_no_status(texto: str, complemento: str) -> str:
+              linhas = texto.splitlines()
+              for indice, linha in enumerate(linhas):
+                  if linha.startswith('Status:'):
+                      if 'PR #612' not in linha:
+                          base = linha[:-1] if linha.endswith('.') else linha
+                          linhas[indice] = f'{base}, {complemento}.'
+                      break
+              return '\n'.join(linhas) + ('\n' if texto.endswith('\n') else '')
+
+          requisitos_path = Path('docs/requisitos/requisito-tecnico.md')
+          requisitos = requisitos_path.read_text(encoding='utf-8')
+          requisitos = incluir_no_status(
+              requisitos,
+              'incluindo a conclusão dos BUS1350 e BUS1360 no PR #612')
+          nova_secao_navio = '''## 4. Navio
+
+          Nenhuma pendência técnica permanece nesta seção. O BUS1350 e o BUS1360 foram concluídos no PR #612 e estão registrados no documento canônico de requisitos implementados.
+          '''.strip()
+          requisitos, substituicoes = re.subn(
+              r'## 4\. Navio\n.*?(?=\n## 5\.)',
+              nova_secao_navio,
+              requisitos,
+              count=1,
+              flags=re.DOTALL)
+          if substituicoes != 1:
+              raise RuntimeError('A seção 4. Navio não foi localizada de forma única.')
+          requisitos_path.write_text(requisitos, encoding='utf-8')
+
+          implementados_path = Path('docs/implementados/requisitos-implementados.md')
+          implementados = implementados_path.read_text(encoding='utf-8')
+          implementados = incluir_no_status(
+              implementados,
+              'incluindo a conclusão dos BUS1350 e BUS1360 no PR #612')
+          secao_implementada = '''## Prontidão de berço e eventos de guindaste — BUS1350 e BUS1360
+
+          1. Cada escala atracada possui checklist versionado de prontidão com berço, calado, defensas, amarração, acesso, recursos, restrições, liberações, observações, responsável e instante.
+          2. Cada nova confirmação cria uma versão imutável e preserva o histórico integral da escala.
+          3. A transição de `ATRACADO` para `OPERANDO` utiliza bloqueio pessimista e exige que a versão mais recente esteja integralmente pronta.
+          4. A resposta funcional informa exatamente os itens críticos pendentes e impede alteração parcial da fase.
+          5. Paralisações planejadas e operacionais são persistidas por execução e guindaste com início, fim, motivo, impacto, turno, pendências, observações e responsável.
+          6. Paralisações planejadas exigem fim; paralisações operacionais podem permanecer abertas até a liberação do equipamento.
+          7. Intervalos sobrepostos são rejeitados e uma restrição parcial permite somente uma paralisação aberta por execução e guindaste.
+          8. O início de movimento é bloqueado quando seu guindaste estiver em paralisação ativa no instante informado.
+          9. O encerramento da paralisação registra fim, responsável e observação sem sobrescrever o evento original.
+          10. O handover registra turno de origem, turno de destino, responsável que recebe, pendências e instante da passagem.
+          11. Eventos operacionais possuem controle otimista de versão e permanecem separados do plano aprovado, preservando a reconciliação entre planejado e realizado.
+          12. O Control Room reúne prontidão, bloqueios, execução, métricas, paralisações, handover e linha do tempo, mantendo disponível o monitor incorporado legado.
+          13. O console continua operacional quando a URL do iframe não está configurada e restringe comandos aos perfis autorizados.
+          14. A tela possui manual contextual com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e link para o processo completo.
+          15. As migrations `V4__prontidao_operacional_berco.sql` e `V222__paralisacoes_handover_guindastes.sql` criam tabelas, restrições, índices, histórico e controles de concorrência.
+          16. Testes unitários cobrem ausência e conclusão da prontidão, paralisação planejada, bloqueio de movimento por paralisação e handover com pendências.
+          '''.strip()
+          marcador = '## Operações administrativas de Navio'
+          if '## Prontidão de berço e eventos de guindaste — BUS1350 e BUS1360' not in implementados:
+              if marcador not in implementados:
+                  raise RuntimeError('O ponto de inserção do registro implementado não foi localizado.')
+              implementados = implementados.replace(
+                  marcador,
+                  f'{secao_implementada}\n\n{marcador}',
+                  1)
+          implementados_path.write_text(implementados, encoding='utf-8')
+          PY
+
+      - name: Commitar documentação
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/requisitos/requisito-tecnico.md docs/implementados/requisitos-implementados.md
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "docs(navios): registrar BUS1350 e BUS1360"
+          git push

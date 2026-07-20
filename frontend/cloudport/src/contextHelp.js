@@ -106,6 +106,20 @@ const PAGES = {
     documentationUrl: 'https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/carga-geral-avarias.md'
   },
   '/home/gate/dashboard': ['Central de ação do Gate', 'Priorizar filas, atendimentos e ocorrências do Gate.'],
+  '/home/gate/operacao': {
+    title: 'Operação completa do Gate',
+    purpose: 'Validar a identidade do motorista e executar a truck visit por estágios sem liberar avanço operacional indevido.',
+    flow: ['Selecione a truck visit.', 'Confira motorista, transportadora, placa e estágio.', 'Valide documento, PIN ou credencial.', 'Conclua as business tasks obrigatórias.', 'Avance a visita somente com verificação válida ou override autorizado.'],
+    fields: ['Método: documento, PIN ou credencial.', 'Valor: dado apresentado pelo motorista.', 'Estado: pendente, verificada, bloqueada, expirada ou override.', 'Tentativas restantes e bloqueio temporário.', 'Instantes de verificação e expiração.', 'Motivo e responsável pelo override.'],
+    permissions: ['OPERADOR_GATE: consulta e validação normal.', 'ADMIN_PORTO: validação, cadastro de credenciais e override motivado.', 'PLANEJADOR: consulta do estado operacional.'],
+    states: ['PENDENTE: verificação ainda não aprovada.', 'VERIFICADA: autorização válida.', 'BLOQUEADA: limite de tentativas atingido.', 'EXPIRADA: validade encerrada.', 'OVERRIDE: liberação administrativa auditada.'],
+    blockers: ['Documento, PIN ou credencial divergente.', 'Credencial inválida, revogada ou expirada.', 'Limite de tentativas atingido.', 'Verificação expirada.', 'Tarefa obrigatória pendente.', 'Trouble transaction aberta.', 'Perfil sem permissão.'],
+    example: 'Selecione a visita, valide o documento do motorista e conclua as tarefas; após o estado VERIFICADA, avance para o próximo estágio.',
+    shortcuts: ['F1: abrir esta ajuda.', 'Shift + ?: abrir esta ajuda.', 'Inspecionar: selecionar a truck visit.', 'Atualizar: recarregar a operação.'],
+    processPath: '/home/gate/dashboard',
+    processLabel: 'Abrir central do Gate',
+    documentationUrl: 'https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/gate-verificacao-motorista.md'
+  },
   '/home/gate/agendamentos': ['Agendamentos do Gate', 'Consultar reservas de atendimento de veículos.', ['Protocolo', 'Transportadora', 'Placa', 'Janela', 'Status']],
   '/home/gate/janelas': ['Janelas de atendimento', 'Consultar capacidade e disponibilidade das janelas.', ['Data', 'Faixa horária', 'Capacidade', 'Reservas']],
   '/home/gate/pessoas': ['Controle de pessoas', 'Registrar entrada, permanência e saída de pessoas.', ['Documento', 'Nome', 'Empresa', 'Motivo', 'Ponto de acesso']],

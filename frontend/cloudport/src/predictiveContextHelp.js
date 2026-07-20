@@ -3,44 +3,48 @@ const DISPATCH_MANUAL_URL = 'https://github.com/diogo2806/CloudPort/blob/main/do
 
 const HELP_BY_PATH = {
   '/home/patio/planejamento-recebimento': {
-    title: 'Planejamento preditivo de posições',
-    purpose: 'Agrupar recebimentos e controlar posições tentativas, definitivas e iminentes antes da execução operacional.',
+    title: 'Recebimento integrado Gate × Yard',
+    purpose: 'Selecionar uma truck visit, validar suas referências comerciais e simular o agrupamento das unidades elegíveis antes de reservar posição, exchange area e work instruction.',
     flow: [
-      'Gere ou consulte as propostas calculadas pelo scheduler.',
-      'Confira unidade, bloco, posição, horizonte, validade, origem e motivo.',
-      'Converta a proposta para DEFINITIVO quando o plano estiver confirmado.',
-      'Converta para IMINENTE quando a execução estiver próxima.',
-      'No dispatch, permita que o sistema revalide transacionalmente propostas ainda TENTATIVAS.'
+      'Selecione a instalação e uma truck visit ativa carregada pelo Gate.',
+      'Revise as transações, unidades, bookings, Bills of Lading, ordens e pré-avisos vinculados.',
+      'Corrija no Gate transações sem unidade, com trouble, em estado final ou sem autorização comercial compatível.',
+      'Simule o planejamento somente com as transações elegíveis.',
+      'Revise grupos, segregações, alertas e propostas de posição.',
+      'Confirme reservas e work instructions somente pelo fluxo transacional Gate × Yard; a simulação não conclui essas etapas.'
     ],
     fields: [
-      'Estado: TENTATIVO, DEFINITIVO, IMINENTE, EXPIRADO ou CANCELADO.',
-      'Horizonte: intervalo operacional previsto para uso da posição.',
-      'Validade e tempo restante: prazo antes de exigir novo cálculo.',
-      'Origem e assinatura: fonte do cálculo e chave de idempotência.',
-      'Motivo, operador e versão: trilha auditável de cada conversão.'
+      'Truck visit: visita operacional que fornece veículo, transportadora, pista, estágio e transações.',
+      'Referência comercial: booking, Bill of Lading, ordem ou pré-aviso usado para justificar a movimentação.',
+      'Elegibilidade: resultado da validação anterior ao planejamento.',
+      'Grupo sugerido: conjunto compatível por fluxo, armador, viagem, equipamento, peso e segregação.',
+      'Posição: proposta persistida como TENTATIVO, DEFINITIVO ou IMINENTE no painel preditivo.',
+      'Exchange area e work instruction: etapas ainda pendentes enquanto não houver confirmação do orquestrador.'
     ],
     permissions: [
-      'ADMIN_PORTO: consulta e conversão de estados.',
-      'PLANEJADOR: consulta, confirmação, iminência e cancelamento.',
-      'OPERADOR_PATIO: consulta; o dispatch revalida conforme a autorização operacional.'
+      'ADMIN_PORTO: consulta completa, simulação e operações autorizadas nos módulos Gate e Yard.',
+      'PLANEJADOR: consulta das visitas, simulação, revisão e conversão dos planos de posição.',
+      'OPERADOR_PATIO: consulta e execução após a confirmação operacional.',
+      'OPERADOR_GATE: manutenção da visita, transações e referências conforme autorização do Gate.'
     ],
     states: [
-      'TENTATIVO: proposta calculada e ainda não confirmada.',
-      'DEFINITIVO: posição confirmada para dispatch.',
-      'IMINENTE: execução próxima e posição reservada operacionalmente.',
-      'EXPIRADO: validade encerrada; exige novo cálculo.',
-      'CANCELADO: proposta retirada por decisão operacional.'
+      'ELEGÍVEL: transação apta a participar da simulação.',
+      'BLOQUEADA: transação excluída por inconsistência ou ausência de autorização.',
+      'NÃO SIMULADA: nenhuma proposta foi calculada para a visita selecionada.',
+      'SIMULADA: agrupamento calculado, sem reserva operacional confirmada.',
+      'TENTATIVO, DEFINITIVO, IMINENTE, EXPIRADO ou CANCELADO: estados persistidos do plano de posição.'
     ],
     blockers: [
-      'Validade encerrada.',
-      'Destino da work instruction divergente da posição planejada.',
-      'Transição de estado não permitida.',
-      'Motivo ou operador ausente.',
-      'Versão alterada concorrentemente.',
-      'Perfil sem permissão.'
+      'Unidade não identificada na transação, ordem ou pré-aviso.',
+      'Trouble ativo.',
+      'Transação cancelada, concluída ou finalizada.',
+      'Importação sem Bill of Lading ou ordem.',
+      'Exportação ou vazio sem booking, ordem ou pré-aviso.',
+      'ISO type ou peso ausente exige validação antes da posição definitiva.',
+      'Perfil sem permissão ou versão do plano alterada concorrentemente.'
     ],
-    example: 'Uma posição TENTATIVA válida é revalidada no dispatch. Se o destino coincidir, o sistema a converte para DEFINITIVO e registra a auditoria na mesma transação.',
-    shortcuts: ['F1 ou Shift + ?: abrir esta ajuda.', 'Esc: fechar a ajuda.', 'Atualizar: recarregar planos.', 'Clique na linha: abrir detalhes e auditoria.'],
+    example: 'Uma truck visit de exportação possui duas transações. A primeira tem unidade, booking e pré-aviso e entra na simulação. A segunda está com trouble e aparece bloqueada com o motivo, sem ser enviada ao agrupador.',
+    shortcuts: ['F1 ou Shift + ?: abrir esta ajuda.', 'Esc: fechar a ajuda.', 'Atualizar: recarregar visitas e referências.', 'Simular planejamento: calcular apenas as transações elegíveis.', 'Clique no grupo: abrir o inspector da decisão.'],
     processPath: '/home/patio/yard-impact',
     processLabel: 'Abrir Yard Impact',
     documentationUrl: MANUAL_URL

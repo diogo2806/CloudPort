@@ -1,0 +1,265 @@
+.integrated-operational-workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.operational-workspace-manual {
+  justify-self: end;
+  max-width: min(100%, 920px);
+}
+
+.operational-workspace-manual > summary {
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+
+.operational-workspace-manual > summary::-webkit-details-marker {
+  display: none;
+}
+
+.operational-workspace-manual[open] {
+  justify-self: stretch;
+}
+
+.operational-workspace-manual .content-card {
+  margin-top: .75rem;
+}
+
+.operational-selection-panel,
+.operational-viewport-controller,
+.operational-area-selection {
+  border: 1px solid var(--border, #d9e1ea);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  padding: 1rem;
+}
+
+.operational-selection-panel > header,
+.operational-simulation > header,
+.operational-area-selection > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.operational-selection-panel > header span {
+  display: block;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.operational-selection-panel h3 {
+  margin: .15rem 0 0;
+}
+
+.operational-domain-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .75rem;
+  margin-top: 1rem;
+}
+
+.operational-context-card {
+  border: 1px dashed var(--border, #c7d1dc);
+  border-radius: 12px;
+  padding: .8rem;
+  min-width: 0;
+}
+
+.operational-context-card.available {
+  border-style: solid;
+}
+
+.operational-context-card.active {
+  outline: 2px solid var(--primary, #1b5faa);
+  outline-offset: 2px;
+}
+
+.operational-context-card > header,
+.operational-context-card dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.context-card-main {
+  display: grid;
+  gap: .25rem;
+  width: 100%;
+  margin: .65rem 0;
+  text-align: left;
+}
+
+.operational-context-card dl {
+  display: grid;
+  gap: .3rem;
+  margin: 0;
+  font-size: .82rem;
+}
+
+.operational-context-card dt {
+  font-weight: 700;
+}
+
+.operational-context-card dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-drag-hint {
+  display: block;
+  margin-top: .6rem;
+}
+
+.operational-simulation {
+  margin-top: 1rem;
+  border-radius: 12px;
+  padding: .9rem;
+  border: 1px solid var(--border, #c7d1dc);
+}
+
+.operational-simulation.blocked {
+  border-style: dashed;
+}
+
+.operational-simulation label,
+.operational-simulation textarea {
+  display: block;
+  width: 100%;
+}
+
+.operational-simulation textarea {
+  margin-top: .35rem;
+  min-height: 78px;
+}
+
+.operational-simulation > div:last-of-type {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-top: .7rem;
+}
+
+.operational-simulation-error {
+  font-weight: 700;
+}
+
+.operational-viewport-controller {
+  overflow: hidden;
+}
+
+.operational-viewport-toolbar,
+.operational-viewport-toolbar > div,
+.operational-viewport-breadcrumbs,
+.operational-viewport-controller > footer {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.operational-viewport-toolbar {
+  justify-content: space-between;
+  margin-bottom: .65rem;
+}
+
+.operational-viewport-toolbar button.active,
+.operational-viewport-breadcrumbs button:last-child {
+  font-weight: 800;
+}
+
+.operational-viewport-breadcrumbs {
+  margin-bottom: .65rem;
+}
+
+.operational-viewport-breadcrumbs button + button::before {
+  content: '›';
+  margin-right: .5rem;
+}
+
+.operational-viewport-stage {
+  position: relative;
+  overflow: hidden;
+  min-height: 520px;
+  border: 1px solid var(--border, #d9e1ea);
+  border-radius: 12px;
+  background: var(--background, #f5f7fa);
+  touch-action: none;
+}
+
+.operational-viewport-stage.tool-pan {
+  cursor: grab;
+}
+
+.operational-viewport-stage.tool-pan:active {
+  cursor: grabbing;
+}
+
+.operational-viewport-stage.tool-zoom {
+  cursor: zoom-in;
+}
+
+.operational-viewport-stage.tool-info {
+  cursor: help;
+}
+
+.operational-viewport-stage.tool-area {
+  cursor: crosshair;
+}
+
+.operational-viewport-transform {
+  min-width: 100%;
+  transform-origin: 0 0;
+  padding: .75rem;
+  transition: transform 120ms ease-out;
+}
+
+.operational-selection-rectangle {
+  position: absolute;
+  border: 2px dashed var(--primary, #1b5faa);
+  background: color-mix(in srgb, var(--primary, #1b5faa) 12%, transparent);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.operational-viewport-controller > footer {
+  justify-content: space-between;
+  margin-top: .65rem;
+  font-size: .85rem;
+}
+
+.operational-area-selection > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: .6rem;
+  margin-top: .75rem;
+}
+
+.operational-area-selection button {
+  display: grid;
+  gap: .25rem;
+  text-align: left;
+}
+
+@media (max-width: 1100px) {
+  .operational-domain-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .operational-domain-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .operational-viewport-stage {
+    min-height: 420px;
+  }
+}

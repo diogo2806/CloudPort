@@ -25,6 +25,7 @@ import { PublicApiDiagnosticsPage } from './pages/PublicApiDiagnosticsPage.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
+import { ShipModelsPage } from './pages/ShipModelsPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 import { StuffUnstuffPage } from './pages/StuffUnstuffPage.jsx';
 import { VesselLineUpPage } from './pages/VesselLineUpPage.jsx';
@@ -64,6 +65,7 @@ const FALLBACK_NAVIGATION = [
     { label: 'Contêineres, chassis e carretas', path: '/home/patio/inventario', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
     { label: 'Pátios e posições', path: '/home/patio/mapa', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
     { label: 'Trens e composições', path: '/home/ferrovia/visitas', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
+    { label: 'Modelos de navio', path: '/home/cadastros/modelos-navio', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Janelas de atendimento', path: '/home/gate/janelas', roles: [] },
     { label: 'Recursos do pátio', path: '/home/patio/recursos', roles: [] }
   ] },
@@ -186,6 +188,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/patio/bercos') return <BerthRegistrationsPage session={session} />;
   if (path === '/home/gate/configuracao') return <GateInfrastructurePage session={session} />;
   if (path === '/home/patio/tipos-equipamentos') return <EquipmentReferencesPage session={session} />;
+  if (path === '/home/cadastros/modelos-navio') return <ShipModelsPage />;
   if (path === '/home/carga-geral') return <GeneralCargoPage />;
   if (path === '/home/carga-geral/stuff-unstuff') return <StuffUnstuffPage />;
   if (path === '/home/billing') return <BillingPage />;

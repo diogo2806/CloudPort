@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { readSession } from './api.js';
 import { buildHelpSections, filterHelpSections, resolveContextHelp } from './contextHelp.js';
+import { applyPredictiveContextHelp } from './predictiveContextHelp.js';
 import './context-help.css';
 
 function isTypingTarget(target) {
@@ -24,7 +25,10 @@ export function ContextHelp({ path, navigate, session }) {
   const closeRef = useRef(null);
   const activePath = path ?? globalThis.location?.pathname ?? '/home/dashboard';
   const activeSession = session ?? readSession() ?? {};
-  const help = useMemo(() => resolveContextHelp(activePath, activeSession), [activePath, activeSession]);
+  const help = useMemo(() => applyPredictiveContextHelp(
+    activePath,
+    resolveContextHelp(activePath, activeSession)
+  ), [activePath, activeSession]);
   const sections = useMemo(() => buildHelpSections(help), [help]);
   const visibleSections = useMemo(() => filterHelpSections(sections, query), [sections, query]);
   const portalTarget = globalThis.document?.body;

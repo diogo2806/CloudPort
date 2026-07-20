@@ -1,0 +1,60 @@
+.rail-operations-manual {
+  margin-bottom: 1rem;
+}
+
+.rail-operation-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.rail-operation-form label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.rail-operation-form textarea {
+  min-height: 78px;
+  resize: vertical;
+}
+
+.rail-operation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.rail-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.45rem;
+  grid-column: 1 / -1;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color, #d7dee8);
+  border-radius: 10px;
+}
+
+.rail-checklist label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 500;
+}
+
+.rail-inspection-form > label:nth-of-type(3) {
+  grid-column: span 2;
+}
+
+@media (max-width: 720px) {
+  .rail-operation-form {
+    grid-template-columns: 1fr;
+  }
+
+  .rail-inspection-form > label:nth-of-type(3) {
+    grid-column: auto;
+  }
+}

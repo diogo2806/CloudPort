@@ -1,6 +1,6 @@
 # Requisitos implementados - CloudPort
 
-Status: atualizado em 2026-07-20 com a conclusão do BUS1310, BUS1300 e BUS1290, além dos BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
+Status: atualizado em 2026-07-20 com a conclusão do BUS1320, BUS1310, BUS1300 e BUS1290, além dos BUS1380, BUS1390, BUS10, BUS1030, BUS1040 e BUS1070, da seção Navio e ferrovia e da prova automatizada do corte operacional do monólito modular.
 
 ## Instruções obrigatórias para agentes de IA
 
@@ -152,6 +152,13 @@ Não criar novos arquivos de entrega para cada alteração. Atualizar este docum
 22. A API autenticada permite listar custódias, registrar entregas e confirmar recebimentos para os perfis operacionais autorizados.
 23. O painel em Pátio > Indicadores mostra entregues, recebidas, divergentes e bloqueadas, preserva a chave idempotente em retentativas e possui manual completo com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e processo completo.
 24. Testes unitários cobrem entrega, recebimento equivalente e divergência bloqueante.
+25. O BUS1320 exige confirmação física de `GROUNDING` ou `UNGROUNDING` antes da conclusão de cada work instruction executada pelo VMT.
+26. A confirmação valida a leitura da unidade, o CHE real associado à work queue, o estado operacional do equipamento, a origem, o destino, a posição física e a sequência da job list.
+27. Eventos duplicados, timestamps fora de ordem, CHE divergente, posições incompatíveis e instruções anteriores abertas são rejeitados antes de qualquer alteração de inventário.
+28. Grounding registra ou atualiza a unidade na posição prevista e libera a reserva correspondente; ungrounding remove a unidade da posição atual e atualiza seu destino e estado.
+29. Inventário, evento VMT, histórico e conclusão da work instruction são persistidos na mesma transação.
+30. A tela Pátio > Lista de trabalho substitui a conclusão genérica por formulário explícito de transferência física, restrito aos perfis operacionais autorizados.
+31. A tela possui manual contextual e documentação completa com finalidade, fluxo, campos, permissões, estados, bloqueios, exemplos, atalhos e processo completo.
 
 ## Control Room e Visibilidade
 

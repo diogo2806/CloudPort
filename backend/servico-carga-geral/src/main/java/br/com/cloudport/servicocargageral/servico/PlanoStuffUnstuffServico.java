@@ -1,6 +1,7 @@
 package br.com.cloudport.servicocargageral.servico;
 
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusOperacaoStuffUnstuff;
+import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.StatusProgramacaoDocaCarga;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoEventoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.CargaGeralTipos.TipoOperacaoStuffUnstuff;
 import br.com.cloudport.servicocargageral.dominio.ItemOperacaoStuffUnstuff;
@@ -17,6 +18,7 @@ import br.com.cloudport.servicocargageral.dto.StuffUnstuffDTOs.PlanoVersaoRespos
 import br.com.cloudport.servicocargageral.repositorio.LoteCargaRepositorio;
 import br.com.cloudport.servicocargageral.repositorio.OperacaoStuffUnstuffRepositorio;
 import br.com.cloudport.servicocargageral.repositorio.PlanoStuffUnstuffVersaoRepositorio;
+import br.com.cloudport.servicocargageral.repositorio.ProgramacaoDocaCargaRepositorio;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,17 +33,24 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class PlanoStuffUnstuffServico {
 
+    private static final List<StatusProgramacaoDocaCarga> STATUS_PROGRAMACAO_ATIVA = List.of(
+            StatusProgramacaoDocaCarga.RESERVADA,
+            StatusProgramacaoDocaCarga.EM_USO);
+
     private final PlanoStuffUnstuffVersaoRepositorio planoRepositorio;
     private final OperacaoStuffUnstuffRepositorio operacaoRepositorio;
     private final LoteCargaRepositorio loteRepositorio;
+    private final ProgramacaoDocaCargaRepositorio programacaoRepositorio;
 
     public PlanoStuffUnstuffServico(
             PlanoStuffUnstuffVersaoRepositorio planoRepositorio,
             OperacaoStuffUnstuffRepositorio operacaoRepositorio,
-            LoteCargaRepositorio loteRepositorio) {
+            LoteCargaRepositorio loteRepositorio,
+            ProgramacaoDocaCargaRepositorio programacaoRepositorio) {
         this.planoRepositorio = planoRepositorio;
         this.operacaoRepositorio = operacaoRepositorio;
         this.loteRepositorio = loteRepositorio;
+        this.programacaoRepositorio = programacaoRepositorio;
     }
 
     @Transactional
@@ -74,6 +83,9 @@ public class PlanoStuffUnstuffServico {
         OperacaoStuffUnstuff operacao = buscarOperacao(operacaoId);
         if (operacao.getStatus() != StatusOperacaoStuffUnstuff.PLANEJADA || operacao.possuiExecucao()) {
             throw conflito("Uma nova versão só pode ser criada antes da execução física.");
+        }
+        if (programacaoRepositorio.existsByOperacao_IdAndStatusIn(operacaoId, STATUS_PROGRAMACAO_ATIVA)) {
+            throw conflito("Cancele a programação de doca antes de alterar os cargo lots do plano.");
         }
         PlanoStuffUnstuffVersao atual = planoRepositorio
                 .findFirstByOperacao_IdOrderByNumeroVersaoDesc(operacaoId)

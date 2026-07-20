@@ -31,6 +31,7 @@ import javax.persistence.Table;
 public class OperacaoStuffUnstuff {
 
     private static final BigDecimal TOLERANCIA_PESAGEM_KG = new BigDecimal("1.000");
+    private static final int LIMITE_DESCRICAO_EVENTO = 1000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -313,7 +314,11 @@ public class OperacaoStuffUnstuff {
         String detalhes = "Método " + metodoPesagem + ", tara " + taraKg.toPlainString()
                 + " kg, peso bruto/VGM " + vgmKg.toPlainString() + " kg, equipamento "
                 + equipamentoPesagem + ", responsável " + responsavelPesagem + ". ";
-        return detalhes + resultado + (observacao == null || observacao.isBlank() ? "" : " " + observacao.trim());
+        String descricao = detalhes + resultado
+                + (observacao == null || observacao.isBlank() ? "" : " " + observacao.trim());
+        return descricao.length() <= LIMITE_DESCRICAO_EVENTO
+                ? descricao
+                : descricao.substring(0, LIMITE_DESCRICAO_EVENTO);
     }
 
     private String normalizar(String valor) {

@@ -15,6 +15,12 @@ import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
 import { GeneralCargoPage } from './pages/GeneralCargoPage.jsx';
 import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
 import { LostFoundPage } from './pages/LostFoundPage.jsx';
+import {
+  BerthRegistrationsPage,
+  EquipmentReferencesPage,
+  GateInfrastructurePage,
+  VesselRegistrationsPage
+} from './pages/MasterDataPages.jsx';
 import { PublicApiDiagnosticsPage } from './pages/PublicApiDiagnosticsPage.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
@@ -51,8 +57,14 @@ const FALLBACK_NAVIGATION = [
   { group: 'Cadastros', items: [
     { label: 'Papéis de acesso', path: '/home/role', roles: ['ADMIN_PORTO'] },
     { label: 'Usuários', path: '/home/lista-de-usuarios', roles: ['ADMIN_PORTO'] },
+    { label: 'Navios', path: '/home/navio/cadastros', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
+    { label: 'Berços portuários', path: '/home/patio/bercos', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
+    { label: 'Instalações, gates e pistas', path: '/home/gate/configuracao', roles: ['ADMIN_PORTO'] },
+    { label: 'Tipos e prefixos de equipamentos', path: '/home/patio/tipos-equipamentos', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
+    { label: 'Contêineres, chassis e carretas', path: '/home/patio/inventario', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
+    { label: 'Pátios e posições', path: '/home/patio/mapa', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
+    { label: 'Trens e composições', path: '/home/ferrovia/visitas', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
     { label: 'Janelas de atendimento', path: '/home/gate/janelas', roles: [] },
-    { label: 'Posições do pátio', path: '/home/patio/posicoes', roles: [] },
     { label: 'Recursos do pátio', path: '/home/patio/recursos', roles: [] }
   ] },
   { group: 'Control Room', items: [
@@ -170,6 +182,10 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/notificacoes') return <NotificationsPage />;
   if (path === '/home/privacidade') return <PrivacyPage />;
   if (path === '/home/lista-de-usuarios') return <UsersPage />;
+  if (path === '/home/navio/cadastros') return <VesselRegistrationsPage session={session} />;
+  if (path === '/home/patio/bercos') return <BerthRegistrationsPage session={session} />;
+  if (path === '/home/gate/configuracao') return <GateInfrastructurePage session={session} />;
+  if (path === '/home/patio/tipos-equipamentos') return <EquipmentReferencesPage session={session} />;
   if (path === '/home/carga-geral') return <GeneralCargoPage />;
   if (path === '/home/carga-geral/stuff-unstuff') return <StuffUnstuffPage />;
   if (path === '/home/billing') return <BillingPage />;

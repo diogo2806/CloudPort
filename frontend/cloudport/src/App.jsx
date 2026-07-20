@@ -19,6 +19,7 @@ import { PublicApiDiagnosticsPage } from './pages/PublicApiDiagnosticsPage.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
 import { RailWorkListPage } from './pages/RailWorkListPage.jsx';
+import { ShipModelsPage } from './pages/ShipModelsPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 import { StuffUnstuffPage } from './pages/StuffUnstuffPage.jsx';
 import { VesselLineUpPage } from './pages/VesselLineUpPage.jsx';
@@ -51,6 +52,7 @@ const FALLBACK_NAVIGATION = [
   { group: 'Cadastros', items: [
     { label: 'Papéis de acesso', path: '/home/role', roles: ['ADMIN_PORTO'] },
     { label: 'Usuários', path: '/home/lista-de-usuarios', roles: ['ADMIN_PORTO'] },
+    { label: 'Modelos de navio', path: '/home/cadastros/modelos-navio', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Janelas de atendimento', path: '/home/gate/janelas', roles: [] },
     { label: 'Posições do pátio', path: '/home/patio/posicoes', roles: [] },
     { label: 'Recursos do pátio', path: '/home/patio/recursos', roles: [] }
@@ -170,6 +172,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/notificacoes') return <NotificationsPage />;
   if (path === '/home/privacidade') return <PrivacyPage />;
   if (path === '/home/lista-de-usuarios') return <UsersPage />;
+  if (path === '/home/cadastros/modelos-navio') return <ShipModelsPage />;
   if (path === '/home/carga-geral') return <GeneralCargoPage />;
   if (path === '/home/carga-geral/stuff-unstuff') return <StuffUnstuffPage />;
   if (path === '/home/billing') return <BillingPage />;

@@ -10,6 +10,45 @@ const GEOMETRY_TYPES = [
   ['EQUIPAMENTO', 'Área/ponto de equipamento']
 ];
 
+const GEOMETRY_TYPE_HELP = {
+  PILHA: {
+    title: 'Pilha',
+    purpose: 'Representa uma posição operacional onde contêineres são armazenados.',
+    example: 'Ex.: bloco A, linha 1, coluna 3.',
+    fields: 'Exige bloco, linha e coluna para identificar a posição.'
+  },
+  BLOCO: {
+    title: 'Bloco',
+    purpose: 'Delimita uma área maior do pátio que agrupa várias pilhas ou posições.',
+    example: 'Ex.: Bloco A ou Bloco Refrigerado.',
+    fields: 'Use um código único. Bloco, linha e coluna não são necessários.'
+  },
+  VIA: {
+    title: 'Via operacional',
+    purpose: 'Marca corredores usados para circulação de caminhões e equipamentos.',
+    example: 'Ex.: Via principal norte.',
+    fields: 'Desenhe a faixa operacional como um polígono estreito.'
+  },
+  AREA_BLOQUEADA: {
+    title: 'Área bloqueada',
+    purpose: 'Indica uma área temporariamente indisponível para uso operacional.',
+    example: 'Ex.: manutenção, obra ou obstáculo temporário.',
+    fields: 'Informe no motivo por que a área está bloqueada.'
+  },
+  AREA_INTERDITADA: {
+    title: 'Área interditada',
+    purpose: 'Indica uma área proibida para operação por decisão de segurança ou autoridade.',
+    example: 'Ex.: risco estrutural ou interdição oficial.',
+    fields: 'Informe no motivo a causa e a referência da interdição.'
+  },
+  EQUIPAMENTO: {
+    title: 'Área/ponto de equipamento',
+    purpose: 'Registra a posição ou a área de atuação de um equipamento do pátio.',
+    example: 'Ex.: RTG-01, reach stacker ou balança.',
+    fields: 'Use um código que permita reconhecer o equipamento.'
+  }
+};
+
 const EMPTY_FORM = Object.freeze({
   codigo: '',
   tipo: 'PILHA',
@@ -47,9 +86,9 @@ function buildGeoJson(form, vertices) {
     properties: {
       codigo: form.codigo.trim(),
       tipo: form.tipo,
-      bloco: form.bloco.trim() || null,
-      linha: form.linha === '' ? null : Number(form.linha),
-      coluna: form.coluna === '' ? null : Number(form.coluna)
+      bloco: form.tipo === 'PILHA' ? form.bloco.trim() || null : null,
+      linha: form.tipo === 'PILHA' && form.linha !== '' ? Number(form.linha) : null,
+      coluna: form.tipo === 'PILHA' && form.coluna !== '' ? Number(form.coluna) : null
     },
     geometry: {
       type: 'Polygon',
@@ -76,6 +115,7 @@ export function YardGeometryEditor({
   const [selectedId, setSelectedId] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
   const [vertices, setVertices] = useState([]);
+  const [choosingType, setChoosingType] = useState(false);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -85,6 +125,7 @@ export function YardGeometryEditor({
     () => geometries.find((geometry) => String(geometry.id) === String(selectedId)) ?? null,
     [geometries, selectedId]
   );
+  const typeHelp = GEOMETRY_TYPE_HELP[form.tipo];
 
   useEffect(() => {
     if (selectedId && !selectedGeometry) setSelectedId('');
@@ -153,6 +194,7 @@ export function YardGeometryEditor({
   }
 
   function resetEditor() {
+    setChoosingType(false);
     setEditing(false);
     setVertices([]);
     setForm(EMPTY_FORM);
@@ -163,10 +205,17 @@ export function YardGeometryEditor({
     setSelectedId('');
     setForm(EMPTY_FORM);
     setVertices([]);
-    setEditing(true);
+    setChoosingType(true);
+    setEditing(false);
     setError('');
     setSuccess('');
     onSelectGeometry?.(null);
+  }
+
+  function chooseType(tipo) {
+    setForm({ ...EMPTY_FORM, tipo });
+    setChoosingType(false);
+    setEditing(true);
   }
 
   function startEdit() {
@@ -183,6 +232,7 @@ export function YardGeometryEditor({
       motivo: ''
     });
     setVertices(geometryVertices(selectedGeometry));
+    setChoosingType(false);
     setEditing(true);
     setError('');
     setSuccess('');
@@ -193,7 +243,7 @@ export function YardGeometryEditor({
     setError('');
     setSuccess('');
     if (!form.codigo.trim()) {
-      setError('Informe o código da geometria.');
+      setError('Informe um código que identifique a geometria.');
       return;
     }
     if (!form.motivo.trim()) {
@@ -215,9 +265,9 @@ export function YardGeometryEditor({
         id: selectedGeometry?.id,
         codigo: form.codigo.trim(),
         tipo: form.tipo,
-        bloco: form.bloco.trim() || null,
-        linha: form.linha === '' ? null : Number(form.linha),
-        coluna: form.coluna === '' ? null : Number(form.coluna),
+        bloco: form.tipo === 'PILHA' ? form.bloco.trim() || null : null,
+        linha: form.tipo === 'PILHA' && form.linha !== '' ? Number(form.linha) : null,
+        coluna: form.tipo === 'PILHA' && form.coluna !== '' ? Number(form.coluna) : null,
         motivo: form.motivo.trim(),
         geoJson: buildGeoJson(form, vertices)
       };
@@ -262,12 +312,37 @@ export function YardGeometryEditor({
 
   return <aside className="yard-geometry-editor" aria-label="Editor georreferenciado do pátio">
     <div className="yard-geometry-editor-header">
-      <strong>Editor do pátio</strong>
+      <div>
+        <strong>Editor do pátio</strong>
+        <small>{choosingType ? 'Etapa 1 de 2 · escolha o que será criado' : editing ? 'Etapa 2 de 2 · preencha e desenhe' : 'Selecione ou crie uma geometria'}</small>
+      </div>
       <span>{editing ? `${vertices.length} vértice(s)` : `${geometries.length} geometria(s)`}</span>
     </div>
     <Message type="error">{error}</Message>
     <Message type="success">{success}</Message>
-    {!editing ? <>
+    {choosingType ? <>
+      <div className="yard-geometry-intro">
+        <strong>O que você quer representar no mapa?</strong>
+        <p>Escolha o tipo antes de desenhar. O sistema mostrará somente os campos necessários.</p>
+      </div>
+      <div className="yard-geometry-type-list">
+        {GEOMETRY_TYPES.map(([value]) => {
+          const help = GEOMETRY_TYPE_HELP[value];
+          return <button type="button" key={value} className="yard-geometry-type-option" onClick={() => chooseType(value)}>
+            <strong>{help.title}</strong>
+            <span>{help.purpose}</span>
+            <small>{help.example}</small>
+          </button>;
+        })}
+      </div>
+      <div className="yard-geometry-editor-actions">
+        <button type="button" className="secondary" onClick={resetEditor}>Cancelar</button>
+      </div>
+    </> : !editing ? <>
+      <div className="yard-geometry-intro">
+        <strong>Como usar</strong>
+        <p>Crie blocos para dividir o pátio, pilhas para posições de armazenagem, vias para circulação e áreas especiais para restrições ou equipamentos.</p>
+      </div>
       <label>
         <span>Geometria cadastrada</span>
         <select value={selectedId} onChange={(event) => {
@@ -285,23 +360,39 @@ export function YardGeometryEditor({
         <input value={form.motivo} onChange={(event) => updateField('motivo', event.target.value)} maxLength={500} placeholder="Obrigatório ao excluir" />
       </label>
       <div className="yard-geometry-editor-actions">
-        <button type="button" onClick={startNew} disabled={!mapContext || busy}>Novo polígono</button>
-        <button type="button" className="secondary" onClick={startEdit} disabled={!selectedGeometry || !mapContext || busy}>Editar</button>
+        <button type="button" onClick={startNew} disabled={!mapContext || busy}>Criar geometria</button>
+        <button type="button" className="secondary" onClick={startEdit} disabled={!selectedGeometry || !mapContext || busy}>Editar selecionada</button>
         <button type="button" className="secondary danger" onClick={remove} disabled={!selectedGeometry || busy}>Excluir</button>
       </div>
     </> : <>
-      <div className="yard-geometry-editor-grid">
-        <label><span>Código</span><input value={form.codigo} onChange={(event) => updateField('codigo', event.target.value)} maxLength={80} /></label>
-        <label><span>Tipo</span><select value={form.tipo} onChange={(event) => updateField('tipo', event.target.value)}>{GEOMETRY_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label><span>Bloco</span><input value={form.bloco} onChange={(event) => updateField('bloco', event.target.value)} maxLength={40} /></label>
-        <label><span>Linha</span><input type="number" value={form.linha} onChange={(event) => updateField('linha', event.target.value)} /></label>
-        <label><span>Coluna</span><input type="number" value={form.coluna} onChange={(event) => updateField('coluna', event.target.value)} /></label>
+      <div className="yard-geometry-type-summary">
+        <strong>{typeHelp.title}</strong>
+        <p>{typeHelp.purpose}</p>
+        <small>{typeHelp.fields}</small>
+        {!selectedGeometry && <button type="button" className="link-button" onClick={() => { setEditing(false); setChoosingType(true); setVertices([]); }}>Trocar tipo</button>}
       </div>
-      <label><span>Motivo da alteração</span><input value={form.motivo} onChange={(event) => updateField('motivo', event.target.value)} maxLength={500} /></label>
-      <p className="yard-geometry-editor-hint">Clique no mapa para adicionar pontos. Com três ou mais pontos, arraste os marcadores dos vértices para ajustar o desenho.</p>
+      <div className="yard-geometry-editor-grid">
+        <label><span>Código</span><input value={form.codigo} onChange={(event) => updateField('codigo', event.target.value)} maxLength={80} placeholder={typeHelp.example.replace('Ex.: ', '')} /></label>
+        <label><span>Tipo</span><input value={typeHelp.title} disabled /></label>
+        {form.tipo === 'PILHA' && <>
+          <label><span>Bloco</span><input value={form.bloco} onChange={(event) => updateField('bloco', event.target.value)} maxLength={40} placeholder="Ex.: A" /></label>
+          <label><span>Linha</span><input type="number" min="1" value={form.linha} onChange={(event) => updateField('linha', event.target.value)} placeholder="Ex.: 1" /></label>
+          <label><span>Coluna</span><input type="number" min="1" value={form.coluna} onChange={(event) => updateField('coluna', event.target.value)} placeholder="Ex.: 3" /></label>
+        </>}
+      </div>
+      <label><span>Motivo da alteração</span><input value={form.motivo} onChange={(event) => updateField('motivo', event.target.value)} maxLength={500} placeholder="Ex.: criação do layout inicial do pátio" /></label>
+      <div className="yard-geometry-draw-instructions">
+        <strong>Desenho no mapa</strong>
+        <ol>
+          <li>Clique no mapa para marcar os cantos da área.</li>
+          <li>Use pelo menos três pontos.</li>
+          <li>Arraste os marcadores para ajustar o contorno.</li>
+          <li>Revise os dados e salve.</li>
+        </ol>
+      </div>
       <div className="yard-geometry-editor-actions">
-        <button type="button" className="secondary" onClick={() => setVertices((current) => current.slice(0, -1))} disabled={!vertices.length || busy}>Desfazer ponto</button>
-        <button type="button" onClick={save} disabled={busy || vertices.length < 3}>{busy ? 'Salvando...' : 'Salvar polígono'}</button>
+        <button type="button" className="secondary" onClick={() => setVertices((current) => current.slice(0, -1))} disabled={!vertices.length || busy}>Desfazer último ponto</button>
+        <button type="button" onClick={save} disabled={busy || vertices.length < 3}>{busy ? 'Salvando...' : `Salvar ${typeHelp.title.toLowerCase()}`}</button>
         <button type="button" className="secondary" onClick={resetEditor} disabled={busy}>Cancelar</button>
       </div>
     </>}

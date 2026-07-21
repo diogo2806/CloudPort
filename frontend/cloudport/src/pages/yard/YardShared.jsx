@@ -40,8 +40,9 @@ export function useRemote(loader, dependencies = []) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const reload = useCallback(async () => {
-    setLoading(true);
+  const reload = useCallback(async (options) => {
+    const silent = options?.silent === true;
+    if (!silent) setLoading(true);
     setError('');
     try {
       const response = await loader();
@@ -51,7 +52,7 @@ export function useRemote(loader, dependencies = []) {
       setError(formatError(reason));
       return undefined;
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, dependencies);
   useEffect(() => { reload(); }, [reload]);

@@ -45,7 +45,7 @@ export function YardMapPage({ navigate }) {
   }, [filters.status, filters.tipoCarga, filters.destino, filters.camada, filters.tipoEquipamento]);
 
   useEffect(() => {
-    const interval = globalThis.setInterval(() => remote.reload(), 10000);
+    const interval = globalThis.setInterval(() => remote.reload({ silent: true }), 10000);
     return () => globalThis.clearInterval(interval);
   }, [remote.reload]);
 

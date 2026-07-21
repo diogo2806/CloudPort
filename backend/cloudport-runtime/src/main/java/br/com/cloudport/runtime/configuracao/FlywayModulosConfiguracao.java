@@ -56,7 +56,7 @@ public class FlywayModulosConfiguracao {
 
     @Bean(name = "flywayGate", initMethod = "migrate")
     public Flyway flywayGate() {
-        return criarFlyway("classpath:cloudport/migrations/gate/db/migration", schemaGate);
+        return criarFlyway("classpath:cloudport/migrations/gate/db/migration", schemaGate, true);
     }
 
     @Bean(name = "flywayRail", initMethod = "migrate")
@@ -98,6 +98,10 @@ public class FlywayModulosConfiguracao {
     }
 
     private Flyway criarFlyway(String localMigracoes, String schema) {
+        return criarFlyway(localMigracoes, schema, false);
+    }
+
+    private Flyway criarFlyway(String localMigracoes, String schema, boolean executarForaDeOrdem) {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations(localMigracoes)
@@ -105,6 +109,7 @@ public class FlywayModulosConfiguracao {
                 .defaultSchema(schema)
                 .createSchemas(true)
                 .validateOnMigrate(true)
+                .outOfOrder(executarForaDeOrdem)
                 .load();
     }
 

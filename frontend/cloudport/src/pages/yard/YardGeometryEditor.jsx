@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Message } from '../../components.jsx';
 
 const GEOMETRY_TYPES = [
-  ['PILHA', 'Pilha'],
+  ['PILHA', 'Posição Bay/Row/Tier'],
   ['BLOCO', 'Bloco'],
   ['VIA', 'Via operacional'],
   ['AREA_BLOQUEADA', 'Área bloqueada'],
@@ -12,16 +12,16 @@ const GEOMETRY_TYPES = [
 
 const GEOMETRY_TYPE_HELP = {
   PILHA: {
-    title: 'Pilha',
-    purpose: 'Representa uma posição operacional onde contêineres são armazenados.',
-    example: 'Ex.: bloco A, linha 1, coluna 3.',
-    fields: 'Exige bloco, linha e coluna para identificar a posição.'
+    title: 'Posição Bay/Row/Tier',
+    purpose: 'Representa uma posição operacional de armazenagem identificada pelas coordenadas Bay, Row e Tier.',
+    example: 'Ex.: B01-R02-T03.',
+    fields: 'Informe Bay, Row e Tier conforme a nomenclatura operacional do terminal.'
   },
   BLOCO: {
     title: 'Bloco',
-    purpose: 'Delimita uma área maior do pátio que agrupa várias pilhas ou posições.',
+    purpose: 'Delimita uma área maior do pátio que agrupa várias posições Bay/Row/Tier.',
     example: 'Ex.: Bloco A ou Bloco Refrigerado.',
-    fields: 'Use um código único. Bloco, linha e coluna não são necessários.'
+    fields: 'Use um código único. Bay, Row e Tier não são necessários.'
   },
   VIA: {
     title: 'Via operacional',
@@ -86,6 +86,9 @@ function buildGeoJson(form, vertices) {
     properties: {
       codigo: form.codigo.trim(),
       tipo: form.tipo,
+      bay: form.tipo === 'PILHA' ? form.bloco.trim() || null : null,
+      row: form.tipo === 'PILHA' && form.linha !== '' ? Number(form.linha) : null,
+      tier: form.tipo === 'PILHA' && form.coluna !== '' ? Number(form.coluna) : null,
       bloco: form.tipo === 'PILHA' ? form.bloco.trim() || null : null,
       linha: form.tipo === 'PILHA' && form.linha !== '' ? Number(form.linha) : null,
       coluna: form.tipo === 'PILHA' && form.coluna !== '' ? Number(form.coluna) : null
@@ -97,11 +100,15 @@ function buildGeoJson(form, vertices) {
   };
 }
 
+function geometryTypeLabel(tipo) {
+  return GEOMETRY_TYPE_HELP[tipo]?.title ?? tipo;
+}
+
 function geometryLabel(geometry) {
   const position = geometry.tipo === 'PILHA'
-    ? ` · ${geometry.bloco ?? '—'} L${geometry.linha ?? '—'} C${geometry.coluna ?? '—'}`
+    ? ` · BAY ${geometry.bloco ?? '—'} · ROW ${geometry.linha ?? '—'} · TIER ${geometry.coluna ?? '—'}`
     : '';
-  return `${geometry.codigo} · ${geometry.tipo}${position}`;
+  return `${geometry.codigo} · ${geometryTypeLabel(geometry.tipo)}${position}`;
 }
 
 export function YardGeometryEditor({
@@ -259,7 +266,7 @@ export function YardGeometryEditor({
       return;
     }
     if (form.tipo === 'PILHA' && (!form.bloco.trim() || form.linha === '' || form.coluna === '')) {
-      setError('Uma pilha precisa estar vinculada a bloco, linha e coluna.');
+      setError('A posição precisa informar Bay, Row e Tier.');
       return;
     }
     if (!minimumVerticesReached) {
@@ -368,7 +375,7 @@ export function YardGeometryEditor({
     </> : !drawing ? <>
       <div className="yard-geometry-intro">
         <strong>Como usar</strong>
-        <p>Crie blocos para dividir o pátio, pilhas para posições de armazenagem, vias para circulação e áreas especiais para restrições ou equipamentos.</p>
+        <p>Crie blocos para dividir o pátio, posições Bay/Row/Tier para armazenagem, vias para circulação e áreas especiais para restrições ou equipamentos.</p>
       </div>
       <label>
         <span>Geometria cadastrada</span>
@@ -406,9 +413,9 @@ export function YardGeometryEditor({
         <label><span>Código</span><input value={form.codigo} onChange={(event) => updateField('codigo', event.target.value)} maxLength={80} placeholder={typeHelp.example.replace('Ex.: ', '')} /></label>
         <label><span>Tipo</span><input value={typeHelp.title} disabled /></label>
         {form.tipo === 'PILHA' && <>
-          <label><span>Bloco</span><input value={form.bloco} onChange={(event) => updateField('bloco', event.target.value)} maxLength={40} placeholder="Ex.: A" /></label>
-          <label><span>Linha</span><input type="number" min="1" value={form.linha} onChange={(event) => updateField('linha', event.target.value)} placeholder="Ex.: 1" /></label>
-          <label><span>Coluna</span><input type="number" min="1" value={form.coluna} onChange={(event) => updateField('coluna', event.target.value)} placeholder="Ex.: 3" /></label>
+          <label><span>Bay</span><input value={form.bloco} onChange={(event) => updateField('bloco', event.target.value)} maxLength={40} placeholder="Ex.: 01" /></label>
+          <label><span>Row</span><input type="number" min="1" value={form.linha} onChange={(event) => updateField('linha', event.target.value)} placeholder="Ex.: 02" /></label>
+          <label><span>Tier</span><input type="number" min="1" value={form.coluna} onChange={(event) => updateField('coluna', event.target.value)} placeholder="Ex.: 03" /></label>
         </>}
       </div>
       <label><span>Motivo da alteração</span><input value={form.motivo} onChange={(event) => updateField('motivo', event.target.value)} maxLength={500} placeholder={creating ? 'Ex.: criação do layout inicial do pátio' : 'Ex.: ajuste do limite operacional'} /></label>

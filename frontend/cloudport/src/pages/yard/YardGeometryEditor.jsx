@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Message } from '../../components.jsx';
 
 const GEOMETRY_TYPES = [
-  ['PILHA', 'Posição Bay/Row/Tier'],
-  ['BLOCO', 'Bloco'],
+  ['BLOCO', 'Stack block'],
+  ['PILHA', 'Stack do pátio'],
   ['VIA', 'Via operacional'],
   ['AREA_BLOQUEADA', 'Área bloqueada'],
   ['AREA_INTERDITADA', 'Área interditada'],
@@ -11,17 +11,17 @@ const GEOMETRY_TYPES = [
 ];
 
 const GEOMETRY_TYPE_HELP = {
-  PILHA: {
-    title: 'Posição Bay/Row/Tier',
-    purpose: 'Representa uma posição operacional de armazenagem identificada pelas coordenadas Bay, Row e Tier.',
-    example: 'Ex.: B01-R02-T03.',
-    fields: 'Informe Bay, Row e Tier conforme a nomenclatura operacional do terminal.'
-  },
   BLOCO: {
-    title: 'Bloco',
-    purpose: 'Delimita uma área maior do pátio que agrupa várias posições Bay/Row/Tier.',
-    example: 'Ex.: Bloco A ou Bloco Refrigerado.',
-    fields: 'Use um código único. Bay, Row e Tier não são necessários.'
+    title: 'Stack block',
+    purpose: 'Delimita o bloco físico de armazenagem. No modelo N4, o bloco é criado antes de suas rows e stacks.',
+    example: 'Ex.: A01 ou REEFER-01.',
+    fields: 'O polígono representa o bloco. Rows, columns/stacks e tiers formam a estrutura interna do bloco.'
+  },
+  PILHA: {
+    title: 'Stack do pátio',
+    purpose: 'Representa a área no solo de uma stack dentro de um stack block.',
+    example: 'Ex.: Block A01, Row 01, Column 02.',
+    fields: 'Informe Block, Row e Column/Stack. Tier é a camada vertical do slot e não deve ser desenhado como polígono.'
   },
   VIA: {
     title: 'Via operacional',
@@ -51,7 +51,7 @@ const GEOMETRY_TYPE_HELP = {
 
 const EMPTY_FORM = Object.freeze({
   codigo: '',
-  tipo: 'PILHA',
+  tipo: 'BLOCO',
   bloco: '',
   linha: '',
   coluna: '',
@@ -81,17 +81,25 @@ function geometryVertices(geometry) {
 function buildGeoJson(form, vertices) {
   const coordinates = vertices.map((point) => [point.lng, point.lat]);
   coordinates.push([...coordinates[0]]);
+  const isStack = form.tipo === 'PILHA';
+  const block = isStack ? form.bloco.trim() || null : null;
+  const row = isStack && form.linha !== '' ? Number(form.linha) : null;
+  const column = isStack && form.coluna !== '' ? Number(form.coluna) : null;
+
   return {
     type: 'Feature',
     properties: {
       codigo: form.codigo.trim(),
       tipo: form.tipo,
-      bay: form.tipo === 'PILHA' ? form.bloco.trim() || null : null,
-      row: form.tipo === 'PILHA' && form.linha !== '' ? Number(form.linha) : null,
-      tier: form.tipo === 'PILHA' && form.coluna !== '' ? Number(form.coluna) : null,
-      bloco: form.tipo === 'PILHA' ? form.bloco.trim() || null : null,
-      linha: form.tipo === 'PILHA' && form.linha !== '' ? Number(form.linha) : null,
-      coluna: form.tipo === 'PILHA' && form.coluna !== '' ? Number(form.coluna) : null
+      coordinateModel: isStack ? 'N4_YARD_BLOCK_ROW_COLUMN' : null,
+      block,
+      row,
+      column,
+      stack: column,
+      tier: null,
+      bloco: block,
+      linha: row,
+      coluna: column
     },
     geometry: {
       type: 'Polygon',
@@ -106,7 +114,7 @@ function geometryTypeLabel(tipo) {
 
 function geometryLabel(geometry) {
   const position = geometry.tipo === 'PILHA'
-    ? ` · BAY ${geometry.bloco ?? '—'} · ROW ${geometry.linha ?? '—'} · TIER ${geometry.coluna ?? '—'}`
+    ? ` · BLOCK ${geometry.bloco ?? '—'} · ROW ${geometry.linha ?? '—'} · COLUMN ${geometry.coluna ?? '—'}`
     : '';
   return `${geometry.codigo} · ${geometryTypeLabel(geometry.tipo)}${position}`;
 }
@@ -240,7 +248,7 @@ export function YardGeometryEditor({
     }
     setForm({
       codigo: selectedGeometry.codigo ?? '',
-      tipo: selectedGeometry.tipo ?? 'PILHA',
+      tipo: selectedGeometry.tipo ?? 'BLOCO',
       bloco: selectedGeometry.bloco ?? '',
       linha: selectedGeometry.linha ?? '',
       coluna: selectedGeometry.coluna ?? '',
@@ -266,7 +274,7 @@ export function YardGeometryEditor({
       return;
     }
     if (form.tipo === 'PILHA' && (!form.bloco.trim() || form.linha === '' || form.coluna === '')) {
-      setError('A posição precisa informar Bay, Row e Tier.');
+      setError('A stack precisa informar Block, Row e Column/Stack. Tier não é uma geometria 2D.');
       return;
     }
     if (!minimumVerticesReached) {
@@ -280,13 +288,14 @@ export function YardGeometryEditor({
 
     setBusy(true);
     try {
+      const isStack = form.tipo === 'PILHA';
       const payload = {
         id: editingExisting ? selectedGeometry.id : undefined,
         codigo: form.codigo.trim(),
         tipo: form.tipo,
-        bloco: form.tipo === 'PILHA' ? form.bloco.trim() || null : null,
-        linha: form.tipo === 'PILHA' && form.linha !== '' ? Number(form.linha) : null,
-        coluna: form.tipo === 'PILHA' && form.coluna !== '' ? Number(form.coluna) : null,
+        bloco: isStack ? form.bloco.trim() || null : null,
+        linha: isStack && form.linha !== '' ? Number(form.linha) : null,
+        coluna: isStack && form.coluna !== '' ? Number(form.coluna) : null,
         motivo: form.motivo.trim(),
         geoJson: buildGeoJson(form, vertices)
       };
@@ -357,7 +366,7 @@ export function YardGeometryEditor({
     {choosingType ? <>
       <div className="yard-geometry-intro">
         <strong>O que você quer representar no mapa?</strong>
-        <p>Escolha o tipo antes de desenhar. O sistema mostrará somente os campos necessários.</p>
+        <p>Para armazenagem, comece pelo Stack block. Depois cadastre as stacks internas usando Block, Row e Column/Stack.</p>
       </div>
       <div className="yard-geometry-type-list">
         {GEOMETRY_TYPES.map(([value]) => {
@@ -374,8 +383,8 @@ export function YardGeometryEditor({
       </div>
     </> : !drawing ? <>
       <div className="yard-geometry-intro">
-        <strong>Como usar</strong>
-        <p>Crie blocos para dividir o pátio, posições Bay/Row/Tier para armazenagem, vias para circulação e áreas especiais para restrições ou equipamentos.</p>
+        <strong>Modelo de pátio</strong>
+        <p>O pátio é organizado em Stack block, Row, Column/Stack e Tier. O mapa desenha blocos e stacks; Tier é a camada vertical da posição e não recebe polígono próprio.</p>
       </div>
       <label>
         <span>Geometria cadastrada</span>
@@ -400,7 +409,7 @@ export function YardGeometryEditor({
       </div>
     </> : <>
       <div className="yard-geometry-type-summary">
-        <strong>{creating ? `Nova ${typeHelp.title.toLowerCase()}` : typeHelp.title}</strong>
+        <strong>{creating ? `Novo ${typeHelp.title.toLowerCase()}` : typeHelp.title}</strong>
         <p>{typeHelp.purpose}</p>
         <small>{typeHelp.fields}</small>
         {creating && <button type="button" className="link-button" onClick={() => {
@@ -413,11 +422,15 @@ export function YardGeometryEditor({
         <label><span>Código</span><input value={form.codigo} onChange={(event) => updateField('codigo', event.target.value)} maxLength={80} placeholder={typeHelp.example.replace('Ex.: ', '')} /></label>
         <label><span>Tipo</span><input value={typeHelp.title} disabled /></label>
         {form.tipo === 'PILHA' && <>
-          <label><span>Bay</span><input value={form.bloco} onChange={(event) => updateField('bloco', event.target.value)} maxLength={40} placeholder="Ex.: 01" /></label>
-          <label><span>Row</span><input type="number" min="1" value={form.linha} onChange={(event) => updateField('linha', event.target.value)} placeholder="Ex.: 02" /></label>
-          <label><span>Tier</span><input type="number" min="1" value={form.coluna} onChange={(event) => updateField('coluna', event.target.value)} placeholder="Ex.: 03" /></label>
+          <label><span>Block</span><input value={form.bloco} onChange={(event) => updateField('bloco', event.target.value)} maxLength={40} placeholder="Ex.: A01" /></label>
+          <label><span>Row</span><input type="number" min="1" value={form.linha} onChange={(event) => updateField('linha', event.target.value)} placeholder="Ex.: 01" /></label>
+          <label><span>Column/Stack</span><input type="number" min="1" value={form.coluna} onChange={(event) => updateField('coluna', event.target.value)} placeholder="Ex.: 02" /></label>
         </>}
       </div>
+      {form.tipo === 'PILHA' && <div className="yard-geometry-intro">
+        <strong>Referência da posição</strong>
+        <p>Uma posição completa acrescenta o Tier à identificação da stack. Exemplo: Block A01, Row 01, Column 02, Tier 1. Aqui é desenhada somente a pegada 2D da stack.</p>
+      </div>}
       <label><span>Motivo da alteração</span><input value={form.motivo} onChange={(event) => updateField('motivo', event.target.value)} maxLength={500} placeholder={creating ? 'Ex.: criação do layout inicial do pátio' : 'Ex.: ajuste do limite operacional'} /></label>
       <div className="yard-geometry-draw-instructions">
         <strong>{creating ? 'Desenhe a nova área no mapa' : 'Ajuste o desenho no mapa'}</strong>

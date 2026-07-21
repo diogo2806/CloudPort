@@ -116,7 +116,7 @@ export function YardGeometryEditor({
   const [form, setForm] = useState(EMPTY_FORM);
   const [vertices, setVertices] = useState([]);
   const [choosingType, setChoosingType] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [operation, setOperation] = useState('idle');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -126,24 +126,30 @@ export function YardGeometryEditor({
     [geometries, selectedId]
   );
   const typeHelp = GEOMETRY_TYPE_HELP[form.tipo];
+  const drawing = operation !== 'idle' && !choosingType;
+  const creating = operation === 'create';
+  const editingExisting = operation === 'edit';
+  const minimumVerticesReached = vertices.length >= 3;
 
   useEffect(() => {
     if (selectedId && !selectedGeometry) setSelectedId('');
   }, [selectedId, selectedGeometry]);
 
   useEffect(() => {
-    if (!mapContext || !editing) return undefined;
+    if (!mapContext || !drawing) return undefined;
     const { map } = mapContext;
     const addVertex = (event) => {
       if (!event.latlng) return;
+      if (creating) onSelectGeometry?.(null);
       setVertices((current) => [...current, { lat: event.latlng.lat, lng: event.latlng.lng }]);
+      setError('');
     };
     map.on('click', addVertex);
     return () => map.off('click', addVertex);
-  }, [mapContext, editing]);
+  }, [mapContext, drawing, creating, onSelectGeometry]);
 
   useEffect(() => {
-    if (!mapContext || !editing || !vertices.length) return undefined;
+    if (!mapContext || !drawing || !vertices.length) return undefined;
     const { map, leaflet } = mapContext;
     const group = leaflet.layerGroup().addTo(map);
     const latLngs = vertices.map((point) => [point.lat, point.lng]);
@@ -185,7 +191,7 @@ export function YardGeometryEditor({
     });
 
     return () => group.remove();
-  }, [mapContext, editing, vertices]);
+  }, [mapContext, drawing, vertices]);
 
   if (!canEdit) return null;
 
@@ -195,7 +201,7 @@ export function YardGeometryEditor({
 
   function resetEditor() {
     setChoosingType(false);
-    setEditing(false);
+    setOperation('idle');
     setVertices([]);
     setForm(EMPTY_FORM);
     setError('');
@@ -206,7 +212,7 @@ export function YardGeometryEditor({
     setForm(EMPTY_FORM);
     setVertices([]);
     setChoosingType(true);
-    setEditing(false);
+    setOperation('create');
     setError('');
     setSuccess('');
     onSelectGeometry?.(null);
@@ -215,7 +221,9 @@ export function YardGeometryEditor({
   function chooseType(tipo) {
     setForm({ ...EMPTY_FORM, tipo });
     setChoosingType(false);
-    setEditing(true);
+    setOperation('create');
+    setError('');
+    onSelectGeometry?.(null);
   }
 
   function startEdit() {
@@ -233,7 +241,7 @@ export function YardGeometryEditor({
     });
     setVertices(geometryVertices(selectedGeometry));
     setChoosingType(false);
-    setEditing(true);
+    setOperation('edit');
     setError('');
     setSuccess('');
     onSelectGeometry?.(selectedGeometry);
@@ -254,15 +262,19 @@ export function YardGeometryEditor({
       setError('Uma pilha precisa estar vinculada a bloco, linha e coluna.');
       return;
     }
-    if (vertices.length < 3) {
-      setError('Clique no mapa para informar pelo menos três vértices.');
+    if (!minimumVerticesReached) {
+      setError(`Desenhe a área no mapa. Faltam ${3 - vertices.length} ponto(s) para formar o polígono.`);
+      return;
+    }
+    if (editingExisting && !selectedGeometry?.id) {
+      setError('A geometria selecionada não está mais disponível. Cancele e selecione novamente.');
       return;
     }
 
     setBusy(true);
     try {
       const payload = {
-        id: selectedGeometry?.id,
+        id: editingExisting ? selectedGeometry.id : undefined,
         codigo: form.codigo.trim(),
         tipo: form.tipo,
         bloco: form.tipo === 'PILHA' ? form.bloco.trim() || null : null,
@@ -272,9 +284,10 @@ export function YardGeometryEditor({
         geoJson: buildGeoJson(form, vertices)
       };
       const saved = await onSave(payload);
-      setSuccess(`Geometria ${saved?.codigo ?? payload.codigo} salva.`);
+      setSuccess(`${creating ? 'Criada' : 'Atualizada'}: ${saved?.codigo ?? payload.codigo}.`);
       setSelectedId(saved?.id ? String(saved.id) : '');
-      setEditing(false);
+      setChoosingType(false);
+      setOperation('idle');
       setVertices([]);
       setForm(EMPTY_FORM);
       onSelectGeometry?.(saved ?? null);
@@ -310,13 +323,27 @@ export function YardGeometryEditor({
     }
   }
 
+  const editorTitle = choosingType
+    ? 'Criar geometria'
+    : creating
+      ? `Criar ${typeHelp.title.toLowerCase()}`
+      : editingExisting
+        ? `Editar ${typeHelp.title.toLowerCase()}`
+        : 'Geometrias do pátio';
+
+  const editorSubtitle = choosingType
+    ? 'Etapa 1 de 2 · escolha o que será criado'
+    : drawing
+      ? `${creating ? 'Criação' : 'Edição'} · preencha os dados e desenhe no mapa`
+      : 'Selecione uma geometria ou inicie uma nova criação';
+
   return <aside className="yard-geometry-editor" aria-label="Editor georreferenciado do pátio">
     <div className="yard-geometry-editor-header">
       <div>
-        <strong>Editor do pátio</strong>
-        <small>{choosingType ? 'Etapa 1 de 2 · escolha o que será criado' : editing ? 'Etapa 2 de 2 · preencha e desenhe' : 'Selecione ou crie uma geometria'}</small>
+        <strong>{editorTitle}</strong>
+        <small>{editorSubtitle}</small>
       </div>
-      <span>{editing ? `${vertices.length} vértice(s)` : `${geometries.length} geometria(s)`}</span>
+      <span>{drawing ? `${vertices.length} vértice(s)` : `${geometries.length} geometria(s)`}</span>
     </div>
     <Message type="error">{error}</Message>
     <Message type="success">{success}</Message>
@@ -336,9 +363,9 @@ export function YardGeometryEditor({
         })}
       </div>
       <div className="yard-geometry-editor-actions">
-        <button type="button" className="secondary" onClick={resetEditor}>Cancelar</button>
+        <button type="button" className="secondary" onClick={resetEditor}>Cancelar criação</button>
       </div>
-    </> : !editing ? <>
+    </> : !drawing ? <>
       <div className="yard-geometry-intro">
         <strong>Como usar</strong>
         <p>Crie blocos para dividir o pátio, pilhas para posições de armazenagem, vias para circulação e áreas especiais para restrições ou equipamentos.</p>
@@ -360,16 +387,20 @@ export function YardGeometryEditor({
         <input value={form.motivo} onChange={(event) => updateField('motivo', event.target.value)} maxLength={500} placeholder="Obrigatório ao excluir" />
       </label>
       <div className="yard-geometry-editor-actions">
-        <button type="button" onClick={startNew} disabled={!mapContext || busy}>Criar geometria</button>
+        <button type="button" onClick={startNew} disabled={!mapContext || busy}>Criar nova geometria</button>
         <button type="button" className="secondary" onClick={startEdit} disabled={!selectedGeometry || !mapContext || busy}>Editar selecionada</button>
         <button type="button" className="secondary danger" onClick={remove} disabled={!selectedGeometry || busy}>Excluir</button>
       </div>
     </> : <>
       <div className="yard-geometry-type-summary">
-        <strong>{typeHelp.title}</strong>
+        <strong>{creating ? `Nova ${typeHelp.title.toLowerCase()}` : typeHelp.title}</strong>
         <p>{typeHelp.purpose}</p>
         <small>{typeHelp.fields}</small>
-        {!selectedGeometry && <button type="button" className="link-button" onClick={() => { setEditing(false); setChoosingType(true); setVertices([]); }}>Trocar tipo</button>}
+        {creating && <button type="button" className="link-button" onClick={() => {
+          setChoosingType(true);
+          setVertices([]);
+          setError('');
+        }}>Trocar tipo</button>}
       </div>
       <div className="yard-geometry-editor-grid">
         <label><span>Código</span><input value={form.codigo} onChange={(event) => updateField('codigo', event.target.value)} maxLength={80} placeholder={typeHelp.example.replace('Ex.: ', '')} /></label>
@@ -380,19 +411,24 @@ export function YardGeometryEditor({
           <label><span>Coluna</span><input type="number" min="1" value={form.coluna} onChange={(event) => updateField('coluna', event.target.value)} placeholder="Ex.: 3" /></label>
         </>}
       </div>
-      <label><span>Motivo da alteração</span><input value={form.motivo} onChange={(event) => updateField('motivo', event.target.value)} maxLength={500} placeholder="Ex.: criação do layout inicial do pátio" /></label>
+      <label><span>Motivo da alteração</span><input value={form.motivo} onChange={(event) => updateField('motivo', event.target.value)} maxLength={500} placeholder={creating ? 'Ex.: criação do layout inicial do pátio' : 'Ex.: ajuste do limite operacional'} /></label>
       <div className="yard-geometry-draw-instructions">
-        <strong>Desenho no mapa</strong>
+        <strong>{creating ? 'Desenhe a nova área no mapa' : 'Ajuste o desenho no mapa'}</strong>
         <ol>
-          <li>Clique no mapa para marcar os cantos da área.</li>
-          <li>Use pelo menos três pontos.</li>
+          <li>Clique fora deste painel, diretamente no mapa, para marcar os cantos.</li>
+          <li>Use pelo menos três pontos para formar o polígono.</li>
           <li>Arraste os marcadores para ajustar o contorno.</li>
-          <li>Revise os dados e salve.</li>
+          <li>Revise os dados e clique em salvar.</li>
         </ol>
+        <p className={`yard-geometry-vertex-status ${minimumVerticesReached ? 'ready' : 'pending'}`}>
+          {minimumVerticesReached
+            ? `${vertices.length} pontos marcados. O desenho já pode ser salvo.`
+            : `${vertices.length} de 3 pontos mínimos marcados. Clique no mapa para continuar.`}
+        </p>
       </div>
       <div className="yard-geometry-editor-actions">
         <button type="button" className="secondary" onClick={() => setVertices((current) => current.slice(0, -1))} disabled={!vertices.length || busy}>Desfazer último ponto</button>
-        <button type="button" onClick={save} disabled={busy || vertices.length < 3}>{busy ? 'Salvando...' : `Salvar ${typeHelp.title.toLowerCase()}`}</button>
+        <button type="button" onClick={save} disabled={busy}>{busy ? 'Salvando...' : `${creating ? 'Criar' : 'Salvar alterações de'} ${typeHelp.title.toLowerCase()}`}</button>
         <button type="button" className="secondary" onClick={resetEditor} disabled={busy}>Cancelar</button>
       </div>
     </>}

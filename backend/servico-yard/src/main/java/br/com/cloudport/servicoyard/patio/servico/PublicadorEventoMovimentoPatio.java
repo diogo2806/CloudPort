@@ -10,6 +10,8 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -28,10 +30,18 @@ public class PublicadorEventoMovimentoPatio {
     private final String routingKey;
     private final boolean rabbitEnabled;
 
+    @Autowired
+    public PublicadorEventoMovimentoPatio(ObjectProvider<RabbitTemplate> rabbitTemplateProvider,
+                                          @Value("${cloudport.yard.eventos.exchange}") String exchange,
+                                          @Value("${cloudport.yard.eventos.routing-movimento}") String routingKey,
+                                          @Value("${cloudport.messaging.rabbit.enabled:false}") boolean rabbitEnabled) {
+        this(rabbitTemplateProvider.getIfAvailable(), exchange, routingKey, rabbitEnabled);
+    }
+
     public PublicadorEventoMovimentoPatio(RabbitTemplate rabbitTemplate,
-                                           @Value("${cloudport.yard.eventos.exchange}") String exchange,
-                                           @Value("${cloudport.yard.eventos.routing-movimento}") String routingKey,
-                                           @Value("${cloudport.messaging.rabbit.enabled:false}") boolean rabbitEnabled) {
+                                          String exchange,
+                                          String routingKey,
+                                          boolean rabbitEnabled) {
         this.rabbitTemplate = rabbitTemplate;
         this.exchange = exchange;
         this.routingKey = routingKey;
@@ -57,6 +67,9 @@ public class PublicadorEventoMovimentoPatio {
         if (!rabbitEnabled) {
             LOGGER.debug("Evento {} não publicado porque o RabbitMQ está desabilitado.", tipoEvento);
             return;
+        }
+        if (rabbitTemplate == null) {
+            throw new IllegalStateException("RabbitMQ habilitado sem RabbitTemplate disponível");
         }
 
         Map<String, Object> envelope = new LinkedHashMap<>();

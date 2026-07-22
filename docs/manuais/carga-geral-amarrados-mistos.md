@@ -11,7 +11,16 @@ Representar o amarrado como uma unidade física íntegra durante a descarga, sem
 - Cada cargo lot continua associado ao seu item de Bill of Lading e ao respectivo código de armazenagem.
 - O amarrado é classificado automaticamente como misto quando possui mais de um código de armazenagem distinto.
 - Um cargo lot não pode pertencer simultaneamente a dois amarrados íntegros.
-- O vínculo não define o destino da carreta. A regra de direcionamento deve consumir esta informação em etapa posterior.
+- O destino é definido automaticamente no registro do amarrado.
+
+## Regra de direcionamento
+
+- Quando todas as referências pertencem ao mesmo grupo de armazenagem, o destino corresponde ao código desse grupo.
+- Quando existem grupos distintos, o destino corresponde à área operacional parametrizada.
+- O destino padrão para amarrados mistos é `AREA_TRIAGEM`.
+- A parametrização pode ser alterada pela propriedade `cloudport.carga-geral.destino-amarrado-misto` ou pela variável de ambiente `CLOUDPORT_CARGA_GERAL_DESTINO_AMARRADO_MISTO`.
+- O destino, o motivo da decisão e o instante do direcionamento são persistidos no próprio amarrado e retornados nas consultas.
+- A criação é rejeitada quando nenhuma referência possui grupo de armazenagem, pois não existe informação suficiente para uma decisão automática segura.
 
 ## Registrar um amarrado
 
@@ -34,6 +43,9 @@ A resposta apresenta:
 - indicador `integro`;
 - grupos de armazenagem distintos;
 - quantidade de referências;
+- `destinoDirecionamento`;
+- `motivoDirecionamento`;
+- `direcionadoEm`;
 - cargo lot, Bill of Lading, sequência do item, descrição e grupo de cada referência.
 
 ## Consultas para planejamento e movimentação
@@ -41,7 +53,7 @@ A resposta apresenta:
 - `GET /api/carga-geral/amarrados`: lista todos os amarrados.
 - `GET /api/carga-geral/amarrados?visitaNavioId=VISITA-123`: lista os amarrados da descarga.
 - `GET /api/carga-geral/amarrados?loteId=<uuid>`: localiza o amarrado de um cargo lot.
-- `GET /api/carga-geral/amarrados/{id}`: retorna todas as referências do amarrado.
+- `GET /api/carga-geral/amarrados/{id}`: retorna todas as referências e a decisão de direcionamento do amarrado.
 
 ## Validações
 
@@ -51,7 +63,8 @@ A criação é rejeitada quando:
 - a requisição repete o mesmo cargo lot;
 - algum cargo lot não existe;
 - algum cargo lot já pertence a outro amarrado íntegro;
-- os cargo lots não pertencem à visita de navio informada.
+- os cargo lots não pertencem à visita de navio informada;
+- nenhuma referência possui grupo de armazenagem.
 
 ## Persistência
 
@@ -60,3 +73,10 @@ A migration `V14__amarrados_carga_multiplas_referencias.sql` cria:
 - `amarrado_carga`, com identificação, visita, integridade e auditoria temporal;
 - `amarrado_carga_lote`, com o vínculo entre o amarrado e todos os cargo lots;
 - restrição única por cargo lot, impedindo perda de integridade ou associação ambígua.
+
+A migration `V15__direcionamento_amarrados.sql` adiciona:
+
+- destino definido para a movimentação;
+- justificativa da decisão automática;
+- data e hora da decisão;
+- índice de consulta por destino.

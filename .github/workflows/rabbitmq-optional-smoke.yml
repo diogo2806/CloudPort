@@ -1,0 +1,85 @@
+name: Validar mensageria opcional
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/rabbitmq-optional-smoke.yml'
+      - 'backend/Dockerfile'
+      - 'backend/cloudport-runtime/Dockerfile'
+      - 'backend/cloudport-runtime/docker/entrypoint.sh'
+      - 'deploy/cloudport-runtime/docker-compose.yml'
+      - 'deploy/cloudport-runtime/provar-mensageria-opcional.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: optional-messaging-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Sem Rabbit, falha explícita e profile ativo
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CLOUDPORT_RUNTIME_IMAGE: cloudport-runtime:optional-messaging-ci
+      CLOUDPORT_OPTIONAL_MESSAGING_EVIDENCE_DIR: /tmp/cloudport-optional-messaging-evidence
+      DB_NAME: cloudport_optional_messaging
+      DB_USER: cloudport
+      DB_PASS: cloudport-optional-postgres
+      DB_SCHEMA: cloudport_autenticacao,cloudport_carga_geral,cloudport_gate,cloudport_rail,cloudport_visibilidade,cloudport_yard,cloudport_navio,cloudport_siderurgico
+      SECURITY_JWT_SECRET: cloudport-optional-jwt-secret-with-at-least-32-bytes
+      SECURITY_JWT_EXPIRATION_MS: '7200000'
+      ADMIN_EMAIL: admin-optional@cloudport.local
+      ADMIN_PASSWORD: cloudport-optional-admin
+      RABBITMQ_USERNAME: cloudport
+      RABBITMQ_PASSWORD: cloudport-optional-rabbit
+      CLOUDPORT_INTERNAL_SERVICE_KEY: cloudport-optional-service-key
+      SECURITY_CORS_ALLOWED_ORIGINS: http://localhost:18083
+      TOS_API_BASE_URL: http://127.0.0.1:65530
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar scripts e Compose
+        shell: bash
+        run: |
+          bash -n deploy/cloudport-runtime/provar-mensageria-opcional.sh
+          sh -n backend/cloudport-runtime/docker/entrypoint.sh
+          RABBITMQ_ENABLED=false \
+            docker compose -f deploy/cloudport-runtime/docker-compose.yml config
+          RABBITMQ_ENABLED=true \
+            docker compose -f deploy/cloudport-runtime/docker-compose.yml \
+              --profile messaging config
+
+      - name: Construir imagem do runtime
+        run: |
+          docker build \
+            -f backend/cloudport-runtime/Dockerfile \
+            -t "$CLOUDPORT_RUNTIME_IMAGE" \
+            .
+
+      - name: Executar smoke dos dois modos
+        run: bash deploy/cloudport-runtime/provar-mensageria-opcional.sh
+
+      - name: Publicar relatório no resumo
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$CLOUDPORT_OPTIONAL_MESSAGING_EVIDENCE_DIR/report.md" ]]; then
+            cat "$CLOUDPORT_OPTIONAL_MESSAGING_EVIDENCE_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '# Smoke de mensageria sem relatório' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Consulte os logs e o artefato de diagnóstico.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Publicar evidências
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: optional-messaging-evidence
+          path: /tmp/cloudport-optional-messaging-evidence
+          if-no-files-found: warn
+          retention-days: 30

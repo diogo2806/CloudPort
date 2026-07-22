@@ -99,7 +99,31 @@ Hosts com underscore (`_`), comuns em nomes de containers do Docker Compose como
 
 O entrypoint da imagem converte essas variáveis para as propriedades nativas do Spring Boot sem registrar os valores sensíveis nos logs.
 
-As integrações continuam usando suas variáveis específicas, incluindo RabbitMQ, Redis, TOS, alertas e armazenamento.
+## RabbitMQ
+
+A mensageria é opcional e fica desabilitada por padrão no Docker Compose:
+
+```text
+RABBITMQ_ENABLED=false
+```
+
+Nesse modo, o runtime não valida conexão, não cria infraestrutura AMQP e o serviço `rabbitmq` não é iniciado. Para usar o RabbitMQ interno do Compose:
+
+```bash
+export RABBITMQ_ENABLED=true
+export RABBITMQ_PASSWORD='substitua-a-senha-do-rabbitmq'
+
+docker compose \
+  -f deploy/cloudport-runtime/docker-compose.yml \
+  --profile messaging \
+  up -d --build
+```
+
+Para um provedor externo, não habilite o profile e informe `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME` e `RABBITMQ_PASSWORD`. Quando a mensageria está habilitada, o entrypoint aguarda a porta TCP antes de iniciar a JVM. Os tempos são configuráveis por `RABBITMQ_STARTUP_ATTEMPTS`, `RABBITMQ_STARTUP_INTERVAL_SECONDS` e `RABBITMQ_STARTUP_TIMEOUT_SECONDS`.
+
+Se `RABBITMQ_ENABLED=true` e o destino permanecer indisponível, o processo encerra com código `78` e uma mensagem indicando o uso de `--profile messaging` ou a correção de host e porta. Isso evita um runtime aparentemente ativo com mensageria configurada incorretamente.
+
+As demais integrações continuam usando suas variáveis específicas, incluindo Redis, TOS, alertas e armazenamento.
 
 Para entrega de alertas de reconciliação de barcode, configure `GATE_ALERTAS_WEBHOOK_URL` e, quando exigido pelo provedor, `GATE_ALERTAS_BEARER_TOKEN`. Sem URL configurada, a ocorrência permanece pendente e registra a falha de entrega para nova tentativa.
 
@@ -119,15 +143,35 @@ O arquivo `backend/Dockerfile` foi criado especificamente para esse contexto. N�
 
 ## Docker Compose
 
-A partir da raiz:
+Sem mensageria:
 
 ```bash
+export RABBITMQ_ENABLED=false
+
 docker compose \
   -f deploy/cloudport-runtime/docker-compose.yml \
   up -d --build
 ```
 
+Com o RabbitMQ interno:
+
+```bash
+export RABBITMQ_ENABLED=true
+export RABBITMQ_PASSWORD='substitua-a-senha-do-rabbitmq'
+
+docker compose \
+  -f deploy/cloudport-runtime/docker-compose.yml \
+  --profile messaging \
+  up -d --build
+```
+
 A porta pública padrão é `8080`.
+
+O smoke dos dois modos pode ser executado com:
+
+```bash
+bash deploy/cloudport-runtime/provar-mensageria-opcional.sh
+```
 
 ## Coexistência e rollback
 

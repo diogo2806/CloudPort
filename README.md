@@ -140,18 +140,37 @@ Regras:
 
 ## Docker Compose
 
-Além das variáveis obrigatórias, configure as dependências externas:
+Além das variáveis obrigatórias, configure as integrações externas:
 
 ```bash
-export RABBITMQ_PASSWORD='substitua-a-senha-do-rabbitmq'
 export CLOUDPORT_INTERNAL_SERVICE_KEY='substitua-a-chave-interna'
 export SECURITY_CORS_ALLOWED_ORIGINS='http://localhost:4200,http://localhost:8080'
 export TOS_API_BASE_URL='http://localhost:8090'
+```
+
+A mensageria fica desabilitada por padrão. Nesse modo, o container RabbitMQ não é criado:
+
+```bash
+export RABBITMQ_ENABLED=false
 
 docker compose \
   -f deploy/cloudport-runtime/docker-compose.yml \
   up -d --build
 ```
+
+Para usar o RabbitMQ fornecido pelo próprio Compose, habilite o profile `messaging`:
+
+```bash
+export RABBITMQ_ENABLED=true
+export RABBITMQ_PASSWORD='substitua-a-senha-do-rabbitmq'
+
+docker compose \
+  -f deploy/cloudport-runtime/docker-compose.yml \
+  --profile messaging \
+  up -d --build
+```
+
+Para um RabbitMQ externo, mantenha o profile desligado e configure `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME` e `RABBITMQ_PASSWORD`. Quando `RABBITMQ_ENABLED=true` e o host/porta não estão acessíveis, o runtime encerra com código `78` e informa que o profile deve ser habilitado ou a conexão externa corrigida.
 
 A API é publicada por padrão na porta `8080`.
 

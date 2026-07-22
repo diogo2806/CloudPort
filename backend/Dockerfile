@@ -36,7 +36,7 @@ FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl netcat-openbsd \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 10001 --home-dir /nonexistent --shell /usr/sbin/nologin cloudport \
     && mkdir -p /var/lib/cloudport/documents \

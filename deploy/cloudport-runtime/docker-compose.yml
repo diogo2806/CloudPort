@@ -18,11 +18,12 @@ services:
     networks: [cloudport]
 
   rabbitmq:
+    profiles: ["messaging"]
     image: rabbitmq:3.13-management-alpine
     restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: cloudport
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-cloudport}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-}
     volumes:
       - cloudport-rabbitmq:/var/lib/rabbitmq
     healthcheck:
@@ -46,6 +47,7 @@ services:
     networks: [cloudport]
 
   cloudport-runtime:
+    image: ${CLOUDPORT_RUNTIME_IMAGE:-cloudport-runtime:local}
     build:
       context: ../..
       dockerfile: backend/cloudport-runtime/Dockerfile
@@ -79,11 +81,14 @@ services:
       ASYNC_MAX_POOL_SIZE: ${ASYNC_MAX_POOL_SIZE:-4}
       ASYNC_QUEUE_CAPACITY: ${ASYNC_QUEUE_CAPACITY:-100}
       ASYNC_KEEP_ALIVE: ${ASYNC_KEEP_ALIVE:-60s}
-      RABBITMQ_ENABLED: ${RABBITMQ_ENABLED:-true}
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: cloudport
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_ENABLED: ${RABBITMQ_ENABLED:-false}
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-cloudport}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-}
+      RABBITMQ_STARTUP_ATTEMPTS: ${RABBITMQ_STARTUP_ATTEMPTS:-30}
+      RABBITMQ_STARTUP_INTERVAL_SECONDS: ${RABBITMQ_STARTUP_INTERVAL_SECONDS:-2}
+      RABBITMQ_STARTUP_TIMEOUT_SECONDS: ${RABBITMQ_STARTUP_TIMEOUT_SECONDS:-2}
       RABBITMQ_LISTENER_CONCURRENCY: ${RABBITMQ_LISTENER_CONCURRENCY:-1}
       RABBITMQ_LISTENER_MAX_CONCURRENCY: ${RABBITMQ_LISTENER_MAX_CONCURRENCY:-1}
       RABBITMQ_LISTENER_PREFETCH: ${RABBITMQ_LISTENER_PREFETCH:-10}
@@ -99,7 +104,7 @@ services:
       CLOUDPORT_RUNTIME_REVISAO: ${CLOUDPORT_RUNTIME_REVISAO:-local}
       CLOUDPORT_RUNTIME_CUTOVER_WRITES_ENABLED: ${CLOUDPORT_RUNTIME_CUTOVER_WRITES_ENABLED:-true}
       CLOUDPORT_RUNTIME_JOBS_ENABLED: ${CLOUDPORT_RUNTIME_JOBS_ENABLED:-true}
-      CLOUDPORT_RUNTIME_CONSUMERS_ENABLED: ${CLOUDPORT_RUNTIME_CONSUMERS_ENABLED:-true}
+      CLOUDPORT_RUNTIME_CONSUMERS_ENABLED: ${CLOUDPORT_RUNTIME_CONSUMERS_ENABLED:-false}
       CLOUDPORT_MODULO_AUTENTICACAO_INTEGRACAO: local
       CLOUDPORT_MODULO_NAVIO_INTEGRACAO: local
       CLOUDPORT_MODULO_YARD_INTEGRACAO: local
@@ -118,8 +123,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
@@ -137,4 +140,4 @@ volumes:
 
 networks:
   cloudport:
-    name: cloudport-runtime
+    name: ${CLOUDPORT_NETWORK_NAME:-cloudport-runtime}

@@ -8,6 +8,8 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
@@ -24,10 +26,18 @@ public class PublicadorEventoMovimentacaoTrem {
     private final String routingKey;
     private final boolean rabbitEnabled;
 
-    public PublicadorEventoMovimentacaoTrem(RabbitTemplate rabbitTemplate,
+    @Autowired
+    public PublicadorEventoMovimentacaoTrem(ObjectProvider<RabbitTemplate> rabbitTemplateProvider,
                                             @Value("${cloudport.rail.eventos.exchange}") String exchange,
                                             @Value("${cloudport.rail.eventos.routing-movimentacao}") String routingKey,
                                             @Value("${cloudport.messaging.rabbit.enabled:false}") boolean rabbitEnabled) {
+        this(rabbitTemplateProvider.getIfAvailable(), exchange, routingKey, rabbitEnabled);
+    }
+
+    public PublicadorEventoMovimentacaoTrem(RabbitTemplate rabbitTemplate,
+                                            String exchange,
+                                            String routingKey,
+                                            boolean rabbitEnabled) {
         this.rabbitTemplate = rabbitTemplate;
         this.exchange = exchange;
         this.routingKey = routingKey;
@@ -39,6 +49,9 @@ public class PublicadorEventoMovimentacaoTrem {
         if (!rabbitEnabled) {
             LOGGER.debug("Evento da movimentação do trem não publicado porque o RabbitMQ está desabilitado.");
             return;
+        }
+        if (rabbitTemplate == null) {
+            throw new IllegalStateException("RabbitMQ habilitado sem RabbitTemplate disponível");
         }
 
         LOGGER.info("event=movimentacao_trem.publicada ordem={} visita={} conteiner={} tipo={}",

@@ -6,6 +6,8 @@ import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.MovimentoPatioRepositorio;
 import java.time.LocalDateTime;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,10 +20,19 @@ public class StatusPatioServico {
     private final RabbitTemplate rabbitTemplate;
     private final boolean rabbitEnabled;
 
+    @Autowired
+    public StatusPatioServico(ConteinerPatioRepositorio conteinerPatioRepositorio,
+                              MovimentoPatioRepositorio movimentoPatioRepositorio,
+                              ObjectProvider<RabbitTemplate> rabbitTemplateProvider,
+                              @Value("${cloudport.messaging.rabbit.enabled:false}") boolean rabbitEnabled) {
+        this(conteinerPatioRepositorio, movimentoPatioRepositorio,
+                rabbitTemplateProvider.getIfAvailable(), rabbitEnabled);
+    }
+
     public StatusPatioServico(ConteinerPatioRepositorio conteinerPatioRepositorio,
                               MovimentoPatioRepositorio movimentoPatioRepositorio,
                               RabbitTemplate rabbitTemplate,
-                              @Value("${cloudport.messaging.rabbit.enabled:false}") boolean rabbitEnabled) {
+                              boolean rabbitEnabled) {
         this.conteinerPatioRepositorio = conteinerPatioRepositorio;
         this.movimentoPatioRepositorio = movimentoPatioRepositorio;
         this.rabbitTemplate = rabbitTemplate;
@@ -35,6 +46,9 @@ public class StatusPatioServico {
             conteinerPatioRepositorio.count();
             movimentoPatioRepositorio.count();
             if (rabbitEnabled) {
+                if (rabbitTemplate == null) {
+                    throw new IllegalStateException("RabbitMQ habilitado sem RabbitTemplate disponível");
+                }
                 rabbitTemplate.execute(channel -> Boolean.TRUE);
             }
             return new StatusPatioDto(

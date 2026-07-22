@@ -14,6 +14,7 @@ import br.com.cloudport.visibilidade.VisibilidadeApplication;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
@@ -78,6 +79,7 @@ public class CloudPortRuntimeApplication {
 
     private static final String RABBIT_ENABLED_PROPERTY = "cloudport.messaging.rabbit.enabled";
     private static final String RABBIT_CONSUMERS_ENABLED_PROPERTY = "cloudport.runtime.consumers-enabled";
+    private static final String SPRING_AUTOCONFIGURE_EXCLUDE = "spring.autoconfigure.exclude";
 
     static {
         configurarRabbitMqOpcional();
@@ -108,6 +110,27 @@ public class CloudPortRuntimeApplication {
         definirPropriedadePadrao("spring.rabbitmq.listener.simple.auto-startup", habilitado);
         definirPropriedadePadrao("spring.rabbitmq.listener.direct.auto-startup", habilitado);
         definirPropriedadePadrao("management.health.rabbit.enabled", habilitado);
+
+        if (!Boolean.parseBoolean(habilitado)) {
+            adicionarExclusaoAutoConfiguracao(RabbitAutoConfiguration.class.getName());
+        }
+    }
+
+    private static void adicionarExclusaoAutoConfiguracao(String classe) {
+        String exclusoes = System.getProperty(SPRING_AUTOCONFIGURE_EXCLUDE);
+        if (exclusoes == null || exclusoes.isBlank()) {
+            exclusoes = System.getenv("SPRING_AUTOCONFIGURE_EXCLUDE");
+        }
+
+        if (exclusoes == null || exclusoes.isBlank()) {
+            System.setProperty(SPRING_AUTOCONFIGURE_EXCLUDE, classe);
+            return;
+        }
+
+        String exclusoesNormalizadas = "," + exclusoes.replace(" ", "") + ",";
+        if (!exclusoesNormalizadas.contains("," + classe + ",")) {
+            System.setProperty(SPRING_AUTOCONFIGURE_EXCLUDE, exclusoes + "," + classe);
+        }
     }
 
     private static void definirPropriedadePadrao(String nome, String valor) {

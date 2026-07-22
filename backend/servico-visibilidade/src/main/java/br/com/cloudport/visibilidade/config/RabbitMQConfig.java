@@ -173,12 +173,16 @@ public class RabbitMQConfig {
     @Bean
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
             ConnectionFactory connectionFactory,
-            Jackson2JsonMessageConverter messageConverter) {
+            Jackson2JsonMessageConverter messageConverter,
+            @Value("${spring.rabbitmq.listener.simple.concurrency:1}") int concurrentConsumers,
+            @Value("${spring.rabbitmq.listener.simple.max-concurrency:3}") int maxConcurrentConsumers,
+            @Value("${spring.rabbitmq.listener.simple.prefetch:10}") int prefetchCount) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(messageConverter);
-        factory.setConcurrentConsumers(5);
-        factory.setMaxConcurrentConsumers(10);
+        factory.setConcurrentConsumers(concurrentConsumers);
+        factory.setMaxConcurrentConsumers(maxConcurrentConsumers);
+        factory.setPrefetchCount(prefetchCount);
         factory.setDefaultRequeueRejected(true);
         factory.setAutoStartup(rabbitEnabled);
         return factory;

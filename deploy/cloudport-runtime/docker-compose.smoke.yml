@@ -12,6 +12,9 @@ services:
       retries: 20
     networks: [cloudport]
 
+  rabbitmq:
+    profiles: ["messaging", "rollback-proof"]
+
   cloudport-runtime:
     image: cloudport-runtime:cutover-smoke
     environment:

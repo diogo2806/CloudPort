@@ -5,6 +5,7 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,6 +18,10 @@ import org.springframework.context.annotation.Configuration;
  *   edi.mensagens.coarri  – confirmações de operação
  */
 @Configuration
+@ConditionalOnProperty(
+        name = "cloudport.messaging.rabbit.enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class EdiRabbitConfiguracao {
 
     @Bean

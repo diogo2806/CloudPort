@@ -41,6 +41,15 @@ public class AmarradoCarga {
     @Column(nullable = false)
     private boolean integro = true;
 
+    @Column(name = "destino_direcionamento", nullable = false, length = 100)
+    private String destinoDirecionamento;
+
+    @Column(name = "motivo_direcionamento", nullable = false, length = 255)
+    private String motivoDirecionamento;
+
+    @Column(name = "direcionado_em", nullable = false)
+    private OffsetDateTime direcionadoEm;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "amarrado_carga_lote",
@@ -66,6 +75,9 @@ public class AmarradoCarga {
         OffsetDateTime agora = OffsetDateTime.now();
         criadoEm = agora;
         atualizadoEm = agora;
+        if (direcionadoEm == null) {
+            direcionadoEm = agora;
+        }
         normalizarCampos();
     }
 
@@ -83,6 +95,12 @@ public class AmarradoCarga {
             throw new IllegalArgumentException("O cargo lot já pertence a este amarrado.");
         }
         lotes.add(lote);
+    }
+
+    public void registrarDirecionamento(String destino, String motivo) {
+        destinoDirecionamento = textoObrigatorio(destino);
+        motivoDirecionamento = textoObrigatorio(motivo);
+        direcionadoEm = OffsetDateTime.now();
     }
 
     public boolean isMisto() {
@@ -104,6 +122,8 @@ public class AmarradoCarga {
     private void normalizarCampos() {
         codigo = normalizar(codigo);
         visitaNavioId = textoObrigatorio(visitaNavioId);
+        destinoDirecionamento = normalizar(destinoDirecionamento);
+        motivoDirecionamento = textoObrigatorio(motivoDirecionamento);
     }
 
     private String normalizar(String valor) {
@@ -121,6 +141,9 @@ public class AmarradoCarga {
     public void setVisitaNavioId(String visitaNavioId) { this.visitaNavioId = visitaNavioId; }
     public boolean isIntegro() { return integro; }
     public void setIntegro(boolean integro) { this.integro = integro; }
+    public String getDestinoDirecionamento() { return destinoDirecionamento; }
+    public String getMotivoDirecionamento() { return motivoDirecionamento; }
+    public OffsetDateTime getDirecionadoEm() { return direcionadoEm; }
     public List<LoteCarga> getLotes() { return Collections.unmodifiableList(lotes); }
     public OffsetDateTime getCriadoEm() { return criadoEm; }
     public OffsetDateTime getAtualizadoEm() { return atualizadoEm; }

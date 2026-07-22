@@ -36,6 +36,9 @@ public final class AmarradoCargaDTOs {
             boolean integro,
             int quantidadeReferencias,
             List<String> gruposArmazenagem,
+            String destinoDirecionamento,
+            String motivoDirecionamento,
+            OffsetDateTime direcionadoEm,
             List<ReferenciaAmarradoResposta> referencias,
             OffsetDateTime criadoEm,
             OffsetDateTime atualizadoEm) {

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +25,15 @@ public class AmarradoCargaServico {
 
     private final AmarradoCargaRepositorio amarradoRepositorio;
     private final LoteCargaRepositorio loteRepositorio;
+    private final String destinoAmarradoMisto;
 
     public AmarradoCargaServico(
             AmarradoCargaRepositorio amarradoRepositorio,
-            LoteCargaRepositorio loteRepositorio) {
+            LoteCargaRepositorio loteRepositorio,
+            @Value("${cloudport.carga-geral.destino-amarrado-misto:AREA_TRIAGEM}") String destinoAmarradoMisto) {
         this.amarradoRepositorio = amarradoRepositorio;
         this.loteRepositorio = loteRepositorio;
+        this.destinoAmarradoMisto = normalizarDestinoConfigurado(destinoAmarradoMisto);
     }
 
     @Transactional
@@ -54,6 +58,7 @@ public class AmarradoCargaServico {
         lotes.stream()
                 .sorted(Comparator.comparing(LoteCarga::getCodigo, String.CASE_INSENSITIVE_ORDER))
                 .forEach(amarrado::adicionarLote);
+        registrarDirecionamento(amarrado);
 
         return mapear(amarradoRepositorio.save(amarrado));
     }
@@ -77,6 +82,32 @@ public class AmarradoCargaServico {
         AmarradoCarga amarrado = amarradoRepositorio.findDetalhadoById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Amarrado não encontrado."));
         return mapear(amarrado);
+    }
+
+    private void registrarDirecionamento(AmarradoCarga amarrado) {
+        List<String> grupos = amarrado.getGruposArmazenagem();
+        if (grupos.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Não foi possível direcionar o amarrado porque nenhuma referência possui grupo de armazenagem.");
+        }
+        if (grupos.size() == 1) {
+            amarrado.registrarDirecionamento(
+                    grupos.get(0),
+                    "Todas as referências pertencem ao mesmo grupo de armazenagem.");
+            return;
+        }
+        amarrado.registrarDirecionamento(
+                destinoAmarradoMisto,
+                "Amarrado misto direcionado para área parametrizada por conter grupos de armazenagem distintos: "
+                        + String.join(", ", grupos) + ".");
+    }
+
+    private String normalizarDestinoConfigurado(String destino) {
+        if (destino == null || destino.isBlank()) {
+            throw new IllegalArgumentException("O destino parametrizado para amarrados mistos deve ser informado.");
+        }
+        return destino.trim().toUpperCase();
     }
 
     private void validarIdsDuplicados(List<UUID> loteIds) {
@@ -112,6 +143,9 @@ public class AmarradoCargaServico {
                 amarrado.isIntegro(),
                 referencias.size(),
                 amarrado.getGruposArmazenagem(),
+                amarrado.getDestinoDirecionamento(),
+                amarrado.getMotivoDirecionamento(),
+                amarrado.getDirecionadoEm(),
                 referencias,
                 amarrado.getCriadoEm(),
                 amarrado.getAtualizadoEm());

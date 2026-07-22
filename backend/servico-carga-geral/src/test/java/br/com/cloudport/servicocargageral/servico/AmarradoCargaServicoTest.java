@@ -2,6 +2,7 @@ package br.com.cloudport.servicocargageral.servico;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,11 +43,11 @@ class AmarradoCargaServicoTest {
 
     @BeforeEach
     void configurar() {
-        servico = new AmarradoCargaServico(amarradoRepositorio, loteRepositorio);
+        servico = new AmarradoCargaServico(amarradoRepositorio, loteRepositorio, "PULMAO_OPERACIONAL");
     }
 
     @Test
-    void deveIdentificarAmarradoMistoEPreservarTodasAsReferencias() {
+    void deveIdentificarAmarradoMistoEDirecionarParaAreaParametrizada() {
         LoteCarga loteCoberto = lote("LOT-001", "DRY_COVERED", "VISITA-001", 1);
         LoteCarga lotePatio = lote("LOT-002", "OPEN_YARD", "VISITA-001", 2);
         CriarAmarradoRequest request = new CriarAmarradoRequest(
@@ -66,6 +67,9 @@ class AmarradoCargaServicoTest {
         assertTrue(resposta.integro());
         assertEquals(2, resposta.quantidadeReferencias());
         assertEquals(List.of("DRY_COVERED", "OPEN_YARD"), resposta.gruposArmazenagem());
+        assertEquals("PULMAO_OPERACIONAL", resposta.destinoDirecionamento());
+        assertTrue(resposta.motivoDirecionamento().contains("grupos de armazenagem distintos"));
+        assertNotNull(resposta.direcionadoEm());
         assertEquals(List.of("LOT-001", "LOT-002"), resposta.referencias().stream()
                 .map(referencia -> referencia.loteCodigo())
                 .toList());
@@ -73,7 +77,7 @@ class AmarradoCargaServicoTest {
     }
 
     @Test
-    void deveManterAmarradoComoNaoMistoQuandoAsReferenciasSaoDoMesmoGrupo() {
+    void deveDirecionarAmarradoNaoMistoParaPilhaDoGrupo() {
         LoteCarga loteUm = lote("LOT-001", "DRY_COVERED", "VISITA-001", 1);
         LoteCarga loteDois = lote("LOT-002", "DRY_COVERED", "VISITA-001", 2);
         CriarAmarradoRequest request = new CriarAmarradoRequest(
@@ -89,6 +93,8 @@ class AmarradoCargaServicoTest {
 
         assertFalse(resposta.misto());
         assertEquals(List.of("DRY_COVERED"), resposta.gruposArmazenagem());
+        assertEquals("DRY_COVERED", resposta.destinoDirecionamento());
+        assertTrue(resposta.motivoDirecionamento().contains("mesmo grupo"));
     }
 
     @Test

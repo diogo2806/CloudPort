@@ -77,6 +77,20 @@ class RealYardReplanningOptimizerServiceTest {
                 .anyMatch(texto -> texto.contains("destino operacional"));
     }
 
+    @Test
+    void deveLimitarRehandlesQuandoOcupacaoExcedeInteiro() {
+        SchedulerPlanoOperacionalRequisicaoDto requisicao = requisicaoBase();
+        SchedulerPositionCandidateDto posicao = requisicao.getPosicoesCandidatas().get(1);
+        posicao.setOcupacaoPilha(Long.MAX_VALUE);
+        posicao.setCapacidadePilha(Integer.MAX_VALUE);
+
+        ResultadoOtimizacaoReal resultado = servico.otimizar(requisicao);
+
+        assertThat(resultado.atribuicoes()).hasSize(1);
+        assertThat(resultado.atribuicoes().get(0).getRehandlesEstimados()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(resultado.rehandlesEstimados()).isEqualTo(Integer.MAX_VALUE);
+    }
+
     private SchedulerPlanoOperacionalRequisicaoDto requisicaoBase() {
         SchedulerPlanoOperacionalRequisicaoDto requisicao = new SchedulerPlanoOperacionalRequisicaoDto();
         VesselArrivalDto navio = new VesselArrivalDto(

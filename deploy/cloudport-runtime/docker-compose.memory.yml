@@ -1,0 +1,106 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cloudport_memory}
+      POSTGRES_USER: ${DB_USER:-cloudport}
+      POSTGRES_PASSWORD: ${DB_PASS:-cloudport-memory-postgres}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cloudport} -d ${DB_NAME:-cloudport_memory}"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    networks: [cloudport-memory]
+
+  rabbitmq:
+    image: rabbitmq:3.13-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-cloudport}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-cloudport-memory-rabbit}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    networks: [cloudport-memory]
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    networks: [cloudport-memory]
+
+  cloudport-runtime:
+    image: ${CLOUDPORT_MEMORY_IMAGE:?Defina CLOUDPORT_MEMORY_IMAGE}
+    mem_limit: ${CLOUDPORT_MEMORY_LIMIT:-1536m}
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-cloudport_memory}
+      DB_USER: ${DB_USER:-cloudport}
+      DB_PASS: ${DB_PASS:-cloudport-memory-postgres}
+      DB_SCHEMA: cloudport_autenticacao,cloudport_carga_geral,cloudport_gate,cloudport_rail,cloudport_visibilidade,cloudport_yard,cloudport_navio,cloudport_siderurgico
+      SECURITY_JWT_SECRET: ${SECURITY_JWT_SECRET:-cloudport-memory-jwt-secret-with-at-least-32-bytes}
+      SECURITY_JWT_EXPIRATION_MS: 7200000
+      ADMIN_EMAIL: admin-memory@cloudport.local
+      ADMIN_PASSWORD: cloudport-memory-admin
+      CLOUDPORT_SECURITY_INTERNAL_SERVICE_KEY: cloudport-memory-service-key
+      CLOUDPORT_SECURITY_CORS_ALLOWED_ORIGINS: http://localhost:${CLOUDPORT_MEMORY_PORT:-18082}
+      CLOUDPORT_RUNTIME_INSTANCE_ID: memory-${CLOUDPORT_MEMORY_LABEL:-current}
+      CLOUDPORT_RUNTIME_REVISAO: ${CLOUDPORT_MEMORY_REVISION:-local}
+      CLOUDPORT_RUNTIME_CUTOVER_WRITES_ENABLED: "true"
+      CLOUDPORT_RUNTIME_JOBS_ENABLED: "true"
+      CLOUDPORT_RUNTIME_CONSUMERS_ENABLED: ${RABBITMQ_ENABLED:-false}
+      RABBITMQ_ENABLED: ${RABBITMQ_ENABLED:-false}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-cloudport}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-cloudport-memory-rabbit}
+      RABBITMQ_LISTENER_CONCURRENCY: "1"
+      RABBITMQ_LISTENER_MAX_CONCURRENCY: "3"
+      RABBITMQ_LISTENER_PREFETCH: "10"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CLOUDPORT_MODULO_AUTENTICACAO_INTEGRACAO: local
+      CLOUDPORT_MODULO_NAVIO_INTEGRACAO: local
+      CLOUDPORT_MODULO_YARD_INTEGRACAO: local
+      TOS_API_BASE_URL: http://127.0.0.1:65530
+      DOCUMENT_STORAGE_BASE_PATH: /tmp/cloudport-documents
+      JAVA_MAX_RAM_PERCENTAGE: ${JAVA_MAX_RAM_PERCENTAGE:-65.0}
+      JAVA_THREAD_STACK_SIZE: ${JAVA_THREAD_STACK_SIZE:-512k}
+      JAVA_MAX_METASPACE_SIZE: ${JAVA_MAX_METASPACE_SIZE:-384m}
+      JAVA_MAX_DIRECT_MEMORY_SIZE: ${JAVA_MAX_DIRECT_MEMORY_SIZE:-256m}
+      DB_POOL_MIN_IDLE: "1"
+      DB_POOL_MAX_SIZE: "8"
+      TOMCAT_MIN_SPARE_THREADS: "2"
+      TOMCAT_MAX_THREADS: "50"
+      ASYNC_CORE_POOL_SIZE: "2"
+      ASYNC_MAX_POOL_SIZE: "4"
+      GATE_OCR_EXECUTOR_CORE_SIZE: "1"
+      GATE_OCR_EXECUTOR_MAX_SIZE: "2"
+      GATE_OCR_EXECUTOR_QUEUE_CAPACITY: "50"
+    tmpfs:
+      - /tmp/cloudport-documents
+    ports:
+      - "${CLOUDPORT_MEMORY_PORT:-18082}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health/readiness"]
+      interval: 5s
+      timeout: 4s
+      retries: 50
+      start_period: 60s
+    networks: [cloudport-memory]
+
+networks:
+  cloudport-memory:

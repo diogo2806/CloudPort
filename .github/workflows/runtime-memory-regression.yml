@@ -1,0 +1,85 @@
+name: Regressão de memória do runtime
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/runtime-memory-regression.yml'
+      - 'backend/cloudport-runtime/**'
+      - 'backend/servico-*/**'
+      - 'deploy/cloudport-runtime/**'
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: Commit usado como baseline histórico
+        required: false
+        default: 8f3d7643b1615975940e978d24c8772c63d2366c
+      warmup_seconds:
+        description: Segundos de aquecimento por cenário
+        required: false
+        default: '15'
+      duration_seconds:
+        description: Segundos de medição por cenário
+        required: false
+        default: '45'
+      concurrency:
+        description: Trabalhadores HTTP simultâneos
+        required: false
+        default: '12'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-memory-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    name: Baseline e regressão de memória
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      CLOUDPORT_MEMORY_OUTPUT_DIR: /tmp/cloudport-memory-evidence
+      CLOUDPORT_MEMORY_BASELINE_REF: ${{ github.event.inputs.baseline_ref || '8f3d7643b1615975940e978d24c8772c63d2366c' }}
+      CLOUDPORT_MEMORY_WARMUP_SECONDS: ${{ github.event.inputs.warmup_seconds || '15' }}
+      CLOUDPORT_MEMORY_DURATION_SECONDS: ${{ github.event.inputs.duration_seconds || '45' }}
+      CLOUDPORT_MEMORY_CONCURRENCY: ${{ github.event.inputs.concurrency || '12' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validar scripts Python
+        run: |
+          python3 -m py_compile \
+            deploy/cloudport-runtime/memory/benchmark.py \
+            deploy/cloudport-runtime/memory/audit_sources.py
+
+      - name: Validar Docker Compose do benchmark
+        env:
+          CLOUDPORT_MEMORY_IMAGE: cloudport-runtime-memory:validation
+        run: docker compose -f deploy/cloudport-runtime/docker-compose.memory.yml config
+
+      - name: Executar comparação antes e depois
+        run: bash deploy/cloudport-runtime/memory/benchmark.sh
+
+      - name: Publicar relatório no resumo da execução
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$CLOUDPORT_MEMORY_OUTPUT_DIR/report.md" ]]; then
+            cat "$CLOUDPORT_MEMORY_OUTPUT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '# Benchmark de memória sem relatório consolidado' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Consulte os logs e o artefato de diagnóstico.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Publicar evidências de memória
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-memory-evidence
+          path: /tmp/cloudport-memory-evidence
+          if-no-files-found: warn
+          retention-days: 30

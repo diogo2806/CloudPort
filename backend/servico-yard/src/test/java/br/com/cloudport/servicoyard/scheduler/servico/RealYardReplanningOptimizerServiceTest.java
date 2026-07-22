@@ -78,10 +78,24 @@ class RealYardReplanningOptimizerServiceTest {
     }
 
     @Test
-    void deveLimitarRehandlesQuandoOcupacaoExcedeInteiro() {
+    void deveSaturarRehandlesQuandoOcupacaoExcedeInteiro() {
         SchedulerPlanoOperacionalRequisicaoDto requisicao = requisicaoBase();
         SchedulerPositionCandidateDto posicao = requisicao.getPosicoesCandidatas().get(1);
         posicao.setOcupacaoPilha(Long.MAX_VALUE);
+        posicao.setCapacidadePilha(Integer.MAX_VALUE);
+
+        ResultadoOtimizacaoReal resultado = servico.otimizar(requisicao);
+
+        assertThat(resultado.atribuicoes()).hasSize(1);
+        assertThat(resultado.atribuicoes().get(0).getRehandlesEstimados()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(resultado.rehandlesEstimados()).isEqualTo(Integer.MAX_VALUE);
+    }
+
+    @Test
+    void devePreservarRehandlesNoMaiorValorInteiroValido() {
+        SchedulerPlanoOperacionalRequisicaoDto requisicao = requisicaoBase();
+        SchedulerPositionCandidateDto posicao = requisicao.getPosicoesCandidatas().get(1);
+        posicao.setOcupacaoPilha((long) Integer.MAX_VALUE + 1L);
         posicao.setCapacidadePilha(Integer.MAX_VALUE);
 
         ResultadoOtimizacaoReal resultado = servico.otimizar(requisicao);

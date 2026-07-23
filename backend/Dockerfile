@@ -13,13 +13,14 @@ RUN sh ./scripts/validar-versoes-flyway.sh
 
 WORKDIR /workspace/cloudport-modules
 
-# Instala o agregador necessário para resolver os módulos do runtime.
-RUN --mount=type=cache,target=/root/.m2 \
+# O cache identificado é compartilhado entre os passos e builds do backend.
+# sharing=locked evita que dois builds concorrentes corrompam o repositório Maven.
+RUN --mount=type=cache,id=cloudport-maven-repository,target=/root/.m2,sharing=locked \
     mvn -B -N -f ../cloudport-navio-modules/pom.xml -Dmaven.test.skip=true install
 
 # O deploy apenas compila e empacota o backend. Os testes continuam executados pela CI.
 # Remove do cache qualquer POM inválido deixado por downloads anteriores.
-RUN --mount=type=cache,target=/root/.m2 \
+RUN --mount=type=cache,id=cloudport-maven-repository,target=/root/.m2,sharing=locked \
     find /root/.m2/repository -type f -name '*.pom' -exec sh -c \
         'grep -Eqi "<html|<!doctype html" "$1" && rm -f "$1" || true' _ {} \; && \
     mvn -B \
@@ -29,10 +30,13 @@ RUN --mount=type=cache,target=/root/.m2 \
         clean install
 
 # Gera somente o JAR executável final, sem compilar ou executar testes.
-RUN --mount=type=cache,target=/root/.m2 \
+RUN --mount=type=cache,id=cloudport-maven-repository,target=/root/.m2,sharing=locked \
     mvn -B -Dmaven.test.skip=true -pl :cloudport-runtime package
 
 FROM eclipse-temurin:17-jre
+
+LABEL org.opencontainers.image.title="CloudPort Backend" \
+      org.opencontainers.image.source="https://github.com/diogo2806/CloudPort"
 
 WORKDIR /app
 RUN apt-get update \

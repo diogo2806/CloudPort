@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatError } from '../api.js';
-import { DataTable, EmptyState, Loading, Message, MetricCard, Section, StatusBadge } from '../components.jsx';
+import { ContextHelp, DataTable, EmptyState, Loading, Message, MetricCard, Section, StatusBadge } from '../components.jsx';
 import { railApi } from '../railApi.js';
 import '../rail-operations.css';
 
@@ -49,49 +49,6 @@ function formularioInspecaoInicial(identificadorVagao = '') {
   };
 }
 
-function ManualFerrovia() {
-  return <details className="json-details rail-operations-manual">
-    <summary>ⓘ Manual</summary>
-    <div className="content-card">
-      <h3>Finalidade da tela</h3>
-      <p>Planejar manobras ferroviárias com reserva de linhas e liberar vagões para carga ou descarga somente após inspeção física válida.</p>
-      <h3>Fluxo operacional</h3>
-      <ol>
-        <li>Selecione a visita e registre as inspeções de todos os vagões.</li>
-        <li>Corrija vagões reprovados ou aplique override autorizado e motivado.</li>
-        <li>Cadastre as manobras na sequência operacional, informando origem, destino, linha, trecho e janela.</li>
-        <li>Resolva conflitos, autorize a manobra, inicie a execução e conclua cada etapa.</li>
-      </ol>
-      <h3>Explicação dos campos</h3>
-      <ul>
-        <li>Sequência: ordem de execução da manobra dentro da visita.</li>
-        <li>Linha e trecho: recurso físico reservado durante a janela prevista.</li>
-        <li>Composição: locomotiva, vagões ou agrupamento movimentado.</li>
-        <li>Checklist: rodas, freios, engates, estrutura e lacres.</li>
-        <li>Defeito: código, descrição, severidade e evidência da não conformidade.</li>
-      </ul>
-      <h3>Permissões necessárias</h3>
-      <p>Usuário autenticado no módulo ferroviário. Autorização de manobra e override devem ser executados por responsável operacional habilitado.</p>
-      <h3>Estados possíveis</h3>
-      <ul>
-        <li>Manobra: planejada, bloqueada por conflito, autorizada, em execução, concluída ou cancelada.</li>
-        <li>Inspeção: aprovada, reprovada ou liberada por override.</li>
-      </ul>
-      <h3>Motivos de bloqueio</h3>
-      <ul>
-        <li>Sobreposição de linha, trecho e horário com outra manobra ativa.</li>
-        <li>Vagão sem inspeção, reprovado ou sem associação ao manifesto.</li>
-        <li>Transição de estado fora da sequência ou cancelamento sem motivo.</li>
-      </ul>
-      <h3>Exemplo</h3>
-      <p>A manobra 2 reserva a Linha 1, trecho Pátio A–Moega, das 14h às 15h. Uma segunda reserva no mesmo intervalo fica bloqueada até a primeira ser concluída ou cancelada.</p>
-      <h3>Atalhos</h3>
-      <ul><li>F1 ou Shift + ?: abrir a ajuda contextual.</li><li>Atualizar operação: recarregar manobras e inspeções.</li><li>Enter nos formulários: confirmar o registro.</li></ul>
-      <p><a href="https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/ferrovia-manobras-inspecoes.md" target="_blank" rel="noreferrer">Abrir processo completo</a></p>
-    </div>
-  </details>;
-}
-
 function AcoesManobra({ manobra, onAlterar, processando }) {
   const botoes = [];
   if (['PLANEJADA', 'BLOQUEADA_CONFLITO'].includes(manobra.status)) {
@@ -107,6 +64,10 @@ function AcoesManobra({ manobra, onAlterar, processando }) {
     botoes.push(<button type="button" className="secondary small" key="cancelar" disabled={processando} onClick={() => onAlterar(manobra, 'CANCELADA')}>Cancelar</button>);
   }
   return botoes.length ? <div className="rail-operation-actions">{botoes}</div> : '—';
+}
+
+function OperationsHelp() {
+  return <ContextHelp path="/home/ferrovia/manobras-inspecoes" shortcuts={false} />;
 }
 
 export function RailOperationsPanels({ idVisita, composicao }) {
@@ -241,7 +202,7 @@ export function RailOperationsPanels({ idVisita, composicao }) {
   }
 
   if (!idVisita) {
-    return <Section title="Operação ferroviária persistida"><EmptyState title="Selecione uma visita" description="O plano de manobras e as inspeções serão habilitados após selecionar uma composição." /></Section>;
+    return <Section title="Operação ferroviária persistida" actions={<OperationsHelp />}><EmptyState title="Selecione uma visita" description="O plano de manobras e as inspeções serão habilitados após selecionar uma composição." /></Section>;
   }
 
   const aprovadas = inspecoes.filter((item) => ['APROVADA', 'LIBERADA_OVERRIDE'].includes(item.status)).length;
@@ -249,7 +210,7 @@ export function RailOperationsPanels({ idVisita, composicao }) {
   const conflitos = manobras.filter((item) => item.status === 'BLOQUEADA_CONFLITO').length;
 
   return <>
-    <ManualFerrovia />
+    <div className="rail-operations-manual"><OperationsHelp /></div>
     <Message type="error">{erro}</Message>
     <Message type="success">{mensagem}</Message>
     <div className="metrics-grid">

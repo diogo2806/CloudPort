@@ -19,6 +19,7 @@ import {
 import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
 import { BillingPage, CapPage } from './pages/BillingCapPages.jsx';
+import { CompaniesPage } from './pages/CompaniesPage.jsx';
 import { ContainerVesselPlannerPage } from './pages/ContainerVesselPlannerPage.jsx';
 import { ControlRoomEquipamentosPage } from './pages/ControlRoomEquipamentosPage.jsx';
 import { EdiMonitorPage } from './pages/EdiMonitorPage.jsx';
@@ -51,6 +52,7 @@ export const FALLBACK_NAVIGATION = [
   { group: 'Cadastros', items: [
     { label: 'Papéis de acesso', path: '/home/role', roles: ['ADMIN_PORTO'] },
     { label: 'Usuários', path: '/home/lista-de-usuarios', roles: ['ADMIN_PORTO'] },
+    { label: 'Empresas e clientes', path: '/home/cadastros/empresas', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
     { label: 'Berços portuários', path: '/home/patio/bercos', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Instalações, gates e pistas', path: '/home/gate/configuracao', roles: ['ADMIN_PORTO'] },
     { label: 'Tipos e prefixos de equipamentos', path: '/home/patio/tipos-equipamentos', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
@@ -187,6 +189,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/notificacoes') return <NotificationsPage />;
   if (path === '/home/privacidade') return <PrivacyPage />;
   if (path === '/home/lista-de-usuarios') return <UsersPage />;
+  if (path === '/home/cadastros/empresas') return <CompaniesPage session={session} />;
   if (path === '/home/navio/cadastros') return <VesselRegistrationsPage session={session} />;
   if (path === '/home/patio/bercos') return <BerthRegistrationsPage session={session} />;
   if (path === '/home/gate/configuracao') return <GateInfrastructurePage session={session} />;

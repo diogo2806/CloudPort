@@ -65,7 +65,7 @@ function commandStateLabel(status) {
 function playFeedback(success, enabled) {
   if (!enabled || !globalThis.AudioContext) return;
   try {
-    const context = new AudioContext();
+    const context = new globalThis.AudioContext();
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     oscillator.frequency.value = success ? 880 : 220;
@@ -76,7 +76,7 @@ function playFeedback(success, enabled) {
     oscillator.stop(context.currentTime + (success ? 0.08 : 0.16));
     oscillator.addEventListener('ended', () => context.close());
   } catch {
-    // Feedback sonoro é opcional; falha de áudio não afeta a operação.
+    // O som é opcional e nunca pode bloquear a operação.
   }
 }
 
@@ -90,8 +90,8 @@ function OperatorManual({ onClose }) {
       <section><h3>Permissões</h3><ul><li>Gate: ADMIN_PORTO, OPERADOR_GATE ou PLANEJADOR.</li><li>Pátio e Ferrovia: ADMIN_PORTO, OPERADOR_PATIO ou PLANEJADOR.</li><li>Inventário: ADMIN_PORTO, OPERADOR_PATIO, PLANEJADOR ou OPERADOR_GATE.</li><li>O backend valida cada comando; o modo compacto não amplia permissões.</li></ul></section>
       <section><h3>Estados</h3><ul><li>Online ou offline.</li><li>Carregando, pronto, sem tarefa ou fonte indisponível.</li><li>Leitura válida ou inválida.</li><li>Comando pendente, aguardando conexão, sincronizando, concluído, falha ou conflito.</li></ul></section>
       <section><h3>Motivos de bloqueio</h3><ul><li>Formato inválido ou dígito ISO 6346 incorreto.</li><li>Objeto lido diferente da tarefa atual.</li><li>Ação sem permissão ou estado incompatível.</li><li>Conexão necessária para validação online.</li><li>Comando duplicado já presente na fila.</li><li>Registro alterado por outro usuário, gerando conflito.</li><li>Tarefa disponível somente no modo completo.</li></ul></section>
-      <section><h3>Exemplo</h3><p>Na ordem de pátio da unidade MSCU6639871, leia o código, confirme origem, destino e CHE, abra o resumo e selecione Confirmar. Um segundo toque gera a mesma chave e não cria outro comando.</p></section>
-      <section><h3>Atalhos</h3><ul><li>Scanner físico: digite no campo de leitura e envie Enter.</li><li>Enter: validar a leitura manual.</li><li>Esc: fechar câmera, manual ou modo operador quando não houver confirmação aberta.</li><li>Tab e Shift + Tab: percorrer ações.</li><li>Botões amplos permitem operação por toque.</li></ul></section>
+      <section><h3>Exemplo</h3><p>Na ordem de pátio da unidade MSCU6639870, leia o código, confirme origem, destino e CHE, abra o resumo e selecione Confirmar. Um segundo toque gera a mesma chave e não cria outro comando.</p></section>
+      <section><h3>Atalhos</h3><ul><li>Scanner físico: digite no campo de leitura e envie Enter.</li><li>Enter: validar a leitura manual.</li><li>Esc: fechar câmera, manual ou modo operador.</li><li>Tab e Shift + Tab: percorrer ações.</li><li>Botões amplos permitem operação por toque.</li></ul></section>
       <section><h3>Processo completo</h3><p><a href="https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/modo-operador-pda.md" target="_blank" rel="noreferrer">Abrir documentação completa do modo operador</a>.</p></section>
     </div>
   </section>;
@@ -124,7 +124,53 @@ function TaskSummary({ task, nextTask }) {
   </section>;
 }
 
-function ScanPanel({ task, scan, input, onInput, onSubmit, onStartCamera, cameraSupported, cameraActive, onStopCamera, videoRef }) {
+function CameraScanner({ onRead, onError, onClose }) {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let stream = null;
+    let frame = null;
+
+    async function start() {
+      try {
+        const detector = new globalThis.BarcodeDetector();
+        stream = await globalThis.navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        if (cancelled) return;
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        const detect = async () => {
+          if (cancelled || !videoRef.current) return;
+          try {
+            const codes = await detector.detect(videoRef.current);
+            if (codes[0]?.rawValue) {
+              onRead(codes[0].rawValue);
+              return;
+            }
+          } catch {
+            // Quadros sem leitura ou em movimento são esperados.
+          }
+          frame = globalThis.requestAnimationFrame(detect);
+        };
+        frame = globalThis.requestAnimationFrame(detect);
+      } catch (reason) {
+        if (!cancelled) onError(reason);
+      }
+    }
+
+    start();
+    return () => {
+      cancelled = true;
+      if (frame) globalThis.cancelAnimationFrame(frame);
+      stream?.getTracks?.().forEach((track) => track.stop());
+      if (videoRef.current) videoRef.current.srcObject = null;
+    };
+  }, [onError, onRead]);
+
+  return <div className="operator-camera"><video ref={videoRef} muted playsInline aria-label="Imagem da câmera para leitura de código" /><span>Aponte a câmera para o código de barras ou QR.</span><button type="button" className="operator-secondary" onClick={onClose}>Fechar câmera</button></div>;
+}
+
+function ScanPanel({ task, scan, input, onInput, onSubmit, cameraSupported, cameraActive, onStartCamera, onStopCamera, onCameraRead, onCameraError }) {
   return <section className="operator-scan-panel" aria-labelledby="operator-scan-title">
     <header><div><span>Etapa 1 de 2</span><h2 id="operator-scan-title">Ler identificação</h2></div>{task?.entityType && <strong>Esperado: {task.entityType}</strong>}</header>
     <form onSubmit={onSubmit}>
@@ -136,7 +182,7 @@ function ScanPanel({ task, scan, input, onInput, onSubmit, onStartCamera, camera
       {cameraActive && <button type="button" className="operator-secondary" onClick={onStopCamera}>Fechar câmera</button>}
     </div>
     {!cameraSupported && <p className="operator-hint">Câmera de código não disponível neste navegador. Scanner físico e digitação continuam ativos.</p>}
-    {cameraActive && <div className="operator-camera"><video ref={videoRef} muted playsInline aria-label="Imagem da câmera para leitura de código" /><span>Aponte a câmera para o código de barras ou QR.</span></div>}
+    {cameraActive && <CameraScanner onRead={onCameraRead} onError={onCameraError} onClose={onStopCamera} />}
     {scan && <div className={`operator-scan-result ${scan.valid ? 'valid' : 'invalid'}`} role={scan.valid ? 'status' : 'alert'}>
       <strong>{scan.valid ? `Leitura válida · ${scan.type}` : scan.reason}</strong>
       <span>{scan.valid ? scan.value : scan.correction}</span>
@@ -212,9 +258,6 @@ function OperatorWorkspace({ onClose }) {
   const [cameraActive, setCameraActive] = useState(false);
   const [busyCommand, setBusyCommand] = useState(false);
   const [blockerNote, setBlockerNote] = useState('');
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const detectionFrameRef = useRef(null);
   const workspaceRef = useRef(null);
   const currentTask = tasks[selectedIndex] ?? null;
   const nextTask = tasks[selectedIndex + 1] ?? null;
@@ -224,15 +267,6 @@ function OperatorWorkspace({ onClose }) {
     setQueue(nextQueue);
     writeOperatorQueue(storage, queueKey, nextQueue);
   }, [queueKey, storage]);
-
-  const stopCamera = useCallback(() => {
-    if (detectionFrameRef.current) globalThis.cancelAnimationFrame(detectionFrameRef.current);
-    detectionFrameRef.current = null;
-    streamRef.current?.getTracks?.().forEach((track) => track.stop());
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-    setCameraActive(false);
-  }, []);
 
   const validateRead = useCallback((value) => {
     const result = validateOperatorScan(value, expectedTypes(currentTask));
@@ -253,6 +287,16 @@ function OperatorWorkspace({ onClose }) {
     playFeedback(result.valid, soundEnabled);
     return result;
   }, [currentTask, soundEnabled]);
+
+  const handleCameraRead = useCallback((value) => {
+    validateRead(value);
+    setCameraActive(false);
+  }, [validateRead]);
+
+  const handleCameraError = useCallback((reason) => {
+    setCameraActive(false);
+    setError(formatError(reason, 'Não foi possível abrir a câmera. Use o scanner físico ou a entrada manual.'));
+  }, []);
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
@@ -278,62 +322,32 @@ function OperatorWorkspace({ onClose }) {
   useEffect(() => {
     function handleOnline() { setOnline(true); setMessage('Conexão restabelecida. Revise e sincronize a fila pendente.'); }
     function handleOffline() { setOnline(false); setMessage('Conexão perdida. Novos comandos compatíveis permanecerão na fila local.'); }
-    function handleKeyDown(event) {
-      if (event.key !== 'Escape') return;
-      if (cameraActive) { stopCamera(); return; }
-      if (manualOpen) { setManualOpen(false); return; }
-      onClose();
-    }
     globalThis.addEventListener?.('online', handleOnline);
     globalThis.addEventListener?.('offline', handleOffline);
-    globalThis.addEventListener?.('keydown', handleKeyDown);
     workspaceRef.current?.focus();
     return () => {
       globalThis.removeEventListener?.('online', handleOnline);
       globalThis.removeEventListener?.('offline', handleOffline);
-      globalThis.removeEventListener?.('keydown', handleKeyDown);
-      stopCamera();
     };
-  }, [cameraActive, manualOpen, onClose, stopCamera]);
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key !== 'Escape') return;
+      if (cameraActive) { setCameraActive(false); return; }
+      if (manualOpen) { setManualOpen(false); return; }
+      onClose();
+    }
+    globalThis.addEventListener?.('keydown', handleKeyDown);
+    return () => globalThis.removeEventListener?.('keydown', handleKeyDown);
+  }, [cameraActive, manualOpen, onClose]);
 
   useEffect(() => {
     setScan(null);
     setInput('');
     setBlockerNote('');
+    setCameraActive(false);
   }, [currentTask?.id]);
-
-  async function startCamera() {
-    if (!cameraSupported) return;
-    setError('');
-    try {
-      const detector = new BarcodeDetector();
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
-      streamRef.current = stream;
-      setCameraActive(true);
-      await new Promise((resolve) => globalThis.setTimeout(resolve, 0));
-      if (!videoRef.current) throw new Error('Visualização da câmera não foi inicializada.');
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
-      const detect = async () => {
-        if (!videoRef.current || !streamRef.current) return;
-        try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes[0]?.rawValue) {
-            validateRead(codes[0].rawValue);
-            stopCamera();
-            return;
-          }
-        } catch {
-          // Quadros sem leitura ou em movimento são esperados.
-        }
-        detectionFrameRef.current = globalThis.requestAnimationFrame(detect);
-      };
-      detectionFrameRef.current = globalThis.requestAnimationFrame(detect);
-    } catch (reason) {
-      stopCamera();
-      setError(formatError(reason, 'Não foi possível abrir a câmera. Use o scanner físico ou a entrada manual.'));
-    }
-  }
 
   async function executeCommand(command, queueSnapshot = queue) {
     let nextQueue = updateOperatorCommand(queueSnapshot, command.id, { status: 'ENVIANDO', attempts: Number(command.attempts ?? 0) + 1, error: null });
@@ -344,12 +358,12 @@ function OperatorWorkspace({ onClose }) {
       else if (command.action === 'START_RAIL_ORDER') await api.iniciarOrdemFerrovia(command.visitId, command.sourceId);
       else if (command.action === 'COMPLETE_RAIL_ORDER') await api.concluirOrdemFerrovia(command.visitId, command.sourceId);
       else throw new Error('Ação não disponível no modo operador.');
-      nextQueue = updateOperatorCommand(nextQueue, command.id, { status: 'CONCLUIDA', error: null });
-      persistQueue(removeCompletedCommands(nextQueue));
+      nextQueue = removeCompletedCommands(updateOperatorCommand(nextQueue, command.id, { status: 'CONCLUIDA', error: null }));
+      persistQueue(nextQueue);
       setMessage('Operação confirmada e sincronizada.');
       playFeedback(true, soundEnabled);
       await loadTasks();
-      return true;
+      return { success: true, queue: nextQueue };
     } catch (reason) {
       const formatted = formatError(reason, 'Não foi possível sincronizar a operação.');
       const conflict = Number(reason?.status) === 409 || /conflito|estado|vers[aã]o|duplic/i.test(formatted);
@@ -357,7 +371,7 @@ function OperatorWorkspace({ onClose }) {
       persistQueue(nextQueue);
       setError(formatted);
       playFeedback(false, soundEnabled);
-      return false;
+      return { success: false, queue: nextQueue };
     }
   }
 
@@ -377,13 +391,13 @@ function OperatorWorkspace({ onClose }) {
     persistQueue(initialQueue);
     if (!online) {
       setMessage('Operação adicionada à fila local. Ela será enviada somente após a reconexão e nova validação do backend.');
-      setBusyCommand(false);
       setSelectedIndex((current) => Math.min(current + 1, Math.max(tasks.length - 1, 0)));
+      setBusyCommand(false);
       return;
     }
     const commandToExecute = initialQueue.find((item) => item.id === command.id) ?? command;
-    const succeeded = await executeCommand(commandToExecute, initialQueue);
-    if (succeeded) setSelectedIndex((current) => Math.min(current, Math.max(tasks.length - 2, 0)));
+    const executed = await executeCommand(commandToExecute, initialQueue);
+    if (executed.success) setSelectedIndex((current) => Math.min(current, Math.max(tasks.length - 2, 0)));
     setBusyCommand(false);
   }
 
@@ -392,11 +406,12 @@ function OperatorWorkspace({ onClose }) {
     setSyncing(true);
     setError('');
     let snapshot = [...queue];
-    const pending = snapshot.filter((item) => ['PENDENTE', 'AGUARDANDO_RECONEXAO', 'FALHA'].includes(item.status));
-    for (const command of pending) {
-      const current = snapshot.find((item) => item.id === command.id) ?? command;
-      await executeCommand(current, snapshot);
-      snapshot = readOperatorQueue(storage, queueKey);
+    const pendingIds = snapshot.filter((item) => ['PENDENTE', 'AGUARDANDO_RECONEXAO', 'FALHA'].includes(item.status)).map((item) => item.id);
+    for (const id of pendingIds) {
+      const command = snapshot.find((item) => item.id === id);
+      if (!command) continue;
+      const executed = await executeCommand(command, snapshot);
+      snapshot = executed.queue;
     }
     setSyncing(false);
   }
@@ -421,7 +436,8 @@ function OperatorWorkspace({ onClose }) {
     try { globalThis.sessionStorage?.setItem('cloudport:operator-mode:context', JSON.stringify(context)); } catch { /* contexto é opcional */ }
     onClose();
     globalThis.history?.pushState({}, '', route);
-    globalThis.dispatchEvent?.(new PopStateEvent('popstate'));
+    const event = globalThis.PopStateEvent ? new globalThis.PopStateEvent('popstate') : new globalThis.Event('popstate');
+    globalThis.dispatchEvent?.(event);
     globalThis.scrollTo?.({ top: 0, behavior: 'smooth' });
   }
 
@@ -481,11 +497,12 @@ function OperatorWorkspace({ onClose }) {
           input={input}
           onInput={setInput}
           onSubmit={(event) => { event.preventDefault(); validateRead(input); }}
-          onStartCamera={startCamera}
           cameraSupported={cameraSupported}
           cameraActive={cameraActive}
-          onStopCamera={stopCamera}
-          videoRef={videoRef}
+          onStartCamera={() => setCameraActive(true)}
+          onStopCamera={() => setCameraActive(false)}
+          onCameraRead={handleCameraRead}
+          onCameraError={handleCameraError}
         />
         <ConfirmationPanel task={currentTask} scan={scan} busy={busyCommand} online={online} onConfirm={confirmTask} onOpenFull={openFullMode} onBlocker={reportBlocker} />
       </div>}

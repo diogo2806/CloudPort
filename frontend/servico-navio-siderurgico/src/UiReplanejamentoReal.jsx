@@ -83,13 +83,41 @@ export default function UiReplanejamentoReal({ visitId, onApplied }) {
     }
   }
 
+  function rejectProposal() {
+    if (!proposal || busy) return;
+    const confirmed = typeof window === 'undefined'
+      || typeof window.confirm !== 'function'
+      || window.confirm('Rejeitar e descartar esta sugestão de replanejamento?');
+    if (!confirmed) return;
+    setProposal(null);
+    setError('');
+    setSuccess('Sugestão rejeitada. Nenhuma posição foi alterada.');
+  }
+
   return <section className="panel">
     <div className="section-head">
       <div>
         <span className="eyebrow">Navio + Yard + CHE</span>
         <h2>Replanejamento com otimização real</h2>
       </div>
-      {proposal?.assinaturaEntrada && <small>Assinatura {proposal.assinaturaEntrada}</small>}
+      <div className="actions">
+        <details>
+          <summary aria-label="Abrir manual da tela" title="Manual da tela">?</summary>
+          <div className="editor-block" role="note">
+            <h3>Manual da tela</h3>
+            <p><strong>Finalidade:</strong> simular, revisar, aprovar ou rejeitar sugestões de replanejamento do pátio sem alterar posições durante a simulação.</p>
+            <p><strong>Fluxo operacional:</strong> informe o motivo e o limite de rehandles, simule, revise alertas e posições propostas e então aplique ou rejeite a sugestão.</p>
+            <p><strong>Campos:</strong> Motivo registra a justificativa operacional. Limite de rehandles define o máximo aceitável para a proposta.</p>
+            <p><strong>Permissões:</strong> exige sessão autenticada e permissão de replanejamento da visita de navio.</p>
+            <p><strong>Estados:</strong> sem proposta, calculando, proposta disponível, bloqueada, aplicando, aplicada ou rejeitada.</p>
+            <p><strong>Motivos de bloqueio:</strong> alertas impeditivos, ausência de posições elegíveis, conflito de reserva, equipamento indisponível ou proposta sem atribuições.</p>
+            <p><strong>Exemplo:</strong> simular uma nova distribuição após alteração de ETA e aplicar somente quando não houver alertas impeditivos.</p>
+            <p><strong>Atalhos:</strong> Tab navega pelos controles; Enter ativa o botão em foco; Esc fecha a confirmação do navegador.</p>
+            <p><strong>Processo completo:</strong> consulte o manual operacional de Yard Planning na documentação do sistema.</p>
+          </div>
+        </details>
+        {proposal?.assinaturaEntrada && <small>Assinatura {proposal.assinaturaEntrada}</small>}
+      </div>
     </div>
 
     {error && <div className="message error" role="alert">{error}</div>}
@@ -108,7 +136,10 @@ export default function UiReplanejamentoReal({ visitId, onApplied }) {
         {busy === 'simulate' ? 'Calculando...' : 'Simular replanejamento real'}
       </button>
       <button type="button" className="warning" disabled={!canApply} onClick={apply}>
-        {busy === 'apply' ? 'Aplicando...' : 'Aplicar plano real'}
+        {busy === 'apply' ? 'Aplicando...' : 'Aprovar e aplicar plano'}
+      </button>
+      <button type="button" className="secondary" disabled={!proposal || Boolean(busy)} onClick={rejectProposal}>
+        Rejeitar sugestão
       </button>
     </div>
 

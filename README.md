@@ -11,7 +11,7 @@ O backend oficial é o monólito modular `backend/cloudport-runtime`. Os módulo
 | Autenticação | Login JWT, usuários, papéis, permissões, configuração dinâmica da navegação, usuário root configurável por ambiente e encerramento seguro da sessão no portal. |
 | Gate | Facilities, múltiplos Gates e pistas, estágios, business tasks, appointments, truck visits, bookings, Bill of Lading, EDO, ERO, IDO, pré-avisos, inspeções, trouble transactions, documentos, imagens, tickets, EIR, regras de acesso, transferências e controle de pessoas. |
 | Gate visual | Quadro de pistas e filas, calendário de capacidade, jornada do veículo, OCR, balança, inspeção, liberação, SLA e transações problemáticas. |
-| Pátio | Google Maps, blocos e pilhas, vistas de bloco, seção, scan e microvisão, workspaces, movimentação gráfica, restrições, notas, heatmaps, rotas, CHEs, work queues, work instructions, allocations e reshuffling. |
+| Pátio | OpenStreetMap com Leaflet, blocos e pilhas, vistas de bloco, seção, scan e microvisão, workspaces, movimentação gráfica, restrições, notas, heatmaps, rotas, CHEs, work queues, work instructions, allocations e reshuffling. |
 | Otimização | Agrupamento de recebimento e atribuição global de posições por custo mínimo, considerando restrições físicas, reefer, perigosos, reservas, distância e risco de rehandle. |
 | Inventário | Unidades e equipamentos, contêineres, chassis, carretas, acessórios, tipos, prefixos, lacres, documentos, avarias, manutenção, holds, ownership, vínculos, reefer, inventário físico e divergências. |
 | Ferrovia | Visitas, manifestos, vagões, ordens, lista de trabalho, conclusão e partida, line-up vertical, composição gráfica, ocupação de linhas e transferência de locomotiva para navio. |

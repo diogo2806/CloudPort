@@ -22,7 +22,7 @@ public class TremMestreRespostaDto {
         id = trem.getId(); identificador = trem.getIdentificador(); operadoraFerroviaria = trem.getOperadoraFerroviaria();
         descricao = trem.getDescricao(); ativo = trem.isAtivo(); observacoes = trem.getObservacoes(); criadoEm = trem.getCriadoEm();
         atualizadoEm = trem.getAtualizadoEm(); criadoPor = trem.getCriadoPor(); atualizadoPor = trem.getAtualizadoPor();
-        composicaoPadrao = trem.getComposicaoPadrao().stream().map(VagaoVisitaRespostaDto::deEntidade).collect(Collectors.toList());
+        composicaoPadrao = trem.getComposicaoPadrao().stream().map(VagaoVisitaRespostaDto::deEmbeddable).collect(Collectors.toList());
     }
     public Long getId() { return id; }
     public String getIdentificador() { return identificador; }

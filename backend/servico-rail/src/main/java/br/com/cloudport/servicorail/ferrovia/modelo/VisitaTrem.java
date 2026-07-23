@@ -9,10 +9,12 @@ import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.OrderColumn;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
@@ -31,6 +33,10 @@ public class VisitaTrem {
     @Version
     @Column(name = "versao", nullable = false)
     private Long versao;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trem_mestre_id")
+    private TremMestre tremMestre;
 
     @Column(name = "identificador_trem", nullable = false, length = 40)
     private String identificadorTrem;
@@ -92,93 +98,30 @@ public class VisitaTrem {
     public VisitaTrem() {
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Long getVersao() {
-        return versao;
-    }
-
-    public String getIdentificadorTrem() {
-        return identificadorTrem;
-    }
-
-    public void setIdentificadorTrem(String identificadorTrem) {
-        this.identificadorTrem = identificadorTrem;
-    }
-
-    public String getOperadoraFerroviaria() {
-        return operadoraFerroviaria;
-    }
-
-    public void setOperadoraFerroviaria(String operadoraFerroviaria) {
-        this.operadoraFerroviaria = operadoraFerroviaria;
-    }
-
-    public TipoVisitaTrem getTipoVisita() {
-        return tipoVisita;
-    }
-
-    public void setTipoVisita(TipoVisitaTrem tipoVisita) {
-        this.tipoVisita = tipoVisita;
-    }
-
-    public LocalDateTime getHoraChegadaPrevista() {
-        return horaChegadaPrevista;
-    }
-
-    public void setHoraChegadaPrevista(LocalDateTime horaChegadaPrevista) {
-        this.horaChegadaPrevista = horaChegadaPrevista;
-    }
-
-    public LocalDateTime getHoraPartidaPrevista() {
-        return horaPartidaPrevista;
-    }
-
-    public void setHoraPartidaPrevista(LocalDateTime horaPartidaPrevista) {
-        this.horaPartidaPrevista = horaPartidaPrevista;
-    }
-
-    public StatusVisitaTrem getStatusVisita() {
-        return statusVisita;
-    }
-
-    public void setStatusVisita(StatusVisitaTrem statusVisita) {
-        this.statusVisita = statusVisita;
-    }
-
-    public String getPosicaoFerroviariaAtual() {
-        return posicaoFerroviariaAtual;
-    }
-
-    public void setPosicaoFerroviariaAtual(String posicaoFerroviariaAtual) {
-        this.posicaoFerroviariaAtual = posicaoFerroviariaAtual;
-    }
-
-    public LocalDateTime getCriadoEm() {
-        return criadoEm;
-    }
-
-    public void setCriadoEm(LocalDateTime criadoEm) {
-        this.criadoEm = criadoEm;
-    }
-
-    public LocalDateTime getAtualizadoEm() {
-        return atualizadoEm;
-    }
-
-    public void setAtualizadoEm(LocalDateTime atualizadoEm) {
-        this.atualizadoEm = atualizadoEm;
-    }
-
-    public List<OperacaoConteinerVisita> getListaDescarga() {
-        return listaDescarga;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getVersao() { return versao; }
+    public TremMestre getTremMestre() { return tremMestre; }
+    public void setTremMestre(TremMestre tremMestre) { this.tremMestre = tremMestre; }
+    public String getIdentificadorTrem() { return identificadorTrem; }
+    public void setIdentificadorTrem(String identificadorTrem) { this.identificadorTrem = identificadorTrem; }
+    public String getOperadoraFerroviaria() { return operadoraFerroviaria; }
+    public void setOperadoraFerroviaria(String operadoraFerroviaria) { this.operadoraFerroviaria = operadoraFerroviaria; }
+    public TipoVisitaTrem getTipoVisita() { return tipoVisita; }
+    public void setTipoVisita(TipoVisitaTrem tipoVisita) { this.tipoVisita = tipoVisita; }
+    public LocalDateTime getHoraChegadaPrevista() { return horaChegadaPrevista; }
+    public void setHoraChegadaPrevista(LocalDateTime horaChegadaPrevista) { this.horaChegadaPrevista = horaChegadaPrevista; }
+    public LocalDateTime getHoraPartidaPrevista() { return horaPartidaPrevista; }
+    public void setHoraPartidaPrevista(LocalDateTime horaPartidaPrevista) { this.horaPartidaPrevista = horaPartidaPrevista; }
+    public StatusVisitaTrem getStatusVisita() { return statusVisita; }
+    public void setStatusVisita(StatusVisitaTrem statusVisita) { this.statusVisita = statusVisita; }
+    public String getPosicaoFerroviariaAtual() { return posicaoFerroviariaAtual; }
+    public void setPosicaoFerroviariaAtual(String posicaoFerroviariaAtual) { this.posicaoFerroviariaAtual = posicaoFerroviariaAtual; }
+    public LocalDateTime getCriadoEm() { return criadoEm; }
+    public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
+    public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
+    public void setAtualizadoEm(LocalDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
+    public List<OperacaoConteinerVisita> getListaDescarga() { return listaDescarga; }
 
     public void definirListaDescarga(List<OperacaoConteinerVisita> listaDescarga) {
         this.listaDescarga.clear();
@@ -187,9 +130,7 @@ public class VisitaTrem {
         }
     }
 
-    public List<OperacaoConteinerVisita> getListaCarga() {
-        return listaCarga;
-    }
+    public List<OperacaoConteinerVisita> getListaCarga() { return listaCarga; }
 
     public void definirListaCarga(List<OperacaoConteinerVisita> listaCarga) {
         this.listaCarga.clear();
@@ -198,9 +139,7 @@ public class VisitaTrem {
         }
     }
 
-    public List<VagaoVisita> getListaVagoes() {
-        return listaVagoes;
-    }
+    public List<VagaoVisita> getListaVagoes() { return listaVagoes; }
 
     public void definirListaVagoes(List<VagaoVisita> listaVagoes) {
         this.listaVagoes.clear();

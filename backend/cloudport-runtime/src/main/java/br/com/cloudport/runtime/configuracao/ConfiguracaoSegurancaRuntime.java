@@ -14,10 +14,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -66,7 +68,13 @@ public class ConfiguracaoSegurancaRuntime {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors().configurationSource(corsConfigurationSource()).and()
-                .csrf().disable()
+                .csrf(csrf -> csrf
+                        .ignoringAntMatchers(
+                                "/auth",
+                                "/auth/**",
+                                "/api/public/v1/**",
+                                "/actuator/**")
+                        .ignoringRequestMatchers(this::usaAutenticacaoSemCookie))
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests(authorize -> authorize
                         .antMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
@@ -103,6 +111,19 @@ public class ConfiguracaoSegurancaRuntime {
                 .addFilterBefore(publicApiClientAuthenticationFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(internalServiceAuthenticationFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
+    }
+
+    private boolean usaAutenticacaoSemCookie(HttpServletRequest request) {
+        String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
+        boolean usaBearerToken = StringUtils.hasText(authorization)
+                && authorization.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length());
+        boolean usaChaveServico = StringUtils.hasText(
+                request.getHeader(InternalServiceAuthenticationFilter.HEADER_SERVICE_KEY));
+        boolean usaCredenciaisApiPublica = StringUtils.hasText(
+                request.getHeader(PublicApiClientAuthenticationFilter.HEADER_CLIENT_ID))
+                && StringUtils.hasText(
+                        request.getHeader(PublicApiClientAuthenticationFilter.HEADER_CLIENT_SECRET));
+        return usaBearerToken || usaChaveServico || usaCredenciaisApiPublica;
     }
 
     @Bean

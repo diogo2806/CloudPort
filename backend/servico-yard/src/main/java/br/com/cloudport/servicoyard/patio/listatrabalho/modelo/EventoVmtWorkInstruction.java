@@ -1,6 +1,7 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.modelo;
 
 import br.com.cloudport.servicoyard.patio.modelo.TipoEventoVmt;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -47,6 +48,9 @@ public class EventoVmtWorkInstruction {
     @Column(name = "payload")
     private String payload;
 
+    @Column(name = "versao_contrato", length = 20)
+    private String versaoContrato;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_acao_fisica", length = 30)
     private TipoAcaoFisicaPatio tipoAcaoFisica;
@@ -87,14 +91,48 @@ public class EventoVmtWorkInstruction {
     @Column(name = "sequencia_operacional")
     private Integer sequenciaOperacional;
 
+    @Column(name = "numero_lacre", length = 80)
+    private String numeroLacre;
+
+    @Column(name = "codigo_avaria", length = 80)
+    private String codigoAvaria;
+
+    @Column(name = "descricao_avaria", length = 500)
+    private String descricaoAvaria;
+
+    @Column(name = "evidencia_url", length = 500)
+    private String evidenciaUrl;
+
+    @Column(name = "reefer_conectado_desejado")
+    private Boolean reeferConectadoDesejado;
+
+    @Column(name = "temperatura_reefer", precision = 8, scale = 3)
+    private BigDecimal temperaturaReefer;
+
+    @Column(name = "unidade_alvo_rehandle", length = 80)
+    private String unidadeAlvoRehandle;
+
+    @Column(name = "rehandle_obrigatorio")
+    private Boolean rehandleObrigatorio;
+
+    @Column(name = "sequencia_rehandle")
+    private Integer sequenciaRehandle;
+
+    @Column(name = "etapa_anterior", length = 80)
+    private String etapaAnterior;
+
+    @Column(name = "etapa_nova", length = 80)
+    private String etapaNova;
+
+    @Column(name = "motivo_ajuste", length = 500)
+    private String motivoAjuste;
+
     @Column(name = "processado_em", nullable = false)
     private LocalDateTime processadoEm;
 
     @PrePersist
     public void preencherProcessamento() {
-        if (processadoEm == null) {
-            processadoEm = LocalDateTime.now();
-        }
+        if (processadoEm == null) processadoEm = LocalDateTime.now();
     }
 
     public Long getId() { return id; }
@@ -114,6 +152,8 @@ public class EventoVmtWorkInstruction {
     public void setResultado(String resultado) { this.resultado = resultado; }
     public String getPayload() { return payload; }
     public void setPayload(String payload) { this.payload = payload; }
+    public String getVersaoContrato() { return versaoContrato; }
+    public void setVersaoContrato(String versaoContrato) { this.versaoContrato = versaoContrato; }
     public TipoAcaoFisicaPatio getTipoAcaoFisica() { return tipoAcaoFisica; }
     public void setTipoAcaoFisica(TipoAcaoFisicaPatio tipoAcaoFisica) { this.tipoAcaoFisica = tipoAcaoFisica; }
     public String getCodigoUnidadeLido() { return codigoUnidadeLido; }
@@ -140,5 +180,29 @@ public class EventoVmtWorkInstruction {
     public void setCamadaDestino(String camadaDestino) { this.camadaDestino = camadaDestino; }
     public Integer getSequenciaOperacional() { return sequenciaOperacional; }
     public void setSequenciaOperacional(Integer sequenciaOperacional) { this.sequenciaOperacional = sequenciaOperacional; }
+    public String getNumeroLacre() { return numeroLacre; }
+    public void setNumeroLacre(String numeroLacre) { this.numeroLacre = numeroLacre; }
+    public String getCodigoAvaria() { return codigoAvaria; }
+    public void setCodigoAvaria(String codigoAvaria) { this.codigoAvaria = codigoAvaria; }
+    public String getDescricaoAvaria() { return descricaoAvaria; }
+    public void setDescricaoAvaria(String descricaoAvaria) { this.descricaoAvaria = descricaoAvaria; }
+    public String getEvidenciaUrl() { return evidenciaUrl; }
+    public void setEvidenciaUrl(String evidenciaUrl) { this.evidenciaUrl = evidenciaUrl; }
+    public Boolean getReeferConectadoDesejado() { return reeferConectadoDesejado; }
+    public void setReeferConectadoDesejado(Boolean reeferConectadoDesejado) { this.reeferConectadoDesejado = reeferConectadoDesejado; }
+    public BigDecimal getTemperaturaReefer() { return temperaturaReefer; }
+    public void setTemperaturaReefer(BigDecimal temperaturaReefer) { this.temperaturaReefer = temperaturaReefer; }
+    public String getUnidadeAlvoRehandle() { return unidadeAlvoRehandle; }
+    public void setUnidadeAlvoRehandle(String unidadeAlvoRehandle) { this.unidadeAlvoRehandle = unidadeAlvoRehandle; }
+    public Boolean getRehandleObrigatorio() { return rehandleObrigatorio; }
+    public void setRehandleObrigatorio(Boolean rehandleObrigatorio) { this.rehandleObrigatorio = rehandleObrigatorio; }
+    public Integer getSequenciaRehandle() { return sequenciaRehandle; }
+    public void setSequenciaRehandle(Integer sequenciaRehandle) { this.sequenciaRehandle = sequenciaRehandle; }
+    public String getEtapaAnterior() { return etapaAnterior; }
+    public void setEtapaAnterior(String etapaAnterior) { this.etapaAnterior = etapaAnterior; }
+    public String getEtapaNova() { return etapaNova; }
+    public void setEtapaNova(String etapaNova) { this.etapaNova = etapaNova; }
+    public String getMotivoAjuste() { return motivoAjuste; }
+    public void setMotivoAjuste(String motivoAjuste) { this.motivoAjuste = motivoAjuste; }
     public LocalDateTime getProcessadoEm() { return processadoEm; }
 }

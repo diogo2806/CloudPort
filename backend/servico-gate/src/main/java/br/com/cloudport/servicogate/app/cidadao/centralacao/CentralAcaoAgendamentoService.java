@@ -25,9 +25,12 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -39,6 +42,7 @@ import org.springframework.web.util.HtmlUtils;
 @Service
 public class CentralAcaoAgendamentoService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(CentralAcaoAgendamentoService.class);
     private static final DateTimeFormatter DATA_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final DateTimeFormatter HORA_FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
     private static final DateTimeFormatter DATA_HORA_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
@@ -57,13 +61,14 @@ public class CentralAcaoAgendamentoService {
     }
 
     public CentralAcaoAgendamentoRespostaDTO montarVisaoCompleta(String authorizationHeader) {
-        Page<AgendamentoDTO> pagina = agendamentoService.buscar(null, null,
-                PageRequest.of(0, LIMITE_CARTOES, Sort.by(Sort.Direction.ASC, "horarioPrevistoChegada")));
-
-        Optional<StatusPatioResposta> situacaoPatio = clienteStatusPatio.consultarStatus(authorizationHeader);
-        Optional<UserInfoResponse> usuarioAtual = buscarUsuarioAtual(authorizationHeader);
+        PageRequest pageRequest = PageRequest.of(0, LIMITE_CARTOES,
+                Sort.by(Sort.Direction.ASC, "horarioPrevistoChegada"));
+        Page<AgendamentoDTO> pagina = buscarAgendamentosComFallback(pageRequest);
+        Optional<StatusPatioResposta> situacaoPatio = consultarStatusPatioComFallback(authorizationHeader);
+        Optional<UserInfoResponse> usuarioAtual = buscarUsuarioAtualComFallback(authorizationHeader);
 
         List<VisaoCompletaAgendamentoDTO> visoes = pagina.getContent().stream()
+                .filter(Objects::nonNull)
                 .sorted(Comparator.comparing((AgendamentoDTO dto) ->
                         Optional.ofNullable(dto.getHorarioPrevistoChegada()).orElse(LocalDateTime.MAX)))
                 .map(dto -> montarVisao(dto, situacaoPatio.orElse(null)))
@@ -78,8 +83,38 @@ public class CentralAcaoAgendamentoService {
 
     public VisaoCompletaAgendamentoDTO montarVisaoPorId(Long id, String authorizationHeader) {
         AgendamentoDTO agendamento = agendamentoService.buscarPorId(id);
-        Optional<StatusPatioResposta> situacaoPatio = clienteStatusPatio.consultarStatus(authorizationHeader);
+        Optional<StatusPatioResposta> situacaoPatio = consultarStatusPatioComFallback(authorizationHeader);
         return montarVisao(agendamento, situacaoPatio.orElse(null));
+    }
+
+    private Page<AgendamentoDTO> buscarAgendamentosComFallback(PageRequest pageRequest) {
+        try {
+            return agendamentoService.buscar(null, null, pageRequest);
+        } catch (AccessDeniedException ex) {
+            LOGGER.warn("event=central_acao.agendamentos_indisponiveis motivo=transportadora_sem_vinculo mensagem={}",
+                    ex.getMessage());
+            return Page.empty(pageRequest);
+        }
+    }
+
+    private Optional<StatusPatioResposta> consultarStatusPatioComFallback(String authorizationHeader) {
+        try {
+            return clienteStatusPatio.consultarStatus(authorizationHeader);
+        } catch (RuntimeException ex) {
+            LOGGER.warn("event=central_acao.status_patio_indisponivel tipo={} mensagem={}",
+                    ex.getClass().getSimpleName(), ex.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private Optional<UserInfoResponse> buscarUsuarioAtualComFallback(String authorizationHeader) {
+        try {
+            return buscarUsuarioAtual(authorizationHeader);
+        } catch (RuntimeException ex) {
+            LOGGER.warn("event=central_acao.usuario_indisponivel tipo={} mensagem={}",
+                    ex.getClass().getSimpleName(), ex.getMessage());
+            return Optional.empty();
+        }
     }
 
     private VisaoCompletaAgendamentoDTO montarVisao(AgendamentoDTO agendamento, StatusPatioResposta situacaoPatio) {

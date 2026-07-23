@@ -1,0 +1,59 @@
+.operator-mode-toggle {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 80;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  background: #073b5c;
+  color: #fff;
+  font: 700 14px/1 Inter, sans-serif;
+  box-shadow: 0 8px 24px rgba(0,0,0,.28);
+}
+
+.operator-mode button,
+.operator-mode input,
+.operator-mode select,
+.operator-mode textarea {
+  min-height: 48px;
+}
+
+.operator-mode .portal-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.operator-mode .navigation-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(340px, calc(100vw - 32px));
+  height: 100dvh;
+  transform: translateX(-105%);
+  transition: transform .2s ease;
+}
+
+.operator-mode .navigation-sidebar.open { transform: translateX(0); }
+.operator-mode .menu-button { display: grid; place-items: center; }
+.operator-mode .content { padding: 12px; }
+.operator-mode .topbar { position: sticky; top: 0; z-index: 20; padding: 10px 12px; }
+.operator-mode .topbar-context span,
+.operator-mode .user-menu > div { display: none; }
+.operator-mode .card,
+.operator-mode .panel,
+.operator-mode form { max-width: 100%; }
+.operator-mode table { min-width: 680px; }
+.operator-mode .table-wrapper,
+.operator-mode .data-grid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.operator-mode .actions { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.operator-mode .actions > button { width: 100%; }
+
+@media (max-width: 480px) {
+  .operator-mode-toggle { right: 8px; bottom: 8px; min-height: 44px; padding: 0 12px; }
+  .operator-mode .content { padding: 8px; }
+  .operator-mode h1 { font-size: clamp(1.35rem, 7vw, 1.8rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operator-mode .navigation-sidebar { transition: none; }
+}

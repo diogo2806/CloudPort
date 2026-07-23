@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import { loadRuntimeConfig } from './api.js';
+import { installOperatorMode } from './operatorMode.js';
 import '@fontsource-variable/inter';
 import './styles.css';
 import './gateVisual.css';
@@ -9,6 +10,7 @@ import './steel-coil-planner.css';
 import './vessel-lineup.css';
 import './rail-lineup.css';
 import './navio-operational.css';
+import './operatorMode.css';
 
 function renderConfigurationError(error) {
   createRoot(document.getElementById('root')).render(
@@ -23,5 +25,8 @@ function renderConfigurationError(error) {
 }
 
 loadRuntimeConfig()
-  .then(() => createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>))
+  .then(() => {
+    installOperatorMode();
+    createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);
+  })
   .catch(renderConfigurationError);

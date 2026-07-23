@@ -1,0 +1,11 @@
+[Unit]
+Description=CloudPort - agendamento diário da limpeza Docker
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=30min
+Persistent=true
+Unit=cloudport-docker-cleanup.service
+
+[Install]
+WantedBy=timers.target

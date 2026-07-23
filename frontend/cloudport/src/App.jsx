@@ -15,12 +15,7 @@ import { GatePeopleAccessPage } from './pages/GatePeopleAccessPage.jsx';
 import { GeneralCargoPage } from './pages/GeneralCargoPage.jsx';
 import { GateReportsPage, YardInventoryPage } from './pages/InventoryReportsPages.jsx';
 import { LostFoundPage } from './pages/LostFoundPage.jsx';
-import {
-  BerthRegistrationsPage,
-  EquipmentReferencesPage,
-  GateInfrastructurePage,
-  VesselRegistrationsPage
-} from './pages/MasterDataPages.jsx';
+import { BerthRegistrationsPage, EquipmentReferencesPage, GateInfrastructurePage, VesselRegistrationsPage } from './pages/MasterDataPages.jsx';
 import { PublicApiDiagnosticsPage } from './pages/PublicApiDiagnosticsPage.jsx';
 import { RailLineUpPage } from './pages/RailLineUpPage.jsx';
 import { RailLocomotiveTransfersPage } from './pages/RailLocomotiveTransfersPage.jsx';
@@ -29,30 +24,11 @@ import { ShipModelsPage } from './pages/ShipModelsPage.jsx';
 import { SteelCoilPlannerPage } from './pages/SteelCoilPlannerPage.jsx';
 import { StuffUnstuffPage } from './pages/StuffUnstuffPage.jsx';
 import { VesselLineUpPage } from './pages/VesselLineUpPage.jsx';
-import {
-  ControlRoomPage,
-  DATASET_ROUTES,
-  GateDashboardPage,
-  GenericDatasetPage,
-  HomeDashboard,
-  RailImportPage,
-  RailVisitsPage
-} from './pages/OperationalPages.jsx';
+import { ControlRoomPage, DATASET_ROUTES, GateDashboardPage, GenericDatasetPage, HomeDashboard, RailImportPage, RailVisitsPage } from './pages/OperationalPages.jsx';
 import { DispatchEquipamentosPage } from './pages/yard/DispatchEquipamentosPage.jsx';
-import {
-  YardAutomationPage,
-  YardImpactPage,
-  YardInstructionsPage,
-  YardKpiPage,
-  YardMapPage,
-  YardMovementsPage,
-  YardPositionsPage,
-  YardReceivingPlanPage,
-  YardResourcesPage,
-  YardWorkListPage
-} from './pages/YardPages.jsx';
+import { YardAutomationPage, YardImpactPage, YardInstructionsPage, YardKpiPage, YardMapPage, YardMovementsPage, YardPositionsPage, YardReceivingPlanPage, YardResourcesPage, YardWorkListPage } from './pages/YardPages.jsx';
 
-const FALLBACK_NAVIGATION = [
+export const FALLBACK_NAVIGATION = [
   { group: 'Visão geral', items: [
     { label: 'Painel', path: '/home/dashboard', roles: [] },
     { label: 'Central de alertas', path: '/home/alertas', roles: [] }
@@ -60,7 +36,6 @@ const FALLBACK_NAVIGATION = [
   { group: 'Cadastros', items: [
     { label: 'Papéis de acesso', path: '/home/role', roles: ['ADMIN_PORTO'] },
     { label: 'Usuários', path: '/home/lista-de-usuarios', roles: ['ADMIN_PORTO'] },
-    { label: 'Navios', path: '/home/navio/cadastros', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Berços portuários', path: '/home/patio/bercos', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
     { label: 'Instalações, gates e pistas', path: '/home/gate/configuracao', roles: ['ADMIN_PORTO'] },
     { label: 'Tipos e prefixos de equipamentos', path: '/home/patio/tipos-equipamentos', roles: ['ADMIN_PORTO', 'PLANEJADOR'] },
@@ -92,12 +67,8 @@ const FALLBACK_NAVIGATION = [
     { label: 'Saída direta do navio', path: '/home/gate/saida-direta-navio', roles: ['ADMIN_PORTO', 'OPERADOR_GATE'] },
     { label: 'Relatórios', path: '/home/gate/relatorios', roles: [] }
   ] },
-  { group: 'Faturamento', items: [
-    { label: 'Billing', path: '/home/billing', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }
-  ] },
-  { group: 'Portal do cliente', items: [
-    { label: 'Portal da transportadora', path: '/home/cap', roles: ['TRANSPORTADORA'] }
-  ] },
+  { group: 'Faturamento', items: [{ label: 'Billing', path: '/home/billing', roles: ['ADMIN_PORTO', 'PLANEJADOR'] }] },
+  { group: 'Portal do cliente', items: [{ label: 'Portal da transportadora', path: '/home/cap', roles: ['TRANSPORTADORA'] }] },
   { group: 'Ferrovia', items: [
     { label: 'Visitas', path: '/home/ferrovia/visitas', roles: [] },
     { label: 'Line-up ferroviário', path: '/home/ferrovia/line-up', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO'] },
@@ -123,6 +94,7 @@ const FALLBACK_NAVIGATION = [
     { label: 'Diagnóstico da API pública', path: '/home/integracoes/api-publica', roles: ['ADMIN_PORTO'] }
   ] },
   { group: 'Navio e embarque', items: [
+    { label: 'Navios', path: '/home/navio/cadastros', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
     { label: 'Line-up de navios', path: '/home/navio/line-up', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
     { label: 'Control Room', path: '/home/navio/control-room', roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE'] },
     { label: 'Planejamento de estiva', path: '/home/embarque/planejamento', roles: [] },
@@ -130,7 +102,7 @@ const FALLBACK_NAVIGATION = [
   ] }
 ];
 
-function normalizeBackendTabs(tabs) {
+export function normalizeBackendTabs(tabs) {
   if (!Array.isArray(tabs)) return [];
   const groups = new Map();
   tabs.forEach((tab) => {
@@ -146,19 +118,17 @@ function normalizeBackendTabs(tabs) {
   return Array.from(groups, ([group, items]) => ({ group, items }));
 }
 
-function mergeNavigation(fallbackNavigation, dynamicNavigation) {
+export function mergeNavigation(fallbackNavigation, dynamicNavigation) {
+  const dynamicPaths = new Set(dynamicNavigation.flatMap((group) => group.items.map((item) => item.path)));
   const groups = new Map();
-  const paths = new Set();
-
-  [...fallbackNavigation, ...dynamicNavigation].forEach((group) => {
-    if (!groups.has(group.group)) groups.set(group.group, []);
-    group.items.forEach((item) => {
-      if (paths.has(item.path)) return;
-      paths.add(item.path);
-      groups.get(group.group).push(item);
-    });
+  fallbackNavigation.forEach((group) => {
+    const items = group.items.filter((item) => !dynamicPaths.has(item.path));
+    if (items.length) groups.set(group.group, items);
   });
-
+  dynamicNavigation.forEach((group) => {
+    const current = groups.get(group.group) ?? [];
+    groups.set(group.group, [...current, ...group.items]);
+  });
   return Array.from(groups, ([group, items]) => ({ group, items }));
 }
 
@@ -172,7 +142,6 @@ function LoginPage({ onAuthenticated, navigate, returnPath }) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-
   async function submit(event) {
     event.preventDefault();
     if (busy || !login || !password) return;
@@ -187,7 +156,6 @@ function LoginPage({ onAuthenticated, navigate, returnPath }) {
       setError(formatError(reason, 'Não foi possível autenticar.'));
     } finally { setBusy(false); }
   }
-
   return <main className="login-shell"><section className="login-visual" aria-hidden="true"><div><span className="brand-mark">CP</span><h1>Operação portuária em uma única visão.</h1><p>Gate, ferrovia, pátio, navio e embarque conectados pelo CloudPort.</p></div></section><section className="login-panel"><form className="login-card" onSubmit={submit}><div className="login-brand"><span className="brand-mark small">CP</span><div><strong>CloudPort</strong><small>Portal operacional</small></div></div><div><span className="eyebrow">Acesso seguro</span><h2>Entrar</h2><p>Use uma conta autorizada para acessar os módulos.</p></div><label className="field"><span>Login</span><input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" maxLength={120} required autoFocus /></label><label className="field"><span>Senha</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label><Message type="error">{error}</Message><button className="large" type="submit" disabled={busy || !login || !password}>{busy ? 'Autenticando...' : 'Entrar no CloudPort'}</button></form></section></main>;
 }
 
@@ -213,7 +181,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/carga-geral/stuff-unstuff') return <StuffUnstuffPage />;
   if (path === '/home/billing') return <BillingPage />;
   if (path === '/home/cap') return <CapPage />;
-  if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage />;
+  if (path === '/home/navio' || path === '/home/navio/line-up') return <VesselLineUpPage navigate={navigate} />;
   if (path === '/home/navio/control-room') return <ControlRoomPage session={session} />;
   if (path === '/home/gate/operacao') return <GateOperationsPage session={session} />;
   if (path === '/home/gate' || path === '/home/gate/dashboard' || path === '/home/gate/operador' || path === '/home/gate/operador/console') return <GateDashboardPage />;

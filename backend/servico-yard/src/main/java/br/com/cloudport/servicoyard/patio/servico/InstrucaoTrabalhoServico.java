@@ -32,7 +32,8 @@ public class InstrucaoTrabalhoServico {
 
     private static final EnumSet<StatusInstrucao> STATUS_ATIVOS =
             EnumSet.of(StatusInstrucao.PENDENTE, StatusInstrucao.EM_EXECUCAO);
-    private static final Pattern POSICAO_PATTERN = Pattern.compile("(\\d+)\\D+(\\d+)(?:\\D+(\\d+))?");
+    private static final int TAMANHO_MAXIMO_DESTINO = 100;
+    private static final Pattern POSICAO_PATTERN = Pattern.compile("(\\d++)\\D++(\\d++)(?:\\D++(\\d++))?");
 
     private final InstrucaoTrabalhoRepositorio instrucaoRepositorio;
     private final ConteinerPatioRepositorio conteinerRepositorio;
@@ -41,10 +42,10 @@ public class InstrucaoTrabalhoServico {
     private final ValidadorYardPlacementService validadorPlacement;
 
     public InstrucaoTrabalhoServico(InstrucaoTrabalhoRepositorio instrucaoRepositorio,
-                                    ConteinerPatioRepositorio conteinerRepositorio,
-                                    EquipamentoPatioRepositorio equipamentoRepositorio,
-                                    PosicaoPatioRepositorio posicaoRepositorio,
-                                    ValidadorYardPlacementService validadorPlacement) {
+                                     ConteinerPatioRepositorio conteinerRepositorio,
+                                     EquipamentoPatioRepositorio equipamentoRepositorio,
+                                     PosicaoPatioRepositorio posicaoRepositorio,
+                                     ValidadorYardPlacementService validadorPlacement) {
         this.instrucaoRepositorio = instrucaoRepositorio;
         this.conteinerRepositorio = conteinerRepositorio;
         this.equipamentoRepositorio = equipamentoRepositorio;
@@ -53,15 +54,15 @@ public class InstrucaoTrabalhoServico {
     }
 
     public InstrucaoTrabalho criar(String codigoConteiner,
-                                    TipoOperacaoInstrucao tipoOperacao,
-                                    String origem,
-                                    String destino,
-                                    PrioridadeInstrucao prioridade,
-                                    LocalDateTime agendadaEm,
-                                    String equipamento,
-                                    String equipe,
-                                    String observacoes,
-                                    String criadoPor) {
+                                     TipoOperacaoInstrucao tipoOperacao,
+                                     String origem,
+                                     String destino,
+                                     PrioridadeInstrucao prioridade,
+                                     LocalDateTime agendadaEm,
+                                     String equipamento,
+                                     String equipe,
+                                     String observacoes,
+                                     String criadoPor) {
         String codigo = obrigatorio(codigoConteiner, "Código do contêiner").toUpperCase(Locale.ROOT);
         if (tipoOperacao == null) {
             throw new IllegalArgumentException("Tipo da operação deve ser informado");
@@ -201,7 +202,7 @@ public class InstrucaoTrabalhoServico {
     }
 
     private DestinoPatio extrairDestino(String destino) {
-        if (!StringUtils.hasText(destino)) {
+        if (!StringUtils.hasText(destino) || destino.length() > TAMANHO_MAXIMO_DESTINO) {
             return null;
         }
         Matcher matcher = POSICAO_PATTERN.matcher(destino);

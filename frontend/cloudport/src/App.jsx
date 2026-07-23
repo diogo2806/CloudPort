@@ -395,7 +395,7 @@ function PortalShell({ path, navigate, session, onLogout }) {
         {renderQuickGroup('Recentes', recent, '◷')}
 
         {filteredNavigation.map((group) => {
-          const expanded = Boolean(searchQuery) || openGroups.includes(group.group) || activeItem?.group === group.group;
+          const expanded = Boolean(searchQuery) || openGroups.includes(group.group);
           const groupId = `navigation-group-${group.group.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
           return <section className={`nav-group${expanded ? ' expanded' : ''}`} key={group.group}>
             <button type="button" className="nav-group-toggle" aria-expanded={expanded} aria-controls={groupId} onClick={() => toggleGroup(group.group)}>

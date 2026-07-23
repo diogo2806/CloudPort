@@ -11,6 +11,12 @@ test('grupos e menu móvel expõem estado expandido', () => {
   assert.match(appSource, /aria-label=\{mobileMenu \? 'Fechar menu' : 'Abrir menu'\} aria-expanded=\{mobileMenu\}/);
 });
 
+test('grupos do menu podem ser recolhidos mesmo quando contêm a tela ativa', () => {
+  assert.match(appSource, /const expanded = Boolean\(searchQuery\) \|\| openGroups\.includes\(group\.group\);/);
+  assert.doesNotMatch(appSource, /openGroups\.includes\(group\.group\) \|\| activeItem\?\.group === group\.group/);
+  assert.match(appSource, /hidden=\{!expanded\}/);
+});
+
 test('itens e favoritos possuem nomes acessíveis e estado atual', () => {
   assert.match(appSource, /aria-current=\{active \? 'page' : undefined\}/);
   assert.match(appSource, /aria-label=\{`Abrir \$\{item\.label\}`\}/);

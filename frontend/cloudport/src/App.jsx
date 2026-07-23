@@ -1,7 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCenterPage, GlobalAlertCenter } from './AlertCenter.jsx';
 import { api, clearSession, formatError, hasAnyRole, readSession, sanitizeText, saveSession, subscribeSessionExpired } from './api.js';
 import { Message } from './components.jsx';
+import {
+  activeNavigationItem,
+  filterNavigation,
+  itemsForPaths,
+  navigationBreadcrumb,
+  navigationGroupIcon,
+  navigationItemIcon,
+  navigationStorageKey,
+  readNavigationStorage,
+  sanitizeStoredPaths,
+  toggleNavigationPath,
+  updateRecentNavigation,
+  writeNavigationStorage
+} from './navigationUx.js';
 import { usePortalRouter } from './router.js';
 import { NotificationsPage, PrivacyPage, RolesPage, SecurityPage, UsersPage } from './pages/AdminPages.jsx';
 import { BillingPage, CapPage } from './pages/BillingCapPages.jsx';
@@ -27,6 +41,7 @@ import { VesselLineUpPage } from './pages/VesselLineUpPage.jsx';
 import { ControlRoomPage, DATASET_ROUTES, GateDashboardPage, GenericDatasetPage, HomeDashboard, RailImportPage, RailVisitsPage } from './pages/OperationalPages.jsx';
 import { DispatchEquipamentosPage } from './pages/yard/DispatchEquipamentosPage.jsx';
 import { YardAutomationPage, YardImpactPage, YardInstructionsPage, YardKpiPage, YardMapPage, YardMovementsPage, YardPositionsPage, YardReceivingPlanPage, YardResourcesPage, YardWorkListPage } from './pages/YardPages.jsx';
+import './navigation.css';
 
 export const FALLBACK_NAVIGATION = [
   { group: 'Visão geral', items: [
@@ -189,7 +204,7 @@ function RouteContent({ path, navigate, session }) {
   if (path === '/home/gate/embarque-direto') return <GateDirectVesselPage session={session} />;
   if (path === '/home/gate/saida-direta-navio') return <GateDirectVesselReleasePage />;
   if (path === '/home/gate/relatorios') return <GateReportsPage />;
-  if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage />;
+  if (path === '/home/ferrovia' || path === '/home/ferrovia/visitas') return <RailVisitsPage session={session} />;
   if (path === '/home/ferrovia/line-up') return <RailLineUpPage />;
   if (path === '/home/ferrovia/visitas/importar') return <RailImportPage />;
   if (path === '/home/ferrovia/lista-trabalho') return <RailWorkListPage session={session} />;
@@ -216,20 +231,204 @@ function RouteContent({ path, navigate, session }) {
   return <NotFoundPage navigate={navigate} />;
 }
 
+function NavigationItem({ item, active, favorite, onOpen, onToggleFavorite }) {
+  return <div className={`navigation-item${active ? ' active' : ''}`}>
+    <button
+      type="button"
+      className="navigation-link"
+      aria-current={active ? 'page' : undefined}
+      aria-label={`Abrir ${item.label}`}
+      onClick={() => onOpen(item.path)}
+    >
+      <span className="navigation-icon" aria-hidden="true">{navigationItemIcon(item)}</span>
+      <span>{item.label}</span>
+    </button>
+    <button
+      type="button"
+      className={`navigation-favorite${favorite ? ' selected' : ''}`}
+      aria-label={`${favorite ? 'Desafixar' : 'Fixar'} ${item.label} nos favoritos`}
+      aria-pressed={favorite}
+      onClick={() => onToggleFavorite(item.path)}
+      title={favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+    >
+      {favorite ? '★' : '☆'}
+    </button>
+  </div>;
+}
+
 function PortalShell({ path, navigate, session, onLogout }) {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [dynamicNavigation, setDynamicNavigation] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchRef = useRef(null);
+  const storage = globalThis.localStorage;
+  const favoritesKey = useMemo(() => navigationStorageKey(session, 'favorites'), [session]);
+  const recentKey = useMemo(() => navigationStorageKey(session, 'recent'), [session]);
+  const groupsKey = useMemo(() => navigationStorageKey(session, 'groups'), [session]);
+  const [favoritePaths, setFavoritePaths] = useState(() => readNavigationStorage(storage, favoritesKey));
+  const [recentPaths, setRecentPaths] = useState(() => readNavigationStorage(storage, recentKey));
+  const [openGroups, setOpenGroups] = useState(() => readNavigationStorage(storage, groupsKey));
+
   useEffect(() => {
     let active = true;
     api.listarAbas().then((tabs) => { if (active) setDynamicNavigation(normalizeBackendTabs(tabs)); }).catch(() => { if (active) setDynamicNavigation([]); });
     return () => { active = false; };
   }, []);
+
   const navigation = useMemo(() => mergeNavigation(FALLBACK_NAVIGATION, dynamicNavigation), [dynamicNavigation]);
-  const visibleNavigation = useMemo(() => navigation.map((group) => ({ ...group, items: group.items.filter((item) => !item.roles?.length || hasAnyRole(session, ...item.roles)) })).filter((group) => group.items.length), [navigation, session]);
-  const breadcrumb = path === '/home/patio/lost-found' ? 'Pátio / Unidades não localizadas' : path.replace('/home/', '').replaceAll('/', ' / ') || 'Painel';
-  function open(pathToOpen) { navigate(pathToOpen); setMobileMenu(false); }
-  function logout() { clearSession(); onLogout(); navigate('/login', { replace: true }); }
-  return <div className="portal-shell"><aside className={`sidebar ${mobileMenu ? 'open' : ''}`}><button className="sidebar-brand" onClick={() => open('/home/dashboard')}><span className="brand-mark small">CP</span><span><strong>CloudPort</strong><small>Portal operacional</small></span></button><nav aria-label="Navegação principal">{visibleNavigation.map((group) => <section className="nav-group" key={group.group}><h2>{group.group}</h2>{group.items.map((item) => <button key={item.path} className={path === item.path || path.startsWith(`${item.path}/`) ? 'active' : ''} onClick={() => open(item.path)}>{item.label}</button>)}</section>)}</nav><footer className="sidebar-footer"><span>React 19 · Vite 8</span></footer></aside>{mobileMenu && <button className="sidebar-backdrop" aria-label="Fechar menu" onClick={() => setMobileMenu(false)} />}<div className="portal-main"><header className="topbar"><button className="menu-button" onClick={() => setMobileMenu((value) => !value)} aria-label="Abrir menu">☰</button><div className="topbar-context"><strong>CloudPort</strong><span>{breadcrumb}</span></div><div className="topbar-actions"><GlobalAlertCenter navigate={navigate} session={session} /><div className="user-menu"><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div></div></header><main className="content"><RouteContent path={path} navigate={navigate} session={session} /></main></div></div>;
+  const visibleNavigation = useMemo(() => navigation
+    .map((group) => ({ ...group, items: group.items.filter((item) => !item.roles?.length || hasAnyRole(session, ...item.roles)) }))
+    .filter((group) => group.items.length), [navigation, session]);
+  const activeItem = useMemo(() => activeNavigationItem(path, visibleNavigation), [path, visibleNavigation]);
+  const breadcrumb = useMemo(() => navigationBreadcrumb(path, visibleNavigation), [path, visibleNavigation]);
+  const filteredNavigation = useMemo(() => filterNavigation(visibleNavigation, searchQuery), [visibleNavigation, searchQuery]);
+  const favorites = useMemo(() => itemsForPaths(favoritePaths, visibleNavigation), [favoritePaths, visibleNavigation]);
+  const recent = useMemo(() => itemsForPaths(recentPaths, visibleNavigation).filter((item) => !favoritePaths.includes(item.path)), [recentPaths, favoritePaths, visibleNavigation]);
+
+  useEffect(() => {
+    setFavoritePaths(readNavigationStorage(storage, favoritesKey));
+    setRecentPaths(readNavigationStorage(storage, recentKey));
+    setOpenGroups(readNavigationStorage(storage, groupsKey));
+  }, [favoritesKey, recentKey, groupsKey, storage]);
+
+  useEffect(() => {
+    setFavoritePaths((current) => {
+      const next = sanitizeStoredPaths(current, visibleNavigation);
+      writeNavigationStorage(storage, favoritesKey, next);
+      return next;
+    });
+    setRecentPaths((current) => {
+      const next = sanitizeStoredPaths(current, visibleNavigation).slice(0, 6);
+      writeNavigationStorage(storage, recentKey, next);
+      return next;
+    });
+  }, [visibleNavigation, favoritesKey, recentKey, storage]);
+
+  useEffect(() => {
+    if (!activeItem) return;
+    setRecentPaths((current) => {
+      const next = updateRecentNavigation(current, activeItem.path, visibleNavigation);
+      writeNavigationStorage(storage, recentKey, next);
+      return next;
+    });
+    setOpenGroups((current) => {
+      if (current.includes(activeItem.group)) return current;
+      const next = [...current, activeItem.group];
+      writeNavigationStorage(storage, groupsKey, next);
+      return next;
+    });
+  }, [activeItem, visibleNavigation, recentKey, groupsKey, storage]);
+
+  useEffect(() => {
+    function focusSearch(event) {
+      const tag = String(event.target?.tagName ?? '').toLowerCase();
+      const typing = event.target?.isContentEditable || ['input', 'select', 'textarea'].includes(tag);
+      if (typing || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'k') return;
+      event.preventDefault();
+      setMobileMenu(true);
+      globalThis.setTimeout(() => searchRef.current?.focus(), 0);
+    }
+    window.addEventListener('keydown', focusSearch);
+    return () => window.removeEventListener('keydown', focusSearch);
+  }, []);
+
+  function open(pathToOpen) {
+    navigate(pathToOpen);
+    setMobileMenu(false);
+    setSearchQuery('');
+  }
+
+  function toggleFavorite(pathToToggle) {
+    setFavoritePaths((current) => {
+      const next = sanitizeStoredPaths(toggleNavigationPath(current, pathToToggle), visibleNavigation);
+      writeNavigationStorage(storage, favoritesKey, next);
+      return next;
+    });
+  }
+
+  function toggleGroup(group) {
+    setOpenGroups((current) => {
+      const next = current.includes(group) ? current.filter((item) => item !== group) : [...current, group];
+      writeNavigationStorage(storage, groupsKey, next);
+      return next;
+    });
+  }
+
+  function logout() {
+    clearSession();
+    onLogout();
+    navigate('/login', { replace: true });
+  }
+
+  function renderQuickGroup(title, items, icon) {
+    if (!items.length || searchQuery) return null;
+    return <section className="nav-group nav-quick-group">
+      <h2><span className="navigation-icon" aria-hidden="true">{icon}</span>{title}</h2>
+      <div className="nav-group-items">{items.map((item) => <NavigationItem
+        key={`${title}-${item.path}`}
+        item={item}
+        active={path === item.path || path.startsWith(`${item.path}/`)}
+        favorite={favoritePaths.includes(item.path)}
+        onOpen={open}
+        onToggleFavorite={toggleFavorite}
+      />)}</div>
+    </section>;
+  }
+
+  return <div className="portal-shell">
+    <aside className={`sidebar navigation-sidebar ${mobileMenu ? 'open' : ''}`}>
+      <button className="sidebar-brand" onClick={() => open('/home/dashboard')}>
+        <span className="brand-mark small">CP</span>
+        <span><strong>CloudPort</strong><small>Portal operacional</small></span>
+      </button>
+
+      <label className="navigation-search">
+        <span>Buscar telas e comandos</span>
+        <div><span aria-hidden="true">⌕</span><input ref={searchRef} type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Ex.: trem, gate, estiva" /><kbd>Ctrl K</kbd></div>
+      </label>
+
+      <nav aria-label="Navegação principal">
+        {renderQuickGroup('Favoritos', favorites, '★')}
+        {renderQuickGroup('Recentes', recent, '◷')}
+
+        {filteredNavigation.map((group) => {
+          const expanded = Boolean(searchQuery) || openGroups.includes(group.group) || activeItem?.group === group.group;
+          const groupId = `navigation-group-${group.group.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+          return <section className={`nav-group${expanded ? ' expanded' : ''}`} key={group.group}>
+            <button type="button" className="nav-group-toggle" aria-expanded={expanded} aria-controls={groupId} onClick={() => toggleGroup(group.group)}>
+              <span className="navigation-icon" aria-hidden="true">{navigationGroupIcon(group.group)}</span>
+              <span>{group.group}</span>
+              <span className="nav-group-count">{group.items.length}</span>
+              <span className="nav-group-chevron" aria-hidden="true">›</span>
+            </button>
+            <div id={groupId} className="nav-group-items" hidden={!expanded}>
+              {group.items.map((item) => <NavigationItem
+                key={item.path}
+                item={item}
+                active={path === item.path || path.startsWith(`${item.path}/`)}
+                favorite={favoritePaths.includes(item.path)}
+                onOpen={open}
+                onToggleFavorite={toggleFavorite}
+              />)}
+            </div>
+          </section>;
+        })}
+        {!filteredNavigation.length && <div className="navigation-empty"><strong>Nenhuma tela encontrada</strong><span>Tente outro nome, módulo, sinônimo ou rota.</span></div>}
+      </nav>
+      <footer className="sidebar-footer"><span>Busca: Ctrl + K · Ajuda: F1</span></footer>
+    </aside>
+
+    {mobileMenu && <button className="sidebar-backdrop" aria-label="Fechar menu" onClick={() => setMobileMenu(false)} />}
+
+    <div className="portal-main">
+      <header className="topbar">
+        <button className="menu-button" onClick={() => setMobileMenu((value) => !value)} aria-label={mobileMenu ? 'Fechar menu' : 'Abrir menu'} aria-expanded={mobileMenu}>☰</button>
+        <div className="topbar-context"><strong>{activeItem?.label ?? 'CloudPort'}</strong><span>{breadcrumb}</span></div>
+        <div className="topbar-actions"><GlobalAlertCenter navigate={navigate} session={session} /><div className="user-menu"><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div></div>
+      </header>
+      <main className="content"><RouteContent path={path} navigate={navigate} session={session} /></main>
+    </div>
+  </div>;
 }
 
 export default function App() {

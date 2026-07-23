@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { readSession } from './api.js';
+import { resolveCockpitContextHelp } from './cockpitContextHelp.js';
 import { buildHelpSections, filterHelpSections, resolveContextHelp } from './contextHelp.js';
 import { isContextHelpCloseShortcut, isContextHelpOpenShortcut } from './contextHelpKeyboard.js';
 import { applyPredictiveContextHelp } from './predictiveContextHelp.js';
@@ -24,8 +25,10 @@ export function ContextHelp({ path, navigate, session, shortcuts = true }) {
   const activeSession = session ?? readSession() ?? {};
   const help = useMemo(() => {
     const baseHelp = resolveContextHelp(activePath, activeSession);
-    const resolvedHelp = resolveRailContextHelp(activePath, baseHelp) ?? baseHelp;
-    const predictiveHelp = applyPredictiveContextHelp(activePath, resolvedHelp);
+    const domainHelp = resolveCockpitContextHelp(activePath, baseHelp)
+      ?? resolveRailContextHelp(activePath, baseHelp)
+      ?? baseHelp;
+    const predictiveHelp = applyPredictiveContextHelp(activePath, domainHelp);
     return {
       ...predictiveHelp,
       shortcuts: [...new Set([

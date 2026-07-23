@@ -8,16 +8,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 
 public interface UnidadeInventarioRepositorio extends JpaRepository<UnidadeInventario, Long> {
-
     Optional<UnidadeInventario> findByIdentificacaoIgnoreCase(String identificacao);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<UnidadeInventario> findComBloqueioByIdentificacaoIgnoreCase(String identificacao);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<UnidadeInventario> findComBloqueioById(Long id);
-
     boolean existsByIdentificacaoIgnoreCase(String identificacao);
-
+    long countByTipoEquipamentoId(Long tipoEquipamentoId);
     List<UnidadeInventario> findAllByOrderByIdentificacaoAsc();
 }

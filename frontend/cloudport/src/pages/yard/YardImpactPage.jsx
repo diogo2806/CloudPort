@@ -9,7 +9,9 @@ export function YardImpactPage({ navigate }) {
   const [blocoSelecionado, setBlocoSelecionado] = useState('');
   const [powSelecionado, setPowSelecionado] = useState('');
   const remote = useRemote(() => yardPredictiveApi.obterYardImpact(horizonteHoras), [horizonteHoras]);
+  const previsaoRemote = useRemote(() => yardPredictiveApi.obterPrevisaoDemanda(horizonteHoras), [horizonteHoras]);
   const impact = remote.data ?? {};
+  const previsao = previsaoRemote.data ?? {};
   const blocos = impact.blocos ?? [];
   const pows = impact.pows ?? [];
   const unidades = impact.unidades ?? [];
@@ -21,21 +23,53 @@ export function YardImpactPage({ navigate }) {
     return true;
   }), [blocoSelecionado, powSelecionado, unidades]);
 
+  const atualizar = () => {
+    remote.reload();
+    previsaoRemote.reload();
+  };
+
   return <>
     <YardPageHeader
       path="/home/patio/yard-impact"
       navigate={navigate}
       title="Yard Impact"
       description="Projeta entradas, saídas, rehandles, reservas, work instructions, saturação e demanda de CHE no horizonte operacional."
-      actions={<button className="secondary" type="button" onClick={remote.reload}>Atualizar projeção</button>}
+      actions={<button className="secondary" type="button" onClick={atualizar}>Atualizar projeção</button>}
     />
-    <Message type="error">{remote.error}</Message>
+    <Message type="error">{remote.error || previsaoRemote.error}</Message>
     <Section title="Horizonte da projeção" description="O horizonte mínimo operacional é de seis horas e pode ser ampliado até vinte e quatro horas.">
       <label className="field">
         <span>Horas projetadas: {horizonteHoras}</span>
         <input type="range" min="6" max="24" step="1" value={horizonteHoras} onChange={(event) => setHorizonteHoras(Number(event.target.value))} />
       </label>
     </Section>
+
+    {previsaoRemote.loading ? <Loading label="Calculando previsão de demanda..." /> : <Section
+      title="Previsão de demanda operacional"
+      description="A previsão apoia a decisão, mas nenhuma posição é persistida sem aprovação das regras determinísticas."
+    >
+      <div className="metrics-grid">
+        <MetricCard label="Demanda prevista" value={previsao.demandaPrevista ?? 0} detail={`Próximas ${previsao.horizonteHoras ?? horizonteHoras}h`} />
+        <MetricCard label="Duração prevista" value={`${previsao.duracaoPrevistaMinutos ?? 0} min`} />
+        <MetricCard label="Confiança" value={`${((previsao.confianca ?? 0) * 100).toFixed(0)}%`} />
+        <MetricCard label="Baseline determinístico" value={previsao.baselineDeterministico ?? 0} detail={`Diferença ${previsao.diferencaBaseline ?? 0}`} />
+      </div>
+      <Message type={previsao.fallbackDeterministico ? 'warning' : 'info'}>
+        {previsao.fallbackDeterministico
+          ? `Fallback determinístico ativo. ${sanitizeText(previsao.explicacao)}`
+          : `Sugestão gerada pelo modelo ${sanitizeText(previsao.versaoModelo)}. ${sanitizeText(previsao.explicacao)}`}
+      </Message>
+      <div className="card-meta">
+        <StatusBadge value={previsao.fallbackDeterministico ? 'DETERMINISTICO' : 'MODELO'} />
+        <small>Gerado em {displayValue(previsao.geradoEm)}</small>
+      </div>
+      {(previsao.validacoesObrigatorias ?? []).length > 0 && <div className="card-list">
+        {(previsao.validacoesObrigatorias ?? []).map((validacao) => <article className="content-card" key={validacao}>
+          <strong>Validação obrigatória</strong>
+          <p>{sanitizeText(validacao)}</p>
+        </article>)}
+      </div>}
+    </Section>}
 
     {remote.loading ? <Loading label="Calculando Yard Impact..." /> : <>
       <div className="metrics-grid">

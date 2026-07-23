@@ -10,7 +10,7 @@ function emptyCommand(operator = '') {
     area: '',
     posicao: '',
     equipamento: '',
-    operador,
+    operador: operator,
     condicao: 'ÍNTEGRO',
     lacres: '',
     chaveIdempotencia: ''

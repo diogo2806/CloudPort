@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CloudPort — VMT/RDT operacional</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, system-ui, sans-serif; }
+    body { margin: 0; background: #0b1220; color: #e5e7eb; }
+    main { max-width: 1180px; margin: auto; padding: 20px; }
+    h1,h2,h3 { margin-top: 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 12px; }
+    .card { background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    label { display: grid; gap: 5px; font-size: 13px; }
+    input,select,textarea,button { font: inherit; border-radius: 8px; border: 1px solid #475569; padding: 9px; }
+    input,select,textarea { background: #0f172a; color: #e5e7eb; }
+    textarea { min-height: 76px; resize: vertical; }
+    button { background: #2563eb; color: white; cursor: pointer; }
+    button.secondary { background: #334155; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .message { white-space: pre-wrap; padding: 10px; border-radius: 8px; background: #172554; margin-top: 12px; }
+    .error { background: #450a0a; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th,td { border-bottom: 1px solid #334155; text-align: left; padding: 8px; vertical-align: top; }
+    details summary { cursor: pointer; font-weight: 700; }
+    code { background: #020617; padding: 2px 5px; border-radius: 5px; }
+    a { color: #93c5fd; }
+  </style>
+</head>
+<body>
+<main>
+  <header class="card">
+    <h1>VMT/RDT operacional</h1>
+    <p>Registro versionado de lacres, avarias, conexão reefer, rehandles, ajuste de etapa e conclusão física na mesma work instruction.</p>
+  </header>
+
+  <details class="card" open>
+    <summary>📘 Manual da tela</summary>
+    <h3>Finalidade da tela</h3>
+    <p>Executar e auditar comandos móveis da work instruction sem criar inventário paralelo.</p>
+    <h3>Fluxo operacional</h3>
+    <ol><li>Informe a work instruction e carregue o histórico.</li><li>Confirme unidade, equipamento e estado VMT atual.</li><li>Selecione o comando e preencha os campos específicos.</li><li>Envie o evento. O backend rejeita duplicidade, ordem temporal inválida, divergência de unidade e transição incompatível.</li><li>Conclua a instrução apenas após finalizar rehandles obrigatórios.</li></ol>
+    <h3>Explicação dos campos</h3>
+    <ul><li><b>Evento:</b> identificador idempotente do comando.</li><li><b>Estado esperado:</b> estado persistido antes do comando.</li><li><b>Unidade/CHE:</b> leitura física usada na validação.</li><li><b>Lacre/avaria/evidência:</b> registro rastreável da inspeção.</li><li><b>Reefer:</b> estado desejado de conexão e leitura de temperatura.</li><li><b>Rehandle:</b> unidade coberta, obrigatoriedade e sequência.</li><li><b>Ajuste de etapa:</b> etapa anterior, nova etapa e motivo obrigatório.</li></ul>
+    <h3>Permissões necessárias</h3>
+    <p>ADMIN_PORTO, PLANEJADOR, OPERADOR_PATIO ou INTEGRACAO_VMT. Ajustes de etapa devem ser usados somente por perfil autorizado pela operação.</p>
+    <h3>Estados possíveis</h3>
+    <p>PENDENTE, ACEITA, EM_EXECUCAO, FALHA e CONCLUIDA. Os comandos operacionais intermediários preservam EM_EXECUCAO.</p>
+    <h3>Motivos de bloqueio</h3>
+    <p>Evento repetido, timestamp fora de ordem, contrato incompatível, unidade divergente, campos obrigatórios ausentes, rehandle não iniciado ou rehandle obrigatório pendente.</p>
+    <h3>Exemplos</h3>
+    <p><code>REGISTRO_LACRE</code>: unidade CONT-001, lacre ABC123. <code>REHANDLE_INICIO</code>: unidade CONT-099, obrigatório, sequência 1. <code>REEFER_CONECTAR</code>: estado desejado ligado e temperatura -18 °C.</p>
+    <h3>Atalhos</h3>
+    <p><b>Ctrl+Enter</b> envia o evento. <b>Alt+L</b> carrega o histórico. <b>Esc</b> limpa a mensagem.</p>
+    <p><a href="/home/patio/lista-trabalho">Abrir processo completo da lista de trabalho</a></p>
+  </details>
+
+  <section class="card">
+    <div class="grid">
+      <label>Work instruction ID<input id="instructionId" type="number" min="1" required /></label>
+      <label>Tipo do evento<select id="tipoEvento">
+        <option>REGISTRO_LACRE</option><option>REGISTRO_AVARIA</option><option>REEFER_CONECTAR</option><option>REEFER_DESCONECTAR</option><option>REHANDLE_INICIO</option><option>REHANDLE_CONCLUSAO</option><option>AJUSTE_ETAPA</option><option>CONCLUSAO</option>
+      </select></label>
+      <label>Estado esperado<select id="statusEsperado"><option>EM_EXECUCAO</option><option>ACEITA</option><option>PENDENTE</option></select></label>
+      <label>Versão do contrato<input id="versaoContrato" value="2.0" maxlength="20" /></label>
+      <label>Event ID<input id="eventId" maxlength="120" /></label>
+      <label>Operador<input id="operador" maxlength="120" /></label>
+      <label>Unidade lida<input id="codigoUnidadeLido" maxlength="40" /></label>
+      <label>Equipamento ID<input id="equipamentoPatioId" type="number" min="1" /></label>
+      <label>Identificador do CHE<input id="equipamentoIdentificador" maxlength="80" /></label>
+      <label>Número do lacre<input id="numeroLacre" maxlength="80" /></label>
+      <label>Código da avaria<input id="codigoAvaria" maxlength="80" /></label>
+      <label>Descrição da avaria<textarea id="descricaoAvaria" maxlength="500"></textarea></label>
+      <label>URL da evidência<input id="evidenciaUrl" maxlength="500" /></label>
+      <label>Reefer conectado desejado<select id="reeferConectadoDesejado"><option value="">Não informado</option><option value="true">Sim</option><option value="false">Não</option></select></label>
+      <label>Temperatura reefer<input id="temperaturaReefer" type="number" step="0.001" /></label>
+      <label>Unidade alvo do rehandle<input id="unidadeAlvoRehandle" maxlength="80" /></label>
+      <label>Rehandle obrigatório<select id="rehandleObrigatorio"><option value="">Não informado</option><option value="true">Sim</option><option value="false">Não</option></select></label>
+      <label>Sequência do rehandle<input id="sequenciaRehandle" type="number" min="1" /></label>
+      <label>Etapa anterior<input id="etapaAnterior" maxlength="80" /></label>
+      <label>Nova etapa<input id="etapaNova" maxlength="80" /></label>
+      <label>Motivo do ajuste<textarea id="motivoAjuste" maxlength="500"></textarea></label>
+      <label>Resultado<textarea id="resultado" maxlength="1000"></textarea></label>
+    </div>
+    <div class="actions"><button id="send">Enviar evento</button><button id="load" class="secondary">Carregar histórico</button><button id="reset" class="secondary">Limpar</button></div>
+    <div id="message" class="message" hidden></div>
+  </section>
+
+  <section class="card">
+    <h2>Histórico persistido</h2>
+    <div style="overflow:auto"><table><thead><tr><th>Horário</th><th>Evento</th><th>Estado</th><th>Unidade</th><th>Detalhes</th></tr></thead><tbody id="history"></tbody></table></div>
+  </section>
+</main>
+<script>
+  const ids = ['instructionId','tipoEvento','statusEsperado','versaoContrato','eventId','operador','codigoUnidadeLido','equipamentoPatioId','equipamentoIdentificador','numeroLacre','codigoAvaria','descricaoAvaria','evidenciaUrl','reeferConectadoDesejado','temperaturaReefer','unidadeAlvoRehandle','rehandleObrigatorio','sequenciaRehandle','etapaAnterior','etapaNova','motivoAjuste','resultado'];
+  const byId = id => document.getElementById(id);
+  const nullableNumber = id => byId(id).value === '' ? null : Number(byId(id).value);
+  const nullableBoolean = id => byId(id).value === '' ? null : byId(id).value === 'true';
+  const nullableText = id => byId(id).value.trim() || null;
+  const eventId = () => crypto.randomUUID ? crypto.randomUUID() : `vmt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const localTimestamp = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,19); };
+  const message = (text,error=false) => { const el=byId('message'); el.hidden=false; el.className=`message${error?' error':''}`; el.textContent=text; };
+  async function api(path, options={}) {
+    const response = await fetch(path, { credentials:'include', headers:{'Content-Type':'application/json',...(options.headers||{})}, ...options });
+    const text = await response.text();
+    const data = text ? (()=>{ try{return JSON.parse(text)}catch{return text} })() : null;
+    if (!response.ok) throw new Error(typeof data==='string'?data:(data?.message||data?.detail||`HTTP ${response.status}`));
+    return data;
+  }
+  function body() {
+    return {
+      eventId: nullableText('eventId') || eventId(), tipoEvento: byId('tipoEvento').value,
+      statusEsperado: byId('statusEsperado').value, timestamp: localTimestamp(), versaoContrato: nullableText('versaoContrato'),
+      operador: nullableText('operador'), correlationId: eventId(), codigoUnidadeLido: nullableText('codigoUnidadeLido'),
+      equipamentoPatioId: nullableNumber('equipamentoPatioId'), equipamentoIdentificador: nullableText('equipamentoIdentificador'),
+      numeroLacre: nullableText('numeroLacre'), codigoAvaria: nullableText('codigoAvaria'), descricaoAvaria: nullableText('descricaoAvaria'),
+      evidenciaUrl: nullableText('evidenciaUrl'), reeferConectadoDesejado: nullableBoolean('reeferConectadoDesejado'),
+      temperaturaReefer: nullableNumber('temperaturaReefer'), unidadeAlvoRehandle: nullableText('unidadeAlvoRehandle'),
+      rehandleObrigatorio: nullableBoolean('rehandleObrigatorio'), sequenciaRehandle: nullableNumber('sequenciaRehandle'),
+      etapaAnterior: nullableText('etapaAnterior'), etapaNova: nullableText('etapaNova'), motivoAjuste: nullableText('motivoAjuste'),
+      resultado: nullableText('resultado')
+    };
+  }
+  async function load() {
+    const id=byId('instructionId').value; if(!id) return message('Informe a work instruction.',true);
+    try { const rows=await api(`/yard/patio/work-instructions/${id}/vmt-events`); byId('history').innerHTML=(rows||[]).map(r=>`<tr><td>${r.timestamp||''}</td><td>${r.tipoEvento||''}</td><td>${r.statusResultante||''}</td><td>${r.codigoUnidadeLido||''}</td><td><pre>${JSON.stringify(r,null,2)}</pre></td></tr>`).join(''); message(`${rows?.length||0} evento(s) carregado(s).`); } catch(e){ message(e.message,true); }
+  }
+  async function send() {
+    const id=byId('instructionId').value; if(!id) return message('Informe a work instruction.',true);
+    byId('send').disabled=true;
+    try { const result=await api(`/yard/patio/work-instructions/${id}/vmt-events`,{method:'POST',body:JSON.stringify(body())}); byId('eventId').value=''; message(`Evento ${result.tipoEvento} registrado com sucesso.`); await load(); } catch(e){ message(e.message,true); } finally { byId('send').disabled=false; }
+  }
+  byId('send').addEventListener('click',send); byId('load').addEventListener('click',load);
+  byId('reset').addEventListener('click',()=>{ ids.filter(id=>!['instructionId','versaoContrato'].includes(id)).forEach(id=>byId(id).value=''); byId('statusEsperado').value='EM_EXECUCAO'; byId('tipoEvento').value='REGISTRO_LACRE'; byId('message').hidden=true; });
+  document.addEventListener('keydown',e=>{ if(e.ctrlKey&&e.key==='Enter') send(); if(e.altKey&&e.key.toLowerCase()==='l') load(); if(e.key==='Escape') byId('message').hidden=true; });
+</script>
+</body>
+</html>

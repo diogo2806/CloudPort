@@ -16,14 +16,20 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf().disable()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .csrf()
+                // A API usa exclusivamente Bearer JWT e não depende de cookies de sessão.
+                // Mantemos CSRF habilitado por padrão e ignoramos apenas os endpoints stateless.
+                .ignoringAntMatchers("/api/**", "/ws/**")
+            .and()
+            .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
                 .antMatchers("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**", "/ws/**").permitAll()
                 .anyRequest().authenticated()
             .and()
-            .oauth2ResourceServer().jwt();
+            .oauth2ResourceServer()
+                .jwt();
 
         return http.build();
     }

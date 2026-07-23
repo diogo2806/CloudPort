@@ -2,13 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { readSession } from './api.js';
 import { buildHelpSections, filterHelpSections, resolveContextHelp } from './contextHelp.js';
+import { isContextHelpCloseShortcut, isContextHelpOpenShortcut } from './contextHelpKeyboard.js';
 import { applyPredictiveContextHelp } from './predictiveContextHelp.js';
+import { resolveRailContextHelp } from './railContextHelp.js';
 import './context-help.css';
-
-function isTypingTarget(target) {
-  const tagName = String(target?.tagName ?? '').toLowerCase();
-  return target?.isContentEditable || ['input', 'select', 'textarea'].includes(tagName);
-}
 
 function HelpSection({ section }) {
   const List = section.id === 'flow' ? 'ol' : 'ul';
@@ -18,17 +15,18 @@ function HelpSection({ section }) {
   </section>;
 }
 
-export function ContextHelp({ path, navigate, session }) {
+export function ContextHelp({ path, navigate, session, shortcuts = true }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const triggerRef = useRef(null);
   const closeRef = useRef(null);
   const activePath = path ?? globalThis.location?.pathname ?? '/home/dashboard';
   const activeSession = session ?? readSession() ?? {};
-  const help = useMemo(() => applyPredictiveContextHelp(
-    activePath,
-    resolveContextHelp(activePath, activeSession)
-  ), [activePath, activeSession]);
+  const help = useMemo(() => {
+    const baseHelp = resolveContextHelp(activePath, activeSession);
+    const resolvedHelp = resolveRailContextHelp(activePath, baseHelp) ?? baseHelp;
+    return applyPredictiveContextHelp(activePath, resolvedHelp);
+  }, [activePath, activeSession]);
   const sections = useMemo(() => buildHelpSections(help), [help]);
   const visibleSections = useMemo(() => filterHelpSections(sections, query), [sections, query]);
   const portalTarget = globalThis.document?.body;
@@ -39,22 +37,35 @@ export function ContextHelp({ path, navigate, session }) {
   }, [activePath]);
 
   useEffect(() => {
+    if (!shortcuts) return undefined;
+
     function handleKeyDown(event) {
-      if (event.key === 'Escape' && open) {
+      if (isContextHelpCloseShortcut(event, open)) {
         event.preventDefault();
         setOpen(false);
         triggerRef.current?.focus();
         return;
       }
-      const openShortcut = event.key === 'F1' || (event.shiftKey && event.key === '?');
-      if (!openShortcut || isTypingTarget(event.target)) return;
+      if (!isContextHelpOpenShortcut(event)) return;
       event.preventDefault();
       setOpen(true);
     }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open]);
+  }, [open, shortcuts]);
+
+  useEffect(() => {
+    function handleEscape(event) {
+      if (!shortcuts && isContextHelpCloseShortcut(event, open)) {
+        event.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+    if (!shortcuts) window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [open, shortcuts]);
 
   useEffect(() => {
     if (open) closeRef.current?.focus();
@@ -132,6 +143,7 @@ export function ContextHelp({ path, navigate, session }) {
       className="context-help-trigger secondary"
       aria-label={`Abrir ajuda contextual de ${help.title}`}
       aria-expanded={open}
+      aria-haspopup="dialog"
       onClick={() => setOpen((value) => !value)}
     >
       <span aria-hidden="true">?</span><strong>Ajuda</strong>

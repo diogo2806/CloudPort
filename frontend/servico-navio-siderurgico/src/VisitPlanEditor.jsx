@@ -1,20 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  VISIT_DATE_FIELDS,
+  VISIT_MILESTONE_GROUPS,
+  validateVisitMilestones
+} from './visitMilestones.js';
 
 const MOVIMENTOS = ['EMBARQUE', 'DESCARGA', 'RESTOW'];
 const TIPOS_CARGA = ['BOBINA', 'CHAPA', 'TARUGO', 'PLACA', 'PERFIL', 'VERGALHAO', 'OUTROS'];
-const CAMPOS_DATA_VISITA = [
-  'eta',
-  'ata',
-  'etb',
-  'atb',
-  'inicioOperacao',
-  'fimOperacao',
-  'etd',
-  'atd',
-  'janelaRecebimentoInicio',
-  'janelaRecebimentoFim',
-  'cutoffOperacional'
-];
 
 const statusClass = (value) => `status status-${String(value ?? 'indefinido').toLowerCase().replaceAll('_', '-')}`;
 const number = (value, digits = 0) => Number(value ?? 0).toLocaleString('pt-BR', {
@@ -60,7 +52,7 @@ function visitDraftFrom(visit) {
     bercoPrevisto: visit.bercoPrevisto ?? '',
     bercoAtual: visit.bercoAtual ?? '',
     observacoes: visit.observacoes ?? '',
-    ...Object.fromEntries(CAMPOS_DATA_VISITA.map((field) => [field, toDateTimeInput(visit[field])]))
+    ...Object.fromEntries(VISIT_DATE_FIELDS.map((field) => [field, toDateTimeInput(visit[field])]))
   };
 }
 
@@ -81,7 +73,7 @@ function visitPayload(draft) {
     bercoPrevisto: text(draft.bercoPrevisto) || null,
     bercoAtual: text(draft.bercoAtual) || null,
     observacoes: text(draft.observacoes) || null,
-    ...Object.fromEntries(CAMPOS_DATA_VISITA.map((field) => [field, toLocalDateTime(draft[field])]))
+    ...Object.fromEntries(VISIT_DATE_FIELDS.map((field) => [field, toLocalDateTime(draft[field])]))
   };
 }
 
@@ -127,6 +119,11 @@ function confirmed(message) {
     || window.confirm(message);
 }
 
+function isEditingTarget(target) {
+  const tag = String(target?.tagName ?? '').toUpperCase();
+  return ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || Boolean(target?.isContentEditable);
+}
+
 export default function VisitPlanEditor({
   visit,
   items = [],
@@ -147,6 +144,7 @@ export default function VisitPlanEditor({
   const [visitDraft, setVisitDraft] = useState(() => visitDraftFrom(visit));
   const [itemDraft, setItemDraft] = useState(null);
   const [localError, setLocalError] = useState('');
+  const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
     setVisitDraft(visitDraftFrom(visit));
@@ -158,8 +156,23 @@ export default function VisitPlanEditor({
     if (itemDraft && !items.some((item) => item.id === itemDraft.id)) setItemDraft(null);
   }, [items, itemDraft]);
 
+  useEffect(() => {
+    function handleShortcut(event) {
+      const openByF1 = event.key === 'F1';
+      const openByQuestion = event.key === '?' && event.shiftKey && !isEditingTarget(event.target);
+      if (!openByF1 && !openByQuestion) return;
+      event.preventDefault();
+      setManualOpen(true);
+    }
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, []);
+
   const visitClosed = ['PARTIU', 'CANCELADA'].includes(visit?.fase);
-  const visitValid = useMemo(() => Number(visitDraft?.navioId) > 0 && text(visitDraft?.codigoVisita), [visitDraft]);
+  const visitDateErrors = useMemo(() => validateVisitMilestones(visitDraft ?? {}), [visitDraft]);
+  const visitValid = useMemo(() => Number(visitDraft?.navioId) > 0
+    && text(visitDraft?.codigoVisita)
+    && visitDateErrors.length === 0, [visitDraft, visitDateErrors]);
   const itemValid = useMemo(() => itemDraft
     && MOVIMENTOS.includes(itemDraft.tipoMovimento)
     && TIPOS_CARGA.includes(itemDraft.tipoCarga)
@@ -170,6 +183,10 @@ export default function VisitPlanEditor({
 
   async function saveVisit(event) {
     event.preventDefault();
+    if (visitDateErrors.length) {
+      setLocalError(visitDateErrors[0]);
+      return;
+    }
     if (!visitValid) {
       setLocalError('Informe o código da visita e mantenha um navio válido.');
       return;
@@ -237,9 +254,25 @@ export default function VisitPlanEditor({
   return <section className="panel visit-plan-editor">
     <div className="section-head">
       <div><span className="eyebrow">Visita e estiva</span><h2>Edição e administração operacional</h2></div>
-      <span>{items.length} itens</span>
+      <div className="actions">
+        <span>{items.length} itens</span>
+        <button type="button" className="small secondary" aria-label="Abrir manual da visita e estiva" aria-expanded={manualOpen} onClick={() => setManualOpen((current) => !current)}>ⓘ Manual</button>
+      </div>
     </div>
     {localError && <div className="message error" role="alert">{localError}</div>}
+
+    {manualOpen && <div className="editor-block" role="dialog" aria-label="Manual da visita e estiva">
+      <div className="editor-title"><div><h3>Manual da tela</h3><small>Ajuda contextual da visita, marcos, itens e plano de estiva.</small></div><button type="button" className="small secondary" onClick={() => setManualOpen(false)}>Fechar</button></div>
+      <p><strong>Finalidade:</strong> consultar e manter a escala, seus marcos previstos e realizados, itens operacionais e versões do plano de estiva.</p>
+      <p><strong>Fluxo operacional:</strong> planejar a visita e a janela de recebimento; confirmar a chegada; avançar as fases para registrar atracação, início, conclusão e partida; manter itens; validar e publicar o plano.</p>
+      <p><strong>Campos:</strong> ETA, ETB e ETD são previstos; ATA é a chegada efetiva informada; ATB, início/fim da operação e ATD são preenchidos pelas transições; a janela limita o recebimento; o cutoff define o limite operacional.</p>
+      <p><strong>Permissões:</strong> consulta para perfis autorizados; alteração, cancelamento, validação e publicação dependem das permissões operacionais configuradas no backend.</p>
+      <p><strong>Estados:</strong> PREVISTA, FUNDEADA, ATRACADA, OPERANDO, OPERACAO_CONCLUIDA, PARTIU e CANCELADA. PARTIU e CANCELADA bloqueiam edição.</p>
+      <p><strong>Motivos de bloqueio:</strong> cronologia inválida, visita encerrada, item operado/cancelado, plano em estado incompatível, dados obrigatórios ausentes ou ausência de permissão.</p>
+      <p><strong>Exemplo:</strong> ETA 08:00, ATA 08:20, ETB 09:00, ATB registrado ao atracar, operação iniciada pela transição OPERANDO e ATD gravado ao partir.</p>
+      <p><strong>Atalhos:</strong> F1 abre este manual; Shift + ? abre o manual fora de campos de edição.</p>
+      <p><strong>Processo completo:</strong> <a href="https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/visita-navio-marcos-janelas.md" target="_blank" rel="noreferrer">visita de navio, marcos e janelas</a>.</p>
+    </div>}
 
     <form className="editor-block" onSubmit={saveVisit}>
       <div className="editor-title">
@@ -249,6 +282,7 @@ export default function VisitPlanEditor({
           <button type="button" className="danger" disabled={visitClosed || busyKey === 'visit-cancel'} onClick={cancelVisit}>{busyKey === 'visit-cancel' ? 'Cancelando...' : 'Cancelar visita'}</button>
         </div>
       </div>
+      {visitDateErrors.length > 0 && <div className="message warning" role="alert"><strong>Corrija a cronologia antes de salvar:</strong>{visitDateErrors.map((error) => <p key={error}>{error}</p>)}</div>}
       <div className="editor-grid">
         <label>Código da visita<input required disabled={visitClosed} value={visitDraft.codigoVisita} onChange={(event) => setVisitDraft({ ...visitDraft, codigoVisita: event.target.value })} /></label>
         <label>Navio<input value={visit.navioNome || visit.navioId} readOnly /></label>
@@ -258,10 +292,20 @@ export default function VisitPlanEditor({
         <label>Terminal/facility<input disabled={visitClosed} value={visitDraft.terminalFacility} onChange={(event) => setVisitDraft({ ...visitDraft, terminalFacility: event.target.value })} /></label>
         <label>Berço previsto<input disabled={visitClosed} value={visitDraft.bercoPrevisto} onChange={(event) => setVisitDraft({ ...visitDraft, bercoPrevisto: event.target.value })} /></label>
         <label>Berço atual<input disabled={visitClosed} value={visitDraft.bercoAtual} onChange={(event) => setVisitDraft({ ...visitDraft, bercoAtual: event.target.value })} /></label>
-        <label>ETA<input disabled={visitClosed} type="datetime-local" value={visitDraft.eta} onChange={(event) => setVisitDraft({ ...visitDraft, eta: event.target.value })} /></label>
-        <label>ETB<input disabled={visitClosed} type="datetime-local" value={visitDraft.etb} onChange={(event) => setVisitDraft({ ...visitDraft, etb: event.target.value })} /></label>
-        <label>ETD<input disabled={visitClosed} type="datetime-local" value={visitDraft.etd} onChange={(event) => setVisitDraft({ ...visitDraft, etd: event.target.value })} /></label>
-        <label>Cutoff operacional<input disabled={visitClosed} type="datetime-local" value={visitDraft.cutoffOperacional} onChange={(event) => setVisitDraft({ ...visitDraft, cutoffOperacional: event.target.value })} /></label>
+        {VISIT_MILESTONE_GROUPS.map((group) => <div className="span-2 editor-block" key={group.key}>
+          <div className="editor-title"><div><h4>{group.title}</h4><small>{group.description}</small></div></div>
+          <div className="editor-grid">{group.fields.map((field) => <label key={field.name}>{field.label}
+            <input
+              type="datetime-local"
+              value={visitDraft[field.name]}
+              readOnly={!field.editable}
+              aria-readonly={!field.editable}
+              disabled={field.editable && visitClosed}
+              onChange={field.editable ? (event) => setVisitDraft({ ...visitDraft, [field.name]: event.target.value }) : undefined}
+            />
+            <small>{field.help} Origem: {field.source}. {field.editable ? 'Editável nesta tela.' : 'Somente leitura nesta tela.'}</small>
+          </label>)}</div>
+        </div>)}
         <label className="span-2">Observações<textarea disabled={visitClosed} rows="3" value={visitDraft.observacoes} onChange={(event) => setVisitDraft({ ...visitDraft, observacoes: event.target.value })} /></label>
       </div>
     </form>

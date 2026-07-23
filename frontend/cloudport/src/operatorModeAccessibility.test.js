@@ -67,7 +67,7 @@ test('ações críticas exigem leitura válida e resumo explícito', () => {
 test('fila aplica chave idempotente e não conclui operação offline localmente', () => {
   assert.match(model, /operatorCommandKey/);
   assert.match(model, /idempotencyKey/);
-  assert.match(model, /Nenhuma duplicidade/);
+  assert.match(source, /Nenhuma duplicidade/);
   assert.match(source, /AGUARDANDO_RECONEXAO/);
   assert.match(source, /será enviada somente após a reconexão e nova validação do backend/);
 });

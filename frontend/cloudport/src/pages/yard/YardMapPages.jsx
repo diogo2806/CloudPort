@@ -4,6 +4,7 @@ import { DataTable, Loading, Message, MetricCard, Section, StatusBadge } from '.
 import { OpenStreetMapYardMap } from './GoogleYardMap.jsx';
 import { OperationalYardViews } from './OperationalYardViews.jsx';
 import { YardAllocationEditor } from './YardAllocationEditor.jsx';
+import { useYardContingency } from './yardContingency.js';
 import { yardGeometryApi } from './yardGeometryApi.js';
 import { yardOperationalApi } from './yardOperationalApi.js';
 import { YardReeferPanel } from './YardReeferPanel.jsx';
@@ -12,13 +13,19 @@ import { buildStacks, DetailGrid, FilterField, normalized, Pagination, positionK
 
 const FINAL_ORDER_STATUSES = new Set(['CONCLUIDA', 'CANCELADA']);
 
+function formatSynchronization(value) {
+  if (!value) return 'Nenhuma sincronização válida';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('pt-BR');
+}
+
 export function YardMapPage({ navigate }) {
   const [filters, setFilters] = useState({ status: '', tipoCarga: '', destino: '', camada: '', tipoEquipamento: '' });
   const [selectedStack, setSelectedStack] = useState(null);
   const session = readSession();
   const canOperate = hasAnyRole(session, 'ROOT', 'ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO');
   const canEditGeometry = hasAnyRole(session, 'ROOT', 'ADMIN_PORTO', 'PLANEJADOR');
-  const remote = useRemote(async () => {
+  const remote = useYardContingency(async () => {
     const query = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
     const [map, positions, availableFilters, orders, movements, telemetry, allContainers, reeferTelemetry, geometries] = await Promise.all([
       api.obterMapaPatio(query),
@@ -49,6 +56,8 @@ export function YardMapPage({ navigate }) {
     return () => globalThis.clearInterval(interval);
   }, [remote.reload]);
 
+  const operationalCommandsEnabled = canOperate && !remote.isOffline;
+  const geometryCommandsEnabled = canEditGeometry && !remote.isOffline;
   const map = remote.data?.map ?? {};
   const containers = remote.data?.allContainers ?? [];
   const equipment = useMemo(
@@ -92,6 +101,7 @@ export function YardMapPage({ navigate }) {
   }
 
   async function saveGeometry(payload) {
+    if (remote.isOffline) throw new Error('A edição de geometria é bloqueada no modo de contingência.');
     const { id, ...body } = payload;
     const saved = id
       ? await yardGeometryApi.atualizar(id, body)
@@ -101,13 +111,17 @@ export function YardMapPage({ navigate }) {
   }
 
   async function deleteGeometry(id, reason) {
+    if (remote.isOffline) throw new Error('A exclusão de geometria é bloqueada no modo de contingência.');
     await yardGeometryApi.excluir(id, reason);
     await remote.reload();
   }
 
   return <>
     <YardPageHeader path="/home/patio/mapa" navigate={navigate} title="Mapa operacional" description="Vistas de bloco, seção, scan e microvisão com heatmaps, rotas, reefers, CHEs, allocations, workspaces e simulação antes da movimentação." actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
+    <Message type={remote.isOffline ? 'warning' : 'success'}>Estado: {remote.connectionStatus} · Última sincronização: {formatSynchronization(remote.lastSynchronization)}{remote.snapshotExpired ? ' · FOTOGRAFIA EXPIRADA' : ''}</Message>
     <Message type="error">{remote.error}</Message>
+    {remote.isOffline && remote.hasSnapshot && <Message type="warning">MAPA CONGELADO. Os dados não estão em tempo real e todos os comandos que alteram o estado oficial estão bloqueados.</Message>}
+    {remote.reconciliation && <Message type="warning">A reconexão encontrou divergências entre a fotografia local e o estado oficial. A tela foi atualizada com os dados do servidor; revise as posições e ordens antes de operar.</Message>}
     {!canOperate && <Message type="warning">Seu perfil pode consultar todas as vistas, mas não pode confirmar movimentações, replanejar allocations nem editar restrições.</Message>}
     <Section title="Filtros do mapa" description="Os valores são fornecidos pelo backend do Yard."><div className="filter-grid">
       <FilterField label="Status do contêiner"><select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}><option value="">Todos</option>{optionList('statusDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
@@ -116,42 +130,17 @@ export function YardMapPage({ navigate }) {
       <FilterField label="Camada"><select value={filters.camada} onChange={(event) => setFilters((current) => ({ ...current, camada: event.target.value }))}><option value="">Todas</option>{optionList('camadasOperacionaisDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
       <FilterField label="Equipamento"><select value={filters.tipoEquipamento} onChange={(event) => setFilters((current) => ({ ...current, tipoEquipamento: event.target.value }))}><option value="">Todos</option>{optionList('tiposEquipamentoDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
     </div></Section>
-    {remote.loading ? <Loading label="Carregando mapa, rotas e telemetria..." /> : <>
-      <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Geometrias" value={remote.data?.geometries?.length ?? 0} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label="CHEs em tempo real" value={equipment.length} detail={`${routes.length} rota(s) ativa(s)`} /><MetricCard label="Pilhas bloqueadas" value={restrictions.blocked} detail={`${restrictions.interdicted} interditada(s)`} /></div>
+    {remote.loading && !remote.hasSnapshot ? <Loading label="Carregando mapa, rotas e telemetria..." /> : <>
+      <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Geometrias" value={remote.data?.geometries?.length ?? 0} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label={remote.isOffline ? 'CHEs na fotografia' : 'CHEs em tempo real'} value={equipment.length} detail={`${routes.length} rota(s) ativa(s)`} /><MetricCard label="Pilhas bloqueadas" value={restrictions.blocked} detail={`${restrictions.interdicted} interditada(s)`} /></div>
       <Section title="Pátio georreferenciado" description="Polígonos GeoJSON persistidos aparecem sobre o OpenStreetMap gratuito. Root, planejadores e administradores podem criar e ajustar o desenho clicando diretamente no mapa.">
-        <OpenStreetMapYardMap
-          blocks={stacks}
-          selectedStack={selectedStack}
-          onSelectStack={setSelectedStack}
-          routes={routes}
-          equipment={equipment}
-          geometries={remote.data?.geometries}
-          canEditGeometry={canEditGeometry}
-          onSaveGeometry={saveGeometry}
-          onDeleteGeometry={deleteGeometry}
-        />
+        <OpenStreetMapYardMap blocks={stacks} selectedStack={selectedStack} onSelectStack={setSelectedStack} routes={routes} equipment={equipment} geometries={remote.data?.geometries} canEditGeometry={geometryCommandsEnabled} onSaveGeometry={saveGeometry} onDeleteGeometry={deleteGeometry} />
         {!!routes.length && <div className="yard-route-summary">{routes.slice(0, 20).map((route) => <span key={route.id}>WI #{route.id} · {sanitizeText(route.codigoConteiner)} · L{route.origem.linha}/C{route.origem.coluna} → L{route.destino.linha}/C{route.destino.coluna}</span>)}</div>}
       </Section>
       <Section title="Console operacional do pátio" description="A seleção é sincronizada com o mapa. Arraste um contêiner para uma posição livre; o sistema simula e só persiste após confirmação motivada.">
-        <OperationalYardViews
-          blocks={stacks}
-          movements={remote.data?.movements}
-          telemetry={equipment}
-          alerts={map.alertas}
-          filters={filters}
-          selectedStack={selectedStack}
-          onSelectStack={setSelectedStack}
-          onApplyFilters={(workspaceFilters) => setFilters((current) => ({ ...current, ...workspaceFilters }))}
-          canOperate={canOperate}
-          onReload={remote.reload}
-        />
+        <OperationalYardViews blocks={stacks} movements={remote.data?.movements} telemetry={equipment} alerts={map.alertas} filters={filters} selectedStack={selectedStack} onSelectStack={setSelectedStack} onApplyFilters={(workspaceFilters) => setFilters((current) => ({ ...current, ...workspaceFilters }))} canOperate={operationalCommandsEnabled} onReload={remote.reload} />
       </Section>
-      <Section title="Reefers e alarmes de temperatura" description="Leituras reais, faixa configurada, alimentação elétrica e alerta de telemetria desatualizada.">
-        <YardReeferPanel telemetry={remote.data?.reeferTelemetry} />
-      </Section>
-      <Section title="Editor gráfico de allocations" description="Selecione uma work instruction e reposicione visualmente seu destino. A alteração só é aplicada após simulação e justificativa.">
-        <YardAllocationEditor blocks={stacks} canOperate={canOperate} onReload={remote.reload} />
-      </Section>
+      <Section title="Reefers e alarmes de temperatura" description="Leituras reais, faixa configurada, alimentação elétrica e alerta de telemetria desatualizada."><YardReeferPanel telemetry={remote.data?.reeferTelemetry} /></Section>
+      <Section title="Editor gráfico de allocations" description="Selecione uma work instruction e reposicione visualmente seu destino. A alteração só é aplicada após simulação e justificativa."><YardAllocationEditor blocks={stacks} canOperate={operationalCommandsEnabled} onReload={remote.reload} /></Section>
       {!!map.alertas?.length && <Section title="Alertas do mapa"><div className="card-list">{map.alertas.map((alert, index) => <article className="content-card" key={`${alert.tipoAlerta}-${index}`}><div className="card-meta"><StatusBadge value={alert.nivelSeveridade} /><span>{sanitizeText(alert.tipoAlerta)}</span></div><h3>{sanitizeText(alert.mensagem)}</h3><p>{sanitizeText(alert.recomendacao)}</p></article>)}</div></Section>}
     </>}
   </>;

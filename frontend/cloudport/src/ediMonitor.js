@@ -8,7 +8,8 @@ export const EDI_PROCESSING_STATUSES = [
   'AGUARDANDO_REPROCESSAMENTO',
   'CONCLUIDO',
   'REJEITADO',
-  'QUARENTENA'
+  'QUARENTENA',
+  'CANCELADO'
 ];
 
 export const EDI_STATUS_LABELS = {
@@ -17,10 +18,13 @@ export const EDI_STATUS_LABELS = {
   AGUARDANDO_REPROCESSAMENTO: 'Aguardando reprocessamento',
   CONCLUIDO: 'Concluído',
   REJEITADO: 'Rejeitado',
-  QUARENTENA: 'Quarentena'
+  QUARENTENA: 'Quarentena',
+  CANCELADO: 'Cancelado'
 };
 
 const REPROCESSABLE_STATUSES = new Set(['REJEITADO', 'QUARENTENA', 'AGUARDANDO_REPROCESSAMENTO']);
+const QUARANTINABLE_STATUSES = new Set(['RECEBIDO', 'PROCESSANDO', 'AGUARDANDO_REPROCESSAMENTO', 'REJEITADO']);
+const CANCELLABLE_STATUSES = new Set(['RECEBIDO', 'PROCESSANDO', 'AGUARDANDO_REPROCESSAMENTO', 'REJEITADO', 'QUARENTENA']);
 
 export function normalizeEdiFilters(filters = {}) {
   const tipo = EDI_MESSAGE_TYPES.includes(filters.tipo) ? filters.tipo : '';
@@ -65,7 +69,9 @@ export function normalizeEdiProcessing(row) {
     bayPlanId: row.bayPlanId ?? null,
     criadoEm: row.criadoEm ?? null,
     atualizadoEm: row.atualizadoEm ?? null,
-    reprocessavel: REPROCESSABLE_STATUSES.has(status)
+    reprocessavel: REPROCESSABLE_STATUSES.has(status),
+    quarentenavel: QUARANTINABLE_STATUSES.has(status),
+    cancelavel: CANCELLABLE_STATUSES.has(status)
   };
 }
 
@@ -85,13 +91,14 @@ export function normalizeEdiPage(payload) {
 }
 
 export function summarizeEdiProcessings(rows = []) {
-  const summary = { total: 0, concluidos: 0, rejeitados: 0, quarentena: 0, emProcessamento: 0, aguardandoReprocessamento: 0 };
+  const summary = { total: 0, concluidos: 0, rejeitados: 0, quarentena: 0, cancelados: 0, emProcessamento: 0, aguardandoReprocessamento: 0 };
   rows.forEach((row) => {
     if (!row) return;
     summary.total += 1;
     if (row.status === 'CONCLUIDO') summary.concluidos += 1;
     else if (row.status === 'REJEITADO') summary.rejeitados += 1;
     else if (row.status === 'QUARENTENA') summary.quarentena += 1;
+    else if (row.status === 'CANCELADO') summary.cancelados += 1;
     else if (row.status === 'AGUARDANDO_REPROCESSAMENTO') summary.aguardandoReprocessamento += 1;
     else summary.emProcessamento += 1;
   });
@@ -100,8 +107,6 @@ export function summarizeEdiProcessings(rows = []) {
 
 export function validateReprocessReason(reason) {
   const motivo = sanitizeText(reason);
-  if (motivo.length < 5) {
-    throw new Error('Informe um motivo operacional com pelo menos 5 caracteres para reprocessar.');
-  }
+  if (motivo.length < 5) throw new Error('Informe um motivo operacional com pelo menos 5 caracteres.');
   return motivo;
 }

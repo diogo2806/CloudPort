@@ -38,8 +38,7 @@ public class EdiIntegracaoControlador {
     private final EdiAuditoriaServico auditoria;
     private final BayPlanServico bayPlanServico;
 
-    public EdiIntegracaoControlador(EdiAuditoriaServico auditoria,
-                                     BayPlanServico bayPlanServico) {
+    public EdiIntegracaoControlador(EdiAuditoriaServico auditoria, BayPlanServico bayPlanServico) {
         this.auditoria = auditoria;
         this.bayPlanServico = bayPlanServico;
     }
@@ -48,75 +47,42 @@ public class EdiIntegracaoControlador {
     public ResponseEntity<ProcessamentoEdiRespostaDto> uploadBaplie(
             @RequestParam("arquivo") MultipartFile arquivo,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) throws IOException {
-        if (arquivo.isEmpty()) {
-            throw new IllegalArgumentException("BAPLIE: o arquivo enviado esta vazio.");
-        }
+        if (arquivo.isEmpty()) throw new IllegalArgumentException("BAPLIE: o arquivo enviado esta vazio.");
         String conteudo = new String(arquivo.getBytes(), StandardCharsets.UTF_8);
-        ProcessamentoEdiRespostaDto processamento = auditoria.registrarRecebimento(
-                TipoMensagemEdi.BAPLIE,
-                conteudo,
-                null,
-                null,
-                arquivo.getOriginalFilename(),
-                correlationId
-        );
-        return respostaAceita(processamento);
+        return respostaAceita(auditoria.registrarRecebimento(TipoMensagemEdi.BAPLIE, conteudo, null, null,
+                arquivo.getOriginalFilename(), correlationId));
     }
 
     @PostMapping(value = "/baplie/texto", consumes = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<ProcessamentoEdiRespostaDto> receberBaplieTexto(
             @RequestBody String conteudoEdifact,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
-        return respostaAceita(auditoria.registrarRecebimento(
-                TipoMensagemEdi.BAPLIE,
-                conteudoEdifact,
-                null,
-                null,
-                null,
-                correlationId
-        ));
+        return respostaAceita(auditoria.registrarRecebimento(TipoMensagemEdi.BAPLIE, conteudoEdifact,
+                null, null, null, correlationId));
     }
 
     @PostMapping("/coprar")
     public ResponseEntity<ProcessamentoEdiRespostaDto> receberCoprar(
             @Valid @RequestBody CoprarMensagemDto dto,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
-        return respostaAceita(auditoria.registrarRecebimento(
-                TipoMensagemEdi.COPRAR,
-                dto.getConteudoEdifact(),
-                dto.getCodigoNavio(),
-                dto.getCodigoViagem(),
-                dto.getReferenciaMensagem(),
-                correlationId
-        ));
+        return respostaAceita(auditoria.registrarRecebimento(TipoMensagemEdi.COPRAR, dto.getConteudoEdifact(),
+                dto.getCodigoNavio(), dto.getCodigoViagem(), dto.getReferenciaMensagem(), correlationId));
     }
 
     @PostMapping("/coarri")
     public ResponseEntity<ProcessamentoEdiRespostaDto> receberCoarri(
             @Valid @RequestBody CoarriMensagemDto dto,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
-        return respostaAceita(auditoria.registrarRecebimento(
-                TipoMensagemEdi.COARRI,
-                dto.getConteudoEdifact(),
-                dto.getCodigoNavio(),
-                dto.getCodigoViagem(),
-                dto.getReferenciaMensagem(),
-                correlationId
-        ));
+        return respostaAceita(auditoria.registrarRecebimento(TipoMensagemEdi.COARRI, dto.getConteudoEdifact(),
+                dto.getCodigoNavio(), dto.getCodigoViagem(), dto.getReferenciaMensagem(), correlationId));
     }
 
     @PostMapping("/vermas")
     public ResponseEntity<ProcessamentoEdiRespostaDto> receberVermas(
             @Valid @RequestBody VermasMensagemDto dto,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
-        return respostaAceita(auditoria.registrarRecebimento(
-                TipoMensagemEdi.VERMAS,
-                dto.getConteudoEdifact(),
-                dto.getCodigoNavio(),
-                dto.getCodigoViagem(),
-                dto.getReferenciaMensagem(),
-                correlationId
-        ));
+        return respostaAceita(auditoria.registrarRecebimento(TipoMensagemEdi.VERMAS, dto.getConteudoEdifact(),
+                dto.getCodigoNavio(), dto.getCodigoViagem(), dto.getReferenciaMensagem(), correlationId));
     }
 
     @GetMapping("/processamentos")
@@ -135,13 +101,26 @@ public class EdiIntegracaoControlador {
 
     @PostMapping("/processamentos/{id}/reprocessar")
     public ResponseEntity<ProcessamentoEdiRespostaDto> reprocessar(
-            @PathVariable Long id,
-            @Valid @RequestBody ComandoMotivadoDto comando,
+            @PathVariable Long id, @Valid @RequestBody ComandoMotivadoDto comando,
             @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
-        if (comando.getCorrelationId() == null || comando.getCorrelationId().isBlank()) {
-            comando.setCorrelationId(correlationId);
-        }
+        preencherCorrelationId(comando, correlationId);
         return respostaAceita(auditoria.reprocessar(id, comando));
+    }
+
+    @PostMapping("/processamentos/{id}/quarentena")
+    public ResponseEntity<ProcessamentoEdiRespostaDto> colocarEmQuarentena(
+            @PathVariable Long id, @Valid @RequestBody ComandoMotivadoDto comando,
+            @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
+        preencherCorrelationId(comando, correlationId);
+        return ResponseEntity.ok(auditoria.colocarEmQuarentena(id, comando));
+    }
+
+    @PostMapping("/processamentos/{id}/cancelar")
+    public ResponseEntity<ProcessamentoEdiRespostaDto> cancelar(
+            @PathVariable Long id, @Valid @RequestBody ComandoMotivadoDto comando,
+            @RequestHeader(value = HEADER_CORRELATION_ID, required = false) String correlationId) {
+        preencherCorrelationId(comando, correlationId);
+        return ResponseEntity.ok(auditoria.cancelar(id, comando));
     }
 
     @GetMapping("/bay-plan/{id}")
@@ -159,8 +138,11 @@ public class EdiIntegracaoControlador {
         return ResponseEntity.ok(bayPlanServico.listarAtivos());
     }
 
-    private ResponseEntity<ProcessamentoEdiRespostaDto> respostaAceita(
-            ProcessamentoEdiRespostaDto processamento) {
+    private void preencherCorrelationId(ComandoMotivadoDto comando, String correlationId) {
+        if (comando.getCorrelationId() == null || comando.getCorrelationId().isBlank()) comando.setCorrelationId(correlationId);
+    }
+
+    private ResponseEntity<ProcessamentoEdiRespostaDto> respostaAceita(ProcessamentoEdiRespostaDto processamento) {
         return ResponseEntity.accepted()
                 .location(URI.create("/api/edi/processamentos/" + processamento.id()))
                 .header(HEADER_PROCESSAMENTO_ID, processamento.id().toString())

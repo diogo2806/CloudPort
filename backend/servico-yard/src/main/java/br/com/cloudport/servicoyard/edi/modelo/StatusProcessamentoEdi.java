@@ -6,5 +6,6 @@ public enum StatusProcessamentoEdi {
     AGUARDANDO_REPROCESSAMENTO,
     CONCLUIDO,
     REJEITADO,
-    QUARENTENA
+    QUARENTENA,
+    CANCELADO
 }

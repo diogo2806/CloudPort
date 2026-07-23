@@ -12,27 +12,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface VisitaTremRepositorio extends JpaRepository<VisitaTrem, Long> {
+    @Query("SELECT v FROM VisitaTrem v WHERE (v.horaChegadaPrevista BETWEEN :inicio AND :limite) OR ((v.statusVisita <> :statusFinalizado) AND (v.horaPartidaPrevista IS NULL OR v.horaPartidaPrevista >= :referenciaAtiva) AND v.horaChegadaPrevista <= :limite) ORDER BY v.horaChegadaPrevista ASC, v.id ASC")
+    List<VisitaTrem> buscarVisitasPlanejadasOuAtivas(@Param("inicio") LocalDateTime inicio, @Param("referenciaAtiva") LocalDateTime referenciaAtiva, @Param("limite") LocalDateTime limite, @Param("statusFinalizado") StatusVisitaTrem statusFinalizado);
 
-    @Query("SELECT v FROM VisitaTrem v "
-            + "WHERE (v.horaChegadaPrevista BETWEEN :inicio AND :limite) "
-            + "OR ((v.statusVisita <> :statusFinalizado) "
-            + "AND (v.horaPartidaPrevista IS NULL OR v.horaPartidaPrevista >= :referenciaAtiva) "
-            + "AND v.horaChegadaPrevista <= :limite) "
-            + "ORDER BY v.horaChegadaPrevista ASC, v.id ASC")
-    List<VisitaTrem> buscarVisitasPlanejadasOuAtivas(@Param("inicio") LocalDateTime inicio,
-                                                      @Param("referenciaAtiva") LocalDateTime referenciaAtiva,
-                                                      @Param("limite") LocalDateTime limite,
-                                                      @Param("statusFinalizado") StatusVisitaTrem statusFinalizado);
-
-    @Query("SELECT DISTINCT v FROM VisitaTrem v "
-            + "LEFT JOIN FETCH v.listaDescarga "
-            + "LEFT JOIN FETCH v.listaCarga "
-            + "LEFT JOIN FETCH v.listaVagoes "
-            + "WHERE v.id = :id")
+    @Query("SELECT DISTINCT v FROM VisitaTrem v LEFT JOIN FETCH v.listaDescarga LEFT JOIN FETCH v.listaCarga LEFT JOIN FETCH v.listaVagoes WHERE v.id = :id")
     Optional<VisitaTrem> buscarPorIdComListas(@Param("id") Long id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<VisitaTrem> findOneById(Long id);
-
     Optional<VisitaTrem> findByIdentificadorTremIgnoreCase(String identificadorTrem);
+    boolean existsByIdentificadorTremIgnoreCaseAndOperadoraFerroviariaIgnoreCase(String identificadorTrem, String operadoraFerroviaria);
 }

@@ -20,9 +20,9 @@ public interface VisitaTremRepositorio extends JpaRepository<VisitaTrem, Long> {
             + "AND v.horaChegadaPrevista <= :limite) "
             + "ORDER BY v.horaChegadaPrevista ASC, v.id ASC")
     List<VisitaTrem> buscarVisitasPlanejadasOuAtivas(@Param("inicio") LocalDateTime inicio,
-                                                      @Param("referenciaAtiva") LocalDateTime referenciaAtiva,
-                                                      @Param("limite") LocalDateTime limite,
-                                                      @Param("statusFinalizado") StatusVisitaTrem statusFinalizado);
+                                                       @Param("referenciaAtiva") LocalDateTime referenciaAtiva,
+                                                       @Param("limite") LocalDateTime limite,
+                                                       @Param("statusFinalizado") StatusVisitaTrem statusFinalizado);
 
     @Query("SELECT DISTINCT v FROM VisitaTrem v "
             + "LEFT JOIN FETCH v.listaDescarga "
@@ -35,4 +35,6 @@ public interface VisitaTremRepositorio extends JpaRepository<VisitaTrem, Long> {
     Optional<VisitaTrem> findOneById(Long id);
 
     Optional<VisitaTrem> findByIdentificadorTremIgnoreCase(String identificadorTrem);
+
+    boolean existsByTremMestreId(Long tremMestreId);
 }

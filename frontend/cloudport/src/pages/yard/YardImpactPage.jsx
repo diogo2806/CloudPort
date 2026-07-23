@@ -46,22 +46,22 @@ export function YardImpactPage({ navigate }) {
 
     {previsaoRemote.loading ? <Loading label="Calculando previsão de demanda..." /> : <Section
       title="Previsão de demanda operacional"
-      description="A previsão apoia a decisão, mas nenhuma posição é persistida sem aprovação das regras determinísticas."
+      description="A quantidade prevista usa eventos físicos VMT concluídos em janelas temporais reais; nenhuma posição é persistida por esta consulta."
     >
       <div className="metrics-grid">
-        <MetricCard label="Demanda prevista" value={previsao.demandaPrevista ?? 0} detail={`Próximas ${previsao.horizonteHoras ?? horizonteHoras}h`} />
-        <MetricCard label="Duração prevista" value={`${previsao.duracaoPrevistaMinutos ?? 0} min`} />
-        <MetricCard label="Confiança" value={`${((previsao.confianca ?? 0) * 100).toFixed(0)}%`} />
-        <MetricCard label="Baseline determinístico" value={previsao.baselineDeterministico ?? 0} detail={`Diferença ${previsao.diferencaBaseline ?? 0}`} />
+        <MetricCard label="Movimentos previstos" value={previsao.demandaPrevista ?? 0} detail={`Próximas ${previsao.horizonteHoras ?? horizonteHoras}h`} />
+        <MetricCard label="Janela analisada" value={`${previsao.duracaoPrevistaMinutos ?? 0} min`} />
+        <MetricCard label="Origem" value="Eventos VMT" detail="CONCLUSAO e REHANDLE_CONCLUSAO" />
+        <MetricCard label="Baseline temporal" value={previsao.baselineDeterministico ?? 0} detail={`Ajuste ${previsao.diferencaBaseline ?? 0}`} />
       </div>
       <Message type={previsao.fallbackDeterministico ? 'warning' : 'info'}>
         {previsao.fallbackDeterministico
-          ? `Fallback determinístico ativo. ${sanitizeText(previsao.explicacao)}`
-          : `Sugestão gerada pelo modelo ${sanitizeText(previsao.versaoModelo)}. ${sanitizeText(previsao.explicacao)}`}
+          ? `Baseline determinístico ativo. ${sanitizeText(previsao.explicacao)}`
+          : `Baseline temporal ${sanitizeText(previsao.versaoModelo)} com tendência limitada. ${sanitizeText(previsao.explicacao)}`}
       </Message>
       <div className="card-meta">
-        <StatusBadge value={previsao.fallbackDeterministico ? 'DETERMINISTICO' : 'MODELO'} />
-        <small>Gerado em {displayValue(previsao.geradoEm)}</small>
+        <StatusBadge value={previsao.fallbackDeterministico ? 'DETERMINISTICO' : 'TENDENCIA_LIMITADA'} />
+        <small>Confiança estatística não calibrada · gerado em {displayValue(previsao.geradoEm)}</small>
       </div>
       {(previsao.validacoesObrigatorias ?? []).length > 0 && <div className="card-list">
         {(previsao.validacoesObrigatorias ?? []).map((validacao) => <article className="content-card" key={validacao}>

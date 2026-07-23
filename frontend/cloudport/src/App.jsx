@@ -119,6 +119,21 @@ export const FALLBACK_NAVIGATION = [
   ] }
 ];
 
+const ROUTE_ALIASES = {
+  '/home': '/home/dashboard',
+  '/home/patio/control-room': '/home/control-room',
+  '/home/navio': '/home/navio/line-up',
+  '/home/gate': '/home/gate/dashboard',
+  '/home/gate/operador': '/home/gate/dashboard',
+  '/home/gate/operador/console': '/home/gate/dashboard',
+  '/home/ferrovia': '/home/ferrovia/visitas',
+  '/home/patio': '/home/patio/mapa',
+  '/home/patio/movimentacao': '/home/patio/movimentacoes',
+  '/home/patio/simulador': '/home/patio/automacao',
+  '/home/integracoes': '/home/integracoes/edi',
+  '/home/embarque': '/home/embarque/planejamento'
+};
+
 export function normalizeBackendTabs(tabs) {
   if (!Array.isArray(tabs)) return [];
   const groups = new Map();
@@ -147,6 +162,20 @@ export function mergeNavigation(fallbackNavigation, dynamicNavigation) {
     groups.set(group.group, [...current, ...group.items]);
   });
   return Array.from(groups, ([group, items]) => ({ group, items }));
+}
+
+export function resolveRouteAccess(path, navigation, session) {
+  const normalizedPath = ROUTE_ALIASES[path] ?? path;
+  const items = navigation
+    .flatMap((group) => group.items.map((item) => ({ ...item, group: group.group })))
+    .sort((left, right) => right.path.length - left.path.length);
+  const item = items.find((candidate) => normalizedPath === candidate.path || normalizedPath.startsWith(`${candidate.path}/`));
+  const requiredRoles = Array.isArray(item?.roles) ? item.roles : [];
+  return {
+    allowed: !item || !requiredRoles.length || hasAnyRole(session, ...requiredRoles),
+    item: item ?? null,
+    requiredRoles
+  };
 }
 
 function safeReturnPath(path) {
@@ -178,6 +207,11 @@ function LoginPage({ onAuthenticated, navigate, returnPath }) {
 
 function NotFoundPage({ navigate }) {
   return <div className="not-found"><span className="eyebrow">404</span><h1>Tela não encontrada</h1><p>A rota informada não está disponível no portal React.</p><button onClick={() => navigate('/home/dashboard')}>Voltar ao painel</button></div>;
+}
+
+function AccessDeniedPage({ navigate, item, requiredRoles }) {
+  const roles = requiredRoles.map((role) => String(role).replace(/^ROLE_/, '')).join(', ');
+  return <div className="not-found"><span className="eyebrow">403</span><h1>Acesso negado</h1><p>Seu perfil não possui permissão para abrir {item?.label ?? 'esta tela'}.</p>{roles && <p>Perfis necessários: {roles}.</p>}<button onClick={() => navigate('/home/dashboard')}>Voltar ao painel</button></div>;
 }
 
 function RouteContent({ path, navigate, session }) {
@@ -279,6 +313,7 @@ function PortalShell({ path, navigate, session, onLogout }) {
   }, []);
 
   const navigation = useMemo(() => mergeNavigation(FALLBACK_NAVIGATION, dynamicNavigation), [dynamicNavigation]);
+  const routeAccess = useMemo(() => resolveRouteAccess(path, navigation, session), [path, navigation, session]);
   const visibleNavigation = useMemo(() => navigation
     .map((group) => ({ ...group, items: group.items.filter((item) => !item.roles?.length || hasAnyRole(session, ...item.roles)) }))
     .filter((group) => group.items.length), [navigation, session]);
@@ -426,10 +461,13 @@ function PortalShell({ path, navigate, session, onLogout }) {
     <div className="portal-main">
       <header className="topbar">
         <button className="menu-button" onClick={() => setMobileMenu((value) => !value)} aria-label={mobileMenu ? 'Fechar menu' : 'Abrir menu'} aria-expanded={mobileMenu}>☰</button>
-        <div className="topbar-context"><strong>{activeItem?.label ?? 'CloudPort'}</strong><span>{breadcrumb}</span></div>
+        <div className="topbar-context"><strong>{activeItem?.label ?? routeAccess.item?.label ?? 'CloudPort'}</strong><span>{breadcrumb}</span></div>
         <div className="topbar-actions"><GlobalAlertCenter navigate={navigate} session={session} /><div className="user-menu"><div><strong>{session.nome || 'Operador'}</strong><span>{session.perfil || session.roles?.[0] || 'Usuário'}</span></div><button className="secondary" onClick={logout}>Sair</button></div></div>
       </header>
-      <main className="content"><RouteContent path={path} navigate={navigate} session={session} /></main>
+      <main className="content">{routeAccess.allowed
+        ? <RouteContent path={path} navigate={navigate} session={session} />
+        : <AccessDeniedPage navigate={navigate} item={routeAccess.item} requiredRoles={routeAccess.requiredRoles} />}
+      </main>
     </div>
   </div>;
 }

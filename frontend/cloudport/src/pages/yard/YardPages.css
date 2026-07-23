@@ -25,9 +25,13 @@
 
 .split-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
   gap: 22px;
   align-items: start;
+}
+
+.split-grid > * {
+  min-width: 0;
 }
 
 .yard-map-layout {

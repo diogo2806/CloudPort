@@ -6,6 +6,18 @@ function findItem(navigation, path) {
     .find((item) => item.path === path);
 }
 
+describe('navegação do cadastro de empresas', () => {
+  it('expõe empresas e clientes no grupo Cadastros com permissões de consulta equivalentes à API', () => {
+    const item = findItem(FALLBACK_NAVIGATION, '/home/cadastros/empresas');
+
+    expect(item).toMatchObject({
+      group: 'Cadastros',
+      label: 'Empresas e clientes',
+      roles: ['ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_GATE']
+    });
+  });
+});
+
 describe('navegação do cadastro de navios', () => {
   it('mantém o cadastro no módulo Navio e embarque para perfis de consulta', () => {
     const item = findItem(FALLBACK_NAVIGATION, '/home/navio/cadastros');

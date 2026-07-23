@@ -56,16 +56,23 @@ const HELP_BY_PATH = {
   },
   '/home/patio/yard-impact': {
     title: 'Yard Impact',
-    purpose: 'Projetar por bloco e POW o impacto operacional das próximas seis a vinte e quatro horas.',
+    purpose: 'Projetar por bloco e POW o impacto operacional das próximas seis a vinte e quatro horas e comparar esse impacto com a taxa temporal de movimentos físicos concluídos.',
     flow: [
       'Escolha o horizonte, respeitando o mínimo de seis horas.',
+      'Revise a previsão de movimentos calculada com eventos VMT concluídos dos últimos 28 dias.',
+      'Confira se o ajuste de tendência está ativo ou se o baseline determinístico foi aplicado.',
       'Revise entradas, saídas, rehandles, reservas e work instructions.',
       'Identifique blocos saturados no mapa de calor.',
       'Confira demanda, cobertura e déficit de CHE por POW.',
       'Selecione bloco ou POW e desça até as unidades que geram o impacto.'
     ],
     fields: [
-      'Horizonte em horas: período da projeção.',
+      'Horizonte em horas: período da projeção, entre seis e vinte e quatro horas.',
+      'Movimentos previstos: quantidade de conclusões físicas esperadas no horizonte.',
+      'Origem da previsão: eventos VMT CONCLUSAO e REHANDLE_CONCLUSAO ocorridos em janelas reais.',
+      'Baseline temporal: taxa dos últimos sete dias proporcional ao horizonte selecionado.',
+      'Ajuste: diferença introduzida pela tendência limitada entre os últimos sete dias e os sete dias anteriores.',
+      'Confiança: permanece não calibrada e não é apresentada como percentual estatístico.',
       'Ocupação projetada: contêineres atuais, reservas, planos, entradas e saídas.',
       'Saturação: ocupação projetada igual ou superior a 85%.',
       'Demanda de CHE: quantidade estimada para as work instructions.',
@@ -77,10 +84,28 @@ const HELP_BY_PATH = {
       'PLANEJADOR: consulta e uso no planejamento.',
       'OPERADOR_PATIO: consulta para preparação e execução.'
     ],
-    states: ['CONTROLADO: bloco abaixo do limite de saturação.', 'SATURADO: bloco com ocupação projetada a partir de 85%.', 'COBERTO: POW com recursos suficientes.', 'BLOQUEADO: POW com ausência de cobertura ou déficit de CHE.'],
-    blockers: ['Bloco sem capacidade cadastrada.', 'POW ou pool operacional ausente.', 'CHE real não associado.', 'Equipamento associado indisponível.', 'Déficit de CHE no horizonte.', 'Plano vencido ou sem posição válida.'],
-    example: 'Ao projetar seis horas, um bloco com 88% aparece SATURADO. Selecione-o para listar as unidades, reservas e posições responsáveis pela pressão operacional.',
-    shortcuts: ['F1 ou Shift + ?: abrir esta ajuda.', 'Esc: fechar a ajuda.', 'Atualizar projeção: recalcular com dados persistidos.', 'Clique no bloco ou POW: filtrar o drill-down.'],
+    states: [
+      'DETERMINÍSTICO: somente a taxa temporal observada é aplicada.',
+      'TENDÊNCIA LIMITADA: o baseline recebe ajuste entre 75% e 125%, sem alegação de confiança estatística.',
+      'CONTROLADO: bloco abaixo do limite de saturação.',
+      'SATURADO: bloco com ocupação projetada a partir de 85%.',
+      'COBERTO: POW com recursos suficientes.',
+      'BLOQUEADO: POW com ausência de cobertura ou déficit de CHE.'
+    ],
+    blockers: [
+      'Amostra inferior a cinco eventos físicos concluídos nos últimos 28 dias ativa o baseline determinístico.',
+      'Ajuste de tendência desativado por configuração operacional.',
+      'Eventos sem conclusão física não participam da previsão.',
+      'Planos cancelados, expirados ou acumulados não são usados como histórico de demanda.',
+      'Bloco sem capacidade cadastrada.',
+      'POW ou pool operacional ausente.',
+      'CHE real não associado.',
+      'Equipamento associado indisponível.',
+      'Déficit de CHE no horizonte.',
+      'Plano vencido ou sem posição válida.'
+    ],
+    example: 'Nos últimos sete dias foram concluídos 168 movimentos VMT. Para seis horas, o baseline é seis movimentos. Se a semana anterior teve 140 movimentos, a tendência de 20% produz oito movimentos após arredondamento. A interface informa a origem e mantém a confiança estatística não calibrada.',
+    shortcuts: ['F1 ou Shift + ?: abrir esta ajuda.', 'Esc: fechar a ajuda.', 'Atualizar projeção: recalcular com eventos e dados persistidos.', 'Clique no bloco ou POW: filtrar o drill-down.'],
     processPath: '/home/patio/planejamento-recebimento',
     processLabel: 'Abrir planejamento preditivo',
     documentationUrl: MANUAL_URL

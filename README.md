@@ -212,6 +212,7 @@ O rollback troca o binário e o roteamento, sem downgrade do banco. O procedimen
 
 ## Documentação
 
+- [Política de segurança](SECURITY.md)
 - [Arquitetura do monólito modular](docs/arquitetura-monolito-modular.md)
 - [Operação de corte e rollback](docs/operacao-corte-rollback-navio.md)
 - [Requisitos implementados](docs/implementados/requisitos-implementados.md)

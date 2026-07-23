@@ -87,8 +87,8 @@ export function useYardContingency(loader, dependencies = []) {
   const reload = useCallback(async (options) => {
     const silent = options?.silent === true;
     const cachedBeforeReload = readYardSnapshot();
-    if (!silent && !data) setLoading(true);
-    if (connectionStatus !== YARD_CONNECTION_STATUS.ONLINE) setConnectionStatus(YARD_CONNECTION_STATUS.RECONNECTING);
+    if (!silent) setLoading(true);
+    setConnectionStatus(YARD_CONNECTION_STATUS.RECONNECTING);
     setError('');
     try {
       const response = await loader();
@@ -115,7 +115,7 @@ export function useYardContingency(loader, dependencies = []) {
     } finally {
       setLoading(false);
     }
-  }, [...dependencies, connectionStatus, data]);
+  }, dependencies);
 
   useEffect(() => { reload(); }, [reload]);
 

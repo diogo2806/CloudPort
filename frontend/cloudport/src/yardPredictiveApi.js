@@ -29,5 +29,8 @@ export const yardPredictiveApi = {
   }),
   obterYardImpact: (horizonteHoras = 6) => request('/api/scheduler/yard-impact', {
     query: { horizonteHoras: Number(horizonteHoras) }
+  }),
+  obterPrevisaoDemanda: (horizonteHoras = 6) => request('/api/scheduler/previsao-demanda', {
+    query: { horizonteHoras: Number(horizonteHoras) }
   })
 };

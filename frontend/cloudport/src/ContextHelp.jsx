@@ -25,7 +25,14 @@ export function ContextHelp({ path, navigate, session, shortcuts = true }) {
   const help = useMemo(() => {
     const baseHelp = resolveContextHelp(activePath, activeSession);
     const resolvedHelp = resolveRailContextHelp(activePath, baseHelp) ?? baseHelp;
-    return applyPredictiveContextHelp(activePath, resolvedHelp);
+    const predictiveHelp = applyPredictiveContextHelp(activePath, resolvedHelp);
+    return {
+      ...predictiveHelp,
+      shortcuts: [...new Set([
+        ...(predictiveHelp.shortcuts ?? []),
+        'Ctrl + K ou Command + K: abrir o menu e posicionar o foco na busca global de telas e comandos.'
+      ])]
+    };
   }, [activePath, activeSession]);
   const sections = useMemo(() => buildHelpSections(help), [help]);
   const visibleSections = useMemo(() => filterHelpSections(sections, query), [sections, query]);

@@ -11,13 +11,13 @@ import org.springframework.data.jpa.repository.Lock;
 
 public interface OperacaoStuffUnstuffRepositorio extends JpaRepository<OperacaoStuffUnstuff, UUID> {
 
-    @EntityGraph(attributePaths = {"itens", "itens.lote", "historico", "lacres"})
+    @EntityGraph(attributePaths = {"itens", "itens.lote"})
     List<OperacaoStuffUnstuff> findAllByOrderByCriadoEmDesc();
 
-    @EntityGraph(attributePaths = {"itens", "itens.lote", "historico", "lacres"})
+    @EntityGraph(attributePaths = {"itens", "itens.lote"})
     Optional<OperacaoStuffUnstuff> findDetalhadaById(UUID id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @EntityGraph(attributePaths = {"itens", "itens.lote", "historico", "lacres"})
+    @EntityGraph(attributePaths = {"itens", "itens.lote"})
     Optional<OperacaoStuffUnstuff> findComBloqueioById(UUID id);
 }

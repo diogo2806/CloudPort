@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, formatError, getRuntimeConfig, normalizePage } from '../api.js';
-import { DataTable, EmptyState, JsonDetails, Loading, Message, MetricCard, PageHeader, Section, StatusBadge } from '../components.jsx';
+import { api, formatError, getRuntimeConfig, normalizePage, readSession } from '../api.js';
+import { DataTable, EmptyState, JsonDetails, Loading, Message, PageHeader, Section, StatusBadge } from '../components.jsx';
 import { selectGateAppointments } from '../gateDataset.js';
 import { gateOperatorApi, selectGateOperatorVehicles } from '../gateOperatorApi.js';
+import { OperationalCockpit } from '../OperationalCockpit.jsx';
 import { collectDatasetKeys, humanizeDatasetKey } from '../operationalDataset.js';
 import { GateVisualPage } from './GateVisualPage.jsx';
 import { NavioOperationalConsole } from './NavioOperationalConsole.jsx';
@@ -43,22 +44,9 @@ function useLoader(loader, dependencies = []) {
   return { data, loading, error, reload };
 }
 
-export function HomeDashboard({ navigate }) {
-  const visibility = useLoader(() => api.obterDashboardVisibilidade(), []);
-  const cards = [
-    { title: 'Gate', description: 'Agendamentos, janelas, operação e relatórios.', route: '/home/gate/dashboard' },
-    { title: 'Ferrovia', description: 'Visitas, manifestos e listas de trabalho.', route: '/home/ferrovia/visitas' },
-    { title: 'Pátio', description: 'Mapa, posições, movimentos, recursos e automação.', route: '/home/patio/mapa' },
-    { title: 'Navio', description: 'Control Room integrado Navio + Pátio.', route: '/home/navio/control-room' },
-    { title: 'Embarque', description: 'Planejamento e acompanhamento de estiva.', route: '/home/embarque/planejamento' }
-  ];
-  const dashboard = visibility.data ?? {};
-  return <>
-    <PageHeader eyebrow="Operação portuária" title="Visão geral" description="Acesso centralizado aos domínios operacionais do CloudPort." actions={<button className="secondary" onClick={visibility.reload}>Atualizar indicadores</button>} />
-    <Message type="error">{visibility.error}</Message>
-    {visibility.loading ? <Loading label="Carregando indicadores..." /> : <div className="metrics-grid"><MetricCard label="Contêineres" value={dashboard.totalConteiners ?? dashboard.totalContainers ?? '—'} /><MetricCard label="Alertas ativos" value={dashboard.alertasAtivos ?? dashboard.totalAlertas ?? '—'} /><MetricCard label="Navios em operação" value={dashboard.naviosEmOperacao ?? dashboard.totalNavios ?? '—'} /><MetricCard label="Ocupação do pátio" value={dashboard.ocupacaoPatioPercentual !== undefined ? `${dashboard.ocupacaoPatioPercentual}%` : '—'} /></div>}
-    <Section title="Módulos operacionais"><div className="module-grid">{cards.map((card) => <button className="module-card" key={card.route} onClick={() => navigate(card.route)}><strong>{card.title}</strong><span>{card.description}</span><small>Abrir módulo →</small></button>)}</div></Section>
-  </>;
+export function HomeDashboard({ navigate, session }) {
+  const [activeSession] = useState(() => session ?? readSession() ?? {});
+  return <OperationalCockpit navigate={navigate} session={activeSession} />;
 }
 
 export function GenericDatasetPage({ eyebrow, title, description, loader, preferredColumns = [], emptyTitle }) {

@@ -30,16 +30,19 @@ public class LocalDocumentoStorageService implements DocumentoStorageService {
 
     @Override
     public StoredDocumento armazenar(Long agendamentoId, MultipartFile arquivo) {
+        validarAgendamentoId(agendamentoId);
+
         try {
             Path baseDirectory = Paths.get(properties.getBasePath()).toAbsolutePath().normalize();
             Files.createDirectories(baseDirectory);
-            Path agendamentoDirectory = baseDirectory.resolve(String.valueOf(agendamentoId));
+
+            Path agendamentoDirectory = resolverCaminhoSeguro(baseDirectory, String.valueOf(agendamentoId));
             Files.createDirectories(agendamentoDirectory);
 
             String originalFilename = arquivo.getOriginalFilename();
             String sanitizedExtension = extrairExtensao(originalFilename);
             String generatedName = UUID.randomUUID() + (sanitizedExtension.isEmpty() ? "" : "." + sanitizedExtension);
-            Path destino = agendamentoDirectory.resolve(generatedName);
+            Path destino = resolverCaminhoSeguro(agendamentoDirectory, generatedName);
 
             try {
                 Files.copy(arquivo.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
@@ -58,11 +61,22 @@ public class LocalDocumentoStorageService implements DocumentoStorageService {
     @Override
     public Resource carregarComoResource(String storageKey) {
         Path baseDirectory = Paths.get(properties.getBasePath()).toAbsolutePath().normalize();
-        Path arquivo = baseDirectory.resolve(storageKey).normalize();
-        if (!arquivo.startsWith(baseDirectory)) {
+        Path arquivo = resolverCaminhoSeguro(baseDirectory, storageKey);
+        return new FileSystemResource(arquivo);
+    }
+
+    private Path resolverCaminhoSeguro(Path diretorioBase, String caminhoRelativo) {
+        Path caminhoResolvido = diretorioBase.resolve(caminhoRelativo).normalize();
+        if (!caminhoResolvido.startsWith(diretorioBase)) {
             throw new BusinessException("Caminho de documento inválido");
         }
-        return new FileSystemResource(arquivo);
+        return caminhoResolvido;
+    }
+
+    private void validarAgendamentoId(Long agendamentoId) {
+        if (agendamentoId == null || agendamentoId <= 0) {
+            throw new BusinessException("Identificador de agendamento inválido");
+        }
     }
 
     private String extrairExtensao(String originalFilename) {

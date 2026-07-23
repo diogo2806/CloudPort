@@ -60,7 +60,7 @@ prune_buildx_builder() {
             --max-used-space "$BUILD_CACHE_MAX_USED_SPACE" \
             --min-free-space "$BUILD_CACHE_MIN_FREE_SPACE" \
             --reserved-space "$BUILD_CACHE_RESERVED_SPACE"
-        return
+        return $?
     fi
 
     if docker buildx prune --help 2>/dev/null | grep -q -- '--keep-storage'; then
@@ -69,7 +69,7 @@ prune_buildx_builder() {
             --all \
             --force \
             --keep-storage "$BUILD_CACHE_MAX_USED_SPACE"
-        return
+        return $?
     fi
 
     log "Buildx antigo detectado; removendo cache sem uso há mais de ${BUILD_CACHE_FALLBACK_UNTIL} no builder ${builder}."
@@ -79,11 +79,36 @@ prune_buildx_builder() {
         --filter "until=${BUILD_CACHE_FALLBACK_UNTIL}"
 }
 
+prune_current_buildx() {
+    if docker buildx prune --help 2>/dev/null | grep -q -- '--max-used-space'; then
+        docker buildx prune \
+            --all \
+            --force \
+            --max-used-space "$BUILD_CACHE_MAX_USED_SPACE" \
+            --min-free-space "$BUILD_CACHE_MIN_FREE_SPACE" \
+            --reserved-space "$BUILD_CACHE_RESERVED_SPACE"
+        return $?
+    fi
+
+    if docker buildx prune --help 2>/dev/null | grep -q -- '--keep-storage'; then
+        docker buildx prune \
+            --all \
+            --force \
+            --keep-storage "$BUILD_CACHE_MAX_USED_SPACE"
+        return $?
+    fi
+
+    docker buildx prune \
+        --all \
+        --force \
+        --filter "until=${BUILD_CACHE_FALLBACK_UNTIL}"
+}
+
 prune_legacy_builder() {
     if docker builder prune --help 2>/dev/null | grep -q -- '--keep-storage'; then
         log "Limitando cache do builder Docker padrão a ${BUILD_CACHE_MAX_USED_SPACE}."
         docker builder prune --all --force --keep-storage "$BUILD_CACHE_MAX_USED_SPACE"
-        return
+        return $?
     fi
 
     log "Builder Docker antigo detectado; removendo cache sem uso há mais de ${BUILD_CACHE_FALLBACK_UNTIL}."
@@ -102,24 +127,21 @@ if docker buildx version >/dev/null 2>&1; then
 
     if [ -n "$builders" ]; then
         for builder in $builders; do
-            prune_buildx_builder "$builder"
+            if ! prune_buildx_builder "$builder"; then
+                log "AVISO: não foi possível limpar o builder ${builder}; os demais builders continuarão sendo processados."
+            fi
         done
     else
         log "Não foi possível enumerar builders Buildx; limpando o builder selecionado."
-        if docker buildx prune --help 2>/dev/null | grep -q -- '--max-used-space'; then
-            docker buildx prune \
-                --all \
-                --force \
-                --max-used-space "$BUILD_CACHE_MAX_USED_SPACE" \
-                --min-free-space "$BUILD_CACHE_MIN_FREE_SPACE" \
-                --reserved-space "$BUILD_CACHE_RESERVED_SPACE"
-        else
-            prune_legacy_builder
+        if ! prune_current_buildx; then
+            log "AVISO: não foi possível limpar o builder Buildx selecionado."
         fi
     fi
-else
-    prune_legacy_builder
 fi
+
+# Também cobre o cache do builder integrado ao Docker Engine. A operação é
+# idempotente quando o builder default já foi processado pelo Buildx.
+prune_legacy_builder
 
 log "Uso do Docker após a limpeza:"
 docker system df || true

@@ -13,7 +13,9 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.HistoricoWor
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.modelo.TipoEventoVmt;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class EventoVmtWorkInstructionServico {
+
+    private static final String VERSAO_CONTRATO_ATUAL = "2.0";
 
     private final EventoVmtWorkInstructionRepositorio eventoRepositorio;
     private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
@@ -50,6 +54,7 @@ public class EventoVmtWorkInstructionServico {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Evento VMT duplicado: " + eventId + ".");
         }
 
+        validarContrato(request);
         OrdemTrabalhoPatio ordem = ordemRepositorio.findOneById(instructionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Work instruction de patio nao encontrada."));
@@ -64,8 +69,9 @@ public class EventoVmtWorkInstructionServico {
                             + ", estado persistido " + estadoAtual + ".");
         }
         validarTimestamp(instructionId, request.getTimestamp());
+        validarEventoOperacional(instructionId, ordem, request);
 
-        StatusConfirmacaoVmt estadoResultante = aplicarTransicao(ordem, request);
+        StatusConfirmacaoVmt estadoResultante = aplicarTransicao(instructionId, ordem, request);
         ordem.setStatusConfirmacaoVmt(estadoResultante);
         ordem.setUltimoEventoVmtId(eventId);
         ordem.setAtualizadoEm(LocalDateTime.now());
@@ -100,10 +106,10 @@ public class EventoVmtWorkInstructionServico {
     }
 
     private EventoVmtWorkInstruction criarEvento(Long instructionId,
-                                                  String eventId,
-                                                  StatusConfirmacaoVmt estadoAtual,
-                                                  StatusConfirmacaoVmt estadoResultante,
-                                                  EventoVmtWorkInstructionRequest request) {
+                                                   String eventId,
+                                                   StatusConfirmacaoVmt estadoAtual,
+                                                   StatusConfirmacaoVmt estadoResultante,
+                                                   EventoVmtWorkInstructionRequest request) {
         EventoVmtWorkInstruction evento = new EventoVmtWorkInstruction();
         evento.setEventId(eventId);
         evento.setOrdemTrabalhoPatioId(instructionId);
@@ -113,6 +119,7 @@ public class EventoVmtWorkInstructionServico {
         evento.setOcorridoEm(request.getTimestamp());
         evento.setResultado(normalizar(request.getResultado(), 1000));
         evento.setPayload(normalizar(request.getPayload(), 10000));
+        evento.setVersaoContrato(versaoContrato(request));
         evento.setTipoAcaoFisica(request.getTipoAcaoFisica());
         evento.setCodigoUnidadeLido(normalizar(request.getCodigoUnidadeLido(), 40));
         evento.setEquipamentoPatioId(request.getEquipamentoPatioId());
@@ -126,10 +133,23 @@ public class EventoVmtWorkInstructionServico {
         evento.setColunaDestino(request.getColunaDestino());
         evento.setCamadaDestino(normalizar(request.getCamadaDestino(), 40));
         evento.setSequenciaOperacional(request.getSequenciaOperacional());
+        evento.setNumeroLacre(normalizar(request.getNumeroLacre(), 80));
+        evento.setCodigoAvaria(normalizar(request.getCodigoAvaria(), 80));
+        evento.setDescricaoAvaria(normalizar(request.getDescricaoAvaria(), 500));
+        evento.setEvidenciaUrl(normalizar(request.getEvidenciaUrl(), 500));
+        evento.setReeferConectadoDesejado(request.getReeferConectadoDesejado());
+        evento.setTemperaturaReefer(request.getTemperaturaReefer());
+        evento.setUnidadeAlvoRehandle(normalizar(request.getUnidadeAlvoRehandle(), 80));
+        evento.setRehandleObrigatorio(request.getRehandleObrigatorio());
+        evento.setSequenciaRehandle(request.getSequenciaRehandle());
+        evento.setEtapaAnterior(normalizar(request.getEtapaAnterior(), 80));
+        evento.setEtapaNova(normalizar(request.getEtapaNova(), 80));
+        evento.setMotivoAjuste(normalizar(request.getMotivoAjuste(), 500));
         return evento;
     }
 
-    private StatusConfirmacaoVmt aplicarTransicao(OrdemTrabalhoPatio ordem,
+    private StatusConfirmacaoVmt aplicarTransicao(Long instructionId,
+                                                    OrdemTrabalhoPatio ordem,
                                                     EventoVmtWorkInstructionRequest request) {
         TipoEventoVmt tipoEvento = request.getTipoEvento();
         if (tipoEvento == null) {
@@ -144,6 +164,15 @@ public class EventoVmtWorkInstructionServico {
                 exigirEstado(request.getStatusEsperado(), StatusConfirmacaoVmt.ACEITA, tipoEvento);
                 ordem.setVmtIniciadoEm(request.getTimestamp());
                 return StatusConfirmacaoVmt.EM_EXECUCAO;
+            case REGISTRO_LACRE:
+            case REGISTRO_AVARIA:
+            case REEFER_CONECTAR:
+            case REEFER_DESCONECTAR:
+            case REHANDLE_INICIO:
+            case REHANDLE_CONCLUSAO:
+            case AJUSTE_ETAPA:
+                exigirEstado(request.getStatusEsperado(), StatusConfirmacaoVmt.EM_EXECUCAO, tipoEvento);
+                return StatusConfirmacaoVmt.EM_EXECUCAO;
             case FALHA:
                 if (request.getStatusEsperado() != StatusConfirmacaoVmt.ACEITA
                         && request.getStatusEsperado() != StatusConfirmacaoVmt.EM_EXECUCAO) {
@@ -156,6 +185,7 @@ public class EventoVmtWorkInstructionServico {
                 return StatusConfirmacaoVmt.FALHA;
             case CONCLUSAO:
                 exigirEstado(request.getStatusEsperado(), StatusConfirmacaoVmt.EM_EXECUCAO, tipoEvento);
+                validarRehandlesConcluidos(instructionId);
                 confirmacaoTransferenciaFisicaServico.confirmar(ordem, request);
                 ordem.setVmtConcluidoEm(request.getTimestamp());
                 ordem.setResultadoVmt(normalizar(request.getResultado(), 1000));
@@ -165,6 +195,128 @@ public class EventoVmtWorkInstructionServico {
             default:
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tipo de evento VMT nao suportado.");
         }
+    }
+
+    private void validarContrato(EventoVmtWorkInstructionRequest request) {
+        String versao = versaoContrato(request);
+        if (!VERSAO_CONTRATO_ATUAL.equals(versao) && !"1.0".equals(versao)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Versao de contrato VMT/RDT nao suportada: " + versao + ".");
+        }
+    }
+
+    private String versaoContrato(EventoVmtWorkInstructionRequest request) {
+        return StringUtils.hasText(request.getVersaoContrato())
+                ? request.getVersaoContrato().trim()
+                : VERSAO_CONTRATO_ATUAL;
+    }
+
+    private void validarEventoOperacional(Long instructionId,
+                                           OrdemTrabalhoPatio ordem,
+                                           EventoVmtWorkInstructionRequest request) {
+        TipoEventoVmt tipo = request.getTipoEvento();
+        if (tipo == null) return;
+        switch (tipo) {
+            case REGISTRO_LACRE:
+                obrigatorio(request.getNumeroLacre(), "numeroLacre");
+                exigirUnidade(ordem, request);
+                break;
+            case REGISTRO_AVARIA:
+                obrigatorio(request.getCodigoAvaria(), "codigoAvaria");
+                obrigatorio(request.getDescricaoAvaria(), "descricaoAvaria");
+                obrigatorio(request.getEvidenciaUrl(), "evidenciaUrl");
+                exigirUnidade(ordem, request);
+                break;
+            case REEFER_CONECTAR:
+                exigirBooleano(request.getReeferConectadoDesejado(), true, tipo);
+                exigirUnidade(ordem, request);
+                break;
+            case REEFER_DESCONECTAR:
+                exigirBooleano(request.getReeferConectadoDesejado(), false, tipo);
+                exigirUnidade(ordem, request);
+                break;
+            case REHANDLE_INICIO:
+                obrigatorio(request.getUnidadeAlvoRehandle(), "unidadeAlvoRehandle");
+                if (request.getSequenciaRehandle() == null || request.getSequenciaRehandle() < 1) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "sequenciaRehandle deve ser maior que zero.");
+                }
+                break;
+            case REHANDLE_CONCLUSAO:
+                obrigatorio(request.getUnidadeAlvoRehandle(), "unidadeAlvoRehandle");
+                validarRehandleAberto(instructionId, request);
+                break;
+            case AJUSTE_ETAPA:
+                obrigatorio(request.getEtapaAnterior(), "etapaAnterior");
+                obrigatorio(request.getEtapaNova(), "etapaNova");
+                obrigatorio(request.getMotivoAjuste(), "motivoAjuste");
+                if (request.getEtapaAnterior().trim().equalsIgnoreCase(request.getEtapaNova().trim())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "A nova etapa deve ser diferente da etapa anterior.");
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void exigirUnidade(OrdemTrabalhoPatio ordem, EventoVmtWorkInstructionRequest request) {
+        String unidadeLida = obrigatorio(request.getCodigoUnidadeLido(), "codigoUnidadeLido");
+        if (StringUtils.hasText(ordem.getCodigoConteiner())
+                && !ordem.getCodigoConteiner().trim().equalsIgnoreCase(unidadeLida)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Unidade lida diverge da work instruction.");
+        }
+    }
+
+    private void exigirBooleano(Boolean valor, boolean esperado, TipoEventoVmt tipo) {
+        if (valor == null || valor.booleanValue() != esperado) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "reeferConectadoDesejado incompatível com o evento " + tipo + ".");
+        }
+    }
+
+    private void validarRehandleAberto(Long instructionId, EventoVmtWorkInstructionRequest request) {
+        boolean aberto = eventoRepositorio
+                .findByOrdemTrabalhoPatioIdOrderByOcorridoEmAscProcessadoEmAsc(instructionId)
+                .stream()
+                .anyMatch(evento -> evento.getTipoEvento() == TipoEventoVmt.REHANDLE_INICIO
+                        && igual(evento.getUnidadeAlvoRehandle(), request.getUnidadeAlvoRehandle())
+                        && igual(evento.getSequenciaRehandle(), request.getSequenciaRehandle()));
+        if (!aberto) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Rehandle nao iniciado para a unidade e sequencia informadas.");
+        }
+    }
+
+    private void validarRehandlesConcluidos(Long instructionId) {
+        List<EventoVmtWorkInstruction> eventos = eventoRepositorio
+                .findByOrdemTrabalhoPatioIdOrderByOcorridoEmAscProcessadoEmAsc(instructionId);
+        Set<String> obrigatorios = new HashSet<>();
+        Set<String> concluidos = new HashSet<>();
+        for (EventoVmtWorkInstruction evento : eventos) {
+            String chave = chaveRehandle(evento.getUnidadeAlvoRehandle(), evento.getSequenciaRehandle());
+            if (evento.getTipoEvento() == TipoEventoVmt.REHANDLE_INICIO
+                    && Boolean.TRUE.equals(evento.getRehandleObrigatorio())) {
+                obrigatorios.add(chave);
+            }
+            if (evento.getTipoEvento() == TipoEventoVmt.REHANDLE_CONCLUSAO) {
+                concluidos.add(chave);
+            }
+        }
+        obrigatorios.removeAll(concluidos);
+        if (!obrigatorios.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Existem rehandles obrigatorios pendentes: " + String.join(", ", obrigatorios) + ".");
+        }
+    }
+
+    private String chaveRehandle(String unidade, Integer sequencia) {
+        return valor(unidade, "SEM_UNIDADE") + "#" + (sequencia == null ? "SEM_SEQUENCIA" : sequencia);
+    }
+
+    private boolean igual(Object primeiro, Object segundo) {
+        return primeiro == null ? segundo == null : primeiro.equals(segundo);
     }
 
     private void validarEstadoOperacional(OrdemTrabalhoPatio ordem) {
@@ -191,9 +343,7 @@ public class EventoVmtWorkInstructionServico {
     private void exigirEstado(StatusConfirmacaoVmt atual,
                               StatusConfirmacaoVmt exigido,
                               TipoEventoVmt tipoEvento) {
-        if (atual != exigido) {
-            throw eventoForaDeSequencia(tipoEvento, atual);
-        }
+        if (atual != exigido) throw eventoForaDeSequencia(tipoEvento, atual);
     }
 
     private ResponseStatusException eventoForaDeSequencia(TipoEventoVmt tipoEvento,
@@ -214,22 +364,27 @@ public class EventoVmtWorkInstructionServico {
                 : "integracao-vmt");
         historico.setMotivo(evento.getTipoEvento() == TipoEventoVmt.CONCLUSAO
                 ? "Transferencia fisica confirmada pelo operador."
-                : "Confirmacao recebida do VMT.");
+                : "Comando operacional recebido do VMT/RDT.");
         historico.setDetalhes(normalizar(
                 "eventId=" + evento.getEventId()
+                        + "; versaoContrato=" + evento.getVersaoContrato()
                         + "; estadoEsperado=" + evento.getStatusEsperado()
                         + "; estadoResultante=" + evento.getStatusResultante()
                         + "; timestamp=" + evento.getOcorridoEm()
                         + "; resultado=" + valor(evento.getResultado(), "NAO_INFORMADO")
-                        + "; tipoAcaoFisica=" + valor(
-                                evento.getTipoAcaoFisica() == null ? null : evento.getTipoAcaoFisica().name(),
-                                "NAO_INFORMADA")
                         + "; unidadeLida=" + valor(evento.getCodigoUnidadeLido(), "NAO_INFORMADA")
-                        + "; equipamentoPatioId=" + evento.getEquipamentoPatioId()
                         + "; equipamento=" + valor(evento.getEquipamentoIdentificador(), "NAO_INFORMADO")
-                        + "; origem=" + valor(evento.getOrigem(), "NAO_INFORMADA")
-                        + "; destino=" + valor(evento.getDestino(), "NAO_INFORMADO")
-                        + "; sequenciaOperacional=" + evento.getSequenciaOperacional()
+                        + "; lacre=" + valor(evento.getNumeroLacre(), "NAO_INFORMADO")
+                        + "; avaria=" + valor(evento.getCodigoAvaria(), "NAO_INFORMADA")
+                        + "; evidencia=" + valor(evento.getEvidenciaUrl(), "NAO_INFORMADA")
+                        + "; reeferDesejado=" + evento.getReeferConectadoDesejado()
+                        + "; temperaturaReefer=" + evento.getTemperaturaReefer()
+                        + "; rehandle=" + valor(evento.getUnidadeAlvoRehandle(), "NAO_INFORMADO")
+                        + "; rehandleObrigatorio=" + evento.getRehandleObrigatorio()
+                        + "; sequenciaRehandle=" + evento.getSequenciaRehandle()
+                        + "; etapaAnterior=" + valor(evento.getEtapaAnterior(), "NAO_INFORMADA")
+                        + "; etapaNova=" + valor(evento.getEtapaNova(), "NAO_INFORMADA")
+                        + "; motivoAjuste=" + valor(evento.getMotivoAjuste(), "NAO_INFORMADO")
                         + "; correlationId=" + valor(request.getCorrelationId(), "NAO_INFORMADO"),
                 2000));
         historico.setCriadoEm(LocalDateTime.now());
@@ -244,9 +399,7 @@ public class EventoVmtWorkInstructionServico {
     }
 
     private String normalizar(String valor, int limite) {
-        if (!StringUtils.hasText(valor)) {
-            return null;
-        }
+        if (!StringUtils.hasText(valor)) return null;
         String normalizado = valor.trim();
         return normalizado.length() <= limite ? normalizado : normalizado.substring(0, limite);
     }

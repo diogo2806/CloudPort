@@ -2,13 +2,13 @@
 
 ## Finalidade da tela
 
-A tela **Cadastros > Navios** mantém o cadastro mestre das embarcações utilizadas pelo line-up, pelas escalas, pela alocação de berços e pelo planejamento de estiva.
+A tela **Navio e embarque > Navios** mantém o cadastro mestre das embarcações utilizadas pelo line-up, pelas escalas, pela alocação de berços e pelo planejamento de estiva.
 
 Rota do portal: `/home/navio/cadastros`.
 
 ## Fluxo operacional
 
-1. Acesse **Cadastros > Navios**.
+1. Acesse **Navio e embarque > Navios**.
 2. Consulte a grade para verificar se a embarcação já está cadastrada.
 3. Para criar um registro, preencha os campos obrigatórios e selecione **Cadastrar navio**.
 4. Para alterar, selecione uma linha da grade, revise os dados e selecione **Atualizar navio**.
@@ -30,7 +30,8 @@ Rota do portal: `/home/navio/cadastros`.
 
 - **ADMIN_PORTO**: consulta, criação, alteração e exclusão.
 - **PLANEJADOR**: consulta, criação e alteração.
-- Outros perfis somente visualizam a tela quando a configuração de navegação e autorização permitir; comandos não autorizados permanecem bloqueados.
+- **OPERADOR_GATE**: consulta, sem acesso aos comandos de criação, alteração e exclusão.
+- A configuração dinâmica de navegação pode autorizar outros perfis somente para consulta; os comandos permanecem bloqueados pelas regras da tela.
 
 ## Estados possíveis
 
@@ -60,10 +61,9 @@ Para cadastrar o navio **Cloud Atlantic**, informe `IMO9319466`, bandeira `Brasi
 
 ## Atalhos
 
-- **F1** ou **Shift + ?**: abre o manual contextual.
-- **Esc**: fecha o manual contextual.
+- O cadastro fica no mesmo módulo do **Line-up de navios**, em **Navio e embarque > Navios**.
 - **Atualizar**: recarrega a grade.
-- Selecionar uma linha: carrega o registro para edição.
+- Selecionar uma linha: carrega o registro para edição ou consulta.
 - **Limpar**: abandona a seleção e volta ao modo de cadastro.
 
 ## Processo completo

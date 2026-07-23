@@ -3,6 +3,7 @@ package br.com.cloudport.servicoyard.patio.listatrabalho.dto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusConfirmacaoVmt;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.TipoAcaoFisicaPatio;
 import br.com.cloudport.servicoyard.patio.modelo.TipoEventoVmt;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -34,6 +35,9 @@ public class EventoVmtWorkInstructionRequest {
     @Size(max = 120)
     private String correlationId;
 
+    @Size(max = 20)
+    private String versaoContrato;
+
     private TipoAcaoFisicaPatio tipoAcaoFisica;
 
     @Size(max = 40)
@@ -64,6 +68,36 @@ public class EventoVmtWorkInstructionRequest {
 
     private Integer sequenciaOperacional;
 
+    @Size(max = 80)
+    private String numeroLacre;
+
+    @Size(max = 80)
+    private String codigoAvaria;
+
+    @Size(max = 500)
+    private String descricaoAvaria;
+
+    @Size(max = 500)
+    private String evidenciaUrl;
+
+    private Boolean reeferConectadoDesejado;
+    private BigDecimal temperaturaReefer;
+
+    @Size(max = 80)
+    private String unidadeAlvoRehandle;
+
+    private Boolean rehandleObrigatorio;
+    private Integer sequenciaRehandle;
+
+    @Size(max = 80)
+    private String etapaAnterior;
+
+    @Size(max = 80)
+    private String etapaNova;
+
+    @Size(max = 500)
+    private String motivoAjuste;
+
     public String getEventId() { return eventId; }
     public void setEventId(String eventId) { this.eventId = eventId; }
     public TipoEventoVmt getTipoEvento() { return tipoEvento; }
@@ -80,6 +114,8 @@ public class EventoVmtWorkInstructionRequest {
     public void setOperador(String operador) { this.operador = operador; }
     public String getCorrelationId() { return correlationId; }
     public void setCorrelationId(String correlationId) { this.correlationId = correlationId; }
+    public String getVersaoContrato() { return versaoContrato; }
+    public void setVersaoContrato(String versaoContrato) { this.versaoContrato = versaoContrato; }
     public TipoAcaoFisicaPatio getTipoAcaoFisica() { return tipoAcaoFisica; }
     public void setTipoAcaoFisica(TipoAcaoFisicaPatio tipoAcaoFisica) { this.tipoAcaoFisica = tipoAcaoFisica; }
     public String getCodigoUnidadeLido() { return codigoUnidadeLido; }
@@ -106,4 +142,28 @@ public class EventoVmtWorkInstructionRequest {
     public void setCamadaDestino(String camadaDestino) { this.camadaDestino = camadaDestino; }
     public Integer getSequenciaOperacional() { return sequenciaOperacional; }
     public void setSequenciaOperacional(Integer sequenciaOperacional) { this.sequenciaOperacional = sequenciaOperacional; }
+    public String getNumeroLacre() { return numeroLacre; }
+    public void setNumeroLacre(String numeroLacre) { this.numeroLacre = numeroLacre; }
+    public String getCodigoAvaria() { return codigoAvaria; }
+    public void setCodigoAvaria(String codigoAvaria) { this.codigoAvaria = codigoAvaria; }
+    public String getDescricaoAvaria() { return descricaoAvaria; }
+    public void setDescricaoAvaria(String descricaoAvaria) { this.descricaoAvaria = descricaoAvaria; }
+    public String getEvidenciaUrl() { return evidenciaUrl; }
+    public void setEvidenciaUrl(String evidenciaUrl) { this.evidenciaUrl = evidenciaUrl; }
+    public Boolean getReeferConectadoDesejado() { return reeferConectadoDesejado; }
+    public void setReeferConectadoDesejado(Boolean reeferConectadoDesejado) { this.reeferConectadoDesejado = reeferConectadoDesejado; }
+    public BigDecimal getTemperaturaReefer() { return temperaturaReefer; }
+    public void setTemperaturaReefer(BigDecimal temperaturaReefer) { this.temperaturaReefer = temperaturaReefer; }
+    public String getUnidadeAlvoRehandle() { return unidadeAlvoRehandle; }
+    public void setUnidadeAlvoRehandle(String unidadeAlvoRehandle) { this.unidadeAlvoRehandle = unidadeAlvoRehandle; }
+    public Boolean getRehandleObrigatorio() { return rehandleObrigatorio; }
+    public void setRehandleObrigatorio(Boolean rehandleObrigatorio) { this.rehandleObrigatorio = rehandleObrigatorio; }
+    public Integer getSequenciaRehandle() { return sequenciaRehandle; }
+    public void setSequenciaRehandle(Integer sequenciaRehandle) { this.sequenciaRehandle = sequenciaRehandle; }
+    public String getEtapaAnterior() { return etapaAnterior; }
+    public void setEtapaAnterior(String etapaAnterior) { this.etapaAnterior = etapaAnterior; }
+    public String getEtapaNova() { return etapaNova; }
+    public void setEtapaNova(String etapaNova) { this.etapaNova = etapaNova; }
+    public String getMotivoAjuste() { return motivoAjuste; }
+    public void setMotivoAjuste(String motivoAjuste) { this.motivoAjuste = motivoAjuste; }
 }

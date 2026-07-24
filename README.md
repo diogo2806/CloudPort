@@ -58,6 +58,19 @@ O runtime incorpora oito módulos de negócio:
 
 Cada módulo mantém histórico Flyway independente.
 
+## Stack efetiva
+
+As versões abaixo são as declaradas atualmente nos arquivos de build:
+
+- Java 17;
+- Spring Boot 2.7.18;
+- Spring Framework 5.3.39;
+- Spring Security 5.8.16;
+- Flyway 10.20.1;
+- React 19.2.7;
+- Vite 8.1.4;
+- Node.js 22 para build do frontend.
+
 ## Estrutura principal
 
 ```text
@@ -105,12 +118,21 @@ Execução direta:
 java -jar backend/cloudport-runtime/target/cloudport-runtime-*.jar
 ```
 
-## Build do frontend
+## Build e validação do frontend
+
+O projeto possui `package-lock.json`; use `npm ci` para instalação reproduzível em CI e em validações locais limpas.
 
 ```bash
 cd frontend/cloudport
-npm install
+npm ci --no-audit --no-fund
+npm test
 npm run build
+```
+
+Os testes fim a fim são executados separadamente:
+
+```bash
+npm run e2e
 ```
 
 ## Variáveis obrigatórias do backend

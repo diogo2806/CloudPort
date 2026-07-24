@@ -13,7 +13,6 @@ import br.com.cloudport.servicoyard.patio.repositorio.AvisoEstivagemPatioReposit
 import br.com.cloudport.servicoyard.patio.repositorio.ConteinerPatioRepositorio;
 import br.com.cloudport.servicoyard.patio.repositorio.HistoricoAvisoEstivagemPatioRepositorio;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -104,26 +103,35 @@ public class AvisoEstivagemPatioServico {
     }
 
     public void validarOperacaoSemAvisoCritico(String codigoUnidade, String... posicoes) {
+        List<AvisoEstivagemPatio> avisosDaUnidade = List.of();
         if (StringUtils.hasText(codigoUnidade)) {
-            conteinerRepositorio.findByCodigoIgnoreCase(codigoUnidade.trim())
+            String codigo = codigoUnidade.trim();
+            conteinerRepositorio.findByCodigoIgnoreCase(codigo)
                     .ifPresent(unidade -> reconciliar(
                             unidade,
                             carregarInventario(),
                             ATOR_SISTEMA,
                             "Revalidação preventiva antes do planejamento ou dispatch"));
+            avisosDaUnidade = avisoRepositorio.findByCodigoUnidadeIgnoreCaseAndEstadoIn(
+                    codigo,
+                    ESTADOS_ATIVOS);
         }
 
-        boolean unidadeBloqueada = StringUtils.hasText(codigoUnidade)
-                && avisoRepositorio.existsByCodigoUnidadeIgnoreCaseAndSeveridadeAndEstadoIn(
-                        codigoUnidade.trim(), SeveridadeAvisoEstivagemPatio.CRITICA, ESTADOS_ATIVOS);
         Set<String> codigosPosicao = codigosPosicao(posicoes);
+        boolean unidadePermaneceNaPosicaoViolada = avisosDaUnidade.stream()
+                .filter(this::criticoBloqueante)
+                .anyMatch(aviso -> codigosPosicao.isEmpty()
+                        || codigosPosicao.contains(aviso.getCodigoPosicao()));
         boolean posicaoBloqueada = !codigosPosicao.isEmpty()
-                && avisoRepositorio.existsByCodigoPosicaoInAndSeveridadeAndEstadoIn(
-                        codigosPosicao, SeveridadeAvisoEstivagemPatio.CRITICA, ESTADOS_ATIVOS);
-        if (unidadeBloqueada || posicaoBloqueada) {
+                && avisoRepositorio.existsByCodigoPosicaoInAndSeveridadeAndBloqueiaOperacaoTrueAndEstadoIn(
+                        codigosPosicao,
+                        SeveridadeAvisoEstivagemPatio.CRITICA,
+                        ESTADOS_ATIVOS);
+        if (unidadePermaneceNaPosicaoViolada || posicaoBloqueada) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Operação bloqueada por aviso crítico de estivagem ativo. Corrija e revalide o caso antes de continuar.");
+                    "Operação bloqueada por aviso crítico de estivagem ativo. "
+                            + "A movimentação corretiva deve retirar a unidade da posição violada e usar destino seguro.");
         }
     }
 
@@ -136,10 +144,13 @@ public class AvisoEstivagemPatioServico {
         EstadoAvisoEstivagemPatio anterior = aviso.getEstado();
         aviso.setResponsavel(obrigatorio(responsavel, "Responsável"));
         aviso.setPrazo(prazo);
-        aviso.setEstado(EstadoAvisoEstivagemPatio.ATRIBUIDO);
+        if (anterior == EstadoAvisoEstivagemPatio.ABERTO
+                || anterior == EstadoAvisoEstivagemPatio.REABERTO) {
+            aviso.setEstado(EstadoAvisoEstivagemPatio.ATRIBUIDO);
+        }
         AvisoEstivagemPatio salvo = avisoRepositorio.save(aviso);
         registrarHistorico(salvo, TipoEventoAvisoEstivagemPatio.ATRIBUICAO, anterior,
-                salvo.getEstado(), ator, "Aviso atribuído para tratamento", null, null);
+                salvo.getEstado(), ator, "Responsável e prazo do aviso atualizados", null, null);
         return salvo;
     }
 
@@ -434,6 +445,12 @@ public class AvisoEstivagemPatioServico {
 
     private String codigoPosicao(PosicaoPatio posicao) {
         return posicao.getLinha() + "/" + posicao.getColuna() + "/" + posicao.getCamadaOperacional();
+    }
+
+    private boolean criticoBloqueante(AvisoEstivagemPatio aviso) {
+        return aviso.getSeveridade() == SeveridadeAvisoEstivagemPatio.CRITICA
+                && aviso.isBloqueiaOperacao()
+                && ESTADOS_ATIVOS.contains(aviso.getEstado());
     }
 
     private void exigirAtivo(AvisoEstivagemPatio aviso) {

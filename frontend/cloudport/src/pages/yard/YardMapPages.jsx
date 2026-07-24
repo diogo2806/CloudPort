@@ -66,13 +66,6 @@ export function YardMapPage({ navigate }) {
     return () => globalThis.clearInterval(interval);
   }, [remote.reload]);
 
-  if (showStowageWarnings) {
-    return <>
-      <div className="actions"><button className="secondary" onClick={() => setShowStowageWarnings(false)}>Voltar ao mapa operacional</button></div>
-      <YardStowageWarningsPage navigate={navigate} session={session} />
-    </>;
-  }
-
   const operationalCommandsEnabled = canOperate && !remote.isOffline;
   const geometryCommandsEnabled = canEditGeometry && !remote.isOffline;
   const map = remote.data?.map ?? {};
@@ -114,6 +107,13 @@ export function YardMapPage({ navigate }) {
       })
       .filter(Boolean);
   }, [containers, remote.data?.orders]);
+
+  if (showStowageWarnings) {
+    return <>
+      <div className="actions"><button className="secondary" onClick={() => setShowStowageWarnings(false)}>Voltar ao mapa operacional</button></div>
+      <YardStowageWarningsPage navigate={navigate} session={session} />
+    </>;
+  }
 
   function optionList(key) {
     return remote.data?.filters?.[key] ?? [];

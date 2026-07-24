@@ -75,6 +75,29 @@ class DetectorAvisoEstivagemPatioServicoTest {
                 TipoRegraEstivagemPatio.REGRA_PILHA);
     }
 
+    @Test
+    void naoDeveMisturarPilhaOuPerigosoDeBlocosDiferentes() {
+        PosicaoPatio posicaoA = posicao(1L, 7, 8, "2");
+        posicaoA.setBloco("A");
+        posicaoA.setCapacidadePilha(1);
+        ConteinerPatio unidadeA = unidade(1L, "IMO-A", TipoCargaConteiner.PERIGOSO,
+                new BigDecimal("20.000"), posicaoA);
+
+        PosicaoPatio posicaoB = posicao(2L, 7, 8, "1");
+        posicaoB.setBloco("B");
+        posicaoB.setCapacidadePilha(1);
+        ConteinerPatio unidadeB = unidade(2L, "IMO-B", TipoCargaConteiner.PERIGOSO,
+                new BigDecimal("8.000"), posicaoB);
+
+        Set<TipoRegraEstivagemPatio> regras = regras(
+                servico.detectar(unidadeA, List.of(unidadeA, unidadeB)));
+
+        assertThat(regras).doesNotContain(
+                TipoRegraEstivagemPatio.PERIGOSO,
+                TipoRegraEstivagemPatio.CAPACIDADE,
+                TipoRegraEstivagemPatio.REGRA_PILHA);
+    }
+
     private Set<TipoRegraEstivagemPatio> regras(List<ViolacaoEstivagemPatioDto> violacoes) {
         return violacoes.stream().map(ViolacaoEstivagemPatioDto::regra).collect(Collectors.toSet());
     }

@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,7 @@ public class DetectorAvisoEstivagemPatioServico {
     }
 
     public List<ViolacaoEstivagemPatioDto> detectar(ConteinerPatio unidade) {
-        return detectar(unidade, conteinerRepositorio.findAllByOrderByPosicaoLinhaAscPosicaoColunaAsc());
+        return detectar(unidade, conteinerRepositorio.findAllByOrderByCodigoAsc());
     }
 
     public List<ViolacaoEstivagemPatioDto> detectar(ConteinerPatio unidade,
@@ -127,7 +128,7 @@ public class DetectorAvisoEstivagemPatioServico {
             return;
         }
         boolean perigosoProximo = inventario.stream()
-                .filter(item -> item != unidade)
+                .filter(item -> !mesmaUnidade(item, unidade))
                 .filter(item -> item.getTipoCarga() == TipoCargaConteiner.PERIGOSO)
                 .filter(item -> item.getPosicao() != null)
                 .anyMatch(item -> Math.abs(item.getPosicao().getLinha() - posicao.getLinha()) <= 1
@@ -220,7 +221,7 @@ public class DetectorAvisoEstivagemPatioServico {
         }
         Integer camadaAtual = camada(posicao.getCamadaOperacional());
         boolean pesoInvertido = pilha.stream()
-                .filter(item -> item != unidade)
+                .filter(item -> !mesmaUnidade(item, unidade))
                 .filter(item -> item.getPesoToneladas() != null)
                 .filter(item -> camada(item.getPosicao().getCamadaOperacional()) != null)
                 .filter(item -> camadaAtual != null
@@ -235,6 +236,18 @@ public class DetectorAvisoEstivagemPatioServico {
                     "Reordenar a pilha preservando as unidades mais pesadas nas camadas inferiores.",
                     true));
         }
+    }
+
+    private boolean mesmaUnidade(ConteinerPatio esquerda, ConteinerPatio direita) {
+        if (esquerda == null || direita == null) {
+            return false;
+        }
+        if (esquerda.getId() != null && direita.getId() != null) {
+            return Objects.equals(esquerda.getId(), direita.getId());
+        }
+        return StringUtils.hasText(esquerda.getCodigo())
+                && StringUtils.hasText(direita.getCodigo())
+                && esquerda.getCodigo().equalsIgnoreCase(direita.getCodigo());
     }
 
     private ViolacaoEstivagemPatioDto violacao(TipoRegraEstivagemPatio regra,

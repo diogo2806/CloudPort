@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoyard.scheduler.servico;
 
+import br.com.cloudport.servicoyard.patio.avisoestivagem.servico.AvisoEstivagemPatioServico;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.DispatchWorkQueueDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
@@ -21,12 +22,15 @@ public class ValidacaoPlanejamentoDispatchServico {
 
     private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
     private final PlanoPosicaoOperacionalServico planoServico;
+    private final AvisoEstivagemPatioServico avisoEstivagemServico;
 
     public ValidacaoPlanejamentoDispatchServico(
             OrdemTrabalhoPatioRepositorio ordemRepositorio,
-            PlanoPosicaoOperacionalServico planoServico) {
+            PlanoPosicaoOperacionalServico planoServico,
+            AvisoEstivagemPatioServico avisoEstivagemServico) {
         this.ordemRepositorio = ordemRepositorio;
         this.planoServico = planoServico;
+        this.avisoEstivagemServico = avisoEstivagemServico;
     }
 
     @Transactional
@@ -55,6 +59,7 @@ public class ValidacaoPlanejamentoDispatchServico {
             if (!ESTADOS_DISPATCHAVEIS.contains(ordem.getStatusOrdem())) {
                 continue;
             }
+            avisoEstivagemServico.validarOperacaoPlanejada(ordem);
             planoServico.revalidarParaDispatch(ordem, comando.usuarioEfetivo());
             validadas++;
         }

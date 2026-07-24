@@ -23,6 +23,11 @@ function routePositionKey(position) {
   return `${position?.linha ?? ''}:${position?.coluna ?? ''}`;
 }
 
+function warningCount(value) {
+  const count = Number(value);
+  return Number.isFinite(count) && count > 0 ? count : 0;
+}
+
 function createInfoContent(entry) {
   const root = document.createElement('div');
   root.className = 'yard-google-info';
@@ -31,9 +36,11 @@ function createInfoContent(entry) {
   const detail = document.createElement('small');
 
   if (entry.stack) {
+    const warnings = warningCount(entry.stack.avisosEstivagem);
     title.textContent = `${entry.stack.bloco} · Linha ${entry.stack.linha} · Coluna ${entry.stack.coluna}`;
     state.textContent = YARD_MAP_STATE_LABELS[entry.state] ?? entry.state;
-    detail.textContent = `${entry.occupiedLayers}/${entry.totalLayers} camada(s) ocupada(s)`;
+    detail.textContent = `${entry.occupiedLayers}/${entry.totalLayers} camada(s) ocupada(s)`
+      + (warnings ? ` · ${warnings} aviso(s) de estivagem` : '');
   } else {
     title.textContent = entry.geometry?.codigo ?? 'Geometria do pátio';
     state.textContent = entry.geometry?.tipo ?? 'POLÍGONO';
@@ -75,9 +82,19 @@ function createEquipmentInfoContent(entry) {
 function createStackLabel(leaflet, entry, selected) {
   const element = document.createElement('span');
   element.className = `yard-google-stack-label ${entry.state}${selected ? ' selected' : ''}`;
-  element.textContent = entry.stack
-    ? `L${entry.stack.linha} C${entry.stack.coluna}`
-    : entry.geometry?.codigo ?? 'Área';
+  if (entry.stack) {
+    element.append(document.createTextNode(`L${entry.stack.linha} C${entry.stack.coluna}`));
+    const warnings = warningCount(entry.stack.avisosEstivagem);
+    if (warnings) {
+      const badge = document.createElement('b');
+      badge.className = 'yard-google-stowage-badge';
+      badge.textContent = String(warnings);
+      badge.setAttribute('aria-label', `${warnings} aviso(s) de estivagem`);
+      element.append(badge);
+    }
+  } else {
+    element.textContent = entry.geometry?.codigo ?? 'Área';
+  }
   element.title = entry.label;
   return leaflet.divIcon({
     className: 'yard-leaflet-label-icon',
@@ -106,6 +123,10 @@ export function OpenStreetMapYardMap({
   const [mapError, setMapError] = useState('');
   const [mapContext, setMapContext] = useState(null);
   const [selectedGeometry, setSelectedGeometry] = useState(null);
+  const warningTotal = useMemo(
+    () => (blocks ?? []).reduce((total, block) => total + warningCount(block.avisosEstivagem), 0),
+    [blocks]
+  );
   const layout = useMemo(
     () => config ? buildResolvedYardMapLayout(blocks, config, geometries) : [],
     [blocks, config, geometries]
@@ -258,6 +279,7 @@ export function OpenStreetMapYardMap({
     />
     <div className="yard-google-map-legend" aria-label="Legenda do mapa">
       {Object.entries(YARD_MAP_STATE_LABELS).map(([state, label]) => <span key={state}><i className={state} />{label}</span>)}
+      {!!warningTotal && <span><i className="stowage-warning" />{warningTotal} aviso(s) de estivagem</span>}
       {!!geometries.length && <span><i className="geometry" />Geometria persistida</span>}
       {!!routes.length && <span><i className="route" />Rotas planejadas</span>}
       {!!equipmentEntries.length && <span><i className="equipment" />CHE em tempo real</span>}

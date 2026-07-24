@@ -40,17 +40,23 @@ public class InstrucaoTrabalhoServico {
     private final EquipamentoPatioRepositorio equipamentoRepositorio;
     private final PosicaoPatioRepositorio posicaoRepositorio;
     private final ValidadorYardPlacementService validadorPlacement;
+    private final ValidadorBloqueioAvisoEstivagemPatioServico validadorAvisoEstivagem;
+    private final AvisoEstivagemPatioServico avisoEstivagemServico;
 
     public InstrucaoTrabalhoServico(InstrucaoTrabalhoRepositorio instrucaoRepositorio,
                                      ConteinerPatioRepositorio conteinerRepositorio,
                                      EquipamentoPatioRepositorio equipamentoRepositorio,
                                      PosicaoPatioRepositorio posicaoRepositorio,
-                                     ValidadorYardPlacementService validadorPlacement) {
+                                     ValidadorYardPlacementService validadorPlacement,
+                                     ValidadorBloqueioAvisoEstivagemPatioServico validadorAvisoEstivagem,
+                                     AvisoEstivagemPatioServico avisoEstivagemServico) {
         this.instrucaoRepositorio = instrucaoRepositorio;
         this.conteinerRepositorio = conteinerRepositorio;
         this.equipamentoRepositorio = equipamentoRepositorio;
         this.posicaoRepositorio = posicaoRepositorio;
         this.validadorPlacement = validadorPlacement;
+        this.validadorAvisoEstivagem = validadorAvisoEstivagem;
+        this.avisoEstivagemServico = avisoEstivagemServico;
     }
 
     public InstrucaoTrabalho criar(String codigoConteiner,
@@ -100,7 +106,15 @@ public class InstrucaoTrabalhoServico {
         aplicarConclusaoNoInventario(instrucao);
         instrucao.setStatus(StatusInstrucao.CONCLUIDA);
         instrucao.setConcluidaEm(LocalDateTime.now());
-        return instrucaoRepositorio.save(instrucao);
+        InstrucaoTrabalho salvo = instrucaoRepositorio.save(instrucao);
+        if (instrucao.getTipoOperacao() == TipoOperacaoInstrucao.MOVIMENTACAO) {
+            avisoEstivagemServico.reavaliarAposMovimentacao(
+                    instrucao.getCodigoConteiner(),
+                    instrucao.getOrigem(),
+                    instrucao.getDestino(),
+                    instrucao.getCriadoPor());
+        }
+        return salvo;
     }
 
     public InstrucaoTrabalho cancelar(Long id, String justificativa) {
@@ -147,6 +161,8 @@ public class InstrucaoTrabalhoServico {
         if (posicaoDestino != null) {
             validarDisponibilidade(posicaoDestino);
         }
+
+        validadorAvisoEstivagem.validar(codigoConteiner, destinoNormalizado);
 
         ConteinerPatioRequisicaoDto requisicao = new ConteinerPatioRequisicaoDto();
         requisicao.setCodigo(conteiner.getCodigo());

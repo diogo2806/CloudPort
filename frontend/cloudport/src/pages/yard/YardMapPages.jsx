@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, hasAnyRole, readSession, sanitizeText } from '../../api.js';
 import { DataTable, Loading, Message, MetricCard, Section, StatusBadge } from '../../components.jsx';
+import { yardStowageWarningApi } from '../../yardStowageWarningApi.js';
 import { OpenStreetMapYardMap } from './GoogleYardMap.jsx';
 import { OperationalYardViews } from './OperationalYardViews.jsx';
 import { YardAllocationEditor } from './YardAllocationEditor.jsx';
 import { useYardContingency } from './yardContingency.js';
 import { yardGeometryApi } from './yardGeometryApi.js';
+import { mergeYardEquipment, yardRestrictionSummary } from './yardLiveMap.js';
 import { yardOperationalApi } from './yardOperationalApi.js';
 import { YardReeferPanel } from './YardReeferPanel.jsx';
-import { mergeYardEquipment, yardRestrictionSummary } from './yardLiveMap.js';
 import { buildStacks, DetailGrid, FilterField, normalized, Pagination, positionKey, usePagination, useRemote, YardPageHeader } from './YardShared.jsx';
+import { YardStowageWarningsPage } from './YardStowageWarningsPage.jsx';
 
 const FINAL_ORDER_STATUSES = new Set(['CONCLUIDA', 'CANCELADA']);
 
@@ -19,15 +21,21 @@ function formatSynchronization(value) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('pt-BR');
 }
 
+function warningPositionKey(position) {
+  const layer = position?.camadaOperacional ?? position?.camadaDestino;
+  return `${position?.linha}/${position?.coluna}/${layer}`;
+}
+
 export function YardMapPage({ navigate }) {
   const [filters, setFilters] = useState({ status: '', tipoCarga: '', destino: '', camada: '', tipoEquipamento: '' });
   const [selectedStack, setSelectedStack] = useState(null);
+  const [showStowageWarnings, setShowStowageWarnings] = useState(false);
   const session = readSession();
   const canOperate = hasAnyRole(session, 'ROOT', 'ADMIN_PORTO', 'PLANEJADOR', 'OPERADOR_PATIO');
   const canEditGeometry = hasAnyRole(session, 'ROOT', 'ADMIN_PORTO', 'PLANEJADOR');
   const remote = useYardContingency(async () => {
     const query = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
-    const [map, positions, availableFilters, orders, movements, telemetry, allContainers, reeferTelemetry, geometries] = await Promise.all([
+    const [map, positions, availableFilters, orders, movements, telemetry, allContainers, reeferTelemetry, geometries, stowageWarnings] = await Promise.all([
       api.obterMapaPatio(query),
       api.listarPosicoesReservaveisPatio(),
       api.obterFiltrosMapaPatio(),
@@ -36,7 +44,8 @@ export function YardMapPage({ navigate }) {
       api.listarTelemetriaEquipamentosPatio(),
       api.listarConteineresPatio(),
       yardOperationalApi.listarTelemetriaReefers(),
-      yardGeometryApi.listar()
+      yardGeometryApi.listar(),
+      yardStowageWarningApi.resumo()
     ]);
     return {
       map: map ?? {},
@@ -47,7 +56,8 @@ export function YardMapPage({ navigate }) {
       telemetry: telemetry ?? [],
       allContainers: allContainers ?? [],
       reeferTelemetry: reeferTelemetry ?? [],
-      geometries: geometries ?? []
+      geometries: geometries ?? [],
+      stowageWarnings: stowageWarnings ?? { ativos: 0, criticos: 0, porPosicao: {} }
     };
   }, [filters.status, filters.tipoCarga, filters.destino, filters.camada, filters.tipoEquipamento]);
 
@@ -66,6 +76,7 @@ export function YardMapPage({ navigate }) {
   );
   const enrichedPositions = useMemo(() => {
     const containersByPosition = new Map(containers.map((container) => [positionKey(container), container]));
+    const warningsByPosition = remote.data?.stowageWarnings?.porPosicao ?? {};
     return (remote.data?.positions ?? []).map((position) => {
       const container = containersByPosition.get(positionKey(position));
       return {
@@ -73,10 +84,11 @@ export function YardMapPage({ navigate }) {
         conteinerId: container?.id ?? null,
         tipoCarga: container?.tipoCarga ?? null,
         destino: container?.destino ?? null,
-        statusConteiner: position.statusConteiner ?? container?.status ?? null
+        statusConteiner: position.statusConteiner ?? container?.status ?? null,
+        avisosEstivagem: warningsByPosition[warningPositionKey(position)] ?? 0
       };
     });
-  }, [remote.data?.positions, containers]);
+  }, [remote.data?.positions, remote.data?.stowageWarnings, containers]);
   const stacks = useMemo(() => buildStacks(enrichedPositions, remote.data?.orders), [enrichedPositions, remote.data?.orders]);
   const restrictions = useMemo(() => yardRestrictionSummary(stacks), [stacks]);
   const routes = useMemo(() => {
@@ -95,6 +107,13 @@ export function YardMapPage({ navigate }) {
       })
       .filter(Boolean);
   }, [containers, remote.data?.orders]);
+
+  if (showStowageWarnings) {
+    return <>
+      <div className="actions"><button className="secondary" onClick={() => setShowStowageWarnings(false)}>Voltar ao mapa operacional</button></div>
+      <YardStowageWarningsPage navigate={navigate} session={session} />
+    </>;
+  }
 
   function optionList(key) {
     return remote.data?.filters?.[key] ?? [];
@@ -117,12 +136,13 @@ export function YardMapPage({ navigate }) {
   }
 
   return <>
-    <YardPageHeader path="/home/patio/mapa" navigate={navigate} title="Mapa operacional" description="Vistas de bloco, seção, scan e microvisão com heatmaps, rotas, reefers, CHEs, allocations, workspaces e simulação antes da movimentação." actions={<button className="secondary" onClick={remote.reload}>Atualizar</button>} />
+    <YardPageHeader path="/home/patio/mapa" navigate={navigate} title="Mapa operacional" description="Vistas de bloco, seção, scan e microvisão com heatmaps, rotas, reefers, CHEs, allocations, workspaces e simulação antes da movimentação." actions={<div className="actions"><button className="secondary" onClick={remote.reload}>Atualizar</button><button onClick={() => setShowStowageWarnings(true)}>Avisos de estivagem ({remote.data?.stowageWarnings?.ativos ?? 0})</button></div>} />
     <Message type={remote.isOffline ? 'warning' : 'success'}>Estado: {remote.connectionStatus} · Última sincronização: {formatSynchronization(remote.lastSynchronization)}{remote.snapshotExpired ? ' · FOTOGRAFIA EXPIRADA' : ''}</Message>
     <Message type="error">{remote.error}</Message>
     {remote.isOffline && remote.hasSnapshot && <Message type="warning">MAPA CONGELADO. Os dados não estão em tempo real e todos os comandos que alteram o estado oficial estão bloqueados.</Message>}
     {remote.reconciliation && <Message type="warning">A reconexão encontrou divergências entre a fotografia local e o estado oficial. A tela foi atualizada com os dados do servidor; revise as posições e ordens antes de operar.</Message>}
     {!canOperate && <Message type="warning">Seu perfil pode consultar todas as vistas, mas não pode confirmar movimentações, replanejar allocations nem editar restrições.</Message>}
+    {(remote.data?.stowageWarnings?.criticos ?? 0) > 0 && <Message type="error">Existem {remote.data.stowageWarnings.criticos} aviso(s) crítico(s) de estivagem. Planejamentos e dispatches incompatíveis estão bloqueados.</Message>}
     <Section title="Filtros do mapa" description="Os valores são fornecidos pelo backend do Yard."><div className="filter-grid">
       <FilterField label="Status do contêiner"><select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}><option value="">Todos</option>{optionList('statusDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
       <FilterField label="Tipo de carga"><select value={filters.tipoCarga} onChange={(event) => setFilters((current) => ({ ...current, tipoCarga: event.target.value }))}><option value="">Todos</option>{optionList('tiposCargaDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
@@ -131,7 +151,7 @@ export function YardMapPage({ navigate }) {
       <FilterField label="Equipamento"><select value={filters.tipoEquipamento} onChange={(event) => setFilters((current) => ({ ...current, tipoEquipamento: event.target.value }))}><option value="">Todos</option>{optionList('tiposEquipamentoDisponiveis').map((value) => <option key={value}>{value}</option>)}</select></FilterField>
     </div></Section>
     {remote.loading && !remote.hasSnapshot ? <Loading label="Carregando mapa, rotas e telemetria..." /> : <>
-      <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Geometrias" value={remote.data?.geometries?.length ?? 0} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label={remote.isOffline ? 'CHEs na fotografia' : 'CHEs em tempo real'} value={equipment.length} detail={`${routes.length} rota(s) ativa(s)`} /><MetricCard label="Pilhas bloqueadas" value={restrictions.blocked} detail={`${restrictions.interdicted} interditada(s)`} /></div>
+      <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Geometrias" value={remote.data?.geometries?.length ?? 0} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label={remote.isOffline ? 'CHEs na fotografia' : 'CHEs em tempo real'} value={equipment.length} detail={`${routes.length} rota(s) ativa(s)`} /><MetricCard label="Pilhas bloqueadas" value={restrictions.blocked} detail={`${restrictions.interdicted} interditada(s)`} /><MetricCard label="Avisos de estivagem" value={remote.data?.stowageWarnings?.ativos ?? 0} detail={`${remote.data?.stowageWarnings?.criticos ?? 0} crítico(s)`} /></div>
       <Section title="Pátio georreferenciado" description="Polígonos GeoJSON persistidos aparecem sobre o OpenStreetMap gratuito. Root, planejadores e administradores podem criar e ajustar o desenho clicando diretamente no mapa.">
         <OpenStreetMapYardMap blocks={stacks} selectedStack={selectedStack} onSelectStack={setSelectedStack} routes={routes} equipment={equipment} geometries={remote.data?.geometries} canEditGeometry={geometryCommandsEnabled} onSaveGeometry={saveGeometry} onDeleteGeometry={deleteGeometry} />
         {!!routes.length && <div className="yard-route-summary">{routes.slice(0, 20).map((route) => <span key={route.id}>WI #{route.id} · {sanitizeText(route.codigoConteiner)} · L{route.origem.linha}/C{route.origem.coluna} → L{route.destino.linha}/C{route.destino.coluna}</span>)}</div>}

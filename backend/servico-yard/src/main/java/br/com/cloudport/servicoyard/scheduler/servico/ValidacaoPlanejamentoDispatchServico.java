@@ -4,7 +4,7 @@ import br.com.cloudport.servicoyard.patio.listatrabalho.dto.DispatchWorkQueueDto
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.StatusOrdemTrabalhoPatio;
 import br.com.cloudport.servicoyard.patio.listatrabalho.repositorio.OrdemTrabalhoPatioRepositorio;
-import br.com.cloudport.servicoyard.patio.servico.AvisoEstivagemPatioServico;
+import br.com.cloudport.servicoyard.patio.servico.ValidadorBloqueioAvisoEstivagemPatioServico;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -22,15 +22,15 @@ public class ValidacaoPlanejamentoDispatchServico {
 
     private final OrdemTrabalhoPatioRepositorio ordemRepositorio;
     private final PlanoPosicaoOperacionalServico planoServico;
-    private final AvisoEstivagemPatioServico avisoEstivagemServico;
+    private final ValidadorBloqueioAvisoEstivagemPatioServico validadorAvisoEstivagem;
 
     public ValidacaoPlanejamentoDispatchServico(
             OrdemTrabalhoPatioRepositorio ordemRepositorio,
             PlanoPosicaoOperacionalServico planoServico,
-            AvisoEstivagemPatioServico avisoEstivagemServico) {
+            ValidadorBloqueioAvisoEstivagemPatioServico validadorAvisoEstivagem) {
         this.ordemRepositorio = ordemRepositorio;
         this.planoServico = planoServico;
-        this.avisoEstivagemServico = avisoEstivagemServico;
+        this.validadorAvisoEstivagem = validadorAvisoEstivagem;
     }
 
     @Transactional
@@ -59,8 +59,7 @@ public class ValidacaoPlanejamentoDispatchServico {
             if (!ESTADOS_DISPATCHAVEIS.contains(ordem.getStatusOrdem())) {
                 continue;
             }
-            avisoEstivagemServico.validarOperacaoSemAvisoCritico(
-                    ordem.getCodigoConteiner(), ordem.getDestino());
+            validadorAvisoEstivagem.validar(ordem.getCodigoConteiner(), ordem.getDestino());
             planoServico.revalidarParaDispatch(ordem, comando.usuarioEfetivo());
             validadas++;
         }

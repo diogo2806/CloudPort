@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import br.com.cloudport.servicoyard.patio.avisoestivagem.servico.AvisoEstivagemPatioServico;
 import br.com.cloudport.servicoyard.patio.dto.ConteinerPatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.EventoVmtWorkInstructionRequest;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
@@ -51,6 +52,8 @@ class ConfirmacaoTransferenciaFisicaServicoTest {
     private PosicaoPatioRepositorio posicaoRepositorio;
     @Mock
     private MapaPatioServico mapaPatioServico;
+    @Mock
+    private AvisoEstivagemPatioServico avisoEstivagemServico;
 
     private ConfirmacaoTransferenciaFisicaServico servico;
 
@@ -62,7 +65,8 @@ class ConfirmacaoTransferenciaFisicaServicoTest {
                 equipamentoRepositorio,
                 conteinerRepositorio,
                 posicaoRepositorio,
-                mapaPatioServico);
+                mapaPatioServico,
+                avisoEstivagemServico);
     }
 
     @Test
@@ -85,6 +89,7 @@ class ConfirmacaoTransferenciaFisicaServicoTest {
         servico.confirmar(ordem, request);
 
         verify(mapaPatioServico).registrarOuAtualizarConteiner(any(ConteinerPatioRequisicaoDto.class));
+        verify(avisoEstivagemServico).revalidarInventario("VMT_ORDEM_10");
         assertEquals(persistido, ordem.getConteiner());
     }
 
@@ -100,6 +105,7 @@ class ConfirmacaoTransferenciaFisicaServicoTest {
         assertEquals(HttpStatus.CONFLICT, excecao.getStatus());
         verify(mapaPatioServico, never()).registrarOuAtualizarConteiner(any());
         verify(conteinerRepositorio, never()).save(any());
+        verify(avisoEstivagemServico, never()).revalidarInventario(any());
     }
 
     @Test
@@ -121,6 +127,7 @@ class ConfirmacaoTransferenciaFisicaServicoTest {
 
         assertEquals(HttpStatus.CONFLICT, excecao.getStatus());
         verify(mapaPatioServico, never()).registrarOuAtualizarConteiner(any());
+        verify(avisoEstivagemServico, never()).revalidarInventario(any());
     }
 
     private OrdemTrabalhoPatio ordemGrounding() {

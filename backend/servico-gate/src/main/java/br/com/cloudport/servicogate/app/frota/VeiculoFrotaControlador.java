@@ -2,6 +2,7 @@ package br.com.cloudport.servicogate.app.frota;
 
 import br.com.cloudport.servicogate.app.frota.VeiculoFrotaDtos.Resposta;
 import br.com.cloudport.servicogate.app.frota.VeiculoFrotaDtos.Salvar;
+import br.com.cloudport.servicogate.app.frota.VeiculoFrotaDtos.TransportadoraVinculada;
 import java.util.List;
 import javax.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,6 +35,12 @@ public class VeiculoFrotaControlador {
             @RequestParam(required = false) Boolean ativo,
             Authentication authentication) {
         return servico.listar(busca, transportadoraId, ativo, authentication);
+    }
+
+    @GetMapping("/minha-transportadora")
+    @PreAuthorize("hasRole('TRANSPORTADORA')")
+    public TransportadoraVinculada obterMinhaTransportadora(Authentication authentication) {
+        return servico.obterMinhaTransportadora(authentication);
     }
 
     @GetMapping("/elegiveis")

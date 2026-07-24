@@ -4,8 +4,8 @@ import br.com.cloudport.servicoyard.patio.seguranca.ZonaSegurancaPatioDtos.Criar
 import br.com.cloudport.servicoyard.patio.seguranca.ZonaSegurancaPatioDtos.Liberar;
 import br.com.cloudport.servicoyard.patio.seguranca.ZonaSegurancaPatioDtos.Prorrogar;
 import br.com.cloudport.servicoyard.patio.seguranca.ZonaSegurancaPatioDtos.Resposta;
-import jakarta.validation.Valid;
 import java.util.List;
+import javax.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

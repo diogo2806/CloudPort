@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/yard/stowage-warnings")
 @Tag(name = "Avisos de estivagem do pátio",
         description = "Detecção, atribuição, correção, revalidação, resolução e reabertura de violações físicas")
-@PreAuthorize("hasAnyRole('ADMIN_PORTO','OPERADOR_PATIO','PLANEJADOR')")
+@PreAuthorize("hasAnyRole('ROOT','ADMIN_PORTO','OPERADOR_PATIO','PLANEJADOR')")
 public class AvisoEstivagemPatioController {
 
     private final AvisoEstivagemPatioServico servico;

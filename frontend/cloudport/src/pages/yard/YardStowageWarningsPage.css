@@ -31,6 +31,30 @@
   color: var(--danger-strong, #991b1b);
 }
 
+.yard-google-stack-label .yard-google-stowage-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #b91c1c;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, .35);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.yard-google-map-legend i.stowage-warning {
+  border-radius: 50%;
+  background: #b91c1c;
+  box-shadow: 0 0 0 2px rgba(185, 28, 28, .18);
+}
+
 .stowage-warning-split {
   align-items: start;
 }

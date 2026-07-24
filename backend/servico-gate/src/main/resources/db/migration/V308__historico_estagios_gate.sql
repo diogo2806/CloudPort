@@ -1,4 +1,4 @@
-CREATE TABLE gate_stage_event (
+CREATE TABLE IF NOT EXISTS gate_stage_event (
     id BIGSERIAL PRIMARY KEY,
     truck_visit_id BIGINT NOT NULL REFERENCES truck_visit (id) ON DELETE CASCADE,
     transaction_id BIGINT REFERENCES gate_transaction (id) ON DELETE CASCADE,
@@ -11,8 +11,8 @@ CREATE TABLE gate_stage_event (
     ocorrido_em TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_gate_stage_event_visit
+CREATE INDEX IF NOT EXISTS idx_gate_stage_event_visit
     ON gate_stage_event (truck_visit_id, ocorrido_em DESC);
 
-CREATE INDEX idx_gate_stage_event_transaction
+CREATE INDEX IF NOT EXISTS idx_gate_stage_event_transaction
     ON gate_stage_event (transaction_id, ocorrido_em DESC);

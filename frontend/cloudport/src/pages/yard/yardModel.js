@@ -14,6 +14,11 @@ function compareCoordinate(left, right) {
   return String(left).localeCompare(String(right), 'pt-BR', { numeric: true });
 }
 
+function warningCount(value) {
+  const count = Number(value);
+  return Number.isFinite(count) && count > 0 ? count : 0;
+}
+
 export function positionKey(position) {
   const line = coordinateValue(position?.linha);
   const column = coordinateValue(position?.coluna);
@@ -47,23 +52,31 @@ export function buildStacks(positions, orders) {
         bloco: blockName,
         linha: position.linha,
         coluna: position.coluna,
+        avisosEstivagem: 0,
         layers: []
       });
     }
+    const stack = blocks.get(blockName).get(stackKey);
     const key = positionKey(position);
-    blocks.get(blockName).get(stackKey).layers.push({
+    stack.avisosEstivagem += warningCount(position.avisosEstivagem);
+    stack.layers.push({
       ...position,
+      avisosEstivagem: warningCount(position.avisosEstivagem),
       plannedOrder: key ? planned.get(key) ?? null : null
     });
   });
 
-  return Array.from(blocks, ([bloco, stacks]) => ({
-    bloco,
-    stacks: Array.from(stacks.values()).map((stack) => ({
+  return Array.from(blocks, ([bloco, stacks]) => {
+    const orderedStacks = Array.from(stacks.values()).map((stack) => ({
       ...stack,
       layers: stack.layers.sort((left, right) => compareCoordinate(left.camadaOperacional, right.camadaOperacional))
-    })).sort((left, right) => compareCoordinate(left.linha, right.linha) || compareCoordinate(left.coluna, right.coluna))
-  })).sort((left, right) => left.bloco.localeCompare(right.bloco, 'pt-BR', { numeric: true }));
+    })).sort((left, right) => compareCoordinate(left.linha, right.linha) || compareCoordinate(left.coluna, right.coluna));
+    return {
+      bloco,
+      avisosEstivagem: orderedStacks.reduce((total, stack) => total + stack.avisosEstivagem, 0),
+      stacks: orderedStacks
+    };
+  }).sort((left, right) => left.bloco.localeCompare(right.bloco, 'pt-BR', { numeric: true }));
 }
 
 export function stackClass(stack) {

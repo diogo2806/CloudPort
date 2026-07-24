@@ -37,4 +37,9 @@ public interface AvisoEstivagemPatioRepositorio extends JpaRepository<AvisoEstiv
             Collection<String> codigosPosicao,
             SeveridadeAvisoEstivagemPatio severidade,
             Collection<EstadoAvisoEstivagemPatio> estados);
+
+    boolean existsByCodigoPosicaoInAndSeveridadeAndBloqueiaOperacaoTrueAndEstadoIn(
+            Collection<String> codigosPosicao,
+            SeveridadeAvisoEstivagemPatio severidade,
+            Collection<EstadoAvisoEstivagemPatio> estados);
 }

@@ -100,6 +100,11 @@ class TransloadServicoTest {
         OperacaoTransload operacao = operacaoEmExecucao(request);
         when(transacaoServico.iniciar(request)).thenReturn(operacao);
         when(inventarioConteinerCliente.reservar(
+                operacao.getUnidadeOrigem(),
+                operacao.getReservaOrigemId(),
+                operacao.getUsuario()))
+                .thenReturn(null);
+        when(inventarioConteinerCliente.reservar(
                 operacao.getUnidadeDestino(),
                 operacao.getReservaDestinoId(),
                 operacao.getUsuario()))

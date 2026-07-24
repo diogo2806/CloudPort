@@ -12,7 +12,7 @@ INSERT INTO configuracoes_navegacao (
     (
         'cadastro-frota-transportadoras',
         'Veículos e carretas de transportadoras',
-        'cadastros,frota',
+        'cadastros/frota',
         'CADASTROS',
         'ROLE_ADMIN_PORTO,ROLE_PLANEJADOR,ROLE_OPERADOR_GATE',
         FALSE,
@@ -23,7 +23,7 @@ INSERT INTO configuracoes_navegacao (
     (
         'minha-frota-transportadora',
         'Minha frota',
-        'cap,frota',
+        'cap/frota',
         'PORTAL DO CLIENTE',
         'ROLE_TRANSPORTADORA',
         FALSE,

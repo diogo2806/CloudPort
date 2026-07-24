@@ -43,6 +43,7 @@ public class DetectorAvisoEstivagemPatioServico {
         List<ConteinerPatio> fotografia = inventario == null ? List.of() : inventario;
         List<ConteinerPatio> pilha = fotografia.stream()
                 .filter(item -> item.getPosicao() != null)
+                .filter(item -> mesmoBloco(posicao, item.getPosicao()))
                 .filter(item -> posicao.getLinha().equals(item.getPosicao().getLinha()))
                 .filter(item -> posicao.getColuna().equals(item.getPosicao().getColuna()))
                 .collect(Collectors.toList());
@@ -131,6 +132,7 @@ public class DetectorAvisoEstivagemPatioServico {
                 .filter(item -> !mesmaUnidade(item, unidade))
                 .filter(item -> item.getTipoCarga() == TipoCargaConteiner.PERIGOSO)
                 .filter(item -> item.getPosicao() != null)
+                .filter(item -> mesmoBloco(posicao, item.getPosicao()))
                 .anyMatch(item -> Math.abs(item.getPosicao().getLinha() - posicao.getLinha()) <= 1
                         && Math.abs(item.getPosicao().getColuna() - posicao.getColuna()) <= 1);
         if (perigosoProximo) {
@@ -248,6 +250,18 @@ public class DetectorAvisoEstivagemPatioServico {
         return StringUtils.hasText(esquerda.getCodigo())
                 && StringUtils.hasText(direita.getCodigo())
                 && esquerda.getCodigo().equalsIgnoreCase(direita.getCodigo());
+    }
+
+    private boolean mesmoBloco(PosicaoPatio esquerda, PosicaoPatio direita) {
+        if (esquerda == null || direita == null) {
+            return false;
+        }
+        boolean esquerdaInformada = StringUtils.hasText(esquerda.getBloco());
+        boolean direitaInformada = StringUtils.hasText(direita.getBloco());
+        if (!esquerdaInformada || !direitaInformada) {
+            return esquerdaInformada == direitaInformada;
+        }
+        return esquerda.getBloco().trim().equalsIgnoreCase(direita.getBloco().trim());
     }
 
     private ViolacaoEstivagemPatioDto violacao(TipoRegraEstivagemPatio regra,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatError, readSession } from '../api.js';
+import { companiesApi } from '../companiesApi.js';
 import {
   DataTable,
   EmptyState,
@@ -11,6 +12,18 @@ import {
   StatusBadge
 } from '../components.jsx';
 import { generalCargoApi } from '../generalCargoApi.js';
+import { generalCargoCompanyLinksApi } from '../generalCargoCompanyLinksApi.js';
+import {
+  BILL_COMPANY_ROLES,
+  COMPANY_ROLE_LABELS,
+  LOT_COMPANY_ROLES,
+  buildLinksPayload,
+  companiesForRole,
+  companyName,
+  companyOptionLabel,
+  selectedCompany
+} from '../generalCargoCompanyLinksModel.js';
+import { GeneralCargoCompanyLinks } from './GeneralCargoCompanyLinks.jsx';
 import { GeneralCargoDamageInspector } from './GeneralCargoDamageInspector.jsx';
 
 const EMPTY_DASHBOARD = {
@@ -24,7 +37,7 @@ const EMPTY_DASHBOARD = {
   ultimasMovimentacoes: []
 };
 
-const DAMAGE_MANUAL_URL = 'https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/carga-geral-avarias.md';
+const GENERAL_CARGO_MANUAL_URL = 'https://github.com/diogo2806/CloudPort/blob/main/docs/manuais/carga-geral-empresas-operacionais.md';
 
 function number(value, digits = 3) {
   return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: digits }).format(Number(value ?? 0));
@@ -38,9 +51,10 @@ function dateTime(value) {
 
 function blankKnowledge() {
   return {
-    numero: '', tipoOperacao: 'IMPORTACAO', embarcador: '', consignatario: '', clienteId: '',
-    operadorId: '', visitaNavioId: '', visitaVeiculoId: '', armazemId: '', portoOrigem: '',
-    portoDestino: '', observacoes: ''
+    numero: '', tipoOperacao: 'IMPORTACAO', embarcadorEmpresaId: '', consignatarioEmpresaId: '',
+    clienteEmpresaId: '', operadorEmpresaId: '', importadorEmpresaId: '', exportadorEmpresaId: '',
+    donoCargaEmpresaId: '', agenteEmpresaId: '', transportadoraEmpresaId: '', visitaNavioId: '',
+    visitaVeiculoId: '', armazemId: '', portoOrigem: '', portoDestino: '', observacoes: ''
   };
 }
 
@@ -56,7 +70,8 @@ function blankLot() {
   return {
     codigo: '', natureza: 'CARGA_SOLTA', quantidadePrevista: '', volumePrevistoM3: '', pesoPrevistoKg: '',
     unidadeMedida: 'UN', marcasEmbalagem: '', armazemId: '', posicaoArmazenagem: '', veiculoId: '',
-    visitaNavioId: '', clienteId: '', lotePaiId: ''
+    visitaNavioId: '', lotePaiId: '', clienteEmpresaId: '', donoCargaEmpresaId: '', operadorEmpresaId: '',
+    transportadoraEmpresaId: ''
   };
 }
 
@@ -72,8 +87,78 @@ function blankReference() {
   return { categoria: 'COMMODITY', codigo: '', descricao: '', atributosJson: '', ativo: true };
 }
 
+function knowledgeSelection(value) {
+  return {
+    CLIENTE: value.clienteEmpresaId,
+    EMBARCADOR: value.embarcadorEmpresaId,
+    CONSIGNATARIO: value.consignatarioEmpresaId,
+    IMPORTADOR: value.importadorEmpresaId,
+    EXPORTADOR: value.exportadorEmpresaId,
+    DONO_CARGA: value.donoCargaEmpresaId,
+    OPERADOR: value.operadorEmpresaId,
+    AGENTE: value.agenteEmpresaId,
+    TRANSPORTADORA: value.transportadoraEmpresaId
+  };
+}
+
+function lotSelection(value) {
+  return {
+    CLIENTE: value.clienteEmpresaId,
+    DONO_CARGA: value.donoCargaEmpresaId,
+    OPERADOR: value.operadorEmpresaId,
+    TRANSPORTADORA: value.transportadoraEmpresaId
+  };
+}
+
+function knowledgePayload(value, companies) {
+  return {
+    numero: value.numero,
+    tipoOperacao: value.tipoOperacao,
+    embarcador: companyName(selectedCompany(companies, value.embarcadorEmpresaId)),
+    consignatario: companyName(selectedCompany(companies, value.consignatarioEmpresaId)),
+    clienteId: value.clienteEmpresaId || '',
+    operadorId: value.operadorEmpresaId || '',
+    visitaNavioId: value.visitaNavioId,
+    visitaVeiculoId: value.visitaVeiculoId,
+    armazemId: value.armazemId,
+    portoOrigem: value.portoOrigem,
+    portoDestino: value.portoDestino,
+    observacoes: value.observacoes
+  };
+}
+
+function lotPayload(value) {
+  return {
+    codigo: value.codigo,
+    natureza: value.natureza,
+    quantidadePrevista: value.quantidadePrevista,
+    volumePrevistoM3: value.volumePrevistoM3,
+    pesoPrevistoKg: value.pesoPrevistoKg,
+    unidadeMedida: value.unidadeMedida,
+    marcasEmbalagem: value.marcasEmbalagem,
+    armazemId: value.armazemId,
+    posicaoArmazenagem: value.posicaoArmazenagem,
+    veiculoId: value.veiculoId,
+    visitaNavioId: value.visitaNavioId,
+    clienteId: value.clienteEmpresaId || '',
+    lotePaiId: value.lotePaiId || null
+  };
+}
+
+function CompanySelectField({ role, value, companies, required = false, onChange }) {
+  const options = companiesForRole(companies, role, value);
+  return <label className="field">
+    <span>{COMPANY_ROLE_LABELS[role] || role}</span>
+    <select required={required} value={value} onChange={(event) => onChange(event.target.value)}>
+      <option value="">{required ? 'Selecione' : 'Não informado'}</option>
+      {options.map((company) => <option key={company.id} value={company.id}>{companyOptionLabel(company)}</option>)}
+    </select>
+    {!options.length && <small>Nenhuma empresa ativa com este papel.</small>}
+  </label>;
+}
+
 export function GeneralCargoPage() {
-  const [remote, setRemote] = useState({ dashboard: EMPTY_DASHBOARD, conhecimentos: [], lotes: [], referencias: [] });
+  const [remote, setRemote] = useState({ dashboard: EMPTY_DASHBOARD, conhecimentos: [], lotes: [], referencias: [], empresas: [] });
   const [selectedKnowledgeId, setSelectedKnowledgeId] = useState('');
   const [knowledgeDetail, setKnowledgeDetail] = useState(null);
   const [selectedItemId, setSelectedItemId] = useState('');
@@ -81,6 +166,7 @@ export function GeneralCargoPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [companyError, setCompanyError] = useState('');
   const [success, setSuccess] = useState('');
   const [knowledge, setKnowledge] = useState(blankKnowledge);
   const [item, setItem] = useState(blankItem);
@@ -91,6 +177,7 @@ export function GeneralCargoPage() {
   const reload = useCallback(async () => {
     setLoading(true);
     setError('');
+    setCompanyError('');
     try {
       const [dashboard, conhecimentos, lotes, referencias] = await Promise.all([
         generalCargoApi.dashboard(),
@@ -98,11 +185,19 @@ export function GeneralCargoPage() {
         generalCargoApi.listarLotes(),
         generalCargoApi.listarReferencias()
       ]);
+      let empresas = [];
+      try {
+        const response = await companiesApi.listar({});
+        empresas = Array.isArray(response) ? response : [];
+      } catch (reason) {
+        setCompanyError(formatError(reason));
+      }
       setRemote({
         dashboard: dashboard ?? EMPTY_DASHBOARD,
         conhecimentos: Array.isArray(conhecimentos) ? conhecimentos : [],
         lotes: Array.isArray(lotes) ? lotes : [],
-        referencias: Array.isArray(referencias) ? referencias : []
+        referencias: Array.isArray(referencias) ? referencias : [],
+        empresas
       });
     } catch (reason) {
       setError(formatError(reason));
@@ -155,10 +250,25 @@ export function GeneralCargoPage() {
 
   async function createKnowledge(event) {
     event.preventDefault();
-    const created = await execute('knowledge', () => generalCargoApi.criarConhecimento(knowledge), 'Bill of Lading criado.');
+    let createdId = '';
+    const created = await execute('knowledge', async () => {
+      const result = await generalCargoApi.criarConhecimento(knowledgePayload(knowledge, remote.empresas));
+      createdId = result?.id || '';
+      if (createdId) {
+        setSelectedKnowledgeId(createdId);
+        await generalCargoCompanyLinksApi.salvar(
+          'CONHECIMENTO',
+          createdId,
+          buildLinksPayload(knowledgeSelection(knowledge), BILL_COMPANY_ROLES)
+        );
+      }
+      return result;
+    }, 'Bill of Lading criado com empresas vinculadas.');
     if (created?.id) {
       setSelectedKnowledgeId(created.id);
       setKnowledge(blankKnowledge());
+    } else if (createdId) {
+      setSelectedKnowledgeId(createdId);
     }
   }
 
@@ -175,13 +285,25 @@ export function GeneralCargoPage() {
   async function createLot(event) {
     event.preventDefault();
     if (!selectedItemId) return;
-    const created = await execute('lot', () => generalCargoApi.adicionarLote(selectedItemId, {
-      ...lot,
-      lotePaiId: lot.lotePaiId || null
-    }), 'Cargo lot criado.');
+    let createdId = '';
+    const created = await execute('lot', async () => {
+      const result = await generalCargoApi.adicionarLote(selectedItemId, lotPayload(lot));
+      createdId = result?.id || '';
+      if (createdId) {
+        setSelectedLotId(createdId);
+        await generalCargoCompanyLinksApi.salvar(
+          'LOTE',
+          createdId,
+          buildLinksPayload(lotSelection(lot), LOT_COMPANY_ROLES)
+        );
+      }
+      return result;
+    }, 'Cargo lot criado com empresas vinculadas.');
     if (created?.id) {
       setSelectedLotId(created.id);
       setLot(blankLot());
+    } else if (createdId) {
+      setSelectedLotId(createdId);
     }
   }
 
@@ -209,11 +331,12 @@ export function GeneralCargoPage() {
       title="Carga geral e break-bulk"
       description="Controle canônico de Bill of Lading, itens, cargo lots, estoque físico, carga parcial, descarga, consolidação, avarias e referências operacionais."
       actions={<>
-        <a className="secondary" href={DAMAGE_MANUAL_URL} target="_blank" rel="noreferrer" title="Abrir manual da tela" aria-label="Abrir manual da tela">Manual</a>
+        <a className="secondary" href={GENERAL_CARGO_MANUAL_URL} target="_blank" rel="noreferrer" title="Abrir manual da tela" aria-label="Abrir manual da tela"><span aria-hidden="true">?</span> Manual</a>
         <button type="button" className="secondary" onClick={reload}>Atualizar</button>
       </>}
     />
     <Message type="error">{error}</Message>
+    <Message type="error">{companyError && `Cadastro de empresas indisponível: ${companyError}`}</Message>
     <Message type="success" onClose={() => setSuccess('')}>{success}</Message>
 
     <div className="metrics-grid">
@@ -226,24 +349,30 @@ export function GeneralCargoPage() {
       <MetricCard label="Peso em estoque" value={`${number(remote.dashboard.pesoEmEstoqueKg)} kg`} />
     </div>
 
-    <Section title="Novo Bill of Lading" description="Vincule o conhecimento ao cliente, operador, veículo, navio e armazém quando disponíveis.">
+    <Section title="Novo Bill of Lading" description="Selecione empresas ativas por papel. Embarcador e consignatário são obrigatórios e os nomes ficam registrados como fotografia operacional.">
       <form className="planner-selection-grid" onSubmit={createKnowledge}>
         <label className="field"><span>Número</span><input required maxLength="80" value={knowledge.numero} onChange={(event) => setKnowledge((current) => ({ ...current, numero: event.target.value }))} /></label>
         <label className="field"><span>Operação</span><select value={knowledge.tipoOperacao} onChange={(event) => setKnowledge((current) => ({ ...current, tipoOperacao: event.target.value }))}><option>IMPORTACAO</option><option>EXPORTACAO</option><option>CABOTAGEM</option><option>TRANSBORDO</option></select></label>
-        <label className="field"><span>Embarcador</span><input required maxLength="180" value={knowledge.embarcador} onChange={(event) => setKnowledge((current) => ({ ...current, embarcador: event.target.value }))} /></label>
-        <label className="field"><span>Consignatário</span><input required maxLength="180" value={knowledge.consignatario} onChange={(event) => setKnowledge((current) => ({ ...current, consignatario: event.target.value }))} /></label>
-        <label className="field"><span>Cliente</span><input maxLength="80" value={knowledge.clienteId} onChange={(event) => setKnowledge((current) => ({ ...current, clienteId: event.target.value }))} /></label>
+        <CompanySelectField role="EMBARCADOR" required value={knowledge.embarcadorEmpresaId} companies={remote.empresas} onChange={(value) => setKnowledge((current) => ({ ...current, embarcadorEmpresaId: value }))} />
+        <CompanySelectField role="CONSIGNATARIO" required value={knowledge.consignatarioEmpresaId} companies={remote.empresas} onChange={(value) => setKnowledge((current) => ({ ...current, consignatarioEmpresaId: value }))} />
+        <CompanySelectField role="CLIENTE" value={knowledge.clienteEmpresaId} companies={remote.empresas} onChange={(value) => setKnowledge((current) => ({ ...current, clienteEmpresaId: value }))} />
+        <CompanySelectField role="IMPORTADOR" value={knowledge.importadorEmpresaId} companies={remote.empresas} onChange={(value) => setKnowledge((current) => ({ ...current, importadorEmpresaId: value }))} />
+        <CompanySelectField role="EXPORTADOR" value={knowledge.exportadorEmpresaId} companies={remote.empresas} onChange={(value) => setKnowledge((current) => ({ ...current, exportadorEmpresaId: value }))} />
+        <CompanySelectField role="DONO_CARGA" value={knowledge.donoCargaEmpresaId} companies={remote.empresas} onChange={(value) => setKnowledge((current) => ({ ...current, donoCargaEmpresaId: value }))} />
+        <CompanySelectField role="OPERADOR" value={knowledge.operadorEmpresaId} companies={remote.empresas} onChange={(value) => setKnowledge((current) => ({ ...current, operadorEmpresaId: value }))} />
+        <CompanySelectField role="AGENTE" value={knowledge.agenteEmpresaId} companies={remote.empresas} onChange={(value) => setKnowledge((current) => ({ ...current, agenteEmpresaId: value }))} />
+        <CompanySelectField role="TRANSPORTADORA" value={knowledge.transportadoraEmpresaId} companies={remote.empresas} onChange={(value) => setKnowledge((current) => ({ ...current, transportadoraEmpresaId: value }))} />
         <label className="field"><span>Visita do navio</span><input maxLength="80" value={knowledge.visitaNavioId} onChange={(event) => setKnowledge((current) => ({ ...current, visitaNavioId: event.target.value }))} /></label>
         <label className="field"><span>Visita do veículo</span><input maxLength="80" value={knowledge.visitaVeiculoId} onChange={(event) => setKnowledge((current) => ({ ...current, visitaVeiculoId: event.target.value }))} /></label>
         <label className="field"><span>Armazém</span><input maxLength="80" value={knowledge.armazemId} onChange={(event) => setKnowledge((current) => ({ ...current, armazemId: event.target.value }))} /></label>
         <label className="field"><span>Porto de origem</span><input maxLength="120" value={knowledge.portoOrigem} onChange={(event) => setKnowledge((current) => ({ ...current, portoOrigem: event.target.value }))} /></label>
         <label className="field"><span>Porto de destino</span><input maxLength="120" value={knowledge.portoDestino} onChange={(event) => setKnowledge((current) => ({ ...current, portoDestino: event.target.value }))} /></label>
-        <div className="field"><span>Ação</span><button type="submit" disabled={busy === 'knowledge'}>{busy === 'knowledge' ? 'Salvando...' : 'Criar conhecimento'}</button></div>
+        <div className="field"><span>Ação</span><button type="submit" disabled={busy === 'knowledge' || !!companyError}>{busy === 'knowledge' ? 'Salvando...' : 'Criar conhecimento'}</button></div>
       </form>
     </Section>
 
     {loading ? <Loading label="Carregando carga geral..." /> : <>
-      <Section title="Bills of Lading" description="Selecione um conhecimento para cadastrar itens e cargo lots.">
+      <Section title="Bills of Lading" description="Selecione um conhecimento para cadastrar itens, cargo lots e manter suas empresas.">
         <DataTable
           gridId="general-cargo-bills"
           exportFileName="bills-of-lading"
@@ -264,6 +393,14 @@ export function GeneralCargoPage() {
           ]}
         />
       </Section>
+
+      <GeneralCargoCompanyLinks
+        resourceType="CONHECIMENTO"
+        resourceId={selectedKnowledgeId}
+        resourceLabel={knowledgeDetail?.numero}
+        companies={remote.empresas}
+        roles={BILL_COMPANY_ROLES}
+      />
 
       <Section title="Item do conhecimento" description={selectedKnowledgeId ? `Conhecimento selecionado: ${knowledgeDetail?.numero ?? selectedKnowledgeId}` : 'Selecione um Bill of Lading.'}>
         <form className="planner-selection-grid" onSubmit={createItem}>
@@ -300,12 +437,16 @@ export function GeneralCargoPage() {
           <label className="field"><span>Volume previsto m³</span><input required type="number" min="0" step="0.001" value={lot.volumePrevistoM3} onChange={(event) => setLot((current) => ({ ...current, volumePrevistoM3: event.target.value }))} /></label>
           <label className="field"><span>Peso previsto kg</span><input required type="number" min="0" step="0.001" value={lot.pesoPrevistoKg} onChange={(event) => setLot((current) => ({ ...current, pesoPrevistoKg: event.target.value }))} /></label>
           <label className="field"><span>Unidade</span><input required maxLength="20" value={lot.unidadeMedida} onChange={(event) => setLot((current) => ({ ...current, unidadeMedida: event.target.value }))} /></label>
+          <CompanySelectField role="CLIENTE" value={lot.clienteEmpresaId} companies={remote.empresas} onChange={(value) => setLot((current) => ({ ...current, clienteEmpresaId: value }))} />
+          <CompanySelectField role="DONO_CARGA" value={lot.donoCargaEmpresaId} companies={remote.empresas} onChange={(value) => setLot((current) => ({ ...current, donoCargaEmpresaId: value }))} />
+          <CompanySelectField role="OPERADOR" value={lot.operadorEmpresaId} companies={remote.empresas} onChange={(value) => setLot((current) => ({ ...current, operadorEmpresaId: value }))} />
+          <CompanySelectField role="TRANSPORTADORA" value={lot.transportadoraEmpresaId} companies={remote.empresas} onChange={(value) => setLot((current) => ({ ...current, transportadoraEmpresaId: value }))} />
           <label className="field"><span>Armazém</span><input maxLength="80" value={lot.armazemId} onChange={(event) => setLot((current) => ({ ...current, armazemId: event.target.value }))} /></label>
           <label className="field"><span>Posição</span><input maxLength="120" value={lot.posicaoArmazenagem} onChange={(event) => setLot((current) => ({ ...current, posicaoArmazenagem: event.target.value }))} /></label>
           <label className="field"><span>Veículo</span><input maxLength="80" value={lot.veiculoId} onChange={(event) => setLot((current) => ({ ...current, veiculoId: event.target.value }))} /></label>
           <label className="field"><span>Visita do navio</span><input maxLength="80" value={lot.visitaNavioId} onChange={(event) => setLot((current) => ({ ...current, visitaNavioId: event.target.value }))} /></label>
           <label className="field"><span>Lote pai</span><select value={lot.lotePaiId} onChange={(event) => setLot((current) => ({ ...current, lotePaiId: event.target.value }))}><option value="">Nenhum</option>{remote.lotes.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.codigo}</option>)}</select></label>
-          <div className="field"><span>Ação</span><button type="submit" disabled={!selectedItemId || busy === 'lot'}>{busy === 'lot' ? 'Salvando...' : 'Criar lote'}</button></div>
+          <div className="field"><span>Ação</span><button type="submit" disabled={!selectedItemId || busy === 'lot' || !!companyError}>{busy === 'lot' ? 'Salvando...' : 'Criar lote'}</button></div>
         </form>
       </Section>
 
@@ -328,6 +469,14 @@ export function GeneralCargoPage() {
           ]}
         />
       </Section>
+
+      <GeneralCargoCompanyLinks
+        resourceType="LOTE"
+        resourceId={selectedLotId}
+        resourceLabel={selectedLot?.codigo}
+        companies={remote.empresas}
+        roles={LOT_COMPANY_ROLES}
+      />
 
       <Section title="Movimentação parcial" description={selectedLot ? `Lote selecionado: ${selectedLot.codigo} | saldo ${number(selectedLot.quantidadeSaldo)} ${selectedLot.unidadeMedida}` : 'Selecione um cargo lot.'}>
         <form className="planner-selection-grid" onSubmit={registerMovement}>

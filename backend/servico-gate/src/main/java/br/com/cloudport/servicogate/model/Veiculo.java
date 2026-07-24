@@ -24,11 +24,17 @@ public class Veiculo extends AbstractAuditableEntity {
     @Column(name = "placa", nullable = false, unique = true, length = 10)
     private String placa;
 
+    @Column(name = "placa_carreta", unique = true, length = 10)
+    private String placaCarreta;
+
     @Column(name = "modelo", length = 60)
     private String modelo;
 
     @Column(name = "tipo", length = 40)
     private String tipo;
+
+    @Column(name = "ativo", nullable = false)
+    private boolean ativo = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transportadora_id", nullable = false)
@@ -37,51 +43,20 @@ public class Veiculo extends AbstractAuditableEntity {
     @OneToMany(mappedBy = "veiculo", fetch = FetchType.LAZY)
     private List<Agendamento> agendamentos = new ArrayList<>();
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getPlaca() {
-        return placa;
-    }
-
-    public void setPlaca(String placa) {
-        this.placa = placa;
-    }
-
-    public String getModelo() {
-        return modelo;
-    }
-
-    public void setModelo(String modelo) {
-        this.modelo = modelo;
-    }
-
-    public String getTipo() {
-        return tipo;
-    }
-
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
-    }
-
-    public Transportadora getTransportadora() {
-        return transportadora;
-    }
-
-    public void setTransportadora(Transportadora transportadora) {
-        this.transportadora = transportadora;
-    }
-
-    public List<Agendamento> getAgendamentos() {
-        return agendamentos;
-    }
-
-    public void setAgendamentos(List<Agendamento> agendamentos) {
-        this.agendamentos = agendamentos;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getPlaca() { return placa; }
+    public void setPlaca(String placa) { this.placa = placa; }
+    public String getPlacaCarreta() { return placaCarreta; }
+    public void setPlacaCarreta(String placaCarreta) { this.placaCarreta = placaCarreta; }
+    public String getModelo() { return modelo; }
+    public void setModelo(String modelo) { this.modelo = modelo; }
+    public String getTipo() { return tipo; }
+    public void setTipo(String tipo) { this.tipo = tipo; }
+    public boolean isAtivo() { return ativo; }
+    public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    public Transportadora getTransportadora() { return transportadora; }
+    public void setTransportadora(Transportadora transportadora) { this.transportadora = transportadora; }
+    public List<Agendamento> getAgendamentos() { return agendamentos; }
+    public void setAgendamentos(List<Agendamento> agendamentos) { this.agendamentos = agendamentos; }
 }

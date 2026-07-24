@@ -1,0 +1,3 @@
+ALTER TABLE veiculo ADD COLUMN IF NOT EXISTS placa_carreta VARCHAR(10);
+ALTER TABLE veiculo ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+CREATE UNIQUE INDEX IF NOT EXISTS uk_veiculo_placa_carreta ON veiculo (placa_carreta) WHERE placa_carreta IS NOT NULL;

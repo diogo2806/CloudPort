@@ -98,8 +98,6 @@ class TransloadTransacaoServicoTest {
         configurarIdentidade(loteDestinoDois);
         when(loteOrigem.getCodigo()).thenReturn("LOTE-ORIGEM");
         when(loteOrigem.getQuantidadeDisponivel()).thenReturn(new BigDecimal("10.000"));
-        when(loteOrigem.getVolumeDisponivelM3()).thenReturn(BigDecimal.ZERO);
-        when(loteOrigem.getPesoDisponivelKg()).thenReturn(BigDecimal.ZERO);
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,

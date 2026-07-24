@@ -1,5 +1,11 @@
 import { request, sanitizeText } from './api.js';
 
+const RAIL_ORDER_TRANSITIONS = Object.freeze({
+  PENDENTE: Object.freeze(['EM_EXECUCAO', 'CONCLUIDA']),
+  EM_EXECUCAO: Object.freeze(['CONCLUIDA']),
+  CONCLUIDA: Object.freeze([])
+});
+
 function positiveId(value, field) {
   const id = Number(value);
   if (!Number.isInteger(id) || id <= 0) throw new TypeError(`${field} deve ser um número inteiro positivo.`);
@@ -10,6 +16,19 @@ function requiredText(value, field) {
   const text = sanitizeText(value);
   if (!text) throw new TypeError(`${field} deve ser informado.`);
   return text;
+}
+
+function normalizeRailOrderStatus(value) {
+  const status = sanitizeText(value).toUpperCase();
+  if (!Object.hasOwn(RAIL_ORDER_TRANSITIONS, status)) {
+    throw new TypeError('Status ferroviário inválido.');
+  }
+  return status;
+}
+
+export function railOrderTransitions(status) {
+  const normalizedStatus = normalizeRailOrderStatus(status);
+  return [...RAIL_ORDER_TRANSITIONS[normalizedStatus]];
 }
 
 function normalizeTrain(payload) {
@@ -35,8 +54,8 @@ export const railApi = {
   criarTrem: (payload) => request('/rail/ferrovia/trens', { method: 'POST', body: normalizeTrain(payload) }),
   atualizarTrem: (id, payload) => request(`/rail/ferrovia/trens/${positiveId(id, 'O identificador do trem')}`, { method: 'PUT', body: normalizeTrain(payload) }),
   alterarSituacaoTrem: (id, ativo) => request(`/rail/ferrovia/trens/${positiveId(id, 'O identificador do trem')}/situacao`, { method: 'PATCH', query: { ativo: Boolean(ativo) } }),
-  listarOrdens: (idVisita, status = '') => request(`/rail/ferrovia/lista-trabalho/visitas/${positiveId(idVisita, 'O identificador da visita')}/ordens`, { query: status ? { status } : undefined }),
-  atualizarStatusOrdem: (idVisita, idOrdem, status) => request(`/rail/ferrovia/lista-trabalho/visitas/${positiveId(idVisita, 'O identificador da visita')}/ordens/${positiveId(idOrdem, 'O identificador da ordem')}/status`, { method: 'PATCH', body: { statusMovimentacao: status } }),
+  listarOrdens: (idVisita, status = '') => request(`/rail/ferrovia/lista-trabalho/visitas/${positiveId(idVisita, 'O identificador da visita')}/ordens`, { query: status ? { status: normalizeRailOrderStatus(status) } : undefined }),
+  atualizarStatusOrdem: (idVisita, idOrdem, status) => request(`/rail/ferrovia/lista-trabalho/visitas/${positiveId(idVisita, 'O identificador da visita')}/ordens/${positiveId(idOrdem, 'O identificador da ordem')}/status`, { method: 'PATCH', body: { statusMovimentacao: normalizeRailOrderStatus(status) } }),
   listarManobras: (idVisita) => request(`/rail/ferrovia/lista-trabalho/visitas/${positiveId(idVisita, 'O identificador da visita')}/manobras`),
   criarManobra: (idVisita, payload) => request(`/rail/ferrovia/lista-trabalho/visitas/${positiveId(idVisita, 'O identificador da visita')}/manobras`, { method: 'POST', body: payload }),
   atualizarStatusManobra: (idVisita, idManobra, payload) => request(`/rail/ferrovia/lista-trabalho/visitas/${positiveId(idVisita, 'O identificador da visita')}/manobras/${positiveId(idManobra, 'O identificador da manobra')}/status`, { method: 'PATCH', body: payload }),

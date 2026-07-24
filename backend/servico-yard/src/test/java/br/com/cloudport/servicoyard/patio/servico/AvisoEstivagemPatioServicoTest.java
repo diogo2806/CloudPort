@@ -157,8 +157,20 @@ class AvisoEstivagemPatioServicoTest {
     }
 
     @Test
-    void deveBloquearDispatchOuPlanejamentoComAvisoCriticoAtivo() {
-        when(avisoRepositorio.existsByCodigoPosicaoInAndSeveridadeAndEstadoIn(
+    void devePreservarEstadoAoReatribuirDuranteCorrecao() {
+        AvisoEstivagemPatio existente = aviso(EstadoAvisoEstivagemPatio.EM_CORRECAO, 1);
+        when(avisoRepositorio.findById(55L)).thenReturn(Optional.of(existente));
+
+        AvisoEstivagemPatio atualizado = servico.atribuir(55L, "equipe-noturna", null, "supervisor");
+
+        assertThat(atualizado.getEstado()).isEqualTo(EstadoAvisoEstivagemPatio.EM_CORRECAO);
+        assertThat(atualizado.getResponsavel()).isEqualTo("equipe-noturna");
+        verify(historicoRepositorio).save(any(HistoricoAvisoEstivagemPatio.class));
+    }
+
+    @Test
+    void deveBloquearDispatchOuPlanejamentoComAvisoCriticoNoDestino() {
+        when(avisoRepositorio.existsByCodigoPosicaoInAndSeveridadeAndBloqueiaOperacaoTrueAndEstadoIn(
                 anyCollection(), any(SeveridadeAvisoEstivagemPatio.class), anyCollection()))
                 .thenReturn(true);
 

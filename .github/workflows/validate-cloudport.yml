@@ -232,7 +232,20 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Testar
         working-directory: ${{ matrix.module }}
-        run: npm test
+        shell: bash
+        run: |
+          set +e
+          npm test > /tmp/frontend-testes.log 2>&1
+          status=$?
+          cat /tmp/frontend-testes.log
+          exit $status
+      - name: Publicar diagnóstico do frontend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-${{ strategy.job-index }}-diagnostico
+          path: /tmp/frontend-testes.log
+          if-no-files-found: error
       - name: Compilar
         working-directory: ${{ matrix.module }}
         run: npm run build

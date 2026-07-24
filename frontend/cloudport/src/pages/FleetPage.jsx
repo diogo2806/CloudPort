@@ -18,6 +18,8 @@ export function FleetPage({ session }) {
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [bindingLoading, setBindingLoading] = useState(false);
+  const [boundCarrier, setBoundCarrier] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -25,8 +27,8 @@ export function FleetPage({ session }) {
 
   const transportadoraId = useMemo(() => {
     if (canManageAll) return form.transportadoraId;
-    return session?.transportadoraId ?? '';
-  }, [canManageAll, form.transportadoraId, session]);
+    return boundCarrier?.id ?? '';
+  }, [canManageAll, form.transportadoraId, boundCarrier]);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -42,6 +44,20 @@ export function FleetPage({ session }) {
   }, [search]);
 
   useEffect(() => { reload(); }, [reload]);
+
+  useEffect(() => {
+    if (canManageAll) {
+      setBoundCarrier(null);
+      return;
+    }
+    let active = true;
+    setBindingLoading(true);
+    fleetApi.obterMinhaTransportadora()
+      .then((carrier) => { if (active) setBoundCarrier(carrier); })
+      .catch((reason) => { if (active) setError(formatError(reason, 'Não foi possível identificar a transportadora vinculada.')); })
+      .finally(() => { if (active) setBindingLoading(false); });
+    return () => { active = false; };
+  }, [canManageAll]);
 
   function edit(row) {
     setEditingId(row.id);
@@ -116,9 +132,11 @@ export function FleetPage({ session }) {
         <label className="field"><span>Placa da carreta</span><input maxLength="10" value={form.placaCarreta} onChange={(event) => setForm((current) => ({ ...current, placaCarreta: event.target.value }))} placeholder="DEF4G56" /></label>
         <label className="field"><span>Modelo</span><input maxLength="60" value={form.modelo} onChange={(event) => setForm((current) => ({ ...current, modelo: event.target.value }))} /></label>
         <label className="field"><span>Tipo</span><select value={form.tipo} onChange={(event) => setForm((current) => ({ ...current, tipo: event.target.value }))}><option value="CAMINHAO">Caminhão</option><option value="CARRETA">Carreta</option><option value="CAVALO_MECANICO">Cavalo mecânico</option><option value="VAN">Van</option></select></label>
-        {canManageAll && <label className="field"><span>Transportadora ID</span><input required type="number" min="1" value={form.transportadoraId} onChange={(event) => setForm((current) => ({ ...current, transportadoraId: event.target.value }))} /></label>}
+        {canManageAll
+          ? <label className="field"><span>Transportadora ID</span><input required type="number" min="1" value={form.transportadoraId} onChange={(event) => setForm((current) => ({ ...current, transportadoraId: event.target.value }))} /></label>
+          : <label className="field"><span>Transportadora vinculada</span><input readOnly value={bindingLoading ? 'Carregando vínculo...' : boundCarrier?.nome ?? 'Vínculo indisponível'} /></label>}
         <label className="field"><span>Situação</span><select value={form.ativo ? 'true' : 'false'} onChange={(event) => setForm((current) => ({ ...current, ativo: event.target.value === 'true' }))}><option value="true">Ativo</option><option value="false">Inativo</option></select></label>
-        <div className="field"><span>Ações</span><div className="page-actions"><button type="submit" disabled={busy || !transportadoraId}>{busy ? 'Salvando...' : 'Salvar'}</button>{editingId && <button type="button" className="secondary" onClick={clear}>Cancelar</button>}</div></div>
+        <div className="field"><span>Ações</span><div className="page-actions"><button type="submit" disabled={busy || bindingLoading || !transportadoraId}>{busy ? 'Salvando...' : 'Salvar'}</button>{editingId && <button type="button" className="secondary" onClick={clear}>Cancelar</button>}</div></div>
       </form>
     </Section>
 

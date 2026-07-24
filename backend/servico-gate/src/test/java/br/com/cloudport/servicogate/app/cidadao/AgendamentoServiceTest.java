@@ -101,24 +101,18 @@ class AgendamentoServiceTest {
     }
 
     @Test
-    @DisplayName("Deve criar agendamento respeitando regras de agendamento e notificações")
+    @DisplayName("Deve criar agendamento com veículo ativo da transportadora")
     void deveCriarAgendamento() {
-        JanelaAtendimento janela = criarJanelaComCapacidade(5);
-        when(janelaAtendimentoRepository.findById(1L)).thenReturn(Optional.of(janela));
-        when(transportadoraRepository.findById(2L)).thenReturn(Optional.of(new Transportadora()));
-        when(motoristaRepository.findById(3L)).thenReturn(Optional.of(new Motorista()));
-        when(veiculoRepository.findById(4L)).thenReturn(Optional.of(new Veiculo()));
-        when(agendamentoRepository.countByJanelaAtendimentoIdAndStatusNot(janela.getId(), StatusAgendamento.CANCELADO))
-                .thenReturn(0L);
+        Transportadora transportadora = criarTransportadora(2L);
+        Veiculo veiculo = criarVeiculo(4L, transportadora, true);
+        prepararCriacaoValida(transportadora, veiculo);
         when(agendamentoRepository.save(any())).thenAnswer(invocation -> {
             Agendamento entity = invocation.getArgument(0);
             entity.setId(99L);
             return entity;
         });
 
-        AgendamentoRequest request = criarRequestBasico();
-
-        AgendamentoDTO dto = agendamentoService.criar(request);
+        AgendamentoDTO dto = agendamentoService.criar(criarRequestBasico());
 
         ArgumentCaptor<Agendamento> captor = ArgumentCaptor.forClass(Agendamento.class);
         verify(agendamentoRepository).save(captor.capture());
@@ -128,8 +122,61 @@ class AgendamentoServiceTest {
 
         Agendamento salvo = captor.getValue();
         assertThat(salvo.getCodigo()).isEqualTo("AG001");
-        assertThat(salvo.getJanelaAtendimento()).isEqualTo(janela);
+        assertThat(salvo.getVeiculo()).isEqualTo(veiculo);
         assertThat(dto.getId()).isEqualTo(99L);
+    }
+
+    @Test
+    @DisplayName("Deve bloquear veículo inativo em novo agendamento")
+    void deveBloquearVeiculoInativo() {
+        Transportadora transportadora = criarTransportadora(2L);
+        prepararCriacaoValida(transportadora, criarVeiculo(4L, transportadora, false));
+
+        assertThatThrownBy(() -> agendamentoService.criar(criarRequestBasico()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Veículo inativo");
+
+        verify(agendamentoRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve bloquear veículo pertencente a outra transportadora")
+    void deveBloquearVeiculoDeOutraTransportadora() {
+        Transportadora transportadora = criarTransportadora(2L);
+        Transportadora outra = criarTransportadora(9L);
+        prepararCriacaoValida(transportadora, criarVeiculo(4L, outra, true));
+
+        assertThatThrownBy(() -> agendamentoService.criar(criarRequestBasico()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("não pertence à transportadora");
+
+        verify(agendamentoRepository, never()).save(any());
+    }
+
+    private void prepararCriacaoValida(Transportadora transportadora, Veiculo veiculo) {
+        JanelaAtendimento janela = criarJanelaComCapacidade(5);
+        when(janelaAtendimentoRepository.findById(1L)).thenReturn(Optional.of(janela));
+        when(transportadoraRepository.findById(2L)).thenReturn(Optional.of(transportadora));
+        when(motoristaRepository.findById(3L)).thenReturn(Optional.of(new Motorista()));
+        when(veiculoRepository.findById(4L)).thenReturn(Optional.of(veiculo));
+        when(agendamentoRepository.countByJanelaAtendimentoIdAndStatusNot(janela.getId(), StatusAgendamento.CANCELADO))
+                .thenReturn(0L);
+    }
+
+    private Transportadora criarTransportadora(Long id) {
+        Transportadora transportadora = new Transportadora();
+        transportadora.setId(id);
+        transportadora.setNome("Transportadora " + id);
+        return transportadora;
+    }
+
+    private Veiculo criarVeiculo(Long id, Transportadora transportadora, boolean ativo) {
+        Veiculo veiculo = new Veiculo();
+        veiculo.setId(id);
+        veiculo.setPlaca("ABC1D23");
+        veiculo.setTransportadora(transportadora);
+        veiculo.setAtivo(ativo);
+        return veiculo;
     }
 
     private JanelaAtendimento criarJanelaComCapacidade(int capacidade) {

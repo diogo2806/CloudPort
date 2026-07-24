@@ -5,6 +5,8 @@ import { selectGateAppointments } from '../gateDataset.js';
 import { gateOperatorApi, selectGateOperatorVehicles } from '../gateOperatorApi.js';
 import { OperationalCockpit } from '../OperationalCockpit.jsx';
 import { collectDatasetKeys, humanizeDatasetKey } from '../operationalDataset.js';
+import { FleetPage } from './FleetPage.jsx';
+import { GateAppointmentsPage } from './GateAppointmentsPage.jsx';
 import { GateVisualPage } from './GateVisualPage.jsx';
 import { NavioOperationalConsole } from './NavioOperationalConsole.jsx';
 import { RailLineUpPage } from './RailLineUpPage.jsx';
@@ -49,7 +51,7 @@ export function HomeDashboard({ navigate, session }) {
   return <OperationalCockpit navigate={navigate} session={activeSession} />;
 }
 
-export function GenericDatasetPage({ eyebrow, title, description, loader, preferredColumns = [], emptyTitle }) {
+function DatasetTablePage({ eyebrow, title, description, loader, preferredColumns = [], emptyTitle }) {
   const remote = useLoader(loader, [loader]);
   const rows = useMemo(() => normalizePage(remote.data), [remote.data]);
   const columns = useMemo(() => inferColumns(rows, preferredColumns), [rows, preferredColumns]);
@@ -59,6 +61,13 @@ export function GenericDatasetPage({ eyebrow, title, description, loader, prefer
     <Section title="Registros">{remote.loading ? <Loading /> : rows.length ? <DataTable rows={rows} columns={columns} gridId={`${eyebrow || 'operacao'}-${title}`} exportFileName={title} rowKey={(row, index) => row.id ?? row.codigo ?? row.identificador ?? index} /> : <EmptyState title={emptyTitle ?? 'Nenhum registro encontrado'} />}</Section>
     <JsonDetails value={remote.data && !rows.length ? remote.data : null} title="Resposta recebida" />
   </>;
+}
+
+export function GenericDatasetPage({ component, ...props }) {
+  const session = readSession() ?? {};
+  if (component === 'gateAppointments') return <GateAppointmentsPage session={session} />;
+  if (component === 'fleet') return <FleetPage session={session} />;
+  return <DatasetTablePage {...props} />;
 }
 
 export function GateDashboardPage() {
@@ -118,7 +127,9 @@ const loadGateAppointments = () => api.obterCentralGate().then(selectGateAppoint
 const loadGateOperatorVehicles = () => gateOperatorApi.obterPainel().then(selectGateOperatorVehicles);
 
 export const DATASET_ROUTES = {
-  '/home/gate/agendamentos': { eyebrow: 'Gate', title: 'Agendamentos', description: 'Agendamentos operacionais do gate.', loader: () => api.listarGateAgendamentos(), preferredColumns: ['codigo', 'status', 'tipoOperacao', 'placaVeiculo', 'transportadoraNome'] },
+  '/home/gate/agendamentos': { component: 'gateAppointments' },
+  '/home/cadastros/frota': { component: 'fleet' },
+  '/home/cap/frota': { component: 'fleet' },
   '/home/gate/janelas': { eyebrow: 'Gate', title: 'Janelas de atendimento', description: 'Janelas configuradas para recebimento e expedição.', loader: () => api.listarGateJanelas(), preferredColumns: ['id', 'data', 'horaInicio', 'horaFim', 'capacidade', 'status'] },
   '/home/gate/relatorios': { eyebrow: 'Gate', title: 'Relatórios', description: 'Visão consolidada do gate.', loader: loadGateAppointments, preferredColumns: ['codigo', 'status', 'tipoOperacaoDescricao'] },
   '/home/gate/operador': { eyebrow: 'Gate', title: 'Console do operador', description: 'Filas e veículos do painel operacional.', loader: loadGateOperatorVehicles, preferredColumns: ['placa', 'statusDescricao', 'motorista', 'transportadora', 'filaOperacional', 'fluxoOperacional', 'tempoFilaMinutos'] },

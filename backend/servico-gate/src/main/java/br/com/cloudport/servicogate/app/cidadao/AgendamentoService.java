@@ -74,17 +74,17 @@ public class AgendamentoService {
     private static final Logger LOGGER = LoggerFactory.getLogger(AgendamentoService.class);
 
     public AgendamentoService(AgendamentoRepository agendamentoRepository,
-                              JanelaAtendimentoRepository janelaAtendimentoRepository,
-                              TransportadoraRepository transportadoraRepository,
-                              MotoristaRepository motoristaRepository,
-                              VeiculoRepository veiculoRepository,
-                              DocumentoAgendamentoRepository documentoAgendamentoRepository,
-                              DocumentoStorageService documentoStorageService,
-                              AgendamentoRulesProperties rulesProperties,
-                              TosIntegrationService tosIntegrationService,
-                              DashboardService dashboardService,
-                              AgendamentoRealtimeService agendamentoRealtimeService,
-                              ProcessamentoOcrPublisher processamentoOcrPublisher) {
+                               JanelaAtendimentoRepository janelaAtendimentoRepository,
+                               TransportadoraRepository transportadoraRepository,
+                               MotoristaRepository motoristaRepository,
+                               VeiculoRepository veiculoRepository,
+                               DocumentoAgendamentoRepository documentoAgendamentoRepository,
+                               DocumentoStorageService documentoStorageService,
+                               AgendamentoRulesProperties rulesProperties,
+                               TosIntegrationService tosIntegrationService,
+                               DashboardService dashboardService,
+                               AgendamentoRealtimeService agendamentoRealtimeService,
+                               ProcessamentoOcrPublisher processamentoOcrPublisher) {
         this.agendamentoRepository = agendamentoRepository;
         this.janelaAtendimentoRepository = janelaAtendimentoRepository;
         this.transportadoraRepository = transportadoraRepository;
@@ -293,12 +293,13 @@ public class AgendamentoService {
     }
 
     private void aplicarDados(Agendamento agendamento, AgendamentoRequest request, JanelaAtendimento janela) {
+        Transportadora transportadora = buscarTransportadora(request.getTransportadoraId());
         agendamento.setCodigo(request.getCodigo());
         agendamento.setTipoOperacao(parseTipoOperacao(request.getTipoOperacao()));
         agendamento.setStatus(parseStatus(request.getStatus()));
-        agendamento.setTransportadora(buscarTransportadora(request.getTransportadoraId()));
+        agendamento.setTransportadora(transportadora);
         agendamento.setMotorista(buscarMotorista(request.getMotoristaId()));
-        agendamento.setVeiculo(buscarVeiculo(request.getVeiculoId()));
+        agendamento.setVeiculo(buscarVeiculo(request.getVeiculoId(), transportadora));
         agendamento.setJanelaAtendimento(janela);
         agendamento.setHorarioPrevistoChegada(request.getHorarioPrevistoChegada());
         agendamento.setHorarioPrevistoSaida(request.getHorarioPrevistoSaida());
@@ -424,9 +425,17 @@ public class AgendamentoService {
                 .orElseThrow(() -> new NotFoundException("Motorista não encontrado"));
     }
 
-    private Veiculo buscarVeiculo(Long id) {
-        return veiculoRepository.findById(id)
+    private Veiculo buscarVeiculo(Long id, Transportadora transportadora) {
+        Veiculo veiculo = veiculoRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Veículo não encontrado"));
+        if (!veiculo.isAtivo()) {
+            throw new BusinessException("Veículo inativo não pode ser usado em novos agendamentos");
+        }
+        if (veiculo.getTransportadora() == null
+                || !Objects.equals(veiculo.getTransportadora().getId(), transportadora.getId())) {
+            throw new BusinessException("Veículo não pertence à transportadora selecionada");
+        }
+        return veiculo;
     }
 
     private TipoOperacao parseTipoOperacao(String tipoOperacao) {

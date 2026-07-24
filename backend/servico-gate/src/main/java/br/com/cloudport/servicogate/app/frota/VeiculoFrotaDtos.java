@@ -28,4 +28,10 @@ public final class VeiculoFrotaDtos {
             String transportadoraNome,
             boolean ativo) {
     }
+
+    public record TransportadoraVinculada(
+            Long id,
+            String nome,
+            String documento) {
+    }
 }

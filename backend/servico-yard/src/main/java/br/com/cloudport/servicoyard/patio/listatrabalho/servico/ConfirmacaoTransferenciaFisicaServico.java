@@ -1,5 +1,6 @@
 package br.com.cloudport.servicoyard.patio.listatrabalho.servico;
 
+import br.com.cloudport.servicoyard.patio.avisoestivagem.servico.AvisoEstivagemPatioServico;
 import br.com.cloudport.servicoyard.patio.dto.ConteinerPatioRequisicaoDto;
 import br.com.cloudport.servicoyard.patio.listatrabalho.dto.EventoVmtWorkInstructionRequest;
 import br.com.cloudport.servicoyard.patio.listatrabalho.modelo.OrdemTrabalhoPatio;
@@ -36,19 +37,22 @@ public class ConfirmacaoTransferenciaFisicaServico {
     private final ConteinerPatioRepositorio conteinerRepositorio;
     private final PosicaoPatioRepositorio posicaoRepositorio;
     private final MapaPatioServico mapaPatioServico;
+    private final AvisoEstivagemPatioServico avisoEstivagemServico;
 
     public ConfirmacaoTransferenciaFisicaServico(WorkQueuePatioRepositorio workQueueRepositorio,
                                                   OrdemTrabalhoPatioRepositorio ordemRepositorio,
                                                   EquipamentoPatioRepositorio equipamentoRepositorio,
                                                   ConteinerPatioRepositorio conteinerRepositorio,
                                                   PosicaoPatioRepositorio posicaoRepositorio,
-                                                  MapaPatioServico mapaPatioServico) {
+                                                  MapaPatioServico mapaPatioServico,
+                                                  AvisoEstivagemPatioServico avisoEstivagemServico) {
         this.workQueueRepositorio = workQueueRepositorio;
         this.ordemRepositorio = ordemRepositorio;
         this.equipamentoRepositorio = equipamentoRepositorio;
         this.conteinerRepositorio = conteinerRepositorio;
         this.posicaoRepositorio = posicaoRepositorio;
         this.mapaPatioServico = mapaPatioServico;
+        this.avisoEstivagemServico = avisoEstivagemServico;
     }
 
     @Transactional
@@ -61,9 +65,10 @@ public class ConfirmacaoTransferenciaFisicaServico {
 
         if (request.getTipoAcaoFisica() == TipoAcaoFisicaPatio.GROUNDING) {
             confirmarGrounding(ordem, request);
-            return;
+        } else {
+            confirmarUngrounding(ordem, request);
         }
-        confirmarUngrounding(ordem, request);
+        avisoEstivagemServico.revalidarInventario("VMT_ORDEM_" + ordem.getId());
     }
 
     private void validarLeituraUnidade(OrdemTrabalhoPatio ordem,

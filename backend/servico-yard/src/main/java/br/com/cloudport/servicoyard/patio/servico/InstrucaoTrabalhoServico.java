@@ -40,6 +40,7 @@ public class InstrucaoTrabalhoServico {
     private final EquipamentoPatioRepositorio equipamentoRepositorio;
     private final PosicaoPatioRepositorio posicaoRepositorio;
     private final ValidadorYardPlacementService validadorPlacement;
+    private final ValidadorBloqueioAvisoEstivagemPatioServico validadorAvisoEstivagem;
     private final AvisoEstivagemPatioServico avisoEstivagemServico;
 
     public InstrucaoTrabalhoServico(InstrucaoTrabalhoRepositorio instrucaoRepositorio,
@@ -47,12 +48,14 @@ public class InstrucaoTrabalhoServico {
                                      EquipamentoPatioRepositorio equipamentoRepositorio,
                                      PosicaoPatioRepositorio posicaoRepositorio,
                                      ValidadorYardPlacementService validadorPlacement,
+                                     ValidadorBloqueioAvisoEstivagemPatioServico validadorAvisoEstivagem,
                                      AvisoEstivagemPatioServico avisoEstivagemServico) {
         this.instrucaoRepositorio = instrucaoRepositorio;
         this.conteinerRepositorio = conteinerRepositorio;
         this.equipamentoRepositorio = equipamentoRepositorio;
         this.posicaoRepositorio = posicaoRepositorio;
         this.validadorPlacement = validadorPlacement;
+        this.validadorAvisoEstivagem = validadorAvisoEstivagem;
         this.avisoEstivagemServico = avisoEstivagemServico;
     }
 
@@ -159,7 +162,7 @@ public class InstrucaoTrabalhoServico {
             validarDisponibilidade(posicaoDestino);
         }
 
-        avisoEstivagemServico.validarOperacaoSemAvisoCritico(codigoConteiner, destinoNormalizado);
+        validadorAvisoEstivagem.validar(codigoConteiner, destinoNormalizado);
 
         ConteinerPatioRequisicaoDto requisicao = new ConteinerPatioRequisicaoDto();
         requisicao.setCodigo(conteiner.getCodigo());

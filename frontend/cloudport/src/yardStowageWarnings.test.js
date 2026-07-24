@@ -4,7 +4,9 @@ import { readFile } from 'node:fs/promises';
 
 const apiSource = await readFile(new URL('./yardStowageWarningApi.js', import.meta.url), 'utf8');
 const pageSource = await readFile(new URL('./pages/yard/YardStowageWarningsPage.jsx', import.meta.url), 'utf8');
-const mapSource = await readFile(new URL('./pages/yard/YardMapPages.jsx', import.meta.url), 'utf8');
+const mapPageSource = await readFile(new URL('./pages/yard/YardMapPages.jsx', import.meta.url), 'utf8');
+const mapComponentSource = await readFile(new URL('./pages/yard/GoogleYardMap.jsx', import.meta.url), 'utf8');
+const yardModelSource = await readFile(new URL('./pages/yard/yardModel.js', import.meta.url), 'utf8');
 
 function expectSource(source, pattern, message) {
   assert.match(source, pattern, message);
@@ -32,9 +34,13 @@ test('fila operacional permite priorização e tratamento auditável', () => {
   expectSource(pageSource, /Manual contextual/, 'deve oferecer instrução operacional completa');
 });
 
-test('mapa mostra volume crítico e abre a fila de avisos', () => {
-  expectSource(mapSource, /yardStowageWarningApi\.resumo\(\)/, 'deve carregar o resumo persistido');
-  expectSource(mapSource, /avisosEstivagem/, 'deve associar badges às posições');
-  expectSource(mapSource, /Avisos de estivagem \(/, 'deve abrir a fila a partir do mapa');
-  expectSource(mapSource, /Planejamentos e dispatches incompatíveis estão bloqueados/, 'deve sinalizar bloqueio crítico');
+test('mapa mostra volume crítico e badges sobre as pilhas', () => {
+  expectSource(mapPageSource, /yardStowageWarningApi\.resumo\(\)/, 'deve carregar o resumo persistido');
+  expectSource(mapPageSource, /avisosEstivagem/, 'deve associar badges às posições');
+  expectSource(mapPageSource, /Avisos de estivagem \(/, 'deve abrir a fila a partir do mapa');
+  expectSource(mapPageSource, /Planejamentos e dispatches incompatíveis estão bloqueados/, 'deve sinalizar bloqueio crítico');
+  expectSource(yardModelSource, /stack\.avisosEstivagem \+=/, 'deve agregar avisos por pilha');
+  expectSource(yardModelSource, /orderedStacks\.reduce/, 'deve agregar avisos por bloco');
+  expectSource(mapComponentSource, /yard-google-stowage-badge/, 'deve renderizar o badge sobre a pilha');
+  expectSource(mapComponentSource, /aviso\(s\) de estivagem/, 'deve detalhar os avisos no popup e na legenda');
 });

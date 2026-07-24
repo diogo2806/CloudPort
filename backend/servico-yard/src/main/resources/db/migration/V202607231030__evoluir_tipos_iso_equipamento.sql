@@ -11,9 +11,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_tipo_equipamento_codigo_iso
     ON tipo_equipamento_inventario (UPPER(codigo_iso))
     WHERE codigo_iso IS NOT NULL;
 
-ALTER TABLE tipo_equipamento_inventario
-    ADD CONSTRAINT fk_tipo_equipamento_grupo_iso
-    FOREIGN KEY (grupo_iso_id) REFERENCES grupo_iso_equipamento(id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint constraint_definition
+        JOIN pg_class relation ON relation.oid = constraint_definition.conrelid
+        WHERE constraint_definition.conname = 'fk_tipo_equipamento_grupo_iso'
+          AND relation.relname = 'tipo_equipamento_inventario'
+    ) THEN
+        ALTER TABLE tipo_equipamento_inventario
+            ADD CONSTRAINT fk_tipo_equipamento_grupo_iso
+            FOREIGN KEY (grupo_iso_id) REFERENCES grupo_iso_equipamento(id);
+    END IF;
+END $$;
 
 UPDATE tipo_equipamento_inventario
 SET codigo_iso = UPPER(TRIM(codigo_iso)),

@@ -8,6 +8,7 @@ import { useYardContingency } from './yardContingency.js';
 import { yardGeometryApi } from './yardGeometryApi.js';
 import { yardOperationalApi } from './yardOperationalApi.js';
 import { YardReeferPanel } from './YardReeferPanel.jsx';
+import { YardStowageWarningsPanel } from './YardStowageWarningsPanel.jsx';
 import { mergeYardEquipment, yardRestrictionSummary } from './yardLiveMap.js';
 import { buildStacks, DetailGrid, FilterField, normalized, Pagination, positionKey, usePagination, useRemote, YardPageHeader } from './YardShared.jsx';
 
@@ -132,6 +133,7 @@ export function YardMapPage({ navigate }) {
     </div></Section>
     {remote.loading && !remote.hasSnapshot ? <Loading label="Carregando mapa, rotas e telemetria..." /> : <>
       <div className="metrics-grid"><MetricCard label="Blocos" value={stacks.length} /><MetricCard label="Posições reais" value={enrichedPositions.length} /><MetricCard label="Geometrias" value={remote.data?.geometries?.length ?? 0} /><MetricCard label="Contêineres" value={containers.length} /><MetricCard label={remote.isOffline ? 'CHEs na fotografia' : 'CHEs em tempo real'} value={equipment.length} detail={`${routes.length} rota(s) ativa(s)`} /><MetricCard label="Pilhas bloqueadas" value={restrictions.blocked} detail={`${restrictions.interdicted} interditada(s)`} /></div>
+      <YardStowageWarningsPanel canOperate={operationalCommandsEnabled} navigate={navigate} />
       <Section title="Pátio georreferenciado" description="Polígonos GeoJSON persistidos aparecem sobre o OpenStreetMap gratuito. Root, planejadores e administradores podem criar e ajustar o desenho clicando diretamente no mapa.">
         <OpenStreetMapYardMap blocks={stacks} selectedStack={selectedStack} onSelectStack={setSelectedStack} routes={routes} equipment={equipment} geometries={remote.data?.geometries} canEditGeometry={geometryCommandsEnabled} onSaveGeometry={saveGeometry} onDeleteGeometry={deleteGeometry} />
         {!!routes.length && <div className="yard-route-summary">{routes.slice(0, 20).map((route) => <span key={route.id}>WI #{route.id} · {sanitizeText(route.codigoConteiner)} · L{route.origem.linha}/C{route.origem.coluna} → L{route.destino.linha}/C{route.destino.coluna}</span>)}</div>}
